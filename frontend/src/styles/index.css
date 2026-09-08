@@ -1,0 +1,143 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+
+    --surface: 0 0% 100%;
+    --surface-muted: 210 40% 96%;
+
+    --muted: 215 16% 47%;
+    --muted-foreground: 215 19% 35%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 88%;
+    --ring: 199 89% 48%;
+
+    --primary: 199 89% 40%;
+    --primary-foreground: 0 0% 100%;
+
+    --success: 152 60% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 32 90% 48%;
+    --warning-foreground: 0 0% 100%;
+    --danger: 0 72% 47%;
+    --danger-foreground: 0 0% 100%;
+    --critical: 350 84% 44%;
+    --critical-foreground: 0 0% 100%;
+
+    --radius: 0.625rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer base {
+  /* Never allow the page itself to scroll sideways. This is a safety net —
+     every component is still expected to fit its own container. */
+  html,
+  body,
+  #root {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-lg border border-border bg-surface shadow-card;
+  }
+
+  /* ---------------------------------------------------------------------------
+     Product mockups.
+
+     The outer <MockWindow> frame ALWAYS fits the landing-page container. The
+     product interface sits on an inner canvas that may be wider than the frame;
+     on narrow screens the viewer swipes it horizontally. That swipe is trapped
+     inside the mockup and never turns into page-level horizontal scroll.
+     --------------------------------------------------------------------------- */
+  .mock-root {
+    container-type: inline-size;
+    container-name: mock;
+    position: relative;
+  }
+
+  .mock-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .mock-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Right-edge fade — a quiet cue that there is more to see sideways. Shown
+     only on mockups that actually have a wide canvas, and only while the frame
+     is narrow enough for that canvas to overflow. */
+  .mock-fade {
+    position: absolute;
+    top: 2.25rem;
+    right: 0;
+    bottom: 0;
+    width: 2.75rem;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    background: linear-gradient(to left, hsl(var(--surface)), hsl(var(--surface) / 0));
+  }
+  @container mock (max-width: 47rem) {
+    .is-scrollable .mock-fade {
+      opacity: 1;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mock-scroll {
+    scroll-behavior: auto;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #report-print,
+  #report-print *,
+  #patient-print,
+  #patient-print * {
+    visibility: visible;
+  }
+  #report-print,
+  #patient-print {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+  }
+  [data-print-hide] {
+    display: none !important;
+  }
+}

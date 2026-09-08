@@ -1,0 +1,33 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: lims-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: lims
+      MYSQL_USER: lims
+      MYSQL_PASSWORD: lims
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      # Host 3307 to avoid clashing with a locally-installed MySQL on 3306.
+      - "3307:3306"
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - lims_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-plims", "-ulims"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  adminer:
+    image: adminer:4
+    container_name: lims-adminer
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    depends_on:
+      - mysql
+
+volumes:
+  lims_mysql_data:

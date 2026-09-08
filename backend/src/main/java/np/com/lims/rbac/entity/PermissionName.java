@@ -1,0 +1,42 @@
+package np.com.lims.rbac.entity;
+
+/**
+ * Fine-grained permissions. Names are stable API contracts ({@code MODULE_ACTION}) and are
+ * used both as Spring Security authorities and as seed data in Flyway migrations.
+ */
+public enum PermissionName {
+
+    PATIENT_READ, PATIENT_WRITE, PATIENT_CONFIDENTIAL, PATIENT_MERGE,
+    DOCTOR_READ, DOCTOR_WRITE,
+    DEPARTMENT_READ, DEPARTMENT_WRITE,
+    TEST_CATALOG_READ, TEST_CATALOG_WRITE,
+
+    LAB_ORDER_READ, LAB_ORDER_WRITE,
+
+    SAMPLE_READ, SAMPLE_COLLECT, SAMPLE_RECEIVE, SAMPLE_REJECT,
+
+    RESULT_READ, RESULT_ENTER, RESULT_VERIFY, RESULT_APPROVE, RESULT_AMEND,
+
+    REPORT_READ, REPORT_GENERATE, REPORT_DELIVER, REPORT_TEMPLATE_MANAGE,
+
+    INVOICE_READ, INVOICE_WRITE, INVOICE_CANCEL,
+    PAYMENT_READ, PAYMENT_WRITE,
+    REFUND_REQUEST, REFUND_APPROVE,
+
+    IRD_SUBMISSION_READ, IRD_SUBMISSION_MANAGE,
+
+    INVENTORY_READ, INVENTORY_WRITE,
+
+    NOTIFICATION_READ,
+    AUDIT_READ,
+    REPORTING_READ,
+
+    USER_READ, USER_WRITE,
+    ROLE_READ, ROLE_WRITE,
+    SETTINGS_READ, SETTINGS_WRITE;
+
+    /** Authority string form as used in {@code hasAuthority(...)} checks. */
+    public String authority() {
+        return "PERM_" + name();
+    }
+}

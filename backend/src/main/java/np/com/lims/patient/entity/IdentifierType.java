@@ -1,0 +1,6 @@
+package np.com.lims.patient.entity;
+
+public enum IdentifierType {
+    CITIZENSHIP, NATIONAL_ID, PASSPORT, PAN, VOTER_ID, DRIVING_LICENSE,
+    NHIS, SSF, BIRTH_CERTIFICATE, MINOR_ID, EMBASSY_ID, REFUGEE_ID, OTHER
+}
