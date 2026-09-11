@@ -22,7 +22,8 @@ public final class LaboratoryProfileDtos {
             @jakarta.validation.constraints.NotBlank @Size(max = 16) String fiscalYear,
             @jakarta.validation.constraints.NotBlank @Size(max = 16) String invoicePrefix,
             @jakarta.validation.constraints.PositiveOrZero java.math.BigDecimal defaultTaxRate,
-            @jakarta.validation.constraints.Min(1) Integer inventoryExpiryAlertDays
+            @jakarta.validation.constraints.Min(1) Integer inventoryExpiryAlertDays,
+            boolean requirePaymentBeforeCollection
     ) {
     }
 
@@ -38,12 +39,14 @@ public final class LaboratoryProfileDtos {
             String fiscalYear,
             String invoicePrefix,
             java.math.BigDecimal defaultTaxRate,
-            int inventoryExpiryAlertDays
+            int inventoryExpiryAlertDays,
+            boolean requirePaymentBeforeCollection
     ) {
         public static Response from(LaboratoryProfile p) {
             return new Response(p.getName(), p.getAddressLine(), p.getCity(), p.getPhone(), p.getEmail(),
                     p.getPanNumber(), p.getReportFooter(), p.getLogoDataUri(),
-                    p.getFiscalYear(), p.getInvoicePrefix(), p.getDefaultTaxRate(), p.getInventoryExpiryAlertDays());
+                    p.getFiscalYear(), p.getInvoicePrefix(), p.getDefaultTaxRate(), p.getInventoryExpiryAlertDays(),
+                    p.isRequirePaymentBeforeCollection());
         }
     }
 }

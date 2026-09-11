@@ -38,6 +38,7 @@ public final class OrderDtos {
     public record SaveRequest(
             @NotNull Long patientId,
             Long referringDoctorId,
+            Long branchId,
             @Size(max = 1000) String clinicalNotes,
             Priority priority,
             @NotEmpty @Valid List<ItemRequest> items,
@@ -109,6 +110,8 @@ public final class OrderDtos {
             Long patientId,
             String patientName,
             String patientMrn,
+            Long branchId,
+            String branchName,
             OrderStatus status,
             String priority,
             int itemCount,
@@ -117,7 +120,9 @@ public final class OrderDtos {
     ) {
         public static ListItem from(LabOrder o) {
             return new ListItem(o.getId(), o.getOrderNumber(), o.getPatient().getId(), PatientPrivacy.displayName(o.getPatient()),
-                    o.getPatient().getMrn(), o.getStatus(), o.getPriority().name(), o.getItems().size(), o.getTotalAmount(), o.getOrderedAt());
+                    o.getPatient().getMrn(), o.getBranch() == null ? null : o.getBranch().getId(),
+                    o.getBranch() == null ? null : o.getBranch().getName(),
+                    o.getStatus(), o.getPriority().name(), o.getItems().size(), o.getTotalAmount(), o.getOrderedAt());
         }
     }
 
@@ -127,6 +132,8 @@ public final class OrderDtos {
             Long patientId,
             String patientName,
             String patientMrn,
+            Long branchId,
+            String branchName,
             Long referringDoctorId,
             String referringDoctorName,
             OrderStatus status,
@@ -143,6 +150,8 @@ public final class OrderDtos {
             return new Detail(
                     o.getId(), o.getOrderNumber(), o.getPatient().getId(), PatientPrivacy.displayName(o.getPatient()),
                     o.getPatient().getMrn(),
+                    o.getBranch() == null ? null : o.getBranch().getId(),
+                    o.getBranch() == null ? null : o.getBranch().getName(),
                     o.getReferringDoctor() == null ? null : o.getReferringDoctor().getId(),
                     o.getReferringDoctor() == null ? null : o.getReferringDoctor().getFullName(),
                     o.getStatus(), o.getPriority().name(), o.getClinicalNotes(), o.getOrderedAt(), o.getConfirmedAt(),

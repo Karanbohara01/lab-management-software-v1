@@ -13,7 +13,14 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { formatDate } from '@/features/patients/format';
 import { irdApi } from './api';
 import { IrdConfigBanner } from './IrdConfigBanner';
-import { IRD_STATUS_LABEL, IRD_STATUS_TONE, type IrdStatus, type IrdSubmissionListItem } from './types';
+import {
+  CREDIT_NOTE_STATUS_LABEL,
+  CREDIT_NOTE_STATUS_TONE,
+  IRD_STATUS_LABEL,
+  IRD_STATUS_TONE,
+  type IrdStatus,
+  type IrdSubmissionListItem,
+} from './types';
 
 const PAGE_SIZE = 20;
 const TABS: { value: '' | IrdStatus; label: string }[] = [
@@ -49,6 +56,9 @@ export function IrdSubmissionsPage() {
         <span className="flex items-center gap-1.5">
           <Badge tone={IRD_STATUS_TONE[s.status]}>{IRD_STATUS_LABEL[s.status]}</Badge>
           {s.manual && <Badge tone="neutral">Manual</Badge>}
+          {s.creditNoteStatus !== 'NOT_NEEDED' && (
+            <Badge tone={CREDIT_NOTE_STATUS_TONE[s.creditNoteStatus]}>{CREDIT_NOTE_STATUS_LABEL[s.creditNoteStatus]}</Badge>
+          )}
         </span>
       ),
     },

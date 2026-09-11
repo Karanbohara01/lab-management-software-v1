@@ -36,6 +36,7 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
             SELECT i FROM Invoice i
             WHERE (:status IS NULL OR i.status = :status)
               AND (:patientId IS NULL OR i.patient.id = :patientId)
+              AND (:branchId IS NULL OR i.order.branch.id = :branchId)
               AND (:unpaidOnly = FALSE OR (i.status = 'ISSUED' AND i.totalAmount > (i.amountPaid - i.amountRefunded)))
               AND (:search IS NULL
                    OR LOWER(COALESCE(i.invoiceNumber, '')) LIKE LOWER(CONCAT('%', :search, '%'))
@@ -44,7 +45,48 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
             """)
     Page<Invoice> search(@Param("status") InvoiceStatus status,
                          @Param("patientId") Long patientId,
+                         @Param("branchId") Long branchId,
                          @Param("unpaidOnly") boolean unpaidOnly,
                          @Param("search") String search,
                          Pageable pageable);
+
+    /** Every issued invoice in a given range, for the Sales Book report (Anusuchi-7) and exports — oldest first, no paging. */
+    @Query("""
+            SELECT i FROM Invoice i
+            WHERE i.status = 'ISSUED'
+              AND i.issuedAt >= :from AND i.issuedAt < :to
+              AND (:branchId IS NULL OR i.order.branch.id = :branchId)
+            ORDER BY i.issuedAt ASC
+            """)
+    java.util.List<Invoice> findIssuedBetween(@Param("from") java.time.Instant from,
+                                              @Param("to") java.time.Instant to,
+                                              @Param("branchId") Long branchId);
+
+    /**
+     * Every bill ever issued in a range — INCLUDING later-cancelled ones (unlike
+     * {@link #findIssuedBetween}, which is scoped to still-ISSUED for the Sales Book, where a
+     * cancelled sale genuinely shouldn't count). Used for the Anusuchi-5 master-bill report,
+     * which must show cancelled bills too (flagged via {@code isBillActive}), not omit them.
+     */
+    @Query("""
+            SELECT i FROM Invoice i
+            WHERE i.issuedAt >= :from AND i.issuedAt < :to
+              AND (:branchId IS NULL OR i.order.branch.id = :branchId)
+            ORDER BY i.issuedAt ASC
+            """)
+    java.util.List<Invoice> findAllIssuedBetween(@Param("from") java.time.Instant from,
+                                                 @Param("to") java.time.Instant to,
+                                                 @Param("branchId") Long branchId);
+
+    /** Every invoice cancelled within a range — the standalone corrections report (दफा ६(ठ)). */
+    @Query("""
+            SELECT i FROM Invoice i
+            WHERE i.status = 'CANCELLED'
+              AND i.cancelledAt >= :from AND i.cancelledAt < :to
+              AND (:branchId IS NULL OR i.order.branch.id = :branchId)
+            ORDER BY i.cancelledAt ASC
+            """)
+    java.util.List<Invoice> findCancelledBetween(@Param("from") java.time.Instant from,
+                                                 @Param("to") java.time.Instant to,
+                                                 @Param("branchId") Long branchId);
 }

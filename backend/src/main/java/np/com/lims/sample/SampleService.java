@@ -1,8 +1,12 @@
 package np.com.lims.sample;
 
+import np.com.lims.billing.InvoiceRepository;
+import np.com.lims.billing.entity.Invoice;
+import np.com.lims.billing.entity.PaymentStatus;
 import np.com.lims.catalog.entity.SpecimenType;
 import np.com.lims.common.audit.AuditService;
 import np.com.lims.common.exception.ApiException;
+import np.com.lims.common.exception.ErrorCode;
 import np.com.lims.common.sequence.SequenceService;
 import np.com.lims.common.web.CurrentUser;
 import np.com.lims.order.entity.LabOrder;
@@ -15,6 +19,7 @@ import np.com.lims.sample.dto.SampleDtos.ListItem;
 import np.com.lims.sample.dto.SampleDtos.StatusSummary;
 import np.com.lims.sample.entity.Sample;
 import np.com.lims.sample.entity.SampleStatus;
+import np.com.lims.settings.LaboratoryProfileService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -36,15 +41,21 @@ public class SampleService {
     private final SequenceService sequenceService;
     private final AuditService auditService;
     private final TestResultService testResultService;
+    private final LaboratoryProfileService laboratoryProfileService;
+    private final InvoiceRepository invoiceRepository;
 
     public SampleService(SampleRepository sampleRepository,
                          SequenceService sequenceService,
                          AuditService auditService,
-                         TestResultService testResultService) {
+                         TestResultService testResultService,
+                         LaboratoryProfileService laboratoryProfileService,
+                         InvoiceRepository invoiceRepository) {
         this.sampleRepository = sampleRepository;
         this.sequenceService = sequenceService;
         this.auditService = auditService;
         this.testResultService = testResultService;
+        this.laboratoryProfileService = laboratoryProfileService;
+        this.invoiceRepository = invoiceRepository;
     }
 
     /**
@@ -82,9 +93,11 @@ public class SampleService {
 
     @Transactional(readOnly = true)
     public Page<ListItem> search(SampleStatus status, Long orderId, Long patientId, Long departmentId,
-                                 String query, Pageable pageable) {
+                                 Long branchId, String query, Pageable pageable) {
         String normalized = StringUtils.hasText(query) ? query.trim() : null;
-        return sampleRepository.search(status, orderId, patientId, departmentId, normalized, pageable)
+        Long effectiveBranchId = np.com.lims.common.web.CurrentUser.branchId() != null
+                ? np.com.lims.common.web.CurrentUser.branchId() : branchId;
+        return sampleRepository.search(status, orderId, patientId, departmentId, effectiveBranchId, normalized, pageable)
                 .map(ListItem::from);
     }
 
@@ -118,10 +131,44 @@ public class SampleService {
     @Transactional
     public Detail collect(Long id, CollectRequest request) {
         Sample sample = load(id);
+        boolean overridden = checkPaymentGate(sample, request.paymentOverrideReason());
         sample.collect(CurrentUser.username(),
                 trimToNull(request.collectionSite()), trimToNull(request.container()), trimToNull(request.note()));
-        audit(sample, "COLLECT", "Collected sample " + sample.getAccessionNumber());
+        if (overridden) {
+            audit(sample, "COLLECT_PAYMENT_OVERRIDE", "Collected sample " + sample.getAccessionNumber()
+                    + " despite unpaid balance - " + trimToNull(request.paymentOverrideReason()));
+        } else {
+            audit(sample, "COLLECT", "Collected sample " + sample.getAccessionNumber());
+        }
         return Detail.from(sample);
+    }
+
+    /**
+     * Enforces the optional "pay before collection" gate (Settings → require-payment-before-collection).
+     * Third-party-billed patients (insurance/SSF/corporate/...) are always exempt — they're billed on
+     * account, not at the counter. Self-pay patients need their order's invoice paid in full, unless a
+     * documented override reason is supplied (audited). Returns true when an override was used.
+     */
+    private boolean checkPaymentGate(Sample sample, String overrideReason) {
+        if (!laboratoryProfileService.require().isRequirePaymentBeforeCollection()) {
+            return false;
+        }
+        if (sample.getPatient().getPayer().isThirdParty()) {
+            return false;
+        }
+        Invoice invoice = invoiceRepository.findByOrderId(sample.getOrder().getId()).orElse(null);
+        boolean settled = invoice != null
+                && (invoice.paymentStatus() == PaymentStatus.PAID || invoice.paymentStatus() == PaymentStatus.OVERPAID);
+        if (settled) {
+            return false;
+        }
+        String reason = trimToNull(overrideReason);
+        if (reason == null) {
+            throw new ApiException(ErrorCode.RESOURCE_CONFLICT,
+                    "Payment has not been received for this order yet. Take payment first, or collect anyway "
+                            + "with a documented reason.");
+        }
+        return true;
     }
 
     @Transactional

@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, CheckCircle2, Save, ShieldCheck, Undo2 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
@@ -21,13 +21,13 @@ import {
   RESULT_STATUS_TONE,
   flagLabel,
   flagTone,
-  type ResultDetail,
   type CommentTemplate,
   type ResultValue,
   type ValueInput,
 } from './types';
 import { AmendResultModal } from './AmendResultModal';
 import { CriticalCallbackModal } from './CriticalCallbackModal';
+import { CultureEntryForm } from './CultureEntryForm';
 
 const CHOICE_OPTIONS: Partial<Record<ResultValue['dataType'], string[]>> = {
   POSITIVE_NEGATIVE: ['Positive', 'Negative'],
@@ -36,6 +36,10 @@ const CHOICE_OPTIONS: Partial<Record<ResultValue['dataType'], string[]>> = {
 
 export function ResultEntryPage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const fromOrder = searchParams.get('from')?.startsWith('order:')
+    ? searchParams.get('from')!.slice('order:'.length)
+    : null;
   const toast = useToast();
   const { hasPermission } = useAuth();
 
@@ -105,14 +109,29 @@ export function ResultEntryPage() {
     }
   };
 
-  const runAction = async (fn: () => Promise<ResultDetail>, successMsg: string) => {
+  const verifyResult = async () => {
     setBusyAction(true);
     try {
-      await fn();
-      toast.success(successMsg);
+      await resultsApi.verify(result.id);
+      toast.success('Result verified');
       refetch();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Action failed');
+      if (err instanceof ApiError && err.status === 409) {
+        const reason = window.prompt(
+          `${err.message}\n\nEnter a documented reason to verify it yourself:`,
+        );
+        if (reason && reason.trim()) {
+          try {
+            await resultsApi.verify(result.id, reason.trim());
+            toast.success('Result verified with override');
+            refetch();
+          } catch (e2) {
+            toast.error(e2 instanceof ApiError ? e2.message : 'Action failed');
+          }
+        }
+      } else {
+        toast.error(err instanceof ApiError ? err.message : 'Action failed');
+      }
     } finally {
       setBusyAction(false);
     }
@@ -160,11 +179,11 @@ export function ResultEntryPage() {
   return (
     <>
       <Link
-        to={`/app/samples/${result.sampleId}`}
+        to={fromOrder ? `/app/orders/${fromOrder}` : `/app/samples/${result.sampleId}`}
         className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" aria-hidden />
-        Sample {result.accessionNumber}
+        {fromOrder ? `Order ${result.orderNumber}` : `Sample ${result.accessionNumber}`}
       </Link>
 
       <PageHeader
@@ -265,6 +284,9 @@ export function ResultEntryPage() {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
+          {result.resultMode === 'CULTURE' ? (
+            <CultureEntryForm result={result} editable={editable} onSaved={refetch} />
+          ) : (
           <Card>
             <CardHeader title="Parameters" />
             <div className="overflow-x-auto">
@@ -408,6 +430,7 @@ export function ResultEntryPage() {
               />
             </CardBody>
           </Card>
+          )}
 
           {result.history.length > 0 && (
             <Card>
@@ -438,18 +461,21 @@ export function ResultEntryPage() {
           <Card>
             <CardHeader title="Actions" />
             <CardBody className="space-y-2">
-              {editable && (
+              {editable && result.resultMode !== 'CULTURE' && (
                 <Button className="w-full" onClick={save} loading={saving}>
                   <Save className="h-4 w-4" aria-hidden />
                   Save results
                 </Button>
+              )}
+              {result.resultMode === 'CULTURE' && (
+                <p className="text-xs text-muted">Enter culture findings in the panel on the left, then verify.</p>
               )}
               {result.status === 'ENTERED' && hasPermission(PERMISSIONS.RESULT_VERIFY) && (
                 <Button
                   className="w-full"
                   variant="secondary"
                   disabled={busyAction}
-                  onClick={() => runAction(() => resultsApi.verify(result.id), 'Result verified')}
+                  onClick={verifyResult}
                 >
                   <CheckCircle2 className="h-4 w-4" aria-hidden />
                   Verify

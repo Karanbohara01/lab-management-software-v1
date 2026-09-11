@@ -34,21 +34,25 @@ import java.util.stream.Collectors;
 public class AdminService {
 
     private static final String MODULE = "ADMIN";
+    private static final int EXPORT_LIMIT = 10_000;
 
     private final AuditLogRepository auditLogRepository;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final np.com.lims.branch.BranchRepository branchRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditService auditService;
 
     public AdminService(AuditLogRepository auditLogRepository,
                         UserRepository userRepository,
                         RoleRepository roleRepository,
+                        np.com.lims.branch.BranchRepository branchRepository,
                         PasswordEncoder passwordEncoder,
                         AuditService auditService) {
         this.auditLogRepository = auditLogRepository;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
+        this.branchRepository = branchRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditService = auditService;
     }
@@ -61,6 +65,27 @@ public class AdminService {
         return auditLogRepository.search(
                 trimToNull(module), trimToNull(actor), trimToNull(entityType), trimToNull(entityId),
                 from, to, trimToNull(search), pageable).map(AuditListItem::from);
+    }
+
+    /**
+     * Every audit entry matching the current filters (up to {@link #EXPORT_LIMIT}), for CSV/XML
+     * export — the web layer's {@code spring.data.web.pageable.max-page-size} (100) would
+     * otherwise silently truncate a naive "just ask for a huge page size" export to 100 rows.
+     * Not truly unbounded: a fully unpaged sort over this table can exhaust MySQL's sort buffer
+     * on a large audit log (hit live during testing) — narrow the filters if a report needs more
+     * than {@link #EXPORT_LIMIT} rows.
+     */
+    @Transactional(readOnly = true)
+    public java.util.List<AuditListItem> exportAudit(String module, String actor, String entityType, String entityId,
+                                                      Instant from, Instant to, String search) {
+        // The underlying query already hardcodes ORDER BY createdAt DESC — adding a Sort here
+        // duplicated that clause (visible in the failing query's SQL log: "...desc,...desc").
+        org.springframework.data.domain.Pageable page =
+                org.springframework.data.domain.PageRequest.of(0, EXPORT_LIMIT);
+        return auditLogRepository.search(
+                trimToNull(module), trimToNull(actor), trimToNull(entityType), trimToNull(entityId),
+                from, to, trimToNull(search), page)
+                .map(AuditListItem::from).getContent();
     }
 
     @Transactional(readOnly = true)
@@ -106,6 +131,7 @@ public class AdminService {
                 passwordEncoder.encode(request.password()), request.fullName().trim(),
                 trimToNull(request.phone()));
         resolveRoles(request.roleNames()).forEach(user::addRole);
+        user.setHomeBranch(resolveBranch(request.homeBranchId()));
         User saved = userRepository.save(user);
         auditService.record(MODULE, "USER_CREATE", "User", saved.getId(),
                 "Created user " + username + " with roles " + request.roleNames(), null, UserDetail.from(saved));
@@ -121,6 +147,7 @@ public class AdminService {
         Set<Role> newRoles = resolveRoles(request.roleNames());
         user.getRoles().clear();
         newRoles.forEach(user::addRole);
+        user.setHomeBranch(resolveBranch(request.homeBranchId()));
         auditService.record(MODULE, "USER_UPDATE", "User", id,
                 "Updated user " + user.getUsername(), before, UserDetail.from(user));
         return UserDetail.from(user);
@@ -163,6 +190,14 @@ public class AdminService {
 
     private User loadUser(Long id) {
         return userRepository.findWithRolesById(id).orElseThrow(() -> ApiException.notFound("User", id));
+    }
+
+    /** Null = the user gets access to every branch (HQ / roaming staff). */
+    private np.com.lims.branch.entity.Branch resolveBranch(Long branchId) {
+        if (branchId == null) {
+            return null;
+        }
+        return branchRepository.findById(branchId).orElseThrow(() -> ApiException.notFound("Branch", branchId));
     }
 
     private static String trimToNull(String value) {

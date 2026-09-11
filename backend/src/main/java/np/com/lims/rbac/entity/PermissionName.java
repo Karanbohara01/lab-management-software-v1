@@ -9,6 +9,7 @@ public enum PermissionName {
     PATIENT_READ, PATIENT_WRITE, PATIENT_CONFIDENTIAL, PATIENT_MERGE,
     DOCTOR_READ, DOCTOR_WRITE,
     DEPARTMENT_READ, DEPARTMENT_WRITE,
+    BRANCH_READ, BRANCH_WRITE,
     TEST_CATALOG_READ, TEST_CATALOG_WRITE,
 
     LAB_ORDER_READ, LAB_ORDER_WRITE,
@@ -33,7 +34,8 @@ public enum PermissionName {
 
     USER_READ, USER_WRITE,
     ROLE_READ, ROLE_WRITE,
-    SETTINGS_READ, SETTINGS_WRITE;
+    SETTINGS_READ, SETTINGS_WRITE,
+    BACKUP_READ, BACKUP_MANAGE;
 
     /** Authority string form as used in {@code hasAuthority(...)} checks. */
     public String authority() {

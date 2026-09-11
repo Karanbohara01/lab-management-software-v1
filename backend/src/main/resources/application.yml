@@ -47,6 +47,10 @@ management:
       show-components: never
 
 lims:
+  app:
+    # Public base URL of the frontend, used to build links (e.g. report verification) sent in
+    # outbound SMS/WhatsApp messages. Set to the real domain in production.
+    public-url: ${APP_PUBLIC_URL:http://localhost:5173}
   security:
     jwt:
       # Override in application-local.yml / env for anything but throwaway local dev.
@@ -58,14 +62,67 @@ lims:
     # Comma-separated origin patterns (Spring CorsConfiguration#setAllowedOriginPatterns).
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:[*]}
   ird:
-    # IRD / CBMS e-billing is disabled until a verified gateway implementation, seller
-    # enrolment and credentials are supplied. When false, nothing is transmitted.
+    # IRD / CBMS e-billing (Central Billing Monitoring System, POST /api/bill). Disabled by
+    # default — nothing is transmitted until enabled=true AND base-url/username/password/
+    # seller-pan are all set (CbmsIrdGateway; see np.com.lims.ird.gateway for the known
+    # limitation around Bikram Sambat invoice dates before using this in production).
+    # username/password are the taxpayer's IRD login credentials (not a separate API key);
+    # seller-pan must be the PAN tied to that login. The CBMS sandbox accepts the published
+    # test credentials (username Test_CBMS / password test@321 / seller_pan 999999999) against
+    # the same base URL below — being registered/listed with IRD (per the e-invoice procedure)
+    # is required before live submissions are accepted, sandbox or not.
     enabled: ${IRD_ENABLED:false}
-    environment: ${IRD_ENVIRONMENT:DISABLED}
-    base-url: ${IRD_BASE_URL:}
+    environment: ${IRD_ENVIRONMENT:}
+    base-url: ${IRD_BASE_URL:https://cbapi.ird.gov.np}
     username: ${IRD_USERNAME:}
     password: ${IRD_PASSWORD:}
     seller-pan: ${IRD_SELLER_PAN:}
+  sms:
+    # No SMS aggregator is wired in until a real SmsGateway bean replaces UnconfiguredSmsGateway.
+    # These properties exist for that implementation to bind to.
+    provider: ${SMS_PROVIDER:}
+    base-url: ${SMS_BASE_URL:}
+    api-key: ${SMS_API_KEY:}
+    from: ${SMS_FROM:}
+  whatsapp:
+    # No WhatsApp Business API credentials are wired in until a real WhatsAppGateway bean
+    # replaces UnconfiguredWhatsAppGateway.
+    phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:}
+    access-token: ${WHATSAPP_ACCESS_TOKEN:}
+    api-version: ${WHATSAPP_API_VERSION:v20.0}
+  payment:
+    esewa:
+      # eSewa ePay v2. Disabled by default — nothing is transmitted until enabled=true AND
+      # form-action/verify-base-url/merchant-code/secret-key are all set. The values below
+      # default to eSewa's own published public TEST/UAT merchant (EPAYTEST) — safe to use
+      # against their sandbox, but NOT a live merchant account; a real merchant code + secret
+      # key from an approved eSewa merchant application are required for production.
+      enabled: ${ESEWA_ENABLED:false}
+      environment: ${ESEWA_ENVIRONMENT:TEST}
+      form-action: ${ESEWA_FORM_ACTION:https://rc-epay.esewa.com.np/api/epay/main/v2/form}
+      verify-base-url: ${ESEWA_VERIFY_BASE_URL:https://rc.esewa.com.np/api/epay/transaction/status/}
+      merchant-code: ${ESEWA_MERCHANT_CODE:EPAYTEST}
+      secret-key: ${ESEWA_SECRET_KEY:8gBm/:&EnhH.1/q}
+    khalti:
+      # Khalti ePayment v2. Disabled by default — nothing is transmitted until enabled=true AND
+      # base-url/secret-key/website-url are all set. Unlike eSewa, Khalti no longer publishes a
+      # fixed shared sandbox key (confirmed live 2026-09-10: an old commonly-documented
+      # "test_secret_key_..." value now gets a real 401 from dev.khalti.com) — a sandbox
+      # secret-key must be obtained by signing up at test-admin.khalti.com (OTP 987654) and
+      # copying the live_secret_key from that merchant dashboard; a separate key from
+      # admin.khalti.com is required for production.
+      enabled: ${KHALTI_ENABLED:false}
+      environment: ${KHALTI_ENVIRONMENT:TEST}
+      base-url: ${KHALTI_BASE_URL:https://dev.khalti.com/api/v2}
+      secret-key: ${KHALTI_SECRET_KEY:}
+      website-url: ${KHALTI_WEBSITE_URL:${lims.app.public-url}}
+  backup:
+    # Mandatory per the e-invoice procedure (दफा ६(ढ)/८(घ)): every fiscal year's database and
+    # log must be backed up. Runs on this cron (default 02:00 daily) plus whenever a
+    # PERM_BACKUP_MANAGE user triggers one manually from the Backups screen. Old backup files
+    # are never auto-deleted — that retention decision is left to whoever administers the disk.
+    directory: ${BACKUP_DIRECTORY:./backups}
+    cron: ${BACKUP_CRON:0 0 2 * * *}
 
 springdoc:
   swagger-ui:

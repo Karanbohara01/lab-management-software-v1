@@ -4,25 +4,8 @@ import { Card, CardHeader } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Select';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
-import { httpClient } from '@/api/client';
 import { formatMoney } from '@/lib/money';
-
-interface Point {
-  label: string;
-  value: number;
-}
-interface Overview {
-  days: number;
-  revenueByDay: Point[];
-  testsByDepartment: Point[];
-  topTests: Point[];
-  topReferrers: Point[];
-}
-
-const analyticsApi = {
-  overview: (days: number) =>
-    httpClient.get<Overview>('/analytics/overview', { params: { days } }).then((r) => r.data),
-};
+import { analyticsApi, type AnalyticsPoint as Point } from './api';
 
 /** Simple horizontal bar list — value shown as a proportional bar, no chart library. */
 function BarList({ points, format }: { points: Point[]; format?: (n: number) => string }) {

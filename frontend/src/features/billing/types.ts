@@ -69,6 +69,8 @@ export interface InvoiceDetail {
   patientMrn: string;
   patientGender: string;
   patientAgeYears: number | null;
+  patientPhone: string | null;
+  patientAddress: string | null;
   status: InvoiceStatus;
   paymentStatus: PaymentStatus;
   subtotal: number;
@@ -84,11 +86,69 @@ export interface InvoiceDetail {
   balance: number;
   notes: string | null;
   cancelReason: string | null;
+  cancelledAt: string | null;
+  cancelledBy: string | null;
   issuedAt: string | null;
   issuedBy: string | null;
+  printCount: number;
+  lastPrintedAt: string | null;
+  lastPrintedBy: string | null;
+  labName: string | null;
+  labAddress: string | null;
+  labPhone: string | null;
+  labEmail: string | null;
+  labPan: string | null;
+  labLogoDataUri: string | null;
   items: InvoiceItem[];
   payments: PaymentEntry[];
   refunds: RefundEntry[];
+}
+
+export interface MasterBillRow {
+  fiscalYear: string;
+  billNo: string | null;
+  customerName: string;
+  customerPan: string | null;
+  billDate: string;
+  amount: number;
+  discount: number;
+  taxableAmount: number;
+  taxAmount: number;
+  totalAmount: number;
+  syncWithIrd: string;
+  isBillPrinted: boolean;
+  isBillActive: boolean;
+  printedTime: string | null;
+  enteredBy: string | null;
+  printedBy: string | null;
+  isRealtime: boolean | null;
+  paymentMethod: string | null;
+  vatRefundAmount: number;
+  transactionId: string | null;
+}
+
+export interface CorrectionRow {
+  billNo: string | null;
+  customerName: string;
+  totalAmount: number;
+  cancelledAt: string;
+  cancelledBy: string | null;
+  cancelReason: string | null;
+  creditNoteStatus: string | null;
+  creditNoteNumber: string | null;
+}
+
+export interface SalesBookRow {
+  date: string;
+  billNo: string | null;
+  buyerName: string;
+  buyerPan: string | null;
+  totalSales: number;
+  nonTaxableSales: number;
+  exportSales: number;
+  discount: number;
+  taxableSales: number;
+  tax: number;
 }
 
 export const INVOICE_STATUS_TONE: Record<InvoiceStatus, 'neutral' | 'info' | 'danger'> = {

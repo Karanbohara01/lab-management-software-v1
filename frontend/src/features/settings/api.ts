@@ -13,6 +13,7 @@ export interface LaboratoryProfile {
   invoicePrefix: string;
   defaultTaxRate: number;
   inventoryExpiryAlertDays: number;
+  requirePaymentBeforeCollection: boolean;
 }
 
 export const settingsApi = {

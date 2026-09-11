@@ -19,7 +19,7 @@ import java.time.Instant;
 @Table(name = "ird_submission_attempt")
 public class IrdSubmissionAttempt {
 
-    public enum Action { SUBMIT, RETRY, MANUAL, CANCEL }
+    public enum Action { SUBMIT, RETRY, MANUAL, CANCEL, CREDIT_NOTE, CREDIT_NOTE_RETRY }
 
     /** What we did with the outbound request. */
     public enum RequestStatus { PREPARED, SENT, SKIPPED }

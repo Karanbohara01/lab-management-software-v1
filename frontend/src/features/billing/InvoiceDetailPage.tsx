@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Ban, Banknote, Pencil, Printer, RotateCcw, Send } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Ban, Banknote, CreditCard, Pencil, Printer, RotateCcw, Send } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -23,6 +23,9 @@ import {
 } from './types';
 import { AdjustInvoiceModal, RecordPaymentModal, RequestRefundModal } from './InvoiceActionModals';
 import { InvoiceIrdCard } from './InvoiceIrdCard';
+import { InvoicePrintDocument } from './InvoicePrintDocument';
+import { PayOnlineModal } from '@/features/payments/PayOnlineModal';
+import { paymentGatewaysApi } from '@/features/payments/api';
 
 function dt(iso: string | null): string {
   return iso ? new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '—';
@@ -30,16 +33,50 @@ function dt(iso: string | null): string {
 
 export function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const toast = useToast();
   const { hasPermission } = useAuth();
 
   const [payOpen, setPayOpen] = useState(false);
+  const [payOnlineOpen, setPayOnlineOpen] = useState(false);
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [refundOpen, setRefundOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [printing, setPrinting] = useState(false);
+  const [printDoc, setPrintDoc] = useState<import('./types').InvoiceDetail | null>(null);
+  const [verifyingGateway, setVerifyingGateway] = useState(false);
 
   const { data: inv, loading, error, refetch } = useQuery(() => invoicesApi.get(Number(id)), [id]);
+
+  // Returned from a gateway's hosted checkout page — always re-verify server-to-server before
+  // trusting anything, regardless of what gatewayResult claims.
+  useEffect(() => {
+    const onlinePaymentId = searchParams.get('onlinePaymentId');
+    if (!onlinePaymentId) return;
+    setVerifyingGateway(true);
+    paymentGatewaysApi
+      .verify(Number(onlinePaymentId))
+      .then((result) => {
+        if (result.status === 'VERIFIED') {
+          toast.success(`Payment confirmed via ${result.provider}`);
+        } else {
+          toast.error(`Payment not confirmed: ${result.failureReason ?? 'unknown reason'}`);
+        }
+        refetch();
+      })
+      .catch((err) => toast.error(err instanceof ApiError ? err.message : 'Unable to verify payment'))
+      .finally(() => {
+        setVerifyingGateway(false);
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete('onlinePaymentId');
+          next.delete('gatewayResult');
+          return next;
+        }, { replace: true });
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (loading && !inv) return <LoadingState label="Loading invoice…" />;
   if (error) return <ErrorState message={error} onRetry={refetch} />;
@@ -60,6 +97,21 @@ export function InvoiceDetailPage() {
       toast.error(err instanceof ApiError ? err.message : 'Unable to issue invoice');
     } finally {
       setBusy(false);
+    }
+  };
+
+  const print = async () => {
+    setPrinting(true);
+    try {
+      const updated = await invoicesApi.markPrinted(inv.id);
+      setPrintDoc(updated);
+      refetch();
+      // let the new printCount (and its "Copy of Original" watermark, if a reprint) render first.
+      requestAnimationFrame(() => window.print());
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Unable to print');
+    } finally {
+      setPrinting(false);
     }
   };
 
@@ -91,10 +143,10 @@ export function InvoiceDetailPage() {
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone={INVOICE_STATUS_TONE[inv.status]}>{inv.status}</Badge>
               <Badge tone={PAYMENT_STATUS_TONE[inv.paymentStatus]}>{inv.paymentStatus}</Badge>
-              {inv.status === 'ISSUED' && (
-                <Button variant="secondary" onClick={() => window.print()}>
+              {inv.status !== 'DRAFT' && (
+                <Button variant="secondary" loading={printing} onClick={print}>
                   <Printer className="h-4 w-4" aria-hidden />
-                  Print
+                  {inv.printCount > 0 ? 'Reprint' : 'Print'}
                 </Button>
               )}
               {canWrite && inv.status === 'DRAFT' && (
@@ -110,10 +162,16 @@ export function InvoiceDetailPage() {
                 </>
               )}
               {canPay && inv.status === 'ISSUED' && inv.balance > 0 && (
-                <Button onClick={() => setPayOpen(true)}>
-                  <Banknote className="h-4 w-4" aria-hidden />
-                  Record payment
-                </Button>
+                <>
+                  <Button variant="secondary" onClick={() => setPayOnlineOpen(true)} loading={verifyingGateway}>
+                    <CreditCard className="h-4 w-4" aria-hidden />
+                    Pay online
+                  </Button>
+                  <Button onClick={() => setPayOpen(true)}>
+                    <Banknote className="h-4 w-4" aria-hidden />
+                    Record payment
+                  </Button>
+                </>
               )}
               {canRefund && inv.amountPaid - inv.amountRefunded > 0 && (
                 <Button variant="secondary" onClick={() => setRefundOpen(true)}>
@@ -140,7 +198,13 @@ export function InvoiceDetailPage() {
         </div>
       )}
 
-      <div id="report-print" className="grid gap-4 lg:grid-cols-3">
+      {/* The IRD-compliant printable layout (Anusuchi-6) — hidden on screen, shown only when
+          printing via the #report-print print stylesheet rule. */}
+      <div id="report-print" className="hidden print:block">
+        <InvoicePrintDocument invoice={printDoc ?? inv} />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3" data-print-hide>
         <Card className="lg:col-span-2">
           <CardHeader title="Line items" />
           <div className="overflow-x-auto">
@@ -210,7 +274,7 @@ export function InvoiceDetailPage() {
             )}
           </Card>
 
-          {inv.status === 'ISSUED' && <div data-print-hide><InvoiceIrdCard invoiceId={inv.id} /></div>}
+          {inv.status !== 'DRAFT' && <div data-print-hide><InvoiceIrdCard invoiceId={inv.id} /></div>}
 
           {inv.refunds.length > 0 && (
             <Card data-print-hide>
@@ -236,6 +300,7 @@ export function InvoiceDetailPage() {
       </div>
 
       <RecordPaymentModal open={payOpen} onClose={() => setPayOpen(false)} invoice={inv} onDone={refetch} />
+      <PayOnlineModal open={payOnlineOpen} onClose={() => setPayOnlineOpen(false)} invoiceId={inv.id} balance={inv.balance} />
       <AdjustInvoiceModal open={adjustOpen} onClose={() => setAdjustOpen(false)} invoice={inv} onDone={refetch} />
       <RequestRefundModal open={refundOpen} onClose={() => setRefundOpen(false)} invoice={inv} onDone={refetch} />
       <ConfirmDialog

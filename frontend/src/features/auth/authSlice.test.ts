@@ -27,7 +27,16 @@ describe('authSlice', () => {
   });
 
   it('login.fulfilled stores the user and persists tokens', async () => {
-    const user = { id: 7, username: 'reception', email: 'r@x', fullName: 'R', roles: [], permissions: [] };
+    const user = {
+      id: 7,
+      username: 'reception',
+      email: 'r@x',
+      fullName: 'R',
+      roles: [],
+      permissions: [],
+      homeBranchId: null,
+      homeBranchName: null,
+    };
     vi.mocked(authApi.login).mockResolvedValue({
       accessToken: 'a', refreshToken: 'b', tokenType: 'Bearer', expiresInSeconds: 1800, user,
     });

@@ -7,15 +7,18 @@ import np.com.lims.billing.entity.InvoiceItem;
 import np.com.lims.billing.entity.InvoiceStatus;
 import np.com.lims.common.audit.AuditService;
 import np.com.lims.common.exception.ApiException;
+import np.com.lims.common.sequence.SequenceService;
 import np.com.lims.common.web.CurrentUser;
 import np.com.lims.ird.dto.IrdDtos.ConfigResponse;
 import np.com.lims.ird.dto.IrdDtos.Detail;
 import np.com.lims.ird.dto.IrdDtos.ListItem;
 import np.com.lims.ird.dto.IrdDtos.Summary;
+import np.com.lims.ird.entity.CreditNoteStatus;
 import np.com.lims.ird.entity.IrdStatus;
 import np.com.lims.ird.entity.IrdSubmission;
 import np.com.lims.ird.entity.IrdSubmissionAttempt;
 import np.com.lims.ird.gateway.IrdBillPayload;
+import np.com.lims.ird.gateway.IrdCreditNotePayload;
 import np.com.lims.ird.gateway.IrdGateway;
 import np.com.lims.notification.NotificationService;
 import np.com.lims.notification.entity.Notification;
@@ -44,19 +47,22 @@ public class IrdSubmissionService {
     private final AuditService auditService;
     private final ObjectMapper objectMapper;
     private final NotificationService notificationService;
+    private final SequenceService sequenceService;
 
     public IrdSubmissionService(IrdSubmissionRepository repository,
                                 IrdGateway gateway,
                                 LaboratoryProfileService laboratoryProfileService,
                                 AuditService auditService,
                                 ObjectMapper objectMapper,
-                                NotificationService notificationService) {
+                                NotificationService notificationService,
+                                SequenceService sequenceService) {
         this.repository = repository;
         this.gateway = gateway;
         this.laboratoryProfileService = laboratoryProfileService;
         this.auditService = auditService;
         this.objectMapper = objectMapper;
         this.notificationService = notificationService;
+        this.sequenceService = sequenceService;
     }
 
     public ConfigResponse config() {
@@ -81,11 +87,13 @@ public class IrdSubmissionService {
 
     @Transactional
     public void onInvoiceCancelled(Invoice invoice) {
-        repository.findByInvoiceId(invoice.getId()).ifPresent(submission -> {
-            if (!submission.getStatus().isTerminalSuccess()) {
-                submission.cancel("system", "Invoice was cancelled");
-            }
-        });
+        // submission.cancel() itself decides what happens: a bill never successfully filed with
+        // IRD is simply marked CANCELLED here; one that WAS filed (ACCEPTED/DUPLICATE) is instead
+        // flagged CreditNoteStatus.NEEDED — filing the actual credit note is a separate, explicit
+        // staff action (submitCreditNote/retryCreditNote below), never an automatic side effect
+        // of cancelling an invoice, so a slow/failing IRD call can never block billing.
+        repository.findByInvoiceId(invoice.getId())
+                .ifPresent(submission -> submission.cancel("system", "Invoice was cancelled"));
     }
 
     // ----- queries ------------------------------------------------
@@ -152,6 +160,18 @@ public class IrdSubmissionService {
         return Detail.from(submission);
     }
 
+    @Transactional
+    public Detail submitCreditNote(Long id) {
+        IrdSubmission submission = load(id);
+        return attemptCreditNote(submission, IrdSubmissionAttempt.Action.CREDIT_NOTE);
+    }
+
+    @Transactional
+    public Detail retryCreditNote(Long id) {
+        IrdSubmission submission = load(id);
+        return attemptCreditNote(submission, IrdSubmissionAttempt.Action.CREDIT_NOTE_RETRY);
+    }
+
     // ----- core ------------------------------------------------
 
     private Detail attempt(IrdSubmission submission, IrdSubmissionAttempt.Action action) {
@@ -172,11 +192,17 @@ public class IrdSubmissionService {
             result = IrdGateway.Result.transportError("GATEWAY_EXCEPTION", ex.getMessage());
         }
 
+        // request_snapshot/response_snapshot are MySQL JSON columns, but a gateway's raw provider
+        // response is arbitrary text (CBMS replies with a bare status code, not JSON, and can
+        // reply with an empty body) — encode it as a JSON string so an empty/non-JSON response
+        // never fails the insert with a JSON-cast error.
+        String responseSnapshot = toJson(result.rawResponse());
+
         switch (result.status()) {
-            case ACCEPTED -> submission.recordAccepted(attempt, result.providerReference(), result.rawResponse());
-            case DUPLICATE -> submission.recordDuplicate(attempt, result.providerReference(), result.rawResponse());
+            case ACCEPTED -> submission.recordAccepted(attempt, result.providerReference(), responseSnapshot);
+            case DUPLICATE -> submission.recordDuplicate(attempt, result.providerReference(), responseSnapshot);
             case REJECTED -> submission.recordFailure(attempt, true, result.errorCode(), result.errorMessage(),
-                    result.rawResponse());
+                    responseSnapshot);
             case TRANSPORT_ERROR -> submission.recordFailure(attempt, false, result.errorCode(),
                     result.errorMessage(), null);
         }
@@ -194,6 +220,70 @@ public class IrdSubmissionService {
                     "ird:" + submission.getId() + ":" + submission.getAttemptCount());
         }
         return Detail.from(submission);
+    }
+
+    private Detail attemptCreditNote(IrdSubmission submission, IrdSubmissionAttempt.Action action) {
+        submission.assertCanSubmitCreditNote();
+        Invoice invoice = submission.getInvoice();
+
+        IrdCreditNotePayload payload = buildCreditNotePayload(submission, invoice);
+        IrdSubmissionAttempt attempt = submission.beginCreditNoteAttempt(action, CurrentUser.username(), toJson(payload));
+
+        IrdGateway.Result result;
+        try {
+            result = gateway.submitCreditNote(payload);
+        } catch (RuntimeException ex) {
+            log.error("IRD gateway threw while filing credit note for invoice {}", invoice.getInvoiceNumber(), ex);
+            result = IrdGateway.Result.transportError("GATEWAY_EXCEPTION", ex.getMessage());
+        }
+
+        String responseSnapshot = toJson(result.rawResponse());
+
+        switch (result.status()) {
+            case ACCEPTED, DUPLICATE ->
+                    submission.recordCreditNoteFiled(attempt, payload.creditNoteNumber(), result.providerReference(), responseSnapshot);
+            case REJECTED -> submission.recordCreditNoteFailed(attempt, true, result.errorCode(), result.errorMessage(),
+                    responseSnapshot);
+            case TRANSPORT_ERROR -> submission.recordCreditNoteFailed(attempt, false, result.errorCode(),
+                    result.errorMessage(), null);
+        }
+
+        auditService.record(MODULE, action.name(), "IrdSubmission", submission.getId(),
+                "IRD credit note for invoice " + invoice.getInvoiceNumber() + " → " + submission.getCreditNoteStatus()
+                        + (submission.getCreditNoteErrorMessage() == null ? "" : " (" + submission.getCreditNoteErrorMessage() + ")"),
+                null, Detail.from(submission));
+
+        if (submission.getCreditNoteStatus() == CreditNoteStatus.FAILED) {
+            notificationService.publish(Notification.Type.IRD_FAILED, Notification.Severity.WARNING,
+                    "IRD credit note failed",
+                    "Invoice " + invoice.getInvoiceNumber() + " — " + submission.getCreditNoteErrorMessage(),
+                    "/ird/" + submission.getId(), "IRD_SUBMISSION_READ",
+                    "ird-credit-note:" + submission.getId() + ":" + submission.getAttemptCount());
+        }
+        return Detail.from(submission);
+    }
+
+    private IrdCreditNotePayload buildCreditNotePayload(IrdSubmission submission, Invoice invoice) {
+        LaboratoryProfile lab = laboratoryProfileService.require();
+        String creditNoteNumber = submission.getCreditNoteNumber() != null
+                ? submission.getCreditNoteNumber()
+                : "CN-%s-%06d".formatted(invoice.getFiscalYear(),
+                        sequenceService.nextOrCreate("IRD_CREDIT_NOTE:" + invoice.getFiscalYear()));
+        return new IrdCreditNotePayload(
+                invoice.getInvoiceNumber(),
+                creditNoteNumber,
+                java.time.Instant.now(),
+                invoice.getCancelReason() == null ? "Invoice cancelled" : invoice.getCancelReason(),
+                invoice.getFiscalYear(),
+                lab.getName(),
+                lab.getPanNumber(),
+                invoice.getPatient().getFullName(),
+                null,
+                invoice.getSubtotal(),
+                invoice.getDiscountAmount(),
+                invoice.getTaxableAmount(),
+                invoice.getTaxAmount(),
+                invoice.getTotalAmount());
     }
 
     private IrdBillPayload buildPayload(Invoice invoice) {

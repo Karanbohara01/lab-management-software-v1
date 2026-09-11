@@ -32,6 +32,11 @@ public class LabTest extends BaseEntity {
     @Column(name = "test_type", nullable = false, length = 16)
     private TestType type = TestType.ANALYTE;
 
+    /** How results are entered: PARAMETRIC (value per parameter) or CULTURE (microbiology C&S). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "result_mode", nullable = false, length = 16)
+    private ResultMode resultMode = ResultMode.PARAMETRIC;
+
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "department_id", nullable = false)
     private Department department;
@@ -131,6 +136,18 @@ public class LabTest extends BaseEntity {
 
     public void setAutoVerifyEnabled(boolean autoVerifyEnabled) {
         this.autoVerifyEnabled = autoVerifyEnabled;
+    }
+
+    public void setResultMode(ResultMode resultMode) {
+        this.resultMode = resultMode == null ? ResultMode.PARAMETRIC : resultMode;
+    }
+
+    public ResultMode getResultMode() {
+        return resultMode;
+    }
+
+    public boolean isCulture() {
+        return resultMode == ResultMode.CULTURE;
     }
 
     public boolean isAutoVerifyEnabled() {

@@ -11,6 +11,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
+import np.com.lims.branch.entity.Branch;
 import np.com.lims.catalog.entity.LabTest;
 import np.com.lims.common.audit.BaseEntity;
 import np.com.lims.common.exception.ApiException;
@@ -36,6 +37,11 @@ public class LabOrder extends BaseEntity {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "referring_doctor_id")
     private Doctor referringDoctor;
+
+    /** The branch/location this order was placed at. Drives data scoping for branch-restricted staff. */
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "branch_id")
+    private Branch branch;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 24)
@@ -92,11 +98,18 @@ public class LabOrder extends BaseEntity {
     protected LabOrder() {
     }
 
+    /** Back-compat overload — no branch (used only by the stateless pricing preview, never persisted). */
     public static LabOrder open(String orderNumber, Patient patient, Doctor referringDoctor, String clinicalNotes) {
+        return open(orderNumber, patient, referringDoctor, null, clinicalNotes);
+    }
+
+    public static LabOrder open(String orderNumber, Patient patient, Doctor referringDoctor, Branch branch,
+                                String clinicalNotes) {
         LabOrder order = new LabOrder();
         order.orderNumber = orderNumber;
         order.patient = patient;
         order.referringDoctor = referringDoctor;
+        order.branch = branch;
         order.clinicalNotes = clinicalNotes;
         order.status = OrderStatus.DRAFT;
         order.orderedAt = Instant.now();
@@ -177,6 +190,10 @@ public class LabOrder extends BaseEntity {
 
     public Patient getPatient() {
         return patient;
+    }
+
+    public Branch getBranch() {
+        return branch;
     }
 
     public Doctor getReferringDoctor() {

@@ -5,6 +5,9 @@ export interface CurrentUser {
   fullName: string;
   roles: string[];
   permissions: string[];
+  /** Null = access to every branch (HQ / roaming staff). */
+  homeBranchId: number | null;
+  homeBranchName: string | null;
 }
 
 export interface TokenResponse {

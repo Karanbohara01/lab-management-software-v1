@@ -22,6 +22,9 @@ public interface IrdSubmissionRepository extends JpaRepository<IrdSubmission, Lo
 
     boolean existsByInvoiceId(Long invoiceId);
 
+    /** Batch lookup for building reports (e.g. the master-bill report) without one query per invoice. */
+    List<IrdSubmission> findByInvoiceIdIn(List<Long> invoiceIds);
+
     long countByStatus(IrdStatus status);
 
     @Query("""

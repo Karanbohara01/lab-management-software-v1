@@ -31,6 +31,7 @@ export const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <DashboardPage /> },
+      route('help', lazyPage(() => import('@/features/help/HelpPage'), 'HelpPage')),
 
       route('patients', lazyPage(() => import('@/features/patients/PatientsPage'), 'PatientsPage'), [P.PATIENT_READ]),
       route('patients/new', lazyPage(() => import('@/features/patients/RegisterPatientPage'), 'RegisterPatientPage'), [P.PATIENT_WRITE]),
@@ -38,6 +39,7 @@ export const router = createBrowserRouter([
       route('patients/:id/edit', lazyPage(() => import('@/features/patients/RegisterPatientPage'), 'RegisterPatientPage'), [P.PATIENT_WRITE]),
       route('doctors', lazyPage(() => import('@/features/doctors/DoctorsPage'), 'DoctorsPage'), [P.DOCTOR_READ]),
       route('departments', lazyPage(() => import('@/features/departments/DepartmentsPage'), 'DepartmentsPage'), [P.DEPARTMENT_READ]),
+      route('branches', lazyPage(() => import('@/features/branches/BranchesPage'), 'BranchesPage'), [P.BRANCH_READ]),
       route('tests', lazyPage(() => import('@/features/catalog/TestCatalogPage'), 'TestCatalogPage'), [P.TEST_CATALOG_READ]),
 
       route('orders', lazyPage(() => import('@/features/orders/OrdersPage'), 'OrdersPage'), [P.LAB_ORDER_READ]),
@@ -61,6 +63,9 @@ export const router = createBrowserRouter([
       route('invoices', lazyPage(() => import('@/features/billing/InvoicesPage'), 'InvoicesPage'), [P.INVOICE_READ]),
       route('invoices/:id', lazyPage(() => import('@/features/billing/InvoiceDetailPage'), 'InvoiceDetailPage'), [P.INVOICE_READ]),
       route('refunds', lazyPage(() => import('@/features/billing/RefundsPage'), 'RefundsPage'), [P.PAYMENT_READ]),
+      route('sales-book', lazyPage(() => import('@/features/billing/SalesBookPage'), 'SalesBookPage'), [P.INVOICE_READ]),
+      route('master-bill', lazyPage(() => import('@/features/billing/MasterBillPage'), 'MasterBillPage'), [P.INVOICE_READ]),
+      route('corrections', lazyPage(() => import('@/features/billing/CorrectionsReportPage'), 'CorrectionsReportPage'), [P.INVOICE_READ]),
 
       route('ird', lazyPage(() => import('@/features/ird/IrdSubmissionsPage'), 'IrdSubmissionsPage'), [P.IRD_SUBMISSION_READ]),
       route('ird/:id', lazyPage(() => import('@/features/ird/IrdSubmissionDetailPage'), 'IrdSubmissionDetailPage'), [P.IRD_SUBMISSION_READ]),
@@ -76,6 +81,7 @@ export const router = createBrowserRouter([
       route('audit', lazyPage(() => import('@/features/admin/AuditPage'), 'AuditPage'), [P.AUDIT_READ]),
       route('analytics', lazyPage(() => import('@/features/analytics/AnalyticsPage'), 'AnalyticsPage'), [P.REPORTING_READ]),
       route('settings', lazyPage(() => import('@/features/settings/LaboratorySettingsPage'), 'LaboratorySettingsPage'), [P.SETTINGS_READ]),
+      route('backups', lazyPage(() => import('@/features/backups/BackupsPage'), 'BackupsPage'), [P.BACKUP_READ]),
       route('notifications', lazyPage(() => import('@/features/notifications/NotificationsPage'), 'NotificationsPage')),
 
       { path: 'forbidden', element: <ForbiddenPage /> },

@@ -68,13 +68,14 @@ public final class IrdDtos {
             boolean manual,
             String lastErrorMessage,
             Instant submittedAt,
-            Instant updatedAt
+            Instant updatedAt,
+            np.com.lims.ird.entity.CreditNoteStatus creditNoteStatus
     ) {
         public static ListItem from(IrdSubmission s) {
             return new ListItem(s.getId(), s.getInvoice().getId(), s.getInvoice().getInvoiceNumber(),
                     s.getInvoice().getPatient().getId(), PatientPrivacy.displayName(s.getInvoice().getPatient()),
                     s.getStatus(), s.getAttemptCount(), s.isManual(), s.getLastErrorMessage(),
-                    s.getSubmittedAt(), s.getUpdatedAt());
+                    s.getSubmittedAt(), s.getUpdatedAt(), s.getCreditNoteStatus());
         }
     }
 
@@ -95,6 +96,11 @@ public final class IrdDtos {
             String notes,
             Instant submittedAt,
             Instant acceptedAt,
+            np.com.lims.ird.entity.CreditNoteStatus creditNoteStatus,
+            String creditNoteNumber,
+            Instant creditNoteFiledAt,
+            String creditNoteErrorCode,
+            String creditNoteErrorMessage,
             List<AttemptDto> attempts
     ) {
         public static Detail from(IrdSubmission s) {
@@ -105,6 +111,8 @@ public final class IrdDtos {
                     s.getStatus(), s.getProviderReference(), s.getLastErrorCode(), s.getLastErrorMessage(),
                     s.getAttemptCount(), s.isManual(), s.getManualReference(), s.getNotes(),
                     s.getSubmittedAt(), s.getAcceptedAt(),
+                    s.getCreditNoteStatus(), s.getCreditNoteNumber(), s.getCreditNoteFiledAt(),
+                    s.getCreditNoteErrorCode(), s.getCreditNoteErrorMessage(),
                     s.getAttempts().stream().map(AttemptDto::from).toList());
         }
     }

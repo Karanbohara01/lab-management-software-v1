@@ -45,10 +45,11 @@ public class InvoiceController {
     public PageResponse<ListItem> list(
             @RequestParam(required = false) InvoiceStatus status,
             @RequestParam(required = false) Long patientId,
+            @RequestParam(required = false) Long branchId,
             @RequestParam(defaultValue = "false") boolean unpaidOnly,
             @RequestParam(required = false) String query,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return PageResponse.from(invoiceService.search(status, patientId, unpaidOnly, query, pageable));
+        return PageResponse.from(invoiceService.search(status, patientId, branchId, unpaidOnly, query, pageable));
     }
 
     @GetMapping("/{id}")
@@ -70,6 +71,37 @@ public class InvoiceController {
         return invoiceService.createFromOrder(request.orderId());
     }
 
+    @GetMapping("/export")
+    @PreAuthorize("hasAuthority('PERM_INVOICE_READ')")
+    public java.util.List<ListItem> export(
+            @RequestParam(required = false) InvoiceStatus status,
+            @RequestParam(required = false) Long branchId,
+            @RequestParam(defaultValue = "false") boolean unpaidOnly,
+            @RequestParam(required = false) String query) {
+        return invoiceService.exportAll(status, branchId, unpaidOnly, query);
+    }
+
+    @GetMapping("/sales-book")
+    @PreAuthorize("hasAuthority('PERM_INVOICE_READ')")
+    public java.util.List<np.com.lims.billing.dto.BillingDtos.SalesBookRow> salesBook(
+            @RequestParam int year, @RequestParam int month, @RequestParam(required = false) Long branchId) {
+        return invoiceService.salesBook(year, month, branchId);
+    }
+
+    @GetMapping("/corrections")
+    @PreAuthorize("hasAuthority('PERM_INVOICE_READ')")
+    public java.util.List<np.com.lims.billing.dto.BillingDtos.CorrectionRow> corrections(
+            @RequestParam int year, @RequestParam int month, @RequestParam(required = false) Long branchId) {
+        return invoiceService.corrections(year, month, branchId);
+    }
+
+    @GetMapping("/master-bill")
+    @PreAuthorize("hasAuthority('PERM_INVOICE_READ')")
+    public java.util.List<np.com.lims.billing.dto.BillingDtos.MasterBillRow> masterBill(
+            @RequestParam int year, @RequestParam int month, @RequestParam(required = false) Long branchId) {
+        return invoiceService.masterBill(year, month, branchId);
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('PERM_INVOICE_WRITE')")
     public Detail adjust(@PathVariable Long id, @Valid @RequestBody AdjustInvoiceRequest request) {
@@ -86,6 +118,12 @@ public class InvoiceController {
     @PreAuthorize("hasAuthority('PERM_INVOICE_CANCEL')")
     public Detail cancel(@PathVariable Long id, @Valid @RequestBody CancelRequest request) {
         return invoiceService.cancel(id, request.reason());
+    }
+
+    @PostMapping("/{id}/print")
+    @PreAuthorize("hasAuthority('PERM_INVOICE_READ')")
+    public Detail markPrinted(@PathVariable Long id) {
+        return invoiceService.markPrinted(id);
     }
 
     @PostMapping("/{id}/payments")

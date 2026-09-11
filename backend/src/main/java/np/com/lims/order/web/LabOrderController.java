@@ -40,9 +40,10 @@ public class LabOrderController {
     public PageResponse<ListItem> list(
             @RequestParam(required = false) Long patientId,
             @RequestParam(required = false) OrderStatus status,
+            @RequestParam(required = false) Long branchId,
             @RequestParam(required = false) String query,
             @PageableDefault(size = 20, sort = "orderedAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return PageResponse.from(service.search(patientId, status, query, pageable));
+        return PageResponse.from(service.search(patientId, status, branchId, query, pageable));
     }
 
     @GetMapping("/{id}")

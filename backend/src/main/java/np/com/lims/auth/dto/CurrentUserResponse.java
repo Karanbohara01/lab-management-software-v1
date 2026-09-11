@@ -12,7 +12,10 @@ public record CurrentUserResponse(
         String email,
         String fullName,
         List<String> roles,
-        List<String> permissions
+        List<String> permissions,
+        /** Null = access to every branch (HQ / roaming staff). */
+        Long homeBranchId,
+        String homeBranchName
 ) {
     public static CurrentUserResponse from(User user) {
         Set<String> roles = new TreeSet<>();
@@ -23,6 +26,8 @@ public record CurrentUserResponse(
         });
         return new CurrentUserResponse(
                 user.getId(), user.getUsername(), user.getEmail(), user.getFullName(),
-                List.copyOf(roles), List.copyOf(permissions));
+                List.copyOf(roles), List.copyOf(permissions),
+                user.getHomeBranch() == null ? null : user.getHomeBranch().getId(),
+                user.getHomeBranch() == null ? null : user.getHomeBranch().getName());
     }
 }

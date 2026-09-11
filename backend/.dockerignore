@@ -1,0 +1,14 @@
+target/
+.git/
+.mvn/wrapper/maven-wrapper.jar
+mvnw
+mvnw.cmd
+*.iml
+.idea/
+.vscode/
+backups/
+
+# Gitignored developer-machine-only overrides — must never end up baked into an image. Docker's
+# build context isn't git-aware, so .gitignore alone does NOT keep this out; it has to be listed
+# here explicitly too (confirmed live: without this, docker build silently copied it in).
+src/main/resources/application-local.yml

@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { Download } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
 import { SearchInput } from '@/components/ui/SearchInput';
@@ -11,9 +13,23 @@ import { Pagination } from '@/components/ui/Pagination';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useToast } from '@/components/ui/toast';
+import { ApiError } from '@/types/api';
+import { exportCsv, exportXml } from '@/lib/exportData';
 import { adminApi, type AuditListItem } from './api';
 
 const PAGE_SIZE = 30;
+
+const EXPORT_COLUMNS: { key: keyof AuditListItem; header: string }[] = [
+  { key: 'createdAt', header: 'When' },
+  { key: 'actor', header: 'Actor' },
+  { key: 'module', header: 'Module' },
+  { key: 'action', header: 'Action' },
+  { key: 'entityType', header: 'EntityType' },
+  { key: 'entityId', header: 'EntityId' },
+  { key: 'summary', header: 'Summary' },
+  { key: 'ipAddress', header: 'IpAddress' },
+];
 
 function pretty(json: string | null): string {
   if (!json) return '—';
@@ -25,6 +41,7 @@ function pretty(json: string | null): string {
 }
 
 export function AuditPage() {
+  const toast = useToast();
   const [module, setModule] = useState('');
   const [actor, setActor] = useState('');
   const [search, setSearch] = useState('');
@@ -32,6 +49,7 @@ export function AuditPage() {
   const [to, setTo] = useState('');
   const [page, setPage] = useState(0);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const modules = useQuery(() => adminApi.auditModules(), []);
   const debouncedSearch = useDebouncedValue(search, 300);
@@ -56,6 +74,34 @@ export function AuditPage() {
     [selectedId],
   );
 
+  const exportAll = async (format: 'csv' | 'xml') => {
+    setExporting(true);
+    try {
+      const rows = await adminApi.exportAudit({
+        module: module || undefined,
+        actor: debouncedActor || undefined,
+        query: debouncedSearch || undefined,
+        from: from ? new Date(from).toISOString() : undefined,
+        to: to ? new Date(to).toISOString() : undefined,
+      });
+      if (format === 'csv') {
+        exportCsv(rows as unknown as Record<string, unknown>[], EXPORT_COLUMNS as { key: string; header: string }[], 'audit-log.csv');
+      } else {
+        exportXml(
+          rows as unknown as Record<string, unknown>[],
+          EXPORT_COLUMNS as { key: string; header: string }[],
+          'AuditLog',
+          'Entry',
+          'audit-log.xml',
+        );
+      }
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Export failed');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const columns: Column<AuditListItem>[] = [
     { key: 'when', header: 'When', cell: (a) => new Date(a.createdAt).toLocaleString() },
     { key: 'actor', header: 'Actor', cell: (a) => a.actor },
@@ -66,7 +112,22 @@ export function AuditPage() {
 
   return (
     <>
-      <PageHeader title="Audit log" description="Every sensitive operation, who performed it and what changed." />
+      <PageHeader
+        title="Audit log"
+        description="Every sensitive operation, who performed it and what changed."
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" loading={exporting} onClick={() => exportAll('csv')}>
+              <Download className="h-4 w-4" aria-hidden />
+              Export CSV
+            </Button>
+            <Button variant="secondary" loading={exporting} onClick={() => exportAll('xml')}>
+              <Download className="h-4 w-4" aria-hidden />
+              Export XML
+            </Button>
+          </div>
+        }
+      />
 
       <Card>
         <div className="grid gap-3 border-b border-border p-4 sm:grid-cols-2 lg:grid-cols-4">

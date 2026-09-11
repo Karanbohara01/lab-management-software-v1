@@ -67,6 +67,7 @@ public class LabTestService {
                 trimToNull(request.method()), request.price(), request.turnaroundHours(),
                 trimToNull(request.loincCode()));
         applyHandling(test, request.specimenHandling());
+        test.setResultMode(request.resultMode());
         test.setAutoVerifyEnabled(request.autoVerifyEnabled());
         applyStructure(test, request.type(), request.parameters(), request.memberTestIds());
 
@@ -86,6 +87,7 @@ public class LabTestService {
                 trimToNull(request.method()), request.price(), request.turnaroundHours(),
                 trimToNull(request.loincCode()));
         applyHandling(test, request.specimenHandling());
+        test.setResultMode(request.resultMode());
         test.setAutoVerifyEnabled(request.autoVerifyEnabled());
         applyStructure(test, request.type(), request.parameters(), request.memberTestIds());
 

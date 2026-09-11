@@ -29,6 +29,13 @@ public interface IrdGateway {
 
     Result submit(IrdBillPayload payload);
 
+    /**
+     * Reverses a previously-filed bill via {@code POST /api/billreturn} (credit note / sales
+     * return). Only meaningful for a bill this gateway previously reported {@code ACCEPTED} or
+     * {@code DUPLICATE} for — the caller is responsible for that check.
+     */
+    Result submitCreditNote(IrdCreditNotePayload payload);
+
     record Result(Status status, String providerReference, String errorCode, String errorMessage, String rawResponse) {
 
         public enum Status { ACCEPTED, DUPLICATE, REJECTED, TRANSPORT_ERROR }

@@ -26,4 +26,10 @@ export const irdApi = {
 
   cancel: (id: number, reason: string) =>
     httpClient.post<IrdSubmissionDetail>(`/ird/submissions/${id}/cancel`, { reason }).then((r) => r.data),
+
+  submitCreditNote: (id: number) =>
+    httpClient.post<IrdSubmissionDetail>(`/ird/submissions/${id}/credit-note/submit`).then((r) => r.data),
+
+  retryCreditNote: (id: number) =>
+    httpClient.post<IrdSubmissionDetail>(`/ird/submissions/${id}/credit-note/retry`).then((r) => r.data),
 };

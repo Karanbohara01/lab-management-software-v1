@@ -54,6 +54,8 @@ public final class AdminDtos {
             @NotBlank @Size(max = 160) String fullName,
             @Size(max = 32) String phone,
             @NotEmpty List<String> roleNames,
+            /** Null = access to every branch (HQ / roaming staff). */
+            Long homeBranchId,
             @NotBlank @Size(min = 8, max = 100) String password
     ) {
     }
@@ -62,7 +64,8 @@ public final class AdminDtos {
             @NotBlank @Email @Size(max = 160) String email,
             @NotBlank @Size(max = 160) String fullName,
             @Size(max = 32) String phone,
-            @NotEmpty List<String> roleNames
+            @NotEmpty List<String> roleNames,
+            Long homeBranchId
     ) {
     }
 
@@ -70,19 +73,24 @@ public final class AdminDtos {
     }
 
     public record UserListItem(Long id, String username, String fullName, String email, List<String> roles,
-                               boolean enabled, Instant lastLoginAt) {
+                               Long homeBranchId, String homeBranchName, boolean enabled, Instant lastLoginAt) {
         public static UserListItem from(User u) {
             return new UserListItem(u.getId(), u.getUsername(), u.getFullName(), u.getEmail(),
                     u.getRoles().stream().map(r -> r.getName().name()).sorted().toList(),
+                    u.getHomeBranch() == null ? null : u.getHomeBranch().getId(),
+                    u.getHomeBranch() == null ? null : u.getHomeBranch().getName(),
                     u.isEnabled(), u.getLastLoginAt());
         }
     }
 
     public record UserDetail(Long id, String username, String fullName, String email, String phone,
-                             List<String> roles, boolean enabled, Instant lastLoginAt, Instant createdAt) {
+                             List<String> roles, Long homeBranchId, String homeBranchName, boolean enabled,
+                             Instant lastLoginAt, Instant createdAt) {
         public static UserDetail from(User u) {
             return new UserDetail(u.getId(), u.getUsername(), u.getFullName(), u.getEmail(), u.getPhone(),
                     u.getRoles().stream().map(r -> r.getName().name()).sorted().toList(),
+                    u.getHomeBranch() == null ? null : u.getHomeBranch().getId(),
+                    u.getHomeBranch() == null ? null : u.getHomeBranch().getName(),
                     u.isEnabled(), u.getLastLoginAt(), u.getCreatedAt());
         }
     }

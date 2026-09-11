@@ -5,12 +5,33 @@ import { cn } from '@/lib/cn';
 import { SidebarContent } from './Sidebar';
 import { Topbar } from './Topbar';
 
+const COLLAPSE_KEY = 'lims.sidebar.collapsed';
+
 export function AppShell() {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem(COLLAPSE_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
   const location = useLocation();
 
   // Close the mobile drawer whenever the route changes.
   useEffect(() => setDrawerOpen(false), [location.pathname]);
+
+  const toggleCollapsed = () => {
+    setCollapsed((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0');
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -22,9 +43,14 @@ export function AppShell() {
       </a>
 
       {/* Desktop sidebar */}
-      <aside className="hidden w-64 shrink-0 border-r border-border lg:block">
+      <aside
+        className={cn(
+          'hidden shrink-0 border-r border-border transition-[width] duration-150 lg:block',
+          collapsed ? 'w-[4.5rem]' : 'w-64',
+        )}
+      >
         <div className="sticky top-0 h-screen">
-          <SidebarContent />
+          <SidebarContent collapsed={collapsed} onToggleCollapse={toggleCollapsed} />
         </div>
       </aside>
 

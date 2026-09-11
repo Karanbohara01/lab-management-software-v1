@@ -41,9 +41,10 @@ public class SampleController {
             @RequestParam(required = false) Long orderId,
             @RequestParam(required = false) Long patientId,
             @RequestParam(required = false) Long departmentId,
+            @RequestParam(required = false) Long branchId,
             @RequestParam(required = false) String query,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return PageResponse.from(service.search(status, orderId, patientId, departmentId, query, pageable));
+        return PageResponse.from(service.search(status, orderId, patientId, departmentId, branchId, query, pageable));
     }
 
     @GetMapping("/summary")
@@ -67,7 +68,7 @@ public class SampleController {
     @PostMapping("/{id}/collect")
     @PreAuthorize("hasAuthority('PERM_SAMPLE_COLLECT')")
     public Detail collect(@PathVariable Long id, @Valid @RequestBody(required = false) CollectRequest request) {
-        return service.collect(id, request == null ? new CollectRequest(null, null, null) : request);
+        return service.collect(id, request == null ? new CollectRequest(null, null, null, null) : request);
     }
 
     @PostMapping("/{id}/receive")

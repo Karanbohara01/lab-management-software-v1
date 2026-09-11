@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Ban, RefreshCw, Send, ClipboardCheck } from 'lucide-react';
+import { ArrowLeft, Ban, RefreshCw, Send, ClipboardCheck, Receipt, Printer } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -17,8 +17,11 @@ import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
 import { irdApi } from './api';
+import { invoicesApi } from '@/features/billing/api';
+import { CreditNotePrintDocument } from '@/features/billing/CreditNotePrintDocument';
+import type { InvoiceDetail } from '@/features/billing/types';
 import { IrdConfigBanner } from './IrdConfigBanner';
-import { IRD_STATUS_LABEL, IRD_STATUS_TONE } from './types';
+import { CREDIT_NOTE_STATUS_LABEL, CREDIT_NOTE_STATUS_TONE, IRD_STATUS_LABEL, IRD_STATUS_TONE } from './types';
 
 export function IrdSubmissionDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -31,6 +34,8 @@ export function IrdSubmissionDetailPage() {
   const [manualRef, setManualRef] = useState('');
   const [manualNote, setManualNote] = useState('');
   const [busy, setBusy] = useState(false);
+  const [printingCreditNote, setPrintingCreditNote] = useState(false);
+  const [creditNoteInvoice, setCreditNoteInvoice] = useState<InvoiceDetail | null>(null);
 
   const { data: sub, loading, error, refetch } = useQuery(() => irdApi.get(Number(id)), [id]);
 
@@ -61,9 +66,34 @@ export function IrdSubmissionDetailPage() {
 
   const canSubmit = sub.status === 'NOT_SUBMITTED';
   const canRetry = sub.status === 'FAILED';
+  const canFileCreditNote = sub.creditNoteStatus === 'NEEDED';
+  const canRetryCreditNote = sub.creditNoteStatus === 'FAILED';
+
+  const printCreditNote = async () => {
+    setPrintingCreditNote(true);
+    try {
+      const invoice = await invoicesApi.get(sub.invoiceId);
+      setCreditNoteInvoice(invoice);
+      requestAnimationFrame(() => window.print());
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Unable to print credit note');
+    } finally {
+      setPrintingCreditNote(false);
+    }
+  };
 
   return (
     <>
+      {creditNoteInvoice && (
+        <div id="report-print" className="hidden print:block">
+          <CreditNotePrintDocument
+            invoice={creditNoteInvoice}
+            creditNoteNumber={sub.creditNoteNumber}
+            creditNoteDate={sub.creditNoteFiledAt}
+          />
+        </div>
+      )}
+      <div data-print-hide>
       <Link
         to={`/app/invoices/${sub.invoiceId}`}
         className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
@@ -78,6 +108,29 @@ export function IrdSubmissionDetailPage() {
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone={IRD_STATUS_TONE[sub.status]}>{IRD_STATUS_LABEL[sub.status]}</Badge>
+            {sub.creditNoteStatus !== 'NOT_NEEDED' && (
+              <Badge tone={CREDIT_NOTE_STATUS_TONE[sub.creditNoteStatus]}>
+                {CREDIT_NOTE_STATUS_LABEL[sub.creditNoteStatus]}
+              </Badge>
+            )}
+            {sub.creditNoteStatus === 'FILED' && (
+              <Button variant="secondary" loading={printingCreditNote} onClick={printCreditNote}>
+                <Printer className="h-4 w-4" aria-hidden />
+                Print credit note
+              </Button>
+            )}
+            {canManage && canFileCreditNote && (
+              <Button disabled={busy} onClick={() => act(() => irdApi.submitCreditNote(sub.id), 'Credit note filed')}>
+                <Receipt className="h-4 w-4" aria-hidden />
+                File credit note
+              </Button>
+            )}
+            {canManage && canRetryCreditNote && (
+              <Button disabled={busy} onClick={() => act(() => irdApi.retryCreditNote(sub.id), 'Credit note retry attempted')}>
+                <RefreshCw className="h-4 w-4" aria-hidden />
+                Retry credit note
+              </Button>
+            )}
             {canManage && canSubmit && (
               <Button disabled={busy} onClick={() => act(() => irdApi.submit(sub.invoiceId), 'Submission attempted')}>
                 <Send className="h-4 w-4" aria-hidden />
@@ -119,6 +172,28 @@ export function IrdSubmissionDetailPage() {
         <div className="mb-4">
           <Alert tone="info" title="Filed manually">
             Reference {sub.manualReference}. {sub.notes}
+          </Alert>
+        </div>
+      )}
+      {sub.creditNoteStatus === 'NEEDED' && (
+        <div className="mb-4">
+          <Alert tone="warning" title="Credit note required">
+            This bill was successfully filed with IRD, and the invoice has since been cancelled. IRD still has the
+            original bill on record — file a credit note to reverse it.
+          </Alert>
+        </div>
+      )}
+      {sub.creditNoteStatus === 'FAILED' && (
+        <div className="mb-4">
+          <Alert tone="danger" title={`Credit note failed${sub.creditNoteErrorCode ? ` · ${sub.creditNoteErrorCode}` : ''}`}>
+            {sub.creditNoteErrorMessage}
+          </Alert>
+        </div>
+      )}
+      {sub.creditNoteStatus === 'FILED' && (
+        <div className="mb-4">
+          <Alert tone="success" title="Credit note filed">
+            {sub.creditNoteNumber} — {sub.creditNoteFiledAt ? new Date(sub.creditNoteFiledAt).toLocaleString() : ''}
           </Alert>
         </div>
       )}
@@ -190,6 +265,7 @@ export function IrdSubmissionDetailPage() {
         tone="danger"
         reason="required"
       />
+      </div>
     </>
   );
 }

@@ -12,6 +12,7 @@ import np.com.lims.catalog.entity.AgeUnit;
 import np.com.lims.catalog.entity.LabTest;
 import np.com.lims.catalog.entity.ParameterDataType;
 import np.com.lims.catalog.entity.RangeGender;
+import np.com.lims.catalog.entity.ResultMode;
 import np.com.lims.catalog.entity.ReferenceRange;
 import np.com.lims.catalog.entity.SpecimenType;
 import np.com.lims.catalog.entity.TestParameter;
@@ -81,6 +82,7 @@ public final class TestDtos {
                     message = "Code may only contain letters, digits, . - _") String code,
             @NotBlank @Size(max = 160) String name,
             @NotNull TestType type,
+            ResultMode resultMode,
             @NotNull Long departmentId,
             @Size(max = 80) String category,
             @NotNull SpecimenType specimenType,
@@ -99,6 +101,7 @@ public final class TestDtos {
     public record UpdateRequest(
             @NotBlank @Size(max = 160) String name,
             @NotNull TestType type,
+            ResultMode resultMode,
             @NotNull Long departmentId,
             @Size(max = 80) String category,
             @NotNull SpecimenType specimenType,
@@ -176,6 +179,7 @@ public final class TestDtos {
             String code,
             String name,
             TestType type,
+            ResultMode resultMode,
             Long departmentId,
             String departmentName,
             String category,
@@ -188,7 +192,7 @@ public final class TestDtos {
             boolean active
     ) {
         public static ListItem from(LabTest t) {
-            return new ListItem(t.getId(), t.getCode(), t.getName(), t.getType(),
+            return new ListItem(t.getId(), t.getCode(), t.getName(), t.getType(), t.getResultMode(),
                     t.getDepartment().getId(), t.getDepartment().getName(), t.getCategory(),
                     t.getSpecimenType(), t.getPrice(), t.getTurnaroundHours(), t.isReferral(),
                     t.getParameters().size(), t.getProfileMembers().size(), t.isActive());
@@ -200,6 +204,7 @@ public final class TestDtos {
             String code,
             String name,
             TestType type,
+            ResultMode resultMode,
             Long departmentId,
             String departmentName,
             String category,
@@ -219,7 +224,7 @@ public final class TestDtos {
             SpecimenHandling handling = new SpecimenHandling(
                     t.getContainerType(), t.getMinVolumeMl(), t.getStabilityNote(),
                     t.isFastingRequired(), t.getFastingHours(), t.isReferral(), t.getReferralLab());
-            return new Detail(t.getId(), t.getCode(), t.getName(), t.getType(),
+            return new Detail(t.getId(), t.getCode(), t.getName(), t.getType(), t.getResultMode(),
                     t.getDepartment().getId(), t.getDepartment().getName(), t.getCategory(),
                     t.getSpecimenType(), t.getSpecimenRequirements(), t.getMethod(), t.getLoincCode(), t.getPrice(),
                     t.getTurnaroundHours(), handling, t.isAutoVerifyEnabled(), t.isActive(),

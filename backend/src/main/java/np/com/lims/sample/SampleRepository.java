@@ -32,6 +32,7 @@ public interface SampleRepository extends JpaRepository<Sample, Long> {
             WHERE (:status IS NULL OR s.status = :status)
               AND (:orderId IS NULL OR s.order.id = :orderId)
               AND (:patientId IS NULL OR s.patient.id = :patientId)
+              AND (:branchId IS NULL OR s.order.branch.id = :branchId)
               AND (:search IS NULL
                    OR LOWER(s.accessionNumber) LIKE LOWER(CONCAT('%', :search, '%'))
                    OR LOWER(s.patient.fullName) LIKE LOWER(CONCAT('%', :search, '%'))
@@ -43,6 +44,7 @@ public interface SampleRepository extends JpaRepository<Sample, Long> {
                         @Param("orderId") Long orderId,
                         @Param("patientId") Long patientId,
                         @Param("departmentId") Long departmentId,
+                        @Param("branchId") Long branchId,
                         @Param("search") String search,
                         Pageable pageable);
 

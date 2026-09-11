@@ -32,6 +32,14 @@ public class UnconfiguredIrdGateway {
                                 + "A verified gateway implementation, seller enrolment and credentials are "
                                 + "required before electronic submission can be used.");
             }
+
+            @Override
+            public Result submitCreditNote(IrdCreditNotePayload payload) {
+                return Result.transportError("IRD_NOT_CONFIGURED",
+                        "IRD / CBMS e-billing is not configured. No credit note was transmitted. "
+                                + "A verified gateway implementation, seller enrolment and credentials are "
+                                + "required before electronic submission can be used.");
+            }
         };
     }
 }

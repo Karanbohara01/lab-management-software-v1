@@ -89,4 +89,21 @@ public class IrdController {
     public Detail cancel(@PathVariable Long id, @Valid @RequestBody CancelRequest request) {
         return service.cancel(id, request.reason());
     }
+
+    /**
+     * Files a credit note (POST /api/billreturn) reversing a bill that was already successfully
+     * filed with IRD for an invoice that has since been cancelled. Only available once
+     * {@link Detail#creditNoteStatus()} is NEEDED or FAILED — see {@code IrdSubmission.cancel()}.
+     */
+    @PostMapping("/submissions/{id}/credit-note/submit")
+    @PreAuthorize("hasAuthority('PERM_IRD_SUBMISSION_MANAGE')")
+    public Detail submitCreditNote(@PathVariable Long id) {
+        return service.submitCreditNote(id);
+    }
+
+    @PostMapping("/submissions/{id}/credit-note/retry")
+    @PreAuthorize("hasAuthority('PERM_IRD_SUBMISSION_MANAGE')")
+    public Detail retryCreditNote(@PathVariable Long id) {
+        return service.retryCreditNote(id);
+    }
 }

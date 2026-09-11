@@ -24,6 +24,7 @@ export type ParameterDataType =
 export type RangeGender = 'ALL' | 'MALE' | 'FEMALE';
 export type AgeUnit = 'YEARS' | 'MONTHS' | 'DAYS';
 export type TestType = 'ANALYTE' | 'PROFILE';
+export type ResultMode = 'PARAMETRIC' | 'CULTURE';
 
 export interface ReferenceRange {
   appliesToGender: RangeGender;
@@ -83,6 +84,7 @@ export interface TestListItem {
   code: string;
   name: string;
   type: TestType;
+  resultMode: ResultMode;
   departmentId: number;
   departmentName: string;
   category: string | null;
@@ -100,6 +102,7 @@ export interface TestDetail {
   code: string;
   name: string;
   type: TestType;
+  resultMode: ResultMode;
   departmentId: number;
   departmentName: string;
   category: string | null;
@@ -135,6 +138,7 @@ export interface TestUpsertPayload {
   code?: string;
   name: string;
   type: TestType;
+  resultMode?: ResultMode;
   departmentId: number;
   category?: string;
   specimenType: SpecimenType;

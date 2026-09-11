@@ -6,11 +6,13 @@ import np.com.lims.result.TestResultService;
 import np.com.lims.result.dto.ResultDtos.AmendRequest;
 import np.com.lims.result.dto.ResultDtos.ApproveRequest;
 import np.com.lims.result.dto.ResultDtos.CriticalCallbackRequest;
+import np.com.lims.result.dto.ResultDtos.CultureRequest;
 import np.com.lims.result.dto.ResultDtos.Detail;
 import np.com.lims.result.dto.ResultDtos.ListItem;
 import np.com.lims.result.dto.ResultDtos.RejectRequest;
 import np.com.lims.result.dto.ResultDtos.SaveValuesRequest;
 import np.com.lims.result.dto.ResultDtos.Summary;
+import np.com.lims.result.dto.ResultDtos.VerifyRequest;
 import np.com.lims.result.entity.ResultStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -70,10 +72,17 @@ public class TestResultController {
         return service.saveValues(id, request);
     }
 
+    /** Enter a microbiology culture & sensitivity result (growth outcome + isolates + AST panel). */
+    @PutMapping("/{id}/culture")
+    @PreAuthorize("hasAuthority('PERM_RESULT_ENTER')")
+    public Detail saveCulture(@PathVariable Long id, @Valid @RequestBody CultureRequest request) {
+        return service.saveCulture(id, request);
+    }
+
     @PostMapping("/{id}/verify")
     @PreAuthorize("hasAuthority('PERM_RESULT_VERIFY')")
-    public Detail verify(@PathVariable Long id) {
-        return service.verify(id);
+    public Detail verify(@PathVariable Long id, @RequestBody(required = false) VerifyRequest request) {
+        return service.verify(id, request);
     }
 
     @PostMapping("/{id}/approve")

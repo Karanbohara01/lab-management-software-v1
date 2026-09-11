@@ -11,16 +11,27 @@ import np.com.lims.notification.NotificationService;
 import np.com.lims.notification.entity.Notification;
 import np.com.lims.patient.entity.Patient;
 import np.com.lims.qc.QcService;
+import np.com.lims.common.exception.ErrorCode;
+import np.com.lims.microbiology.AntibioticRepository;
+import np.com.lims.microbiology.entity.Antibiotic;
 import np.com.lims.result.dto.ResultDtos.AmendRequest;
 import np.com.lims.result.dto.ResultDtos.ApproveRequest;
 import np.com.lims.result.dto.ResultDtos.CallbackDto;
 import np.com.lims.result.dto.ResultDtos.CriticalCallbackRequest;
+import np.com.lims.result.dto.ResultDtos.CultureRequest;
 import np.com.lims.result.dto.ResultDtos.Detail;
+import np.com.lims.result.dto.ResultDtos.IsolateInput;
 import np.com.lims.result.dto.ResultDtos.ListItem;
 import np.com.lims.result.dto.ResultDtos.SaveValuesRequest;
+import np.com.lims.result.dto.ResultDtos.SusceptibilityInput;
 import np.com.lims.result.dto.ResultDtos.Summary;
 import np.com.lims.result.dto.ResultDtos.ValueInput;
+import np.com.lims.result.dto.ResultDtos.VerifyRequest;
 import np.com.lims.result.entity.CriticalValueCallback;
+import np.com.lims.result.entity.CultureGrowth;
+import np.com.lims.result.entity.CultureIsolate;
+import np.com.lims.result.entity.CultureSusceptibility;
+import np.com.lims.result.entity.OrganismSignificance;
 import np.com.lims.result.entity.ResultFlag;
 import np.com.lims.result.entity.ResultStatus;
 import np.com.lims.result.entity.ResultValue;
@@ -47,6 +58,7 @@ public class TestResultService {
     private final CriticalValueCallbackRepository callbackRepository;
     private final QcService qcService;
     private final LabTestRepository labTestRepository;
+    private final AntibioticRepository antibioticRepository;
     private final ReferenceRangeResolver rangeResolver;
     private final AuditService auditService;
     private final NotificationService notificationService;
@@ -55,6 +67,7 @@ public class TestResultService {
                              CriticalValueCallbackRepository callbackRepository,
                              QcService qcService,
                              LabTestRepository labTestRepository,
+                             AntibioticRepository antibioticRepository,
                              ReferenceRangeResolver rangeResolver,
                              AuditService auditService,
                              NotificationService notificationService) {
@@ -62,6 +75,7 @@ public class TestResultService {
         this.callbackRepository = callbackRepository;
         this.qcService = qcService;
         this.labTestRepository = labTestRepository;
+        this.antibioticRepository = antibioticRepository;
         this.rangeResolver = rangeResolver;
         this.auditService = auditService;
         this.notificationService = notificationService;
@@ -182,11 +196,88 @@ public class TestResultService {
         return detail(result);
     }
 
+    /** Enter a microbiology culture & sensitivity result: growth outcome + isolates with AST panels. */
     @Transactional
-    public Detail verify(Long id) {
+    public Detail saveCulture(Long id, CultureRequest request) {
         TestResult result = load(id);
-        result.verify(CurrentUser.username());
-        audit(result, "VERIFY", "Verified results for " + result.getTestCode());
+        if (!result.isCulture()) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED,
+                    result.getTestCode() + " is not entered as a culture — use the standard result entry.");
+        }
+        if (!result.getStatus().isValueEditable()) {
+            throw ApiException.invalidTransition("Result is " + result.getStatus() + " and can no longer be edited");
+        }
+        String actor = CurrentUser.username();
+
+        result.applyCultureGrowth(request.growth());
+        if (request.comment() != null) {
+            result.setComment(trimToNull(request.comment()));
+        }
+
+        List<IsolateInput> isolates = request.isolates() == null ? List.of() : request.isolates();
+        if (request.growth() == CultureGrowth.GROWTH && isolates.isEmpty()) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED,
+                    "Record at least one isolate, or set the outcome to no growth / normal flora / mixed flora.");
+        }
+        if (request.growth() != CultureGrowth.GROWTH && !isolates.isEmpty()) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED,
+                    "Isolates can only be recorded when the outcome is significant growth.");
+        }
+
+        int seq = 1;
+        for (IsolateInput in : isolates) {
+            CultureIsolate isolate = result.addCultureIsolate(new CultureIsolate(result, seq++,
+                    in.organismName().trim(), trimToNull(in.colonyCount()),
+                    in.significance() == null ? OrganismSignificance.PATHOGEN : in.significance(),
+                    trimToNull(in.note())));
+            List<SusceptibilityInput> panel =
+                    in.susceptibilities() == null ? List.of() : in.susceptibilities();
+            int abSeq = 1;
+            for (SusceptibilityInput s : panel) {
+                Antibiotic antibiotic = s.antibioticId() == null ? null
+                        : antibioticRepository.findById(s.antibioticId())
+                        .orElseThrow(() -> ApiException.notFound("Antibiotic", s.antibioticId()));
+                String name = antibiotic != null ? antibiotic.getName() : trimToNull(s.antibioticName());
+                if (name == null) {
+                    throw new ApiException(ErrorCode.VALIDATION_FAILED,
+                            "Each susceptibility row needs an antibiotic (from the list or a free-text name).");
+                }
+                isolate.addSusceptibility(new CultureSusceptibility(antibiotic, name, abSeq++,
+                        s.interpretation(), trimToNull(s.mic()), trimToNull(s.zone()), s.method()));
+            }
+        }
+
+        result.markEntered(actor);
+        result.recomputeAbnormalFlags();
+        audit(result, "ENTER_CULTURE", "Entered culture for " + result.getTestCode() + " — " + request.growth()
+                + (result.getCultureIsolates().isEmpty()
+                        ? "" : " (" + result.getCultureIsolates().size() + " isolate(s))"));
+        return detail(result);
+    }
+
+    /**
+     * Maker-checker: the person who entered a result may not also verify it. Verifying as the
+     * same person who entered it is blocked with a 409 unless a documented override reason is
+     * supplied (audited). Auto-verification bypasses this — it never runs as a human actor.
+     */
+    @Transactional
+    public Detail verify(Long id, VerifyRequest request) {
+        TestResult result = load(id);
+        String actor = CurrentUser.username();
+        boolean selfVerify = result.getEnteredBy() != null && result.getEnteredBy().equalsIgnoreCase(actor);
+        String overrideReason = request == null ? null : trimToNull(request.selfVerifyOverrideReason());
+        if (selfVerify && overrideReason == null) {
+            throw new ApiException(ErrorCode.RESOURCE_CONFLICT,
+                    "You entered this result — verification must be performed by a different person. "
+                            + "Provide a documented reason to verify it yourself.");
+        }
+        result.verify(actor);
+        if (selfVerify) {
+            audit(result, "SELF_VERIFY_OVERRIDE",
+                    "Verified own entry for " + result.getTestCode() + " — " + overrideReason);
+        } else {
+            audit(result, "VERIFY", "Verified results for " + result.getTestCode());
+        }
         return detail(result);
     }
 

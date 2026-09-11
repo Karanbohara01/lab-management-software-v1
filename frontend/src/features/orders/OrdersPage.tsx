@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
@@ -16,6 +16,7 @@ import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { formatMoney } from '@/lib/money';
 import { formatDate } from '@/features/patients/format';
+import { branchesApi, type Branch } from '@/features/branches/api';
 import { ordersApi } from './api';
 import { ORDER_STATUS_TONE, type OrderListItem, type OrderStatus } from './types';
 
@@ -23,12 +24,19 @@ const PAGE_SIZE = 20;
 
 export function OrdersPage() {
   const navigate = useNavigate();
-  const { hasPermission } = useAuth();
+  const { hasPermission, user } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.LAB_ORDER_WRITE);
+  const isHq = !user?.homeBranchId;
 
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<'' | OrderStatus>('');
+  const [branchId, setBranchId] = useState('');
   const [page, setPage] = useState(0);
+  const [branches, setBranches] = useState<Branch[]>([]);
+
+  useEffect(() => {
+    if (isHq) branchesApi.list(true).then(setBranches);
+  }, [isHq]);
 
   const debouncedSearch = useDebouncedValue(search, 300);
   const { data, loading, error, refetch } = useQuery(
@@ -36,10 +44,11 @@ export function OrdersPage() {
       ordersApi.list({
         query: debouncedSearch || undefined,
         status: status || undefined,
+        branchId: branchId ? Number(branchId) : undefined,
         page,
         size: PAGE_SIZE,
       }),
-    [debouncedSearch, status, page],
+    [debouncedSearch, status, branchId, page],
   );
 
   const columns: Column<OrderListItem>[] = [
@@ -62,6 +71,9 @@ export function OrdersPage() {
       header: 'Status',
       cell: (o) => <Badge tone={ORDER_STATUS_TONE[o.status]}>{o.status}</Badge>,
     },
+    ...(isHq
+      ? [{ key: 'branch', header: 'Branch', cell: (o: OrderListItem) => o.branchName, hideOnMobile: true } as Column<OrderListItem>]
+      : []),
   ];
 
   return (
@@ -106,6 +118,18 @@ export function OrdersPage() {
               }}
             />
           </div>
+          {isHq && (
+            <div className="sm:w-48">
+              <Select
+                options={[{ value: '', label: 'All branches' }, ...branches.map((b) => ({ value: String(b.id), label: b.name }))]}
+                value={branchId}
+                onChange={(e) => {
+                  setBranchId(e.target.value);
+                  setPage(0);
+                }}
+              />
+            </div>
+          )}
         </div>
 
         {loading && !data ? (

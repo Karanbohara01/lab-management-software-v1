@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ScanLine } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
@@ -17,6 +17,8 @@ import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/types/api';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { departmentsApi } from '@/features/departments/api';
+import { branchesApi, type Branch } from '@/features/branches/api';
+import { useAuth } from '@/features/auth/useAuth';
 import { SPECIMEN_LABELS } from '@/features/catalog/types';
 import { formatDate } from '@/features/patients/format';
 import { samplesApi } from './api';
@@ -34,27 +36,36 @@ const TABS: { value: '' | SampleStatus; label: string }[] = [
 export function SamplesPage() {
   const navigate = useNavigate();
   const toast = useToast();
+  const { user } = useAuth();
+  const isHq = !user?.homeBranchId;
 
   const [status, setStatus] = useState<'' | SampleStatus>('');
   const [departmentId, setDepartmentId] = useState('');
+  const [branchId, setBranchId] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [scan, setScan] = useState('');
+  const [branches, setBranches] = useState<Branch[]>([]);
 
   const departments = useQuery(() => departmentsApi.list(true), []);
   const summary = useQuery(() => samplesApi.summary(), []);
   const debouncedSearch = useDebouncedValue(search, 300);
+
+  useEffect(() => {
+    if (isHq) branchesApi.list(true).then(setBranches);
+  }, [isHq]);
 
   const { data, loading, error, refetch } = useQuery(
     () =>
       samplesApi.list({
         status: status || undefined,
         departmentId: departmentId ? Number(departmentId) : undefined,
+        branchId: branchId ? Number(branchId) : undefined,
         query: debouncedSearch || undefined,
         page,
         size: PAGE_SIZE,
       }),
-    [status, departmentId, debouncedSearch, page],
+    [status, departmentId, branchId, debouncedSearch, page],
   );
 
   const onScan = async (e: FormEvent) => {
@@ -160,6 +171,18 @@ export function SamplesPage() {
               }}
             />
           </div>
+          {isHq && (
+            <div className="sm:w-56">
+              <Select
+                options={[{ value: '', label: 'All branches' }, ...branches.map((b) => ({ value: String(b.id), label: b.name }))]}
+                value={branchId}
+                onChange={(e) => {
+                  setBranchId(e.target.value);
+                  setPage(0);
+                }}
+              />
+            </div>
+          )}
         </div>
 
         {loading && !data ? (

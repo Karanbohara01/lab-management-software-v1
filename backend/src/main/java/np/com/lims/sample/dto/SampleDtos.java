@@ -23,7 +23,8 @@ public final class SampleDtos {
     public record CollectRequest(
             @Size(max = 160) String collectionSite,
             @Size(max = 120) String container,
-            @Size(max = 500) String note
+            @Size(max = 500) String note,
+            @Size(max = 300) String paymentOverrideReason
     ) {
     }
 

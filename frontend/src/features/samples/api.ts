@@ -7,6 +7,7 @@ export interface SampleQuery {
   orderId?: number;
   patientId?: number;
   departmentId?: number;
+  branchId?: number;
   query?: string;
   page?: number;
   size?: number;
@@ -24,8 +25,10 @@ export const samplesApi = {
   lookup: (code: string) =>
     httpClient.get<SampleDetail>('/samples/lookup', { params: { code } }).then((r) => r.data),
 
-  collect: (id: number, body: { collectionSite?: string; container?: string; note?: string }) =>
-    httpClient.post<SampleDetail>(`/samples/${id}/collect`, body).then((r) => r.data),
+  collect: (
+    id: number,
+    body: { collectionSite?: string; container?: string; note?: string; paymentOverrideReason?: string },
+  ) => httpClient.post<SampleDetail>(`/samples/${id}/collect`, body).then((r) => r.data),
 
   receive: (id: number, body?: { note?: string; condition?: SpecimenConditionInput }) =>
     httpClient.post<SampleDetail>(`/samples/${id}/receive`, body ?? {}).then((r) => r.data),

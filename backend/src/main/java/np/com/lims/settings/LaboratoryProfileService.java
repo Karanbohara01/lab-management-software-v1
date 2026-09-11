@@ -48,6 +48,7 @@ public class LaboratoryProfileService {
         profile.updateBilling(request.fiscalYear().trim(), request.invoicePrefix().trim().toUpperCase(),
                 request.defaultTaxRate());
         profile.updateInventory(request.inventoryExpiryAlertDays() == null ? 30 : request.inventoryExpiryAlertDays());
+        profile.updateOperations(request.requirePaymentBeforeCollection());
         auditService.record("SETTINGS", "UPDATE", "LaboratoryProfile", profile.getId(),
                 "Updated laboratory profile", before, Response.from(profile));
         return Response.from(profile);

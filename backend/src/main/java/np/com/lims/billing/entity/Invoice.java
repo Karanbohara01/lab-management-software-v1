@@ -88,6 +88,18 @@ public class Invoice extends BaseEntity {
     @Column(length = 1000)
     private String notes;
 
+    // Per the e-invoice procedure (दफा ६(च)): a bill number may print as the ORIGINAL only once
+    // per fiscal year; any further print of the same invoice number must show a "Copy of
+    // Original" watermark, and how many times it has been reprinted must be tracked.
+    @Column(name = "print_count", nullable = false)
+    private int printCount;
+
+    @Column(name = "last_printed_at")
+    private Instant lastPrintedAt;
+
+    @Column(name = "last_printed_by", length = 100)
+    private String lastPrintedBy;
+
     @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("id ASC")
     private List<InvoiceItem> items = new ArrayList<>();
@@ -148,13 +160,26 @@ public class Invoice extends BaseEntity {
         if (status == InvoiceStatus.CANCELLED) {
             throw ApiException.invalidTransition("Invoice is already cancelled");
         }
-        if (amountPaid.signum() > 0) {
+        // Net of refunds, not raw amountPaid — otherwise a fully-refunded invoice could never be
+        // cancelled, since amountPaid never decreases (only amountRefunded grows to offset it).
+        if (netPaid().signum() > 0) {
             throw ApiException.conflict("Refund all payments before cancelling this invoice");
         }
         this.status = InvoiceStatus.CANCELLED;
         this.cancelledAt = Instant.now();
         this.cancelledBy = actor;
         this.cancelReason = reason;
+    }
+
+    /**
+     * Registers a print (or reprint) of this invoice, returning the sequence number of THIS
+     * print (1 = the original; 2+ = a reprint that must be watermarked "Copy of Original").
+     */
+    public int recordPrint(String actor) {
+        this.printCount += 1;
+        this.lastPrintedAt = Instant.now();
+        this.lastPrintedBy = actor;
+        return this.printCount;
     }
 
     public Payment recordPayment(BigDecimal amount, PaymentMethod method, String reference, String note, String actor) {
@@ -298,6 +323,18 @@ public class Invoice extends BaseEntity {
 
     public String getNotes() {
         return notes;
+    }
+
+    public int getPrintCount() {
+        return printCount;
+    }
+
+    public Instant getLastPrintedAt() {
+        return lastPrintedAt;
+    }
+
+    public String getLastPrintedBy() {
+        return lastPrintedBy;
     }
 
     public List<InvoiceItem> getItems() {

@@ -66,6 +66,7 @@ export function ResultsQueuePage() {
         <span className="flex items-center gap-2">
           {r.hasCritical && <AlertTriangle className="h-4 w-4 text-critical" aria-label="Critical value" />}
           {r.priority !== 'ROUTINE' && <Badge tone={r.priority === 'STAT' ? 'critical' : 'warning'}>{r.priority}</Badge>}
+          {r.resultMode === 'CULTURE' && <Badge tone="info">Culture</Badge>}
           <span className="font-medium">{r.testName}</span>
           <span className="font-mono text-xs text-muted">{r.testCode}</span>
         </span>

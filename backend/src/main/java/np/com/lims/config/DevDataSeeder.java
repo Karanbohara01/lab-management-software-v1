@@ -21,6 +21,7 @@ import np.com.lims.user.entity.User;
 import np.com.lims.user.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
@@ -62,6 +63,10 @@ public class DevDataSeeder implements ApplicationRunner {
     private final DepartmentRepository departmentRepository;
     private final LabTestRepository labTestRepository;
 
+    /** Set {@code lims.dev.seed.enabled=false} (e.g. in application-local.yml) to start with an empty catalog. */
+    @Value("${lims.dev.seed.enabled:true}")
+    private boolean seedEnabled;
+
     public DevDataSeeder(UserRepository userRepository,
                          RoleRepository roleRepository,
                          PasswordEncoder passwordEncoder,
@@ -83,6 +88,10 @@ public class DevDataSeeder implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
+        if (!seedEnabled) {
+            log.warn("DEV SEED: disabled (lims.dev.seed.enabled=false) — leaving the database as-is");
+            return;
+        }
         seedUsers();
         seedClinical();
         seedCatalog();

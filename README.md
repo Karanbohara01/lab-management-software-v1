@@ -77,18 +77,41 @@ Flyway migration `V2__rbac_baseline.sql`.
 | `accountant`    | ACCOUNTANT               |
 | `collector`     | SAMPLE_COLLECTION_STAFF  |
 
+## Deployment
+
+`docker-compose.prod.yml` builds and runs the whole stack (backend + frontend + MySQL) from this
+repo's own `backend/Dockerfile` / `frontend/Dockerfile`:
+
+```bash
+cp .env.prod.example .env.prod   # fill in real values — see docs/ENVIRONMENT.md
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+```
+
+See `docs/ENVIRONMENT.md` for every environment variable this app reads, what it does, and what
+happens if it's left unset (every optional integration — IRD, SMS, WhatsApp, eSewa, Khalti —
+stays honestly disabled until configured). `.github/workflows/ci.yml` builds and tests both
+sides (including a Docker image build) on every push/PR.
+
+`docker-compose.yml` (no `-prod` suffix) stays for local dev — just the MySQL + Adminer
+containers, running the app itself via `./mvnw spring-boot:run` / `npm run dev` for fast reload.
+
 ## IRD / e-Billing
 
-**This system is not IRD-registered or certified and transmits nothing to IRD.** Phase 5 built the
-integration *architecture* only:
+**This system is not IRD-registered or certified — being able to submit here does not by itself
+mean official IRD registration exists.** That registration (Anusuchi-1/2/3 of the e-invoice
+procedure) is a separate paperwork process done directly with IRD. The integration itself is real
+and verified live against IRD's CBMS sandbox:
 
 - `IrdGateway` port (`np.com.lims.ird.gateway`) is the single seam. Invoice creation and payments
-  never call it — submission is a separate, explicit action.
-- `UnconfiguredIrdGateway` is the active bean; every attempt is logged as a transport error with a
-  clear message. A real gateway must map `IrdBillPayload` to the **verified** IRD CBMS request
-  (do not guess field names), then be registered as the `IrdGateway` bean with `IRD_ENABLED=true`
-  and `IRD_*` credentials (env-only, never committed).
+  never call it — submission is a separate, explicit action, so a slow/unavailable IRD service can
+  never block billing.
+- `UnconfiguredIrdGateway` is the active bean until `IRD_ENABLED=true` and every `IRD_*` credential
+  is set — every attempt before that is logged as a transport error with a clear message, never a
+  silent fake success. `CbmsIrdGateway` is the real implementation, including a verified Bikram
+  Sambat date conversion (`np.com.lims.common.calendar.BikramSambatCalendar`) CBMS requires.
 - A per-invoice tracking record is created when an invoice is **issued** (state
   `NOT_SUBMITTED → PENDING → SUBMITTED/ACCEPTED/FAILED/DUPLICATE/CANCELLED`); every attempt is
   recorded with request/response status. Resubmission past a successful/duplicate state is blocked.
+- Cancelling an invoice that was already filed with IRD flags a credit note as needed — filing it
+  (reversing the original bill with IRD) is, again, a separate explicit action.
 - Bills can be marked as **filed manually** via the IRD portal when the integration is unavailable.

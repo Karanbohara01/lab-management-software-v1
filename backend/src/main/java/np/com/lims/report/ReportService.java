@@ -5,7 +5,9 @@ import np.com.lims.catalog.entity.LabTest;
 import np.com.lims.common.audit.AuditService;
 import np.com.lims.common.exception.ApiException;
 import np.com.lims.common.web.CurrentUser;
+import np.com.lims.common.exception.ErrorCode;
 import np.com.lims.common.sequence.SequenceService;
+import np.com.lims.messaging.PatientMessagingService;
 import np.com.lims.order.LabOrderRepository;
 import np.com.lims.order.entity.LabOrder;
 import np.com.lims.order.entity.OrderStatus;
@@ -46,6 +48,7 @@ public class ReportService {
     private final LaboratoryProfileService laboratoryProfileService;
     private final SequenceService sequenceService;
     private final AuditService auditService;
+    private final PatientMessagingService messagingService;
 
     public ReportService(ReportRepository reportRepository,
                          LabOrderRepository orderRepository,
@@ -53,12 +56,14 @@ public class ReportService {
                          LabTestRepository testRepository,
                          LaboratoryProfileService laboratoryProfileService,
                          SequenceService sequenceService,
-                         AuditService auditService) {
+                         AuditService auditService,
+                         PatientMessagingService messagingService) {
         this.reportRepository = reportRepository;
         this.orderRepository = orderRepository;
         this.resultRepository = resultRepository;
         this.testRepository = testRepository;
         this.laboratoryProfileService = laboratoryProfileService;
+        this.messagingService = messagingService;
         this.sequenceService = sequenceService;
         this.auditService = auditService;
     }
@@ -193,10 +198,38 @@ public class ReportService {
     @Transactional
     public Detail markDelivered(Long id, String method, String recipient) {
         Report report = load(id);
-        report.markDelivered(CurrentUser.username(), method.trim(),
-                StringUtils.hasText(recipient) ? recipient.trim() : null);
+        String normalizedMethod = method.trim();
+        String finalRecipient = StringUtils.hasText(recipient) ? recipient.trim() : null;
+
+        if (PatientMessagingService.isMessagingChannel(normalizedMethod)) {
+            if (finalRecipient == null) {
+                finalRecipient = report.getPatient().getPhone();
+            }
+            if (!StringUtils.hasText(finalRecipient)) {
+                throw new ApiException(ErrorCode.VALIDATION_FAILED,
+                        "This patient has no phone number on file — enter one to send via " + normalizedMethod + ".");
+            }
+            var result = messagingService.sendReportReady(normalizedMethod, finalRecipient,
+                    laboratoryProfileService.require().getName(), report.getPatient().getFullName(),
+                    report.getReportNumber(), report.getVerificationToken());
+            if (!result.sent()) {
+                auditService.record(MODULE, "DELIVER_FAILED", "Report", id,
+                        "Failed to deliver report " + report.getReportNumber() + " via " + normalizedMethod
+                                + " to " + finalRecipient + " — " + result.errorMessage(), null, null);
+                throw new ApiException(ErrorCode.EXTERNAL_SERVICE_UNAVAILABLE, result.errorMessage());
+            }
+            report.markDelivered(CurrentUser.username(), normalizedMethod, finalRecipient);
+            auditService.record(MODULE, "DELIVER", "Report", id,
+                    "Delivered report " + report.getReportNumber() + " via " + normalizedMethod + " to "
+                            + finalRecipient
+                            + (result.providerReference() != null ? " (ref " + result.providerReference() + ")" : ""),
+                    null, null);
+            return Detail.from(report, laboratoryProfileService.require());
+        }
+
+        report.markDelivered(CurrentUser.username(), normalizedMethod, finalRecipient);
         auditService.record(MODULE, "DELIVER", "Report", id,
-                "Delivered report " + report.getReportNumber() + " via " + method, null, null);
+                "Delivered report " + report.getReportNumber() + " via " + normalizedMethod, null, null);
         return Detail.from(report, laboratoryProfileService.require());
     }
 
@@ -204,16 +237,58 @@ public class ReportService {
         return reportRepository.findDetailedById(id).orElseThrow(() -> ApiException.notFound("Report", id));
     }
 
-    /** Report block comment = specimen-condition note (if any) then the technician/pathologist comment. */
+    /** Report block comment = culture findings (if any), then specimen-condition note, then the comment. */
     private static String blockComment(TestResult result) {
         String condition = result.getSample() == null || result.getSample().getCondition() == null
                 ? "" : result.getSample().getCondition().summary();
         String comment = result.getComment() == null ? "" : result.getComment().trim();
-        if (condition.isBlank()) {
-            return comment.isBlank() ? null : comment;
+        java.util.List<String> parts = new java.util.ArrayList<>();
+        String culture = cultureNarrative(result);
+        if (!culture.isBlank()) {
+            parts.add(culture);
         }
-        String prefix = "Specimen: " + condition + ".";
-        return comment.isBlank() ? prefix : prefix + "\n" + comment;
+        if (!condition.isBlank()) {
+            parts.add("Specimen: " + condition + ".");
+        }
+        if (!comment.isBlank()) {
+            parts.add(comment);
+        }
+        return parts.isEmpty() ? null : String.join("\n", parts);
+    }
+
+    /** Plain-text rendering of a culture & sensitivity result for the report block. */
+    private static String cultureNarrative(TestResult result) {
+        if (result.getCultureGrowth() == null) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder("CULTURE: ").append(result.getCultureGrowth().description()).append('.');
+        for (np.com.lims.result.entity.CultureIsolate iso : result.getCultureIsolates()) {
+            sb.append("\n  ").append(iso.getSequenceNo()).append(". ").append(iso.getOrganismName());
+            if (StringUtils.hasText(iso.getColonyCount())) {
+                sb.append(" — ").append(iso.getColonyCount());
+            }
+            String sensitive = susceptibilityNames(iso, np.com.lims.result.entity.Susceptibility.S);
+            String intermediate = susceptibilityNames(iso, np.com.lims.result.entity.Susceptibility.I);
+            String resistant = susceptibilityNames(iso, np.com.lims.result.entity.Susceptibility.R);
+            if (!sensitive.isBlank()) {
+                sb.append("\n     Sensitive: ").append(sensitive);
+            }
+            if (!intermediate.isBlank()) {
+                sb.append("\n     Intermediate: ").append(intermediate);
+            }
+            if (!resistant.isBlank()) {
+                sb.append("\n     Resistant: ").append(resistant);
+            }
+        }
+        return sb.toString();
+    }
+
+    private static String susceptibilityNames(np.com.lims.result.entity.CultureIsolate iso,
+                                              np.com.lims.result.entity.Susceptibility interpretation) {
+        return iso.getSusceptibilities().stream()
+                .filter(s -> s.getInterpretation() == interpretation)
+                .map(np.com.lims.result.entity.CultureSusceptibility::getAntibioticName)
+                .collect(java.util.stream.Collectors.joining(", "));
     }
 
     private static String displayValue(ResultValue value) {

@@ -31,6 +31,8 @@ export interface AppUserListItem {
   fullName: string;
   email: string;
   roles: string[];
+  homeBranchId: number | null;
+  homeBranchName: string | null;
   enabled: boolean;
   lastLoginAt: string | null;
 }
@@ -53,6 +55,10 @@ export interface AuditQuery {
 export const adminApi = {
   audit: (params: AuditQuery) =>
     httpClient.get<PageResponse<AuditListItem>>('/audit-logs', { params }).then((r) => r.data),
+
+  /** Every audit entry matching the filters, unpaged — for CSV/XML export. */
+  exportAudit: (params: Omit<AuditQuery, 'page' | 'size'>) =>
+    httpClient.get<AuditListItem[]>('/audit-logs/export', { params }).then((r) => r.data),
   auditModules: () => httpClient.get<string[]>('/audit-logs/modules').then((r) => r.data),
   auditDetail: (id: number) => httpClient.get<AuditDetail>(`/audit-logs/${id}`).then((r) => r.data),
 
@@ -67,10 +73,14 @@ export const adminApi = {
     fullName: string;
     phone?: string;
     roleNames: string[];
+    /** Null/omitted = access to every branch (HQ / roaming staff). */
+    homeBranchId?: number | null;
     password: string;
   }) => httpClient.post<AppUserDetail>('/users', payload).then((r) => r.data),
-  updateUser: (id: number, payload: { email: string; fullName: string; phone?: string; roleNames: string[] }) =>
-    httpClient.put<AppUserDetail>(`/users/${id}`, payload).then((r) => r.data),
+  updateUser: (
+    id: number,
+    payload: { email: string; fullName: string; phone?: string; roleNames: string[]; homeBranchId?: number | null },
+  ) => httpClient.put<AppUserDetail>(`/users/${id}`, payload).then((r) => r.data),
   setEnabled: (id: number, value: boolean) =>
     httpClient.patch<AppUserDetail>(`/users/${id}/enabled`, null, { params: { value } }).then((r) => r.data),
   resetPassword: (id: number, newPassword: string) =>

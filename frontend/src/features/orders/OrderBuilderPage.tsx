@@ -18,6 +18,8 @@ import type { PatientListItem } from '@/features/patients/types';
 import { doctorsApi } from '@/features/doctors/api';
 import { testCatalogApi } from '@/features/catalog/api';
 import type { TestListItem } from '@/features/catalog/types';
+import { branchesApi, type Branch } from '@/features/branches/api';
+import { useAuth } from '@/features/auth/useAuth';
 import { ordersApi } from './api';
 import type { DiscountType, OrderPricing, OrderPriority } from './types';
 import { PricingSummary } from './PricingSummary';
@@ -57,9 +59,13 @@ export function OrderBuilderPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const { user } = useAuth();
+  const isBranchScoped = !!user?.homeBranchId;
 
   const [loading, setLoading] = useState(isEdit || !!searchParams.get('patientId'));
   const [patient, setPatient] = useState<PickedPatient | null>(null);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchId, setBranchId] = useState('');
   const [referringDoctorId, setReferringDoctorId] = useState('');
   const [clinicalNotes, setClinicalNotes] = useState('');
   const [priority, setPriority] = useState<OrderPriority>('ROUTINE');
@@ -79,6 +85,11 @@ export function OrderBuilderPage() {
   }, []);
 
   useEffect(() => {
+    if (isBranchScoped) return;
+    branchesApi.list(true).then(setBranches);
+  }, [isBranchScoped]);
+
+  useEffect(() => {
     async function bootstrap() {
       if (isEdit) {
         const order = await ordersApi.get(Number(id));
@@ -92,6 +103,7 @@ export function OrderBuilderPage() {
           fullName: order.patientName,
           phone: null,
         });
+        setBranchId(String(order.branchId));
         setReferringDoctorId(order.referringDoctorId ? String(order.referringDoctorId) : '');
         setClinicalNotes(order.clinicalNotes ?? '');
         setPriority(order.priority ?? 'ROUTINE');
@@ -172,6 +184,7 @@ export function OrderBuilderPage() {
     try {
       const payload = {
         patientId: patient.id,
+        branchId: !isBranchScoped && branchId ? Number(branchId) : undefined,
         referringDoctorId: referringDoctorId ? Number(referringDoctorId) : null,
         clinicalNotes: clinicalNotes || undefined,
         priority,
@@ -340,6 +353,15 @@ export function OrderBuilderPage() {
           <Card>
             <CardHeader title="Referral & notes" />
             <CardBody className="space-y-4">
+              {!isBranchScoped && (
+                <Select
+                  label="Branch"
+                  placeholder="Default branch"
+                  options={branches.map((b) => ({ value: String(b.id), label: b.name }))}
+                  value={branchId}
+                  onChange={(e) => setBranchId(e.target.value)}
+                />
+              )}
               <Select
                 label="Referring doctor"
                 options={[
@@ -354,7 +376,7 @@ export function OrderBuilderPage() {
                 options={[
                   { value: 'ROUTINE', label: 'Routine' },
                   { value: 'URGENT', label: 'Urgent' },
-                  { value: 'STAT', label: 'STAT — jumps the queue, tighter turnaround' },
+                  { value: 'STAT', label: 'STAT ï¿½ jumps the queue, tighter turnaround' },
                 ]}
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as OrderPriority)}

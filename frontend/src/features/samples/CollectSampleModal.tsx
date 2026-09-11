@@ -24,6 +24,8 @@ export function CollectSampleModal({
   const [site, setSite] = useState('');
   const [container, setContainer] = useState('');
   const [note, setNote] = useState('');
+  const [overrideReason, setOverrideReason] = useState('');
+  const [paymentBlocked, setPaymentBlocked] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,12 +37,18 @@ export function CollectSampleModal({
         collectionSite: site || undefined,
         container: container || undefined,
         note: note || undefined,
+        paymentOverrideReason: paymentBlocked ? overrideReason.trim() || undefined : undefined,
       });
       toast.success(`Sample ${sample.accessionNumber} collected`);
       onDone();
       onClose();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Unable to record collection');
+      if (err instanceof ApiError && err.status === 409) {
+        setPaymentBlocked(true);
+        setError(err.message);
+      } else {
+        setError(err instanceof ApiError ? err.message : 'Unable to record collection');
+      }
     } finally {
       setBusy(false);
     }
@@ -57,14 +65,26 @@ export function CollectSampleModal({
           <Button variant="secondary" type="button" onClick={onClose} disabled={busy}>
             Cancel
           </Button>
-          <Button onClick={submit} loading={busy}>
-            Mark collected
+          <Button
+            onClick={submit}
+            loading={busy}
+            disabled={paymentBlocked && !overrideReason.trim()}
+          >
+            {paymentBlocked ? 'Collect anyway' : 'Mark collected'}
           </Button>
         </>
       }
     >
       <div className="space-y-4">
         {error && <Alert tone="danger">{error}</Alert>}
+        {paymentBlocked && (
+          <Input
+            label="Reason to collect without payment"
+            placeholder="e.g. Doctor authorised, payment to follow"
+            value={overrideReason}
+            onChange={(e) => setOverrideReason(e.target.value)}
+          />
+        )}
         <Input label="Collection site" placeholder="e.g. Left antecubital vein" value={site} onChange={(e) => setSite(e.target.value)} />
         <Input label="Container / tube" placeholder="e.g. EDTA (lavender)" value={container} onChange={(e) => setContainer(e.target.value)} />
         <Textarea label="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} />

@@ -7,9 +7,10 @@ export type IrdStatus =
   | 'DUPLICATE'
   | 'CANCELLED';
 
-export type AttemptAction = 'SUBMIT' | 'RETRY' | 'MANUAL' | 'CANCEL';
+export type AttemptAction = 'SUBMIT' | 'RETRY' | 'MANUAL' | 'CANCEL' | 'CREDIT_NOTE' | 'CREDIT_NOTE_RETRY';
 export type RequestStatus = 'PREPARED' | 'SENT' | 'SKIPPED';
 export type ResponseStatus = 'ACCEPTED' | 'DUPLICATE' | 'REJECTED' | 'TRANSPORT_ERROR' | 'NOT_APPLICABLE';
+export type CreditNoteStatus = 'NOT_NEEDED' | 'NEEDED' | 'FAILED' | 'FILED';
 
 export interface IrdConfig {
   enabled: boolean;
@@ -43,6 +44,7 @@ export interface IrdSubmissionListItem {
   lastErrorMessage: string | null;
   submittedAt: string | null;
   updatedAt: string;
+  creditNoteStatus: CreditNoteStatus;
 }
 
 export interface IrdSubmissionDetail {
@@ -62,6 +64,11 @@ export interface IrdSubmissionDetail {
   notes: string | null;
   submittedAt: string | null;
   acceptedAt: string | null;
+  creditNoteStatus: CreditNoteStatus;
+  creditNoteNumber: string | null;
+  creditNoteFiledAt: string | null;
+  creditNoteErrorCode: string | null;
+  creditNoteErrorMessage: string | null;
   attempts: IrdAttempt[];
 }
 
@@ -83,4 +90,18 @@ export const IRD_STATUS_TONE: Record<IrdStatus, 'neutral' | 'info' | 'success' |
   FAILED: 'danger',
   DUPLICATE: 'warning',
   CANCELLED: 'neutral',
+};
+
+export const CREDIT_NOTE_STATUS_LABEL: Record<CreditNoteStatus, string> = {
+  NOT_NEEDED: '—',
+  NEEDED: 'Credit note needed',
+  FAILED: 'Credit note failed',
+  FILED: 'Credit note filed',
+};
+
+export const CREDIT_NOTE_STATUS_TONE: Record<CreditNoteStatus, 'neutral' | 'info' | 'success' | 'warning' | 'danger'> = {
+  NOT_NEEDED: 'neutral',
+  NEEDED: 'warning',
+  FAILED: 'danger',
+  FILED: 'success',
 };

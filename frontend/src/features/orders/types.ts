@@ -34,6 +34,8 @@ export interface OrderListItem {
   patientId: number;
   patientName: string;
   patientMrn: string;
+  branchId: number;
+  branchName: string;
   status: OrderStatus;
   priority: OrderPriority;
   itemCount: number;
@@ -47,6 +49,8 @@ export interface OrderDetail {
   patientId: number;
   patientName: string;
   patientMrn: string;
+  branchId: number;
+  branchName: string;
   referringDoctorId: number | null;
   referringDoctorName: string | null;
   status: OrderStatus;
@@ -68,6 +72,8 @@ export interface OrderItemPayload {
 
 export interface SaveOrderPayload {
   patientId: number;
+  /** Omit for HQ default resolution: explicit request > actor's home branch > first active branch. */
+  branchId?: number | null;
   referringDoctorId?: number | null;
   clinicalNotes?: string;
   priority?: OrderPriority;

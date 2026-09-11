@@ -52,6 +52,10 @@ public class LaboratoryProfile extends BaseEntity {
     @Column(name = "logo_data_uri", columnDefinition = "MEDIUMTEXT")
     private String logoDataUri;
 
+    /** When true, a self-pay sample cannot be collected until its order is paid in full. */
+    @Column(name = "require_payment_before_collection", nullable = false)
+    private boolean requirePaymentBeforeCollection;
+
     protected LaboratoryProfile() {
     }
 
@@ -77,8 +81,16 @@ public class LaboratoryProfile extends BaseEntity {
         this.inventoryExpiryAlertDays = Math.max(1, inventoryExpiryAlertDays);
     }
 
+    public void updateOperations(boolean requirePaymentBeforeCollection) {
+        this.requirePaymentBeforeCollection = requirePaymentBeforeCollection;
+    }
+
     public int getInventoryExpiryAlertDays() {
         return inventoryExpiryAlertDays;
+    }
+
+    public boolean isRequirePaymentBeforeCollection() {
+        return requirePaymentBeforeCollection;
     }
 
     public String getFiscalYear() {

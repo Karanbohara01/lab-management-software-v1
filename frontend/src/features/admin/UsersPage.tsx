@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 import { Alert } from '@/components/ui/Alert';
 import { SearchInput } from '@/components/ui/SearchInput';
@@ -18,6 +19,7 @@ import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
 import { formatDate } from '@/features/patients/format';
+import { branchesApi, type Branch } from '@/features/branches/api';
 import { adminApi, type AppUserListItem } from './api';
 
 const PAGE_SIZE = 20;
@@ -35,6 +37,7 @@ export function UsersPage() {
 
   const debouncedSearch = useDebouncedValue(search, 300);
   const roles = useQuery(() => adminApi.roles(), []);
+  const branches = useQuery(() => branchesApi.list(true), []);
   const { data, loading, error, refetch } = useQuery(
     () => adminApi.users({ query: debouncedSearch || undefined, page, size: PAGE_SIZE }),
     [debouncedSearch, page],
@@ -62,6 +65,7 @@ export function UsersPage() {
           {u.roles.map((r) => <Badge key={r} tone="neutral">{r.replace(/_/g, ' ')}</Badge>)}
         </span>
       ), hideOnMobile: true },
+    { key: 'branch', header: 'Home branch', cell: (u) => u.homeBranchName ?? <span className="text-muted">All branches</span>, hideOnMobile: true },
     { key: 'login', header: 'Last login', cell: (u) => (u.lastLoginAt ? formatDate(u.lastLoginAt) : 'Never'), hideOnMobile: true },
     { key: 'status', header: 'Status', cell: (u) => <Badge tone={u.enabled ? 'success' : 'neutral'}>{u.enabled ? 'Active' : 'Disabled'}</Badge> },
     ...(canWrite
@@ -129,6 +133,7 @@ export function UsersPage() {
         onClose={() => setFormOpen(false)}
         userId={editing?.id ?? null}
         roles={(roles.data ?? []).map((r) => r.name)}
+        branches={branches.data ?? []}
         onSaved={refetch}
       />
       <ResetPasswordModal user={resetFor} onClose={() => setResetFor(null)} />
@@ -141,16 +146,26 @@ function UserFormModal({
   onClose,
   userId,
   roles,
+  branches,
   onSaved,
 }: {
   open: boolean;
   onClose: () => void;
   userId: number | null;
   roles: string[];
+  branches: Branch[];
   onSaved: () => void;
 }) {
   const toast = useToast();
-  const [f, setF] = useState({ username: '', email: '', fullName: '', phone: '', password: '', roleNames: [] as string[] });
+  const [f, setF] = useState({
+    username: '',
+    email: '',
+    fullName: '',
+    phone: '',
+    password: '',
+    roleNames: [] as string[],
+    homeBranchId: '' as string,
+  });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -159,10 +174,18 @@ function UserFormModal({
     setErr(null);
     if (userId) {
       adminApi.user(userId).then((u) =>
-        setF({ username: u.username, email: u.email, fullName: u.fullName, phone: u.phone ?? '', password: '', roleNames: u.roles }),
+        setF({
+          username: u.username,
+          email: u.email,
+          fullName: u.fullName,
+          phone: u.phone ?? '',
+          password: '',
+          roleNames: u.roles,
+          homeBranchId: u.homeBranchId ? String(u.homeBranchId) : '',
+        }),
       );
     } else {
-      setF({ username: '', email: '', fullName: '', phone: '', password: '', roleNames: [] });
+      setF({ username: '', email: '', fullName: '', phone: '', password: '', roleNames: [], homeBranchId: '' });
     }
   }, [open, userId]);
 
@@ -173,12 +196,14 @@ function UserFormModal({
     setBusy(true);
     setErr(null);
     try {
+      const homeBranchId = f.homeBranchId ? Number(f.homeBranchId) : null;
       if (userId) {
         await adminApi.updateUser(userId, {
           email: f.email.trim(),
           fullName: f.fullName.trim(),
           phone: f.phone || undefined,
           roleNames: f.roleNames,
+          homeBranchId,
         });
         toast.success('User updated');
       } else {
@@ -188,6 +213,7 @@ function UserFormModal({
           fullName: f.fullName.trim(),
           phone: f.phone || undefined,
           roleNames: f.roleNames,
+          homeBranchId,
           password: f.password,
         });
         toast.success('User created');
@@ -230,6 +256,16 @@ function UserFormModal({
               onChange={(e) => setF({ ...f, password: e.target.value })}
             />
           )}
+          <div>
+            <Select
+              label="Home branch"
+              placeholder="All branches"
+              value={f.homeBranchId}
+              onChange={(e) => setF({ ...f, homeBranchId: e.target.value })}
+              options={branches.map((b) => ({ value: String(b.id), label: b.name }))}
+            />
+            <p className="mt-1 text-xs text-muted">Leave blank for access to every branch (HQ / roaming staff).</p>
+          </div>
         </div>
         <div>
           <p className="mb-1.5 text-sm font-medium text-foreground">Roles</p>

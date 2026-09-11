@@ -12,6 +12,7 @@ import type {
 export interface OrderQuery {
   patientId?: number;
   status?: OrderStatus;
+  branchId?: number;
   query?: string;
   page?: number;
   size?: number;

@@ -60,6 +60,10 @@ public class TestResult extends BaseEntity {
     private String departmentName;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "result_mode", nullable = false, length = 16)
+    private np.com.lims.catalog.entity.ResultMode resultMode = np.com.lims.catalog.entity.ResultMode.PARAMETRIC;
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 24)
     private ResultStatus status = ResultStatus.PENDING;
 
@@ -78,6 +82,11 @@ public class TestResult extends BaseEntity {
 
     @Column(length = 2000)
     private String comment;
+
+    /** Set only for CULTURE-mode tests; null for parametric results. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "culture_growth", length = 24)
+    private CultureGrowth cultureGrowth;
 
     @Column(name = "has_abnormal", nullable = false)
     private boolean hasAbnormal;
@@ -112,6 +121,11 @@ public class TestResult extends BaseEntity {
     @OrderBy("changedAt ASC, id ASC")
     private List<ResultValueHistory> history = new ArrayList<>();
 
+    @OneToMany(mappedBy = "result", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sequenceNo ASC, id ASC")
+    @org.hibernate.annotations.BatchSize(size = 20)
+    private List<CultureIsolate> cultureIsolates = new ArrayList<>();
+
     protected TestResult() {
     }
 
@@ -126,6 +140,7 @@ public class TestResult extends BaseEntity {
         r.testName = sampleItem.getTestName();
         r.departmentId = sampleItem.getDepartmentId();
         r.departmentName = sampleItem.getDepartmentName();
+        r.resultMode = sampleItem.getTest().getResultMode();
         r.status = ResultStatus.PENDING;
         r.priority = r.order.getPriority();
         if (turnaroundHours != null && turnaroundHours > 0) {
@@ -154,8 +169,36 @@ public class TestResult extends BaseEntity {
     }
 
     public void recomputeAbnormalFlags() {
-        this.hasAbnormal = values.stream().anyMatch(v -> v.getFlag().isAbnormal());
+        boolean cultureSignificant = cultureGrowth != null && cultureGrowth.isSignificant();
+        this.hasAbnormal = cultureSignificant || values.stream().anyMatch(v -> v.getFlag().isAbnormal());
         this.hasCritical = values.stream().anyMatch(v -> v.getFlag().isCritical());
+    }
+
+    /** Replace the culture findings (growth outcome + isolates). Isolates are added afterwards. */
+    public void applyCultureGrowth(CultureGrowth growth) {
+        this.cultureGrowth = growth;
+        this.cultureIsolates.clear();
+    }
+
+    public CultureIsolate addCultureIsolate(CultureIsolate isolate) {
+        this.cultureIsolates.add(isolate);
+        return isolate;
+    }
+
+    public np.com.lims.catalog.entity.ResultMode getResultMode() {
+        return resultMode;
+    }
+
+    public boolean isCulture() {
+        return resultMode == np.com.lims.catalog.entity.ResultMode.CULTURE;
+    }
+
+    public CultureGrowth getCultureGrowth() {
+        return cultureGrowth;
+    }
+
+    public List<CultureIsolate> getCultureIsolates() {
+        return cultureIsolates;
     }
 
     public void recordChange(String parameterName, String oldValue, String newValue, String reason, String actor) {
@@ -173,7 +216,7 @@ public class TestResult extends BaseEntity {
 
     public void verify(String actor) {
         transition(ResultStatus.VERIFIED);
-        if (values.stream().noneMatch(ResultValue::hasValue)) {
+        if (cultureGrowth == null && values.stream().noneMatch(ResultValue::hasValue)) {
             throw ApiException.conflict("Cannot verify a result with no values entered");
         }
         this.verifiedAt = Instant.now();

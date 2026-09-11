@@ -1,7 +1,72 @@
 import type { OrderPriority } from '@/features/orders/types';
-import type { ParameterDataType } from '@/features/catalog/types';
+import type { ParameterDataType, ResultMode } from '@/features/catalog/types';
 
 export type ResultStatus = 'PENDING' | 'ENTERED' | 'VERIFIED' | 'APPROVED';
+
+export type CultureGrowth = 'NO_GROWTH' | 'NORMAL_FLORA' | 'MIXED_FLORA' | 'GROWTH';
+export type OrganismSignificance = 'PATHOGEN' | 'PROBABLE_PATHOGEN' | 'COMMENSAL' | 'CONTAMINANT';
+export type Susceptibility = 'S' | 'I' | 'R' | 'SDD' | 'NT';
+export type SusceptibilityMethod = 'DISK_DIFFUSION' | 'MIC' | 'ETEST' | 'AUTOMATED';
+
+export const CULTURE_GROWTH_LABEL: Record<CultureGrowth, string> = {
+  NO_GROWTH: 'No growth',
+  NORMAL_FLORA: 'Normal flora',
+  MIXED_FLORA: 'Mixed flora (contamination)',
+  GROWTH: 'Significant growth',
+};
+
+export const SUSCEPTIBILITY_LABEL: Record<Susceptibility, string> = {
+  S: 'Sensitive',
+  I: 'Intermediate',
+  R: 'Resistant',
+  SDD: 'Susceptible-dose dependent',
+  NT: 'Not tested',
+};
+
+export interface SusceptibilityRow {
+  antibioticId: number | null;
+  antibioticName: string;
+  interpretation: Susceptibility;
+  label?: string;
+  mic: string | null;
+  zone: string | null;
+  method: SusceptibilityMethod | null;
+}
+
+export interface CultureIsolate {
+  id?: number;
+  sequenceNo: number;
+  organismName: string;
+  colonyCount: string | null;
+  significance: OrganismSignificance;
+  note: string | null;
+  susceptibilities: SusceptibilityRow[];
+}
+
+export interface CultureBlock {
+  growth: CultureGrowth;
+  growthDescription: string;
+  isolates: CultureIsolate[];
+}
+
+export interface CultureRequest {
+  growth: CultureGrowth;
+  comment?: string | null;
+  isolates: Array<{
+    organismName: string;
+    colonyCount?: string | null;
+    significance?: OrganismSignificance;
+    note?: string | null;
+    susceptibilities: Array<{
+      antibioticId?: number | null;
+      antibioticName?: string | null;
+      interpretation: Susceptibility;
+      mic?: string | null;
+      zone?: string | null;
+      method?: SusceptibilityMethod | null;
+    }>;
+  }>;
+}
 export type ResultFlag =
   | 'NONE'
   | 'NORMAL'
@@ -55,6 +120,7 @@ export interface ResultListItem {
   testCode: string;
   testName: string;
   departmentName: string;
+  resultMode: ResultMode;
   status: ResultStatus;
   priority: OrderPriority;
   dueAt: string | null;
@@ -81,6 +147,7 @@ export interface ResultDetail {
   testCode: string;
   testName: string;
   departmentName: string;
+  resultMode: ResultMode;
   status: ResultStatus;
   priority: OrderPriority;
   dueAt: string | null;
@@ -102,6 +169,7 @@ export interface ResultDetail {
   amendedAt: string | null;
   amendedBy: string | null;
   values: ResultValue[];
+  culture: CultureBlock | null;
   history: ResultHistoryEntry[];
 }
 

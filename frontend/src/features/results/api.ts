@@ -3,6 +3,7 @@ import type { PageResponse } from '@/types/api';
 import type {
   CommentTemplate,
   ContactMethod,
+  CultureRequest,
   ResultDetail,
   ResultListItem,
   ResultStatus,
@@ -42,7 +43,11 @@ export const resultsApi = {
   saveValues: (id: number, values: ValueInput[], comment?: string) =>
     httpClient.put<ResultDetail>(`/results/${id}/values`, { values, comment }).then((r) => r.data),
 
-  verify: (id: number) => httpClient.post<ResultDetail>(`/results/${id}/verify`).then((r) => r.data),
+  saveCulture: (id: number, body: CultureRequest) =>
+    httpClient.put<ResultDetail>(`/results/${id}/culture`, body).then((r) => r.data),
+
+  verify: (id: number, selfVerifyOverrideReason?: string) =>
+    httpClient.post<ResultDetail>(`/results/${id}/verify`, { selfVerifyOverrideReason }).then((r) => r.data),
 
   logCriticalCallback: (
     id: number,

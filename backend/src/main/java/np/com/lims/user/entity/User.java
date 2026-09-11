@@ -6,7 +6,9 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import np.com.lims.branch.entity.Branch;
 import np.com.lims.common.audit.BaseEntity;
 import np.com.lims.rbac.entity.Role;
 
@@ -38,6 +40,11 @@ public class User extends BaseEntity {
 
     @Column(name = "last_login_at")
     private Instant lastLoginAt;
+
+    /** Null = access to all branches (HQ / roaming); set = restricted to this branch's data. */
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "home_branch_id")
+    private Branch homeBranch;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -73,6 +80,14 @@ public class User extends BaseEntity {
         this.fullName = fullName;
         this.email = email;
         this.phone = phone;
+    }
+
+    public void setHomeBranch(Branch homeBranch) {
+        this.homeBranch = homeBranch;
+    }
+
+    public Branch getHomeBranch() {
+        return homeBranch;
     }
 
     public String getUsername() {

@@ -70,6 +70,7 @@ const schema = z.object({
   code: z.string().min(1, 'Code is required').max(32).regex(/^[A-Za-z0-9._-]+$/, 'Letters, digits, . - _ only'),
   name: z.string().min(1, 'Name is required').max(160),
   type: z.enum(['ANALYTE', 'PROFILE']),
+  resultMode: z.enum(['PARAMETRIC', 'CULTURE']),
   departmentId: z.string().min(1, 'Select a department'),
   category: z.string().max(80).optional(),
   specimenType: z.string().min(1),
@@ -120,6 +121,7 @@ const EMPTY: FormValues = {
   code: '',
   name: '',
   type: 'ANALYTE',
+  resultMode: 'PARAMETRIC',
   departmentId: '',
   category: '',
   specimenType: 'BLOOD_SERUM',
@@ -361,6 +363,7 @@ function buildPayload(v: ParsedValues, memberIds: number[]): TestUpsertPayload {
     code: v.code.trim().toUpperCase(),
     name: v.name.trim(),
     type: v.type,
+    resultMode: v.resultMode,
     departmentId: Number(v.departmentId),
     category: v.category || undefined,
     specimenType: v.specimenType as TestUpsertPayload['specimenType'],
@@ -381,7 +384,7 @@ function buildPayload(v: ParsedValues, memberIds: number[]): TestUpsertPayload {
     autoVerifyEnabled: v.autoVerifyEnabled,
     memberTestIds: v.type === 'PROFILE' ? memberIds : [],
     parameters:
-      v.type === 'PROFILE'
+      v.type === 'PROFILE' || v.resultMode === 'CULTURE'
         ? []
         : v.parameters.map((p, index) => {
             const isNumeric = p.dataType === 'NUMERIC';
@@ -464,6 +467,7 @@ export function TestFormModal({
         code: test.code,
         name: test.name,
         type: test.type,
+        resultMode: test.resultMode ?? 'PARAMETRIC',
         departmentId: String(test.departmentId),
         category: test.category ?? '',
         specimenType: test.specimenType,
@@ -540,6 +544,8 @@ export function TestFormModal({
   const specimenOptions = Object.entries(SPECIMEN_LABELS).map(([value, label]) => ({ value, label }));
   const params = watch('parameters');
   const type = watch('type');
+  const resultMode = watch('resultMode');
+  const isCulture = resultMode === 'CULTURE';
   const fasting = watch('fastingRequired');
   const referral = watch('referral');
 
@@ -598,6 +604,16 @@ export function TestFormModal({
             ]}
             {...register('type')}
           />
+          {type === 'ANALYTE' && (
+            <Select
+              label="Result entry"
+              options={[
+                { value: 'PARAMETRIC', label: 'Parametric — one value per parameter' },
+                { value: 'CULTURE', label: 'Culture — microbiology growth + sensitivity' },
+              ]}
+              {...register('resultMode')}
+            />
+          )}
           <Select label="Department" options={deptOptions} placeholder="Select…" error={errors.departmentId?.message} {...register('departmentId')} />
           <Input label="Category" {...register('category')} />
           <Select label="Specimen type" options={specimenOptions} {...register('specimenType')} />
@@ -668,6 +684,12 @@ export function TestFormModal({
               Ordering this profile bills the price above and produces results for each member test.
             </p>
           </div>
+        ) : isCulture ? (
+          <Alert tone="info" title="Culture & sensitivity test">
+            Results are entered as a growth outcome plus, when organisms are isolated, an antibiotic
+            susceptibility panel per isolate — configured on the result screen, not here. No parameters
+            are needed.
+          </Alert>
         ) : (
           <div>
             <div className="mb-2 flex items-center justify-between">

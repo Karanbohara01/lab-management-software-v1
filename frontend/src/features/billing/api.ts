@@ -8,11 +8,15 @@ import type {
   PaymentMethod,
   RefundEntry,
   RefundStatus,
+  CorrectionRow,
+  MasterBillRow,
+  SalesBookRow,
 } from './types';
 
 export interface InvoiceQuery {
   status?: InvoiceStatus;
   patientId?: number;
+  branchId?: number;
   unpaidOnly?: boolean;
   query?: string;
   page?: number;
@@ -48,6 +52,21 @@ export const invoicesApi = {
 
   requestRefund: (id: number, payload: { amount: number; reason: string; paymentId?: number }) =>
     httpClient.post<RefundEntry>(`/invoices/${id}/refunds`, payload).then((r) => r.data),
+
+  markPrinted: (id: number) => httpClient.post<InvoiceDetail>(`/invoices/${id}/print`).then((r) => r.data),
+
+  salesBook: (params: { year: number; month: number; branchId?: number }) =>
+    httpClient.get<SalesBookRow[]>('/invoices/sales-book', { params }).then((r) => r.data),
+
+  masterBill: (params: { year: number; month: number; branchId?: number }) =>
+    httpClient.get<MasterBillRow[]>('/invoices/master-bill', { params }).then((r) => r.data),
+
+  corrections: (params: { year: number; month: number; branchId?: number }) =>
+    httpClient.get<CorrectionRow[]>('/invoices/corrections', { params }).then((r) => r.data),
+
+  /** Every invoice matching the filters, unpaged — for CSV/XML export (not for on-screen lists). */
+  exportAll: (params: Omit<InvoiceQuery, 'page' | 'size'>) =>
+    httpClient.get<InvoiceListItem[]>('/invoices/export', { params }).then((r) => r.data),
 };
 
 export const refundsApi = {

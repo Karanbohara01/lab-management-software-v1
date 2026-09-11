@@ -20,6 +20,9 @@ public enum ErrorCode {
     RESOURCE_CONFLICT(HttpStatus.CONFLICT),
     INVALID_STATE_TRANSITION(HttpStatus.CONFLICT),
 
+    /** An external integration (SMS/WhatsApp gateway, analyzer, IRD, ...) could not complete the request. */
+    EXTERNAL_SERVICE_UNAVAILABLE(HttpStatus.BAD_GATEWAY),
+
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR);
 
     private final HttpStatus status;

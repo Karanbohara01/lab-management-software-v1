@@ -17,6 +17,7 @@ public class AppUserDetails implements UserDetails {
     private final String username;
     private final String passwordHash;
     private final boolean enabled;
+    private final Long branchId;
     private final Set<GrantedAuthority> authorities;
 
     public AppUserDetails(User user) {
@@ -24,6 +25,7 @@ public class AppUserDetails implements UserDetails {
         this.username = user.getUsername();
         this.passwordHash = user.getPasswordHash();
         this.enabled = user.isEnabled();
+        this.branchId = user.getHomeBranch() == null ? null : user.getHomeBranch().getId();
         this.authorities = Stream.concat(
                 user.getRoles().stream().map(r -> r.getName().authority()),
                 user.getRoles().stream()
@@ -34,6 +36,11 @@ public class AppUserDetails implements UserDetails {
 
     public Long getUserId() {
         return userId;
+    }
+
+    /** Null = access to all branches; non-null = restricted to that branch's operational data. */
+    public Long getBranchId() {
+        return branchId;
     }
 
     @Override

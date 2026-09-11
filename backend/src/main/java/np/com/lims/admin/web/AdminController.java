@@ -56,6 +56,19 @@ public class AdminController {
         return PageResponse.from(service.searchAudit(module, actor, entityType, entityId, from, to, query, pageable));
     }
 
+    @GetMapping("/audit-logs/export")
+    @PreAuthorize("hasAuthority('PERM_AUDIT_READ')")
+    public List<AuditListItem> exportAudit(
+            @RequestParam(required = false) String module,
+            @RequestParam(required = false) String actor,
+            @RequestParam(required = false) String entityType,
+            @RequestParam(required = false) String entityId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
+            @RequestParam(required = false) String query) {
+        return service.exportAudit(module, actor, entityType, entityId, from, to, query);
+    }
+
     @GetMapping("/audit-logs/modules")
     @PreAuthorize("hasAuthority('PERM_AUDIT_READ')")
     public List<String> auditModules() {

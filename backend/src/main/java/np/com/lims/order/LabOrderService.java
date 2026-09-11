@@ -1,11 +1,14 @@
 package np.com.lims.order;
 
+import np.com.lims.branch.BranchRepository;
+import np.com.lims.branch.entity.Branch;
 import np.com.lims.catalog.LabTestService;
 import np.com.lims.catalog.entity.LabTest;
 import np.com.lims.common.audit.AuditService;
 import np.com.lims.common.exception.ApiException;
 import np.com.lims.common.exception.ErrorCode;
 import np.com.lims.common.sequence.SequenceService;
+import np.com.lims.common.web.CurrentUser;
 import np.com.lims.doctor.DoctorRepository;
 import np.com.lims.doctor.entity.Doctor;
 import np.com.lims.order.dto.OrderDtos.Detail;
@@ -38,6 +41,7 @@ public class LabOrderService {
     private final LabOrderRepository orderRepository;
     private final PatientRepository patientRepository;
     private final DoctorRepository doctorRepository;
+    private final BranchRepository branchRepository;
     private final LabTestService labTestService;
     private final OrderPricingCalculator pricingCalculator;
     private final SequenceService sequenceService;
@@ -47,6 +51,7 @@ public class LabOrderService {
     public LabOrderService(LabOrderRepository orderRepository,
                            PatientRepository patientRepository,
                            DoctorRepository doctorRepository,
+                           BranchRepository branchRepository,
                            LabTestService labTestService,
                            OrderPricingCalculator pricingCalculator,
                            SequenceService sequenceService,
@@ -55,6 +60,7 @@ public class LabOrderService {
         this.orderRepository = orderRepository;
         this.patientRepository = patientRepository;
         this.doctorRepository = doctorRepository;
+        this.branchRepository = branchRepository;
         this.labTestService = labTestService;
         this.pricingCalculator = pricingCalculator;
         this.sequenceService = sequenceService;
@@ -63,9 +69,11 @@ public class LabOrderService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ListItem> search(Long patientId, OrderStatus status, String query, Pageable pageable) {
+    public Page<ListItem> search(Long patientId, OrderStatus status, Long branchId, String query, Pageable pageable) {
         String normalized = StringUtils.hasText(query) ? query.trim() : null;
-        return orderRepository.search(patientId, status, normalized, pageable).map(ListItem::from);
+        // A branch-restricted user's own scope always wins over whatever the client asked for.
+        Long effectiveBranchId = CurrentUser.branchId() != null ? CurrentUser.branchId() : branchId;
+        return orderRepository.search(patientId, status, effectiveBranchId, normalized, pageable).map(ListItem::from);
     }
 
     @Transactional(readOnly = true)
@@ -95,9 +103,10 @@ public class LabOrderService {
             throw ApiException.conflict("Patient " + patient.getMrn() + " is inactive");
         }
         Doctor doctor = resolveDoctor(request.referringDoctorId(), patient);
+        Branch branch = resolveBranch(request.branchId());
 
         String number = sequenceService.nextFormatted(ORDER_SEQUENCE, "ORD", 6);
-        LabOrder order = LabOrder.open(number, patient, doctor, trimToNull(request.clinicalNotes()));
+        LabOrder order = LabOrder.open(number, patient, doctor, branch, trimToNull(request.clinicalNotes()));
         order.applyPriority(request.priority());
         addItems(order, request.items());
         repriceAndPersist(order, request);
@@ -188,6 +197,23 @@ public class LabOrderService {
         }
         return doctorRepository.findById(doctorId)
                 .orElseThrow(() -> ApiException.notFound("Doctor", doctorId));
+    }
+
+    /**
+     * Explicit request branch wins; otherwise the acting user's home branch; otherwise (HQ user,
+     * no branch chosen) the first active branch, so single-branch labs never have to think about this.
+     */
+    private Branch resolveBranch(Long requestedBranchId) {
+        if (requestedBranchId != null) {
+            return branchRepository.findById(requestedBranchId)
+                    .orElseThrow(() -> ApiException.notFound("Branch", requestedBranchId));
+        }
+        if (CurrentUser.branchId() != null) {
+            return branchRepository.findById(CurrentUser.branchId())
+                    .orElseThrow(() -> ApiException.notFound("Branch", CurrentUser.branchId()));
+        }
+        return branchRepository.findFirstByActiveTrueOrderByIdAsc()
+                .orElseThrow(() -> new ApiException(ErrorCode.INTERNAL_ERROR, "No active branch is configured"));
     }
 
     private LabOrder load(Long id) {

@@ -9,12 +9,15 @@ import { useToast } from '@/components/ui/toast';
 import { reportsApi } from './api';
 
 const METHODS = [
-  { value: 'HAND', label: 'Handed to patient' },
+  { value: 'SMS', label: 'SMS' },
+  { value: 'WHATSAPP', label: 'WhatsApp' },
   { value: 'EMAIL', label: 'Email' },
-  { value: 'SMS', label: 'SMS link' },
+  { value: 'HAND', label: 'Handed to patient' },
   { value: 'COURIER', label: 'Courier' },
   { value: 'PORTAL', label: 'Patient portal' },
 ];
+
+const MESSAGING_METHODS = new Set(['SMS', 'WHATSAPP']);
 
 export function DeliverReportModal({
   open,
@@ -28,17 +31,18 @@ export function DeliverReportModal({
   onDone: () => void;
 }) {
   const toast = useToast();
-  const [method, setMethod] = useState('HAND');
+  const [method, setMethod] = useState('SMS');
   const [recipient, setRecipient] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isMessaging = MESSAGING_METHODS.has(method);
 
   const submit = async () => {
     setBusy(true);
     setError(null);
     try {
       await reportsApi.deliver(reportId, method, recipient || undefined);
-      toast.success('Delivery recorded');
+      toast.success(isMessaging ? `Sent via ${method === 'SMS' ? 'SMS' : 'WhatsApp'}` : 'Delivery recorded');
       onDone();
       onClose();
     } catch (err) {
@@ -52,27 +56,44 @@ export function DeliverReportModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Record report delivery"
+      title="Deliver report"
       footer={
         <>
           <Button variant="secondary" type="button" onClick={onClose} disabled={busy}>
             Cancel
           </Button>
           <Button onClick={submit} loading={busy}>
-            Record delivery
+            {isMessaging ? `Send via ${method === 'SMS' ? 'SMS' : 'WhatsApp'}` : 'Record delivery'}
           </Button>
         </>
       }
     >
       <div className="space-y-4">
         {error && <Alert tone="danger">{error}</Alert>}
-        <Select label="Method" options={METHODS} value={method} onChange={(e) => setMethod(e.target.value)} />
+        <Select
+          label="Method"
+          options={METHODS}
+          value={method}
+          onChange={(e) => {
+            setMethod(e.target.value);
+            setError(null);
+          }}
+        />
         <Input
-          label="Recipient (optional)"
-          placeholder="e.g. email address, phone, courier ref"
+          label={isMessaging ? 'Phone number' : 'Recipient (optional)'}
+          placeholder={isMessaging ? 'Leave blank to use the phone on file' : 'e.g. email address, courier ref'}
           value={recipient}
           onChange={(e) => setRecipient(e.target.value)}
         />
+        {isMessaging && (
+          <p className="text-xs text-muted">
+            Sends a message with a link to this signed report, which the patient (or anyone with
+            the link) can verify at <code className="font-mono">/app/verify/&lt;token&gt;</code>.
+            {method === 'SMS'
+              ? ' Requires an SMS gateway to be configured on the server.'
+              : ' Requires a WhatsApp Business API connection to be configured on the server.'}
+          </p>
+        )}
       </div>
     </Modal>
   );
