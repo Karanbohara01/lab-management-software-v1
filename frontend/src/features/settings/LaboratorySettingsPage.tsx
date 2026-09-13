@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -13,6 +14,10 @@ import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
 import { settingsApi, type LaboratoryProfile } from './api';
+import { PaymentCredentialsCard } from './PaymentCredentialsCard';
+import { IrdCredentialsCard } from './IrdCredentialsCard';
+import { SmsCredentialsCard } from './SmsCredentialsCard';
+import { WhatsAppCredentialsCard } from './WhatsAppCredentialsCard';
 
 const MAX_LOGO_BYTES = 400_000;
 
@@ -167,9 +172,46 @@ export function LaboratorySettingsPage() {
               />
             </CardBody>
           </Card>
+
+          <Card>
+            <CardHeader
+              title="Print & letterhead"
+              description="Turn off if you print on pre-printed letterhead stationery — the logo/name/address block above won't repeat digitally, but everything below it (bill number, patient details, line items) still prints."
+            />
+            <CardBody className="space-y-3">
+              <Checkbox
+                label="Print letterhead on reports"
+                checked={form.printReportLetterhead}
+                disabled={!canWrite}
+                onChange={(e) => set('printReportLetterhead', e.target.checked)}
+              />
+              <Checkbox
+                label="Print letterhead on invoices"
+                checked={form.printInvoiceLetterhead}
+                disabled={!canWrite}
+                onChange={(e) => set('printInvoiceLetterhead', e.target.checked)}
+              />
+            </CardBody>
+          </Card>
+
+          <PaymentCredentialsCard canWrite={canWrite} />
+          <IrdCredentialsCard canWrite={canWrite} />
+          <SmsCredentialsCard canWrite={canWrite} />
+          <WhatsAppCredentialsCard canWrite={canWrite} />
         </div>
 
         <div className="space-y-4">
+          <Card>
+            <CardHeader title="Subscription & billing" description="View invoices and pay online." />
+            <CardBody>
+              <Link to="/app/settings/billing">
+                <Button variant="secondary" size="sm" className="w-full">
+                  View subscription & billing
+                </Button>
+              </Link>
+            </CardBody>
+          </Card>
+
           <Card>
             <CardHeader title="Logo" />
             <CardBody className="space-y-3">

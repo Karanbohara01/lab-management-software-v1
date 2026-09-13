@@ -27,6 +27,14 @@ public interface IrdSubmissionRepository extends JpaRepository<IrdSubmission, Lo
 
     long countByStatus(IrdStatus status);
 
+    /**
+     * For the auto-retry sweep — deliberately NOT tenant-filtered (there is no request/tenant
+     * context in a scheduled job), so the sweep itself must set {@code TenantContext} per row
+     * before acting on it. See {@code IrdSubmissionService#autoRetrySweep}.
+     */
+    @EntityGraph(attributePaths = {"invoice", "attempts"})
+    List<IrdSubmission> findByStatus(IrdStatus status);
+
     @Query("""
             SELECT s FROM IrdSubmission s
             WHERE (:status IS NULL OR s.status = :status)

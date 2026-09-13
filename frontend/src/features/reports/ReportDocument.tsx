@@ -1,5 +1,33 @@
-import { Fragment } from 'react';
+import { Fragment, useEffect, useState } from 'react';
+import QRCode from 'qrcode';
 import type { ReportDetail, ReportParameterLine } from './types';
+
+/**
+ * Renders the report's verification URL as a scannable QR code, generated entirely client-side
+ * (no external QR-generation API) — a printed clinical report must never depend on a network call
+ * just to render its own authenticity check. Silently omits itself if generation fails (e.g. an
+ * unexpected token format) rather than breaking the rest of the report.
+ */
+function VerificationQr({ url }: { url: string }) {
+  const [dataUri, setDataUri] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    QRCode.toDataURL(url, { margin: 0, width: 88, errorCorrectionLevel: 'M' })
+      .then((uri) => {
+        if (!cancelled) setDataUri(uri);
+      })
+      .catch(() => {
+        if (!cancelled) setDataUri(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+
+  if (!dataUri) return null;
+  return <img src={dataUri} alt="Scan to verify this report" className="h-[70px] w-[70px]" />;
+}
 
 function flagMark(flag: ReportParameterLine['flag']): { text: string; className: string } | null {
   switch (flag) {
@@ -24,23 +52,27 @@ function dt(iso: string | null): string {
 
 export function ReportDocument({ report }: { report: ReportDetail }) {
   const lab = report.laboratory;
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const verificationUrl = `${origin}/verify/${report.verificationToken}`;
   return (
     <div id="report-print" className="mx-auto max-w-3xl bg-white p-8 text-[13px] text-black">
-      <header className="flex items-start justify-between border-b-2 border-black pb-3">
-        <div className="flex items-center gap-3">
-          {lab.logoDataUri && <img src={lab.logoDataUri} alt="" className="h-14 w-14 object-contain" />}
-          <div>
-            <h1 className="text-lg font-bold uppercase tracking-wide">{lab.name}</h1>
-            <p className="text-xs">
-              {[lab.addressLine, lab.city].filter(Boolean).join(', ')}
-            </p>
-            <p className="text-xs">
-              {[lab.phone && `Tel: ${lab.phone}`, lab.email, lab.panNumber && `PAN: ${lab.panNumber}`]
-                .filter(Boolean)
-                .join('  ·  ')}
-            </p>
+      <header className={`flex items-start border-b-2 border-black pb-3 ${lab.printLetterhead ? 'justify-between' : 'justify-end'}`}>
+        {lab.printLetterhead && (
+          <div className="flex items-center gap-3">
+            {lab.logoDataUri && <img src={lab.logoDataUri} alt="" className="h-14 w-14 object-contain" />}
+            <div>
+              <h1 className="text-lg font-bold uppercase tracking-wide">{lab.name}</h1>
+              <p className="text-xs">
+                {[lab.addressLine, lab.city].filter(Boolean).join(', ')}
+              </p>
+              <p className="text-xs">
+                {[lab.phone && `Tel: ${lab.phone}`, lab.email, lab.panNumber && `PAN: ${lab.panNumber}`]
+                  .filter(Boolean)
+                  .join('  ·  ')}
+              </p>
+            </div>
           </div>
-        </div>
+        )}
         <div className="text-right text-xs">
           <p className="font-semibold">
             {report.reportType === 'PRELIMINARY' ? 'PRELIMINARY REPORT' : 'LABORATORY REPORT'}
@@ -153,13 +185,21 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
           </p>
         )}
         {report.verificationToken && (
-          <p className="mt-1">
-            Verify this report at{' '}
-            <span className="font-mono">
-              {typeof window !== 'undefined' ? window.location.origin : ''}/app/verify/{report.verificationToken}
-            </span>
-            {report.contentHash ? ` · SHA-256 ${report.contentHash.slice(0, 16)}…` : ''}
-          </p>
+          <div className="mt-2 flex items-start gap-3 break-inside-avoid">
+            <VerificationQr url={verificationUrl} />
+            <p className="flex-1">
+              Scan to verify, or visit{' '}
+              <span className="font-mono">
+                {typeof window !== 'undefined' ? window.location.origin : ''}/verify/{report.verificationToken}
+              </span>
+              {report.contentHash ? (
+                <>
+                  <br />
+                  SHA-256 {report.contentHash.slice(0, 16)}…
+                </>
+              ) : null}
+            </p>
+          </div>
         )}
         {lab.reportFooter && <p>{lab.reportFooter}</p>}
         <p className="mt-1">

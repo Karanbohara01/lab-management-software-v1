@@ -113,6 +113,7 @@ public class InvoiceService {
         Detail before = detail(invoice);
         reprice(invoice, request.discountType(), request.discountValue(), request.taxRate());
         invoice.setNotes(trimToNull(request.notes()));
+        invoice.setBuyerPan(trimToNull(request.buyerPan()));
         auditService.record(MODULE, "ADJUST", "Invoice", id,
                 "Adjusted draft invoice", before, detail(invoice));
         return detail(invoice);

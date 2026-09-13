@@ -113,6 +113,7 @@ export function AdjustInvoiceModal({
   const [discountValue, setDiscountValue] = useState(String(invoice.discountValue));
   const [taxRate, setTaxRate] = useState(String(invoice.taxRate));
   const [notes, setNotes] = useState(invoice.notes ?? '');
+  const [buyerPan, setBuyerPan] = useState(invoice.buyerPan ?? '');
 
   return (
     <Modal
@@ -134,6 +135,7 @@ export function AdjustInvoiceModal({
                     discountValue: Number(discountValue) || 0,
                     taxRate: Number(taxRate) || 0,
                     notes: notes || undefined,
+                    buyerPan: buyerPan || undefined,
                   }),
                 'Invoice updated',
               )
@@ -160,6 +162,12 @@ export function AdjustInvoiceModal({
           <Input label="Discount value" type="number" step="any" min={0} value={discountValue} onChange={(e) => setDiscountValue(e.target.value)} />
         )}
         <Input label="Tax rate %" type="number" step="any" min={0} value={taxRate} onChange={(e) => setTaxRate(e.target.value)} />
+        <Input
+          label="Buyer's PAN (optional)"
+          hint="Shown on the printed bill and submitted to IRD when this buyer has their own PAN"
+          value={buyerPan}
+          onChange={(e) => setBuyerPan(e.target.value)}
+        />
         <Textarea label="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
       </div>
     </Modal>

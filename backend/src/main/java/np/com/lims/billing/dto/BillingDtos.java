@@ -36,7 +36,8 @@ public final class BillingDtos {
             @NotNull DiscountType discountType,
             @PositiveOrZero @DecimalMin("0.0") BigDecimal discountValue,
             @PositiveOrZero @DecimalMin("0.0") BigDecimal taxRate,
-            @Size(max = 1000) String notes
+            @Size(max = 1000) String notes,
+            @Size(max = 20) String buyerPan
     ) {
     }
 
@@ -186,12 +187,15 @@ public final class BillingDtos {
             BigDecimal subtotal, DiscountType discountType, BigDecimal discountValue, BigDecimal discountAmount,
             BigDecimal taxableAmount, BigDecimal taxRate, BigDecimal taxAmount, BigDecimal totalAmount,
             BigDecimal amountPaid, BigDecimal amountRefunded, BigDecimal balance,
-            String notes, String cancelReason, Instant cancelledAt, String cancelledBy,
-            Instant issuedAt, String issuedBy,
+            String notes, String buyerPan, String cancelReason, Instant cancelledAt, String cancelledBy,
+            Instant issuedAt, String issuedAtBs, String issuedBy,
             int printCount, Instant lastPrintedAt, String lastPrintedBy,
             String labName, String labAddress, String labPhone, String labEmail, String labPan, String labLogoDataUri,
+            boolean printLetterhead,
             List<ItemDto> items, List<PaymentDto> payments, List<RefundDto> refunds
     ) {
+        private static final java.time.ZoneId KATHMANDU = java.time.ZoneId.of("Asia/Kathmandu");
+
         /** For contexts (e.g. audit before/after snapshots) that don't have the lab profile handy. */
         public static Detail from(Invoice i) {
             return from(i, null);
@@ -207,8 +211,8 @@ public final class BillingDtos {
                     i.getSubtotal(), i.getDiscountType(), i.getDiscountValue(), i.getDiscountAmount(),
                     i.getTaxableAmount(), i.getTaxRate(), i.getTaxAmount(), i.getTotalAmount(),
                     i.getAmountPaid(), i.getAmountRefunded(), i.balance(),
-                    i.getNotes(), i.getCancelReason(), i.getCancelledAt(), i.getCancelledBy(),
-                    i.getIssuedAt(), i.getIssuedBy(),
+                    i.getNotes(), i.getBuyerPan(), i.getCancelReason(), i.getCancelledAt(), i.getCancelledBy(),
+                    i.getIssuedAt(), issuedAtBs(i.getIssuedAt()), i.getIssuedBy(),
                     i.getPrintCount(), i.getLastPrintedAt(), i.getLastPrintedBy(),
                     lab == null ? null : lab.getName(),
                     lab == null ? null : lab.getAddressLine(),
@@ -216,9 +220,18 @@ public final class BillingDtos {
                     lab == null ? null : lab.getEmail(),
                     lab == null ? null : lab.getPanNumber(),
                     lab == null ? null : lab.getLogoDataUri(),
+                    lab == null || lab.isPrintInvoiceLetterhead(),
                     i.getItems().stream().map(ItemDto::from).toList(),
                     i.getPayments().stream().map(PaymentDto::from).toList(),
                     i.getRefunds().stream().map(RefundDto::from).toList());
+        }
+
+        /** Same conversion CBMS submission already uses — the printed bill should show the same BS date. */
+        private static String issuedAtBs(Instant issuedAt) {
+            if (issuedAt == null) {
+                return null;
+            }
+            return np.com.lims.common.calendar.BikramSambatCalendar.toBs(issuedAt.atZone(KATHMANDU).toLocalDate()).dotted();
         }
 
         private static String addressLine(np.com.lims.patient.entity.Address a) {

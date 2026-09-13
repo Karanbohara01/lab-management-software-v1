@@ -8,6 +8,7 @@ import np.com.lims.billing.entity.InvoiceStatus;
 import np.com.lims.common.audit.AuditService;
 import np.com.lims.common.exception.ApiException;
 import np.com.lims.common.sequence.SequenceService;
+import np.com.lims.common.tenant.TenantContext;
 import np.com.lims.common.web.CurrentUser;
 import np.com.lims.ird.dto.IrdDtos.ConfigResponse;
 import np.com.lims.ird.dto.IrdDtos.Detail;
@@ -28,10 +29,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -40,6 +43,10 @@ public class IrdSubmissionService {
 
     private static final String MODULE = "IRD";
     private static final Logger log = LoggerFactory.getLogger(IrdSubmissionService.class);
+
+    /** Auto-retry sweep tuning — see {@link #autoRetrySweep()}. */
+    private static final int MAX_AUTO_RETRY_ATTEMPTS = 5;
+    private static final Duration AUTO_RETRY_BACKOFF = Duration.ofMinutes(5);
 
     private final IrdSubmissionRepository repository;
     private final IrdGateway gateway;
@@ -94,6 +101,43 @@ public class IrdSubmissionService {
         // of cancelling an invoice, so a slow/failing IRD call can never block billing.
         repository.findByInvoiceId(invoice.getId())
                 .ifPresent(submission -> submission.cancel("system", "Invoice was cancelled"));
+    }
+
+    /**
+     * Unattended retry for bills whose last IRD submission failed purely because the gateway was
+     * unreachable (no internet / CBMS down) — never for a bill IRD itself rejected, which needs a
+     * human to fix data or credentials. Runs across every organization (there is no HTTP request
+     * here to resolve a tenant from), so {@link TenantContext} is set explicitly per row before
+     * acting on it — required both for the Hibernate tenant filter on any query {@code attempt()}
+     * runs and for {@link np.com.lims.ird.gateway.CbmsIrdGateway} to resolve THAT organization's
+     * own CBMS credentials rather than falling back to this deployment's shared ones.
+     */
+    @Scheduled(cron = "${lims.ird.retry-cron:0 */10 * * * *}")
+    @Transactional
+    public int autoRetrySweep() {
+        int retried = 0;
+        for (IrdSubmission submission : repository.findByStatus(IrdStatus.FAILED)) {
+            if (!submission.isAutoRetryEligible(MAX_AUTO_RETRY_ATTEMPTS, AUTO_RETRY_BACKOFF)) {
+                continue;
+            }
+            TenantContext.set(submission.getOrganizationId());
+            try {
+                if (!gateway.isConfigured()) {
+                    continue;
+                }
+                attempt(submission, IrdSubmissionAttempt.Action.RETRY);
+                retried++;
+            } catch (RuntimeException ex) {
+                log.warn("IRD auto-retry errored for submission {} (invoice {}): {}",
+                        submission.getId(), submission.getInvoice().getInvoiceNumber(), ex.toString());
+            } finally {
+                TenantContext.clear();
+            }
+        }
+        if (retried > 0) {
+            log.info("IRD auto-retry sweep: retried {} previously-failed submission(s)", retried);
+        }
+        return retried;
     }
 
     // ----- queries ------------------------------------------------
@@ -278,7 +322,7 @@ public class IrdSubmissionService {
                 lab.getName(),
                 lab.getPanNumber(),
                 invoice.getPatient().getFullName(),
-                null,
+                invoice.getBuyerPan(),
                 invoice.getSubtotal(),
                 invoice.getDiscountAmount(),
                 invoice.getTaxableAmount(),
@@ -295,7 +339,7 @@ public class IrdSubmissionService {
                 lab.getName(),
                 lab.getPanNumber(),
                 invoice.getPatient().getFullName(),
-                null,
+                invoice.getBuyerPan(),
                 invoice.getSubtotal(),
                 invoice.getDiscountAmount(),
                 invoice.getTaxableAmount(),

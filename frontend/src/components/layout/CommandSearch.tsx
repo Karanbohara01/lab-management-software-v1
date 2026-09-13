@@ -112,6 +112,8 @@ export function CommandSearch() {
     return () => document.removeEventListener('mousedown', onClick);
   }, []);
 
+  const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
+
   const go = (to: string) => {
     navigate(to);
     setOpen(false);
@@ -125,6 +127,7 @@ export function CommandSearch() {
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden />
         <input
+          id="topbar-search-input"
           type="search"
           value={query}
           onChange={(e) => {
@@ -132,11 +135,17 @@ export function CommandSearch() {
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setOpen(false);
+              (e.target as HTMLInputElement).blur();
+            }
+          }}
           placeholder="Search patients, orders, samples…"
           aria-label="Global search"
           className="h-9 w-full rounded-md border border-input bg-surface-muted/60 pl-9 pr-8 text-sm text-foreground placeholder:text-muted focus-visible:bg-surface focus-visible:ring-2 focus-visible:ring-ring"
         />
-        {query && (
+        {query ? (
           <button
             type="button"
             onClick={() => {
@@ -148,6 +157,10 @@ export function CommandSearch() {
           >
             <X className="h-3.5 w-3.5" aria-hidden />
           </button>
+        ) : (
+          <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 hidden items-center gap-0.5 rounded border border-border bg-surface px-1 text-[10px] font-medium text-muted md:flex">
+            {isMac ? '⌘' : 'Ctrl'}K
+          </kbd>
         )}
       </div>
 

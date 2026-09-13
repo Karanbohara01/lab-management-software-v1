@@ -49,18 +49,22 @@ export function InvoicePrintDocument({ invoice }: { invoice: InvoiceDetail }) {
         )
       )}
 
-      <div className="mb-4 flex items-start justify-between gap-4 border-b border-black pb-3">
-        <div>
-          {invoice.labLogoDataUri && <img src={invoice.labLogoDataUri} alt="" className="mb-2 h-12" />}
-          <p className="text-lg font-bold">{invoice.labName ?? 'Laboratory'}</p>
-          {invoice.labAddress && <p className="text-sm">{invoice.labAddress}</p>}
-          <p className="text-sm">
-            {invoice.labPhone ?? ''}
-            {invoice.labPhone && invoice.labEmail ? ' · ' : ''}
-            {invoice.labEmail ?? ''}
-          </p>
-          {invoice.labPan && <p className="text-sm">PAN: {invoice.labPan}</p>}
-        </div>
+      <div
+        className={`mb-4 flex items-start gap-4 border-b border-black pb-3 ${invoice.printLetterhead ? 'justify-between' : 'justify-end'}`}
+      >
+        {invoice.printLetterhead && (
+          <div>
+            {invoice.labLogoDataUri && <img src={invoice.labLogoDataUri} alt="" className="mb-2 h-12" />}
+            <p className="text-lg font-bold">{invoice.labName ?? 'Laboratory'}</p>
+            {invoice.labAddress && <p className="text-sm">{invoice.labAddress}</p>}
+            <p className="text-sm">
+              {invoice.labPhone ?? ''}
+              {invoice.labPhone && invoice.labEmail ? ' · ' : ''}
+              {invoice.labEmail ?? ''}
+            </p>
+            {invoice.labPan && <p className="text-sm">PAN: {invoice.labPan}</p>}
+          </div>
+        )}
         <div className="text-right">
           <p className="text-xl font-bold uppercase">{title}</p>
           {isCancelled && <p className="text-sm font-bold text-red-600">CANCELLED</p>}
@@ -101,6 +105,15 @@ export function InvoicePrintDocument({ invoice }: { invoice: InvoiceDetail }) {
         <div>
           <span className="font-semibold">Invoice Issue Date: </span>
           {dt(invoice.issuedAt)}
+          {invoice.issuedAtBs && ` (${invoice.issuedAtBs} BS)`}
+        </div>
+        <div>
+          <span className="font-semibold">Fiscal Year: </span>
+          {invoice.fiscalYear}
+        </div>
+        <div>
+          <span className="font-semibold">Order No.: </span>
+          {invoice.orderNumber}
         </div>
         <div>
           <span className="font-semibold">Purchaser's Name: </span>
@@ -111,12 +124,20 @@ export function InvoicePrintDocument({ invoice }: { invoice: InvoiceDetail }) {
           {paymentMethod}
         </div>
         <div>
+          <span className="font-semibold">Patient MRN: </span>
+          {invoice.patientMrn}
+        </div>
+        <div>
+          <span className="font-semibold">Phone: </span>
+          {invoice.patientPhone ?? '—'}
+        </div>
+        <div>
           <span className="font-semibold">Address: </span>
           {invoice.patientAddress ?? '—'}
         </div>
         <div>
           <span className="font-semibold">Purchaser's PAN: </span>
-          {'—'}
+          {invoice.buyerPan ?? '—'}
         </div>
       </div>
 
@@ -172,6 +193,30 @@ export function InvoicePrintDocument({ invoice }: { invoice: InvoiceDetail }) {
             </td>
             <td className="py-1.5 text-right text-base font-bold">{formatMoney(invoice.totalAmount)}</td>
           </tr>
+          {!isCancelled && (
+            <>
+              <tr>
+                <td colSpan={4} className="py-1 text-right">
+                  Amount Paid
+                </td>
+                <td className="py-1 text-right">{formatMoney(invoice.amountPaid)}</td>
+              </tr>
+              {invoice.amountRefunded > 0 && (
+                <tr>
+                  <td colSpan={4} className="py-1 text-right">
+                    Refunded
+                  </td>
+                  <td className="py-1 text-right">− {formatMoney(invoice.amountRefunded)}</td>
+                </tr>
+              )}
+              <tr className="border-t border-black">
+                <td colSpan={4} className="py-1.5 text-right font-bold">
+                  Balance Due
+                </td>
+                <td className="py-1.5 text-right font-bold">{formatMoney(invoice.balance)}</td>
+              </tr>
+            </>
+          )}
         </tfoot>
       </table>
 

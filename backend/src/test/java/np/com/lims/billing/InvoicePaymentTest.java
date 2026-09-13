@@ -81,4 +81,31 @@ class InvoicePaymentTest {
         assertThatThrownBy(() -> invoice.requestRefund(new BigDecimal("400.00"), "too much", null, "x"))
                 .isInstanceOf(ApiException.class);
     }
+
+    /**
+     * Regression test for a real bug: {@code buyerPan} was silently dropped (hardcoded {@code
+     * null}) on every real IRD CBMS submission until this was found and fixed. Once an invoice is
+     * issued its buyer PAN must be locked, same as every other billed field — a bill can't be
+     * quietly edited after the government submission is built from it.
+     */
+    @Test
+    void buyerPanIsEditableWhileDraftButLockedOnceIssued() {
+        Department dept = Department.create("D", "Dept");
+        Patient patient = Patient.register("P000001", "Test", Gender.OTHER);
+        LabOrder order = LabOrder.open("ORD1", patient, null, null);
+        LabTest test = LabTest.create("T0", "Test 0", dept);
+        test.updateDetails("Test 0", dept, null, null, null, null, new BigDecimal("600.00"), null);
+        order.addItem(test, 1, null);
+        Invoice invoice = Invoice.openFor(order, "2082/83");
+        var r = calculator.calculate(order.getItems(), DiscountType.NONE, null, null);
+        invoice.applyPricing(r.discountType(), r.discountValue(), r.taxRate(), r.subtotal(), r.discountAmount(),
+                r.taxableAmount(), r.taxAmount(), r.totalAmount());
+
+        invoice.setBuyerPan("600123456");
+        assertThat(invoice.getBuyerPan()).isEqualTo("600123456");
+
+        invoice.issue("reception", "INV-2082/83-000001");
+        assertThatThrownBy(() -> invoice.setBuyerPan("999999999")).isInstanceOf(ApiException.class);
+        assertThat(invoice.getBuyerPan()).isEqualTo("600123456");
+    }
 }

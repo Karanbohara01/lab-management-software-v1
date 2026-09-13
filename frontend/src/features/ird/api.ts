@@ -32,4 +32,8 @@ export const irdApi = {
 
   retryCreditNote: (id: number) =>
     httpClient.post<IrdSubmissionDetail>(`/ird/submissions/${id}/credit-note/retry`).then((r) => r.data),
+
+  /** Also runs unattended every ~10 minutes — this triggers the same sweep on demand. */
+  runAutoRetrySweep: () =>
+    httpClient.post<{ retried: number }>('/ird/submissions/auto-retry-sweep').then((r) => r.data),
 };

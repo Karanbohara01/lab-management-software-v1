@@ -11,6 +11,7 @@ export interface LabHeader {
   panNumber: string | null;
   reportFooter: string | null;
   logoDataUri: string | null;
+  printLetterhead: boolean;
 }
 
 export interface ReportParameterLine {

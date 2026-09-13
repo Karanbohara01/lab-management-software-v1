@@ -106,4 +106,18 @@ public class IrdController {
     public Detail retryCreditNote(@PathVariable Long id) {
         return service.retryCreditNote(id);
     }
+
+    /**
+     * Also runs unattended on {@code lims.ird.retry-cron} (default every 10 minutes) — exposed
+     * here too so an admin can trigger it on demand rather than wait for the next tick, matching
+     * {@code POST /platform/billing/run-sweep}'s convention for the subscription-billing sweep.
+     */
+    @PostMapping("/submissions/auto-retry-sweep")
+    @PreAuthorize("hasAuthority('PERM_IRD_SUBMISSION_MANAGE')")
+    public AutoRetryResult runAutoRetrySweep() {
+        return new AutoRetryResult(service.autoRetrySweep());
+    }
+
+    public record AutoRetryResult(int retried) {
+    }
 }

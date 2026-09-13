@@ -85,10 +85,12 @@ export interface InvoiceDetail {
   amountRefunded: number;
   balance: number;
   notes: string | null;
+  buyerPan: string | null;
   cancelReason: string | null;
   cancelledAt: string | null;
   cancelledBy: string | null;
   issuedAt: string | null;
+  issuedAtBs: string | null;
   issuedBy: string | null;
   printCount: number;
   lastPrintedAt: string | null;
@@ -99,6 +101,7 @@ export interface InvoiceDetail {
   labEmail: string | null;
   labPan: string | null;
   labLogoDataUri: string | null;
+  printLetterhead: boolean;
   items: InvoiceItem[];
   payments: PaymentEntry[];
   refunds: RefundEntry[];

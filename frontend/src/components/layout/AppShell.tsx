@@ -1,14 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { SidebarContent } from './Sidebar';
 import { Topbar } from './Topbar';
+import { KeyboardShortcutsModal } from './KeyboardShortcutsModal';
+import { useGlobalShortcuts } from './useGlobalShortcuts';
 
 const COLLAPSE_KEY = 'lims.sidebar.collapsed';
 
 export function AppShell() {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const openShortcutsHelp = useCallback(() => setShortcutsOpen(true), []);
+  useGlobalShortcuts(openShortcutsHelp);
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return localStorage.getItem(COLLAPSE_KEY) === '1';
@@ -77,13 +82,13 @@ export function AppShell() {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar onOpenMenu={() => setDrawerOpen(true)} />
+        <Topbar onOpenMenu={() => setDrawerOpen(true)} onOpenShortcuts={openShortcutsHelp} />
         <main id="main-content" className="flex-1 px-4 py-6 lg:px-8">
-          <div className="mx-auto max-w-7xl">
-            <Outlet />
-          </div>
+          <Outlet />
         </main>
       </div>
+
+      <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </div>
   );
 }

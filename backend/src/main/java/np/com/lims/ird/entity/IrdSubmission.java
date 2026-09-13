@@ -10,10 +10,13 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.OrderBy;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import np.com.lims.billing.entity.Invoice;
 import np.com.lims.common.audit.BaseEntity;
 import np.com.lims.common.exception.ApiException;
+import np.com.lims.common.tenant.TenantContext;
+import org.hibernate.annotations.Filter;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -22,7 +25,11 @@ import java.util.List;
 /** Per-invoice IRD/CBMS submission tracking. Never triggers an API call on its own. */
 @Entity
 @Table(name = "ird_submission")
+@Filter(name = "tenantFilter", condition = "organization_id = :tenantId")
 public class IrdSubmission extends BaseEntity {
+
+    @Column(name = "organization_id", nullable = false, updatable = false)
+    private Long organizationId;
 
     @OneToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "invoice_id", nullable = false, updatable = false)
@@ -90,6 +97,25 @@ public class IrdSubmission extends BaseEntity {
         submission.invoice = invoice;
         submission.status = IrdStatus.NOT_SUBMITTED;
         return submission;
+    }
+
+    /**
+     * Eligible for the unattended auto-retry sweep only when the LAST attempt was a transport
+     * failure (network/timeout/gateway-unreachable) — a {@code REJECTED} response means IRD itself
+     * rejected the data (bad credentials, bad fields), which a blind retry can never fix and would
+     * just burn attempts on; that case still needs a human. Also caps total attempts and enforces
+     * a minimum backoff since the last try, so a prolonged outage produces occasional retries
+     * rather than a tight retry storm every sweep tick.
+     */
+    public boolean isAutoRetryEligible(int maxAttempts, java.time.Duration minBackoff) {
+        if (status != IrdStatus.FAILED || attemptCount >= maxAttempts) {
+            return false;
+        }
+        IrdSubmissionAttempt last = attempts.isEmpty() ? null : attempts.get(attempts.size() - 1);
+        if (last == null || last.getResponseStatus() != IrdSubmissionAttempt.ResponseStatus.TRANSPORT_ERROR) {
+            return false;
+        }
+        return last.getOccurredAt().isBefore(Instant.now().minus(minBackoff));
     }
 
     public void assertCanSubmit() {
@@ -226,6 +252,17 @@ public class IrdSubmission extends BaseEntity {
                         IrdSubmissionAttempt.ResponseStatus respStatus, String providerReference,
                         String errorCode, String errorMessage, String responseSnapshot) {
         attempt.complete(reqStatus, respStatus, providerReference, errorCode, errorMessage, responseSnapshot);
+    }
+
+    @PrePersist
+    private void assignTenant() {
+        if (organizationId == null) {
+            organizationId = TenantContext.require();
+        }
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
     }
 
     public Invoice getInvoice() {

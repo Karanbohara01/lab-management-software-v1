@@ -4,6 +4,7 @@ import {
   Stethoscope,
   ClipboardList,
   TestTubes,
+  ListTree,
   FlaskConical,
   FileText,
   Receipt,
@@ -19,6 +20,9 @@ import {
   HelpCircle,
   UserCog,
   ShieldCheck,
+  LayoutGrid,
+  Rocket,
+  CreditCard,
   type LucideIcon,
 } from 'lucide-react';
 import { PERMISSIONS } from '@/features/auth/permissions';
@@ -40,6 +44,13 @@ export interface NavSection {
 
 export const NAV_SECTIONS: NavSection[] = [
   {
+    heading: 'Platform',
+    items: [
+      { label: 'Clinics', to: '/app/platform', icon: Rocket, anyPermission: [PERMISSIONS.PLATFORM_MANAGE] },
+      { label: 'Plans', to: '/app/platform/plans', icon: CreditCard, anyPermission: [PERMISSIONS.PLATFORM_MANAGE] },
+    ],
+  },
+  {
     heading: 'Overview',
     items: [{ label: 'Dashboard', to: '/app', icon: LayoutDashboard, anyPermission: [] }],
   },
@@ -50,6 +61,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: 'Referring doctors', to: '/app/doctors', icon: Stethoscope, anyPermission: [PERMISSIONS.DOCTOR_READ] },
       { label: 'Lab orders', to: '/app/orders', icon: ClipboardList, anyPermission: [PERMISSIONS.LAB_ORDER_READ] },
       { label: 'Test catalog', to: '/app/tests', icon: TestTubes, anyPermission: [PERMISSIONS.TEST_CATALOG_READ] },
+      { label: 'Parameter dictionary', to: '/app/parameters', icon: ListTree, anyPermission: [PERMISSIONS.TEST_CATALOG_READ] },
     ],
   },
   {
@@ -75,6 +87,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     heading: 'Operations',
     items: [
+      { label: 'Control center', to: '/app/admin', icon: LayoutGrid, anyPermission: [PERMISSIONS.SETTINGS_READ] },
       { label: 'Inventory', to: '/app/inventory', icon: Boxes, anyPermission: [PERMISSIONS.INVENTORY_READ] },
       { label: 'Suppliers', to: '/app/suppliers', icon: Truck, anyPermission: [PERMISSIONS.INVENTORY_READ] },
       { label: 'Purchase orders', to: '/app/purchase-orders', icon: ClipboardList, anyPermission: [PERMISSIONS.INVENTORY_READ] },

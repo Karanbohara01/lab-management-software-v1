@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardPlus, LogOut, Menu, Plus, UserPlus, UserRound } from 'lucide-react';
+import { ClipboardPlus, Keyboard, LogOut, Menu, Plus, UserPlus, UserRound } from 'lucide-react';
 import { useAppDispatch } from '@/store/hooks';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { NotificationBell } from '@/features/notifications/NotificationBell';
 import { CommandSearch } from './CommandSearch';
 
-export function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
+export function Topbar({ onOpenMenu, onOpenShortcuts }: { onOpenMenu: () => void; onOpenShortcuts: () => void }) {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { user, hasPermission } = useAuth();
@@ -81,6 +81,16 @@ export function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
           )}
         </div>
       )}
+
+      <button
+        type="button"
+        onClick={onOpenShortcuts}
+        className="hidden rounded-md p-2 text-muted-foreground hover:bg-surface-muted hover:text-foreground sm:block"
+        aria-label="Show keyboard shortcuts"
+        title="Keyboard shortcuts (?)"
+      >
+        <Keyboard className="h-[18px] w-[18px]" aria-hidden />
+      </button>
 
       <NotificationBell />
 

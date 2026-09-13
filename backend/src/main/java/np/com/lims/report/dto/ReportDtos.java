@@ -43,11 +43,11 @@ public final class ReportDtos {
 
     public record LabHeader(
             String name, String addressLine, String city, String phone, String email,
-            String panNumber, String reportFooter, String logoDataUri
+            String panNumber, String reportFooter, String logoDataUri, boolean printLetterhead
     ) {
         static LabHeader from(LaboratoryProfile p) {
             return new LabHeader(p.getName(), p.getAddressLine(), p.getCity(), p.getPhone(), p.getEmail(),
-                    p.getPanNumber(), p.getReportFooter(), p.getLogoDataUri());
+                    p.getPanNumber(), p.getReportFooter(), p.getLogoDataUri(), p.isPrintReportLetterhead());
         }
     }
 

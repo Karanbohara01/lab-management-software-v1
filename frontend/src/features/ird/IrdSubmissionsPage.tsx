@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { RefreshCw } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
@@ -10,6 +12,10 @@ import { LoadingState, ErrorState, EmptyState } from '@/components/ui/PageState'
 import { cn } from '@/lib/cn';
 import { useQuery } from '@/hooks/useQuery';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useAuth } from '@/features/auth/useAuth';
+import { PERMISSIONS } from '@/features/auth/permissions';
+import { ApiError } from '@/types/api';
+import { useToast } from '@/components/ui/toast';
 import { formatDate } from '@/features/patients/format';
 import { irdApi } from './api';
 import { IrdConfigBanner } from './IrdConfigBanner';
@@ -33,9 +39,13 @@ const TABS: { value: '' | IrdStatus; label: string }[] = [
 
 export function IrdSubmissionsPage() {
   const navigate = useNavigate();
+  const toast = useToast();
+  const { hasPermission } = useAuth();
+  const canManage = hasPermission(PERMISSIONS.IRD_SUBMISSION_MANAGE);
   const [status, setStatus] = useState<'' | IrdStatus>('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
+  const [sweeping, setSweeping] = useState(false);
 
   const summary = useQuery(() => irdApi.summary(), []);
   const debouncedSearch = useDebouncedValue(search, 300);
@@ -43,6 +53,24 @@ export function IrdSubmissionsPage() {
     () => irdApi.list({ status: status || undefined, query: debouncedSearch || undefined, page, size: PAGE_SIZE }),
     [status, debouncedSearch, page],
   );
+
+  const runSweepNow = async () => {
+    setSweeping(true);
+    try {
+      const { retried } = await irdApi.runAutoRetrySweep();
+      toast.success(
+        retried === 0
+          ? 'No failed submissions were eligible for retry right now.'
+          : `Retried ${retried} failed submission${retried === 1 ? '' : 's'}.`,
+      );
+      refetch();
+      summary.refetch();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Unable to run the retry sweep');
+    } finally {
+      setSweeping(false);
+    }
+  };
 
   const columns: Column<IrdSubmissionListItem>[] = [
     { key: 'inv', header: 'Invoice', cell: (s) => <span className="font-mono text-xs">{s.invoiceNumber ?? '—'}</span> },
@@ -66,7 +94,18 @@ export function IrdSubmissionsPage() {
 
   return (
     <>
-      <PageHeader title="IRD / e-Billing" description="Track electronic submission of issued invoices to IRD / CBMS." />
+      <PageHeader
+        title="IRD / e-Billing"
+        description="Track electronic submission of issued invoices to IRD / CBMS."
+        actions={
+          canManage ? (
+            <Button variant="secondary" size="sm" loading={sweeping} onClick={runSweepNow}>
+              <RefreshCw className="h-4 w-4" aria-hidden />
+              Retry failed now
+            </Button>
+          ) : undefined
+        }
+      />
       <IrdConfigBanner />
 
       <Card>

@@ -37,7 +37,7 @@ export const invoicesApi = {
 
   adjust: (
     id: number,
-    payload: { discountType: DiscountType; discountValue: number; taxRate: number; notes?: string },
+    payload: { discountType: DiscountType; discountValue: number; taxRate: number; notes?: string; buyerPan?: string },
   ) => httpClient.put<InvoiceDetail>(`/invoices/${id}`, payload).then((r) => r.data),
 
   issue: (id: number) => httpClient.post<InvoiceDetail>(`/invoices/${id}/issue`).then((r) => r.data),

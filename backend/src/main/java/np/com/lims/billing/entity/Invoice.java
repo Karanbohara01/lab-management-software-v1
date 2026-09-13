@@ -10,12 +10,15 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import np.com.lims.common.audit.BaseEntity;
 import np.com.lims.common.exception.ApiException;
+import np.com.lims.common.tenant.TenantContext;
 import np.com.lims.order.entity.DiscountType;
 import np.com.lims.order.entity.LabOrder;
 import np.com.lims.patient.entity.Patient;
+import org.hibernate.annotations.Filter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -24,9 +27,14 @@ import java.util.List;
 
 @Entity
 @Table(name = "invoice")
+@Filter(name = "tenantFilter", condition = "organization_id = :tenantId")
 public class Invoice extends BaseEntity {
 
-    @Column(name = "invoice_number", length = 32, unique = true)
+    @Column(name = "organization_id", nullable = false, updatable = false)
+    private Long organizationId;
+
+    /** Unique per organization (see V34), not globally. */
+    @Column(name = "invoice_number", length = 32)
     private String invoiceNumber;
 
     @Column(name = "fiscal_year", nullable = false, length = 16)
@@ -88,6 +96,11 @@ public class Invoice extends BaseEntity {
     @Column(length = 1000)
     private String notes;
 
+    /** The buyer's own PAN, when they have one (e.g. a corporate/insurance payer) — shown on the
+     * printed bill's "Purchaser's PAN" line and submitted to IRD's CBMS as {@code buyer_pan}. */
+    @Column(name = "buyer_pan", length = 20)
+    private String buyerPan;
+
     // Per the e-invoice procedure (दफा ६(च)): a bill number may print as the ORIGINAL only once
     // per fiscal year; any further print of the same invoice number must show a "Copy of
     // Original" watermark, and how many times it has been reprinted must be tracked.
@@ -143,6 +156,11 @@ public class Invoice extends BaseEntity {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public void setBuyerPan(String buyerPan) {
+        assertDraft();
+        this.buyerPan = buyerPan;
     }
 
     public void issue(String actor, String invoiceNumber) {
@@ -241,6 +259,17 @@ public class Invoice extends BaseEntity {
 
     // getters ---------------------------------------------------------
 
+    @PrePersist
+    private void assignTenant() {
+        if (organizationId == null) {
+            organizationId = TenantContext.require();
+        }
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
+    }
+
     public String getInvoiceNumber() {
         return invoiceNumber;
     }
@@ -323,6 +352,10 @@ public class Invoice extends BaseEntity {
 
     public String getNotes() {
         return notes;
+    }
+
+    public String getBuyerPan() {
+        return buyerPan;
     }
 
     public int getPrintCount() {
