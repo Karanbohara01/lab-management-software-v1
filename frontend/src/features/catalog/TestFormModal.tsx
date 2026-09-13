@@ -23,7 +23,9 @@ import { useToast } from '@/components/ui/toast';
 import { useQuery } from '@/hooks/useQuery';
 import type { Department } from '@/features/departments/api';
 import { testCatalogApi } from './api';
-import { ANALYTE_PRESETS, UNIT_OPTIONS, findAnalytePreset } from './analytePresets';
+import { UNIT_OPTIONS } from './analytePresets';
+import { parameterMasterApi } from './parameterMaster/api';
+import type { ParameterMaster } from './parameterMaster/types';
 import {
   AGE_UNIT_LABELS,
   DATA_TYPE_LABELS,
@@ -157,6 +159,7 @@ function ParameterRow({
   param,
   setValue,
   onRemove,
+  presetsByName,
 }: {
   index: number;
   register: UseFormRegister<FormValues>;
@@ -164,11 +167,12 @@ function ParameterRow({
   param: FormValues['parameters'][number] | undefined;
   setValue: UseFormSetValue<FormValues>;
   onRemove: () => void;
+  presetsByName: Map<string, ParameterMaster>;
 }) {
   const name = param?.name?.trim();
 
   const applyPreset = (typed: string) => {
-    const preset = findAnalytePreset(typed);
+    const preset = presetsByName.get(typed.trim().toLowerCase());
     if (!preset) return;
     const empty = (v: unknown) => v === '' || v == null;
     const put = (key: keyof FormValues['parameters'][number], value: string | number) =>
@@ -176,12 +180,14 @@ function ParameterRow({
         shouldDirty: true,
       });
     put('name', preset.name);
-    if (empty(param?.code)) put('code', preset.code);
-    if (empty(param?.unit)) put('unit', preset.unit);
+    if (empty(param?.code) && preset.code) put('code', preset.code);
+    if (empty(param?.unit) && preset.unit) put('unit', preset.unit);
     if (empty(param?.decimalPlaces) && preset.decimalPlaces != null) put('decimalPlaces', preset.decimalPlaces);
-    if (empty(param?.groupHeading) && preset.group) put('groupHeading', preset.group);
-    if (empty(param?.low) && preset.low != null) put('low', preset.low);
-    if (empty(param?.high) && preset.high != null) put('high', preset.high);
+    if (empty(param?.groupHeading) && preset.groupHeading) put('groupHeading', preset.groupHeading);
+    if (empty(param?.method) && preset.method) put('method', preset.method);
+    if (empty(param?.allowedValues) && preset.allowedValues) put('allowedValues', preset.allowedValues);
+    if (empty(param?.low) && preset.lowValue != null) put('low', preset.lowValue);
+    if (empty(param?.high) && preset.highValue != null) put('high', preset.highValue);
     if (empty(param?.criticalLow) && preset.criticalLow != null) put('criticalLow', preset.criticalLow);
     if (empty(param?.criticalHigh) && preset.criticalHigh != null) put('criticalHigh', preset.criticalHigh);
   };
@@ -445,6 +451,11 @@ export function TestFormModal({
   const [memberIds, setMemberIds] = useState<number[]>([]);
   const [memberSearch, setMemberSearch] = useState('');
   const allTests = useQuery(() => testCatalogApi.list({ activeOnly: true, size: 500 }), [open]);
+  const parameterPresets = useQuery(() => parameterMasterApi.list({ activeOnly: true, size: 500 }), [open]);
+  const presetsByName = useMemo(
+    () => new Map((parameterPresets.data?.content ?? []).map((p) => [p.name.toLowerCase(), p])),
+    [parameterPresets.data],
+  );
 
   const {
     register,
@@ -586,8 +597,8 @@ export function TestFormModal({
           ))}
         </datalist>
         <datalist id="lab-analyte-options">
-          {ANALYTE_PRESETS.map((p) => (
-            <option key={p.code} value={p.name} />
+          {(parameterPresets.data?.content ?? []).map((p) => (
+            <option key={p.id} value={p.name} />
           ))}
         </datalist>
         {errors.root && <Alert tone="danger">{errors.root.message}</Alert>}
@@ -726,6 +737,7 @@ export function TestFormModal({
                     param={params?.[index]}
                     setValue={setValue}
                     onRemove={() => remove(index)}
+                    presetsByName={presetsByName}
                   />
                 ))}
               </ul>

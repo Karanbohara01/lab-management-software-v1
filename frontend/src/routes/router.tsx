@@ -22,6 +22,11 @@ function route(path: string, element: ReactNode, anyOf?: string[]) {
 export const router = createBrowserRouter([
   { path: '/', element: lazyPage(() => import('@/features/marketing/LandingPage'), 'LandingPage') },
   { path: '/login', element: <LoginPage /> },
+  { path: '/signup', element: lazyPage(() => import('@/features/signup/SignupPage'), 'SignupPage') },
+  {
+    path: '/verify/:token',
+    element: lazyPage(() => import('@/features/reports/VerifyReportPage'), 'VerifyReportPage'),
+  },
   {
     path: '/app',
     element: (
@@ -41,6 +46,7 @@ export const router = createBrowserRouter([
       route('departments', lazyPage(() => import('@/features/departments/DepartmentsPage'), 'DepartmentsPage'), [P.DEPARTMENT_READ]),
       route('branches', lazyPage(() => import('@/features/branches/BranchesPage'), 'BranchesPage'), [P.BRANCH_READ]),
       route('tests', lazyPage(() => import('@/features/catalog/TestCatalogPage'), 'TestCatalogPage'), [P.TEST_CATALOG_READ]),
+      route('parameters', lazyPage(() => import('@/features/catalog/parameterMaster/ParameterMasterPage'), 'ParameterMasterPage'), [P.TEST_CATALOG_READ]),
 
       route('orders', lazyPage(() => import('@/features/orders/OrdersPage'), 'OrdersPage'), [P.LAB_ORDER_READ]),
       route('orders/new', lazyPage(() => import('@/features/orders/OrderBuilderPage'), 'OrderBuilderPage'), [P.LAB_ORDER_WRITE]),
@@ -58,7 +64,6 @@ export const router = createBrowserRouter([
 
       route('reports', lazyPage(() => import('@/features/reports/ReportsPage'), 'ReportsPage'), [P.REPORT_READ]),
       route('reports/:id', lazyPage(() => import('@/features/reports/ReportViewPage'), 'ReportViewPage'), [P.REPORT_READ]),
-      route('verify/:token', lazyPage(() => import('@/features/reports/VerifyReportPage'), 'VerifyReportPage'), [P.REPORT_READ]),
 
       route('invoices', lazyPage(() => import('@/features/billing/InvoicesPage'), 'InvoicesPage'), [P.INVOICE_READ]),
       route('invoices/:id', lazyPage(() => import('@/features/billing/InvoiceDetailPage'), 'InvoiceDetailPage'), [P.INVOICE_READ]),
@@ -76,11 +81,16 @@ export const router = createBrowserRouter([
       route('purchase-orders', lazyPage(() => import('@/features/inventory/PurchaseOrdersPage'), 'PurchaseOrdersPage'), [P.INVENTORY_READ]),
       route('purchase-orders/:id', lazyPage(() => import('@/features/inventory/PurchaseOrderDetailPage'), 'PurchaseOrderDetailPage'), [P.INVENTORY_READ]),
 
+      route('admin', lazyPage(() => import('@/features/admin/ControlCenterPage'), 'ControlCenterPage'), [P.SETTINGS_READ]),
+      route('platform', lazyPage(() => import('@/features/platform/PlatformPage'), 'PlatformPage'), [P.PLATFORM_MANAGE]),
+      route('platform/plans', lazyPage(() => import('@/features/platform/PlansPage'), 'PlansPage'), [P.PLATFORM_MANAGE]),
       route('users', lazyPage(() => import('@/features/admin/UsersPage'), 'UsersPage'), [P.USER_READ]),
       route('roles', lazyPage(() => import('@/features/admin/RolesPage'), 'RolesPage'), [P.ROLE_READ]),
       route('audit', lazyPage(() => import('@/features/admin/AuditPage'), 'AuditPage'), [P.AUDIT_READ]),
       route('analytics', lazyPage(() => import('@/features/analytics/AnalyticsPage'), 'AnalyticsPage'), [P.REPORTING_READ]),
       route('settings', lazyPage(() => import('@/features/settings/LaboratorySettingsPage'), 'LaboratorySettingsPage'), [P.SETTINGS_READ]),
+      route('settings/billing', lazyPage(() => import('@/features/settings/billing/SubscriptionBillingPage'), 'SubscriptionBillingPage'), [P.SETTINGS_READ]),
+      route('settings/billing/:invoiceId', lazyPage(() => import('@/features/settings/billing/SubscriptionBillingPage'), 'SubscriptionBillingPage'), [P.SETTINGS_READ]),
       route('backups', lazyPage(() => import('@/features/backups/BackupsPage'), 'BackupsPage'), [P.BACKUP_READ]),
       route('notifications', lazyPage(() => import('@/features/notifications/NotificationsPage'), 'NotificationsPage')),
 
