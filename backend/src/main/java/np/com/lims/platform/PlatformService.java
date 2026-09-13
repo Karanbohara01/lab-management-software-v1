@@ -400,7 +400,6 @@ public class PlatformService {
             current.changeStatus(request.status());
             if (request.currentPeriodEnd() != null) {
                 current.renewUntil(request.currentPeriodEnd());
-                current.changeStatus(request.status());
             }
             subscription = current;
         } else {
