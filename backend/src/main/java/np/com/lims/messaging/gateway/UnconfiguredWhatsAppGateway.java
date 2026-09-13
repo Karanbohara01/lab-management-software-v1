@@ -5,15 +5,17 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * The active WhatsApp gateway until a real, credentialed provider is wired in. It sends nothing
- * and every attempt fails with a clear, honest error rather than pretending to succeed.
+ * Dormant fallback, kept as a safety net. {@link WhatsAppCloudApiGateway} is now the real
+ * {@code @Bean} (its {@code @ConditionalOnMissingBean} here never actually applies) — this class
+ * only becomes active again if that bean is ever removed. It sends nothing and every attempt fails
+ * with a clear, honest error rather than pretending to succeed.
  */
 @Configuration
 public class UnconfiguredWhatsAppGateway {
 
     @Bean
     @ConditionalOnMissingBean(WhatsAppGateway.class)
-    public WhatsAppGateway whatsAppGateway() {
+    public WhatsAppGateway fallbackWhatsAppGateway() {
         return new WhatsAppGateway() {
             @Override
             public String provider() {

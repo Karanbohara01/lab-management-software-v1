@@ -8,10 +8,12 @@ import org.springframework.context.annotation.Configuration;
 import java.math.BigDecimal;
 
 /**
- * The active gateway for a provider until its real credentials are configured. Each provider
- * falls back independently (by specific bean NAME, not just type — so eSewa being configured
- * doesn't accidentally suppress Khalti's honest fallback, or vice versa). Transmits nothing;
- * every call returns a clear, honest "not configured" error.
+ * A safety-net default: if {@code EsewaGatewayConfig}/{@code KhaltiGatewayConfig} were ever
+ * conditionally disabled again (they currently always register — see those classes, which now
+ * resolve "configured or not" dynamically per organization/request rather than at bean-creation
+ * time), this bean would take over and transmit nothing, returning a clear, honest "not
+ * configured" error for every call. Currently dormant in practice (its
+ * {@code @ConditionalOnMissingBean} never triggers), kept as the fallback of last resort.
  */
 @Configuration
 public class UnconfiguredPaymentGateways {

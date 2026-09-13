@@ -2,12 +2,19 @@ package np.com.lims.doctor.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import np.com.lims.common.audit.BaseEntity;
+import np.com.lims.common.tenant.TenantContext;
+import org.hibernate.annotations.Filter;
 
 @Entity
 @Table(name = "doctor")
+@Filter(name = "tenantFilter", condition = "organization_id = :tenantId")
 public class Doctor extends BaseEntity {
+
+    @Column(name = "organization_id", nullable = false, updatable = false)
+    private Long organizationId;
 
     @Column(name = "full_name", nullable = false, length = 160)
     private String fullName;
@@ -56,6 +63,17 @@ public class Doctor extends BaseEntity {
 
     public void setActive(boolean active) {
         this.active = active;
+    }
+
+    @PrePersist
+    private void assignTenant() {
+        if (organizationId == null) {
+            organizationId = TenantContext.require();
+        }
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
     }
 
     public String getFullName() {

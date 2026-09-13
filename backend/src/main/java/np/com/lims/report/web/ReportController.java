@@ -66,9 +66,17 @@ public class ReportController {
         return service.release(id, request == null ? null : request.signerCredentials());
     }
 
-    /** Confirm a report's authenticity from its verification token (printed on the report). */
+    /**
+     * Confirm a report's authenticity from its verification token (printed on the report, and the
+     * link sent to patients by SMS/WhatsApp). Deliberately public — a patient opening this link
+     * has no LabOS login — so, unlike every other endpoint here, this one carries no
+     * {@code @PreAuthorize} at all (same pattern as {@code AuthController}'s login/refresh) and is
+     * listed in {@code SecurityConfig.PUBLIC_ENDPOINTS}. Safe to leave unauthenticated: the
+     * 128-bit random token IS the credential (unguessable, one per report), and
+     * {@code ReportService.verify} only ever returns verification metadata (report number,
+     * version, signer, content hash) — never full patient identity or result values.
+     */
     @GetMapping("/verify/{token}")
-    @PreAuthorize("hasAuthority('PERM_REPORT_READ')")
     public VerificationResult verify(@PathVariable String token) {
         return service.verify(token);
     }

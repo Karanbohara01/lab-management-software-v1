@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { useAuth } from '@/features/auth/useAuth';
@@ -27,6 +28,16 @@ export function DashboardPage() {
   useEffect(() => {
     if (data) setLastUpdated(new Date());
   }, [data]);
+
+  // A pure platform admin has no clinic-operational access at all — the everyday dashboard would
+  // just be an empty shell for them. Send them straight to what they actually manage.
+  if (
+    hasRole(ROLES.PLATFORM_ADMIN) &&
+    !hasRole(ROLES.SUPER_ADMIN) &&
+    !hasRole(ROLES.LAB_ADMINISTRATOR)
+  ) {
+    return <Navigate to="/app/platform" replace />;
+  }
 
   if (loading && !data) return <LoadingState label="Loading laboratory overview…" />;
   if (error) return <ErrorState message={error} onRetry={refetch} />;

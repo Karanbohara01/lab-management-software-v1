@@ -6,6 +6,8 @@ import np.com.lims.branch.dto.BranchDtos.UpdateRequest;
 import np.com.lims.branch.entity.Branch;
 import np.com.lims.common.audit.AuditService;
 import np.com.lims.common.exception.ApiException;
+import np.com.lims.common.tenant.TenantGuard;
+import np.com.lims.platform.PlanLimitService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -19,10 +21,12 @@ public class BranchService {
 
     private final BranchRepository repository;
     private final AuditService auditService;
+    private final PlanLimitService planLimitService;
 
-    public BranchService(BranchRepository repository, AuditService auditService) {
+    public BranchService(BranchRepository repository, AuditService auditService, PlanLimitService planLimitService) {
         this.repository = repository;
         this.auditService = auditService;
+        this.planLimitService = planLimitService;
     }
 
     @Transactional(readOnly = true)
@@ -40,6 +44,7 @@ public class BranchService {
 
     @Transactional
     public Response create(CreateRequest request) {
+        planLimitService.requireBranchCapacity(repository.count());
         String code = request.code().trim().toUpperCase();
         if (repository.existsByCodeIgnoreCase(code)) {
             throw ApiException.conflict("A branch with code " + code + " already exists");
@@ -79,7 +84,8 @@ public class BranchService {
     }
 
     private Branch find(Long id) {
-        return repository.findById(id).orElseThrow(() -> ApiException.notFound("Branch", id));
+        return TenantGuard.owned(repository.findById(id), Branch::getOrganizationId)
+                .orElseThrow(() -> ApiException.notFound("Branch", id));
     }
 
     private static String trimToNull(String value) {

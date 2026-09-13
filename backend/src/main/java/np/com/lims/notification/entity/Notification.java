@@ -11,14 +11,25 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import np.com.lims.common.tenant.TenantContext;
+import org.hibernate.annotations.Filter;
 
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Doesn't extend {@code BaseEntity} (no version/updated_at/created_by columns by design), but the
+ * {@code tenantFilter} definition itself is global once declared anywhere Hibernate scans (see
+ * {@code BaseEntity}) — redeclaring it here with {@code @FilterDef} would fail startup
+ * ("Multiple '@FilterDef' annotations define a filter named 'tenantFilter'"), so only
+ * {@code @Filter} (which just references the existing definition by name) is needed.
+ */
 @Entity
 @Table(name = "notification")
+@Filter(name = "tenantFilter", condition = "organization_id = :tenantId")
 public class Notification {
 
     public enum Type {
@@ -30,6 +41,9 @@ public class Notification {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "organization_id", nullable = false, updatable = false)
+    private Long organizationId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 48)
@@ -77,6 +91,17 @@ public class Notification {
         this.targetPermission = targetPermission;
         this.reference = reference;
         this.createdAt = Instant.now();
+    }
+
+    @PrePersist
+    private void assignTenant() {
+        if (organizationId == null) {
+            organizationId = TenantContext.require();
+        }
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
     }
 
     public void markReadBy(String username) {

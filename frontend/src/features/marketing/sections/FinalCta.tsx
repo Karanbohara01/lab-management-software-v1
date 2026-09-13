@@ -1,6 +1,6 @@
 import { ArrowRight } from 'lucide-react';
 import { Reveal } from '../components/Reveal';
-import { AnchorButton, DEMO_MAILTO, SALES_MAILTO } from '../components/primitives';
+import { AnchorButton, LinkButton, SALES_MAILTO } from '../components/primitives';
 import { SCIENCE_TEXTURE } from '../components/Photo';
 
 export function FinalCta() {
@@ -27,10 +27,10 @@ export function FinalCta() {
               operations in one platform.
             </p>
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-              <AnchorButton href={DEMO_MAILTO} size="lg">
-                Request a Demo
+              <LinkButton to="/signup" size="lg">
+                Start free trial
                 <ArrowRight className="h-4 w-4" aria-hidden />
-              </AnchorButton>
+              </LinkButton>
               <AnchorButton href={SALES_MAILTO} variant="secondary" size="lg">
                 Talk to Sales
               </AnchorButton>

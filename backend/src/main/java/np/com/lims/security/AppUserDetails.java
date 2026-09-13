@@ -18,6 +18,7 @@ public class AppUserDetails implements UserDetails {
     private final String passwordHash;
     private final boolean enabled;
     private final Long branchId;
+    private final Long organizationId;
     private final Set<GrantedAuthority> authorities;
 
     public AppUserDetails(User user) {
@@ -26,6 +27,7 @@ public class AppUserDetails implements UserDetails {
         this.passwordHash = user.getPasswordHash();
         this.enabled = user.isEnabled();
         this.branchId = user.getHomeBranch() == null ? null : user.getHomeBranch().getId();
+        this.organizationId = user.getOrganizationId();
         this.authorities = Stream.concat(
                 user.getRoles().stream().map(r -> r.getName().authority()),
                 user.getRoles().stream()
@@ -41,6 +43,11 @@ public class AppUserDetails implements UserDetails {
     /** Null = access to all branches; non-null = restricted to that branch's operational data. */
     public Long getBranchId() {
         return branchId;
+    }
+
+    /** The clinic (tenant) this user belongs to — every tenant-owned query is scoped to this. */
+    public Long getOrganizationId() {
+        return organizationId;
     }
 
     @Override

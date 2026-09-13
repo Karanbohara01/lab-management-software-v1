@@ -15,6 +15,7 @@ import np.com.lims.common.audit.AuditService;
 import np.com.lims.common.exception.ApiException;
 import np.com.lims.common.exception.ErrorCode;
 import np.com.lims.common.formula.FormulaEvaluator;
+import np.com.lims.common.tenant.TenantGuard;
 import np.com.lims.department.DepartmentRepository;
 import np.com.lims.department.entity.Department;
 import org.springframework.data.domain.Page;
@@ -127,7 +128,7 @@ public class LabTestService {
             if (memberId.equals(profile.getId())) {
                 throw new ApiException(ErrorCode.VALIDATION_FAILED, "A profile cannot contain itself");
             }
-            LabTest member = testRepository.findById(memberId)
+            LabTest member = TenantGuard.owned(testRepository.findById(memberId), LabTest::getOrganizationId)
                     .orElseThrow(() -> ApiException.notFound("Test", memberId));
             if (member.getType() == TestType.PROFILE) {
                 throw new ApiException(ErrorCode.VALIDATION_FAILED,

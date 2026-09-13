@@ -1,19 +1,11 @@
 package np.com.lims.messaging.gateway;
 
 /**
- * Port for sending a WhatsApp text message to a patient.
- *
- * <h2>Implementing a real gateway</h2>
- * <ol>
- *   <li>Register a WhatsApp Business Account, verify the sender number and complete Meta's
- *       business verification.</li>
- *   <li>Call the WhatsApp Cloud API {@code /messages} endpoint with the phone number id and
- *       access token; map the response to a {@link Result}.</li>
- *   <li>Register the implementation as the {@code WhatsAppGateway} bean and set
- *       {@code lims.whatsapp.enabled=true} plus the phone number id / access token.</li>
- * </ol>
- *
- * <p>Until that is done the {@link UnconfiguredWhatsAppGateway} is active and nothing is sent.
+ * Port for sending a WhatsApp text message to a patient. {@link WhatsAppCloudApiGateway} is the
+ * real implementation (Meta WhatsApp Business Cloud API), active whenever either this deployment's
+ * shared {@code lims.whatsapp.*} config or an organization's own credentials (Settings →
+ * Laboratory profile) are fully set; {@link UnconfiguredWhatsAppGateway} is the dormant fallback
+ * that keeps every attempt honestly failing when neither is configured.
  */
 public interface WhatsAppGateway {
 

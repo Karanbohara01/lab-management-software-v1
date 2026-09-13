@@ -1,6 +1,6 @@
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/cn';
-import { Section, SectionHeading, AnchorButton, DEMO_MAILTO } from '../components/primitives';
+import { Section, SectionHeading, LinkButton } from '../components/primitives';
 import { Reveal } from '../components/Reveal';
 import { PLANS } from '../data';
 
@@ -41,13 +41,13 @@ export function Pricing() {
                   </li>
                 ))}
               </ul>
-              <AnchorButton
-                href={DEMO_MAILTO}
+              <LinkButton
+                to={`/signup?plan=${plan.name.toUpperCase()}`}
                 variant={plan.highlighted ? 'primary' : 'secondary'}
                 className="mt-6 w-full"
               >
-                Request a Demo
-              </AnchorButton>
+                Start free trial
+              </LinkButton>
             </div>
           </Reveal>
         ))}

@@ -10,13 +10,16 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import np.com.lims.branch.entity.Branch;
 import np.com.lims.catalog.entity.LabTest;
 import np.com.lims.common.audit.BaseEntity;
 import np.com.lims.common.exception.ApiException;
+import np.com.lims.common.tenant.TenantContext;
 import np.com.lims.doctor.entity.Doctor;
 import np.com.lims.patient.entity.Patient;
+import org.hibernate.annotations.Filter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -25,7 +28,11 @@ import java.util.List;
 
 @Entity
 @Table(name = "lab_order")
+@Filter(name = "tenantFilter", condition = "organization_id = :tenantId")
 public class LabOrder extends BaseEntity {
+
+    @Column(name = "organization_id", nullable = false, updatable = false)
+    private Long organizationId;
 
     @Column(name = "order_number", nullable = false, length = 24, updatable = false)
     private String orderNumber;
@@ -182,6 +189,17 @@ public class LabOrder extends BaseEntity {
                     "Order " + orderNumber + " cannot move from " + status + " to " + target);
         }
         this.status = target;
+    }
+
+    @PrePersist
+    private void assignTenant() {
+        if (organizationId == null) {
+            organizationId = TenantContext.require();
+        }
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
     }
 
     public String getOrderNumber() {

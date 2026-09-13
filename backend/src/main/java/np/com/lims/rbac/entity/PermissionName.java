@@ -35,7 +35,8 @@ public enum PermissionName {
     USER_READ, USER_WRITE,
     ROLE_READ, ROLE_WRITE,
     SETTINGS_READ, SETTINGS_WRITE,
-    BACKUP_READ, BACKUP_MANAGE;
+    BACKUP_READ, BACKUP_MANAGE,
+    PLATFORM_MANAGE;
 
     /** Authority string form as used in {@code hasAuthority(...)} checks. */
     public String authority() {

@@ -7,6 +7,7 @@ import np.com.lims.common.exception.ApiException;
 import np.com.lims.common.web.CurrentUser;
 import np.com.lims.common.exception.ErrorCode;
 import np.com.lims.common.sequence.SequenceService;
+import np.com.lims.common.tenant.TenantGuard;
 import np.com.lims.messaging.PatientMessagingService;
 import np.com.lims.order.LabOrderRepository;
 import np.com.lims.order.entity.LabOrder;
@@ -90,7 +91,7 @@ public class ReportService {
 
     @Transactional
     public Detail generate(Long orderId, boolean preliminary) {
-        LabOrder order = orderRepository.findById(orderId)
+        LabOrder order = TenantGuard.owned(orderRepository.findById(orderId), LabOrder::getOrganizationId)
                 .orElseThrow(() -> ApiException.notFound("Order", orderId));
         if (order.getStatus() != OrderStatus.CONFIRMED) {
             throw ApiException.conflict("Reports can only be generated for confirmed orders");

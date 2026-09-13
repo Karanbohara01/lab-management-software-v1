@@ -7,17 +7,24 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import np.com.lims.catalog.entity.LabTest;
 import np.com.lims.catalog.entity.TestParameter;
 import np.com.lims.common.audit.BaseEntity;
+import np.com.lims.common.tenant.TenantContext;
+import org.hibernate.annotations.Filter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 
 @Entity
 @Table(name = "qc_run")
+@Filter(name = "tenantFilter", condition = "organization_id = :tenantId")
 public class QcRun extends BaseEntity {
+
+    @Column(name = "organization_id", nullable = false, updatable = false)
+    private Long organizationId;
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "qc_material_id", nullable = false)
@@ -98,6 +105,15 @@ public class QcRun extends BaseEntity {
             this.comment = comment;
         }
     }
+
+    @PrePersist
+    private void assignTenant() {
+        if (organizationId == null) {
+            organizationId = TenantContext.require();
+        }
+    }
+
+    public Long getOrganizationId() { return organizationId; }
 
     public QcMaterial getMaterial() { return material; }
     public TestParameter getParameter() { return parameter; }

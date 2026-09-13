@@ -7,18 +7,27 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import np.com.lims.branch.entity.Branch;
 import np.com.lims.common.audit.BaseEntity;
+import np.com.lims.common.tenant.TenantContext;
 import np.com.lims.rbac.entity.Role;
+import org.hibernate.annotations.Filter;
 
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
+/** Which clinic (tenant) this user belongs to — see {@link TenantContext} and {@link Filter}. */
 @Entity
 @Table(name = "app_user")
+@Filter(name = "tenantFilter", condition = "organization_id = :tenantId")
 public class User extends BaseEntity {
+
+    /** Auto-stamped from {@link TenantContext} on create — never set directly by application code. */
+    @Column(name = "organization_id", nullable = false, updatable = false)
+    private Long organizationId;
 
     @Column(name = "username", nullable = false, unique = true, length = 64)
     private String username;
@@ -66,6 +75,30 @@ public class User extends BaseEntity {
         u.phone = phone;
         u.enabled = true;
         return u;
+    }
+
+    /**
+     * Same as {@link #create}, but for a platform admin creating a clinic's very first user on
+     * its behalf — {@code organizationId} is set explicitly rather than left to the usual
+     * {@code TenantContext}-based {@code @PrePersist} stamp, since the platform admin's own
+     * tenant context is a different (or no) organization.
+     */
+    public static User createForOrganization(Long organizationId, String username, String email,
+                                              String passwordHash, String fullName, String phone) {
+        User u = create(username, email, passwordHash, fullName, phone);
+        u.organizationId = organizationId;
+        return u;
+    }
+
+    @PrePersist
+    private void assignTenant() {
+        if (organizationId == null) {
+            organizationId = TenantContext.require();
+        }
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
     }
 
     public void addRole(Role role) {

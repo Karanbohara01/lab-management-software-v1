@@ -10,7 +10,13 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
-    open-in-view: false
+    # True (not the previous false) so a single EntityManager/Hibernate Session is bound for the
+    # whole request — required for TenantFilterInterceptor to enable the tenantFilter once and
+    # have every repository call in that request actually see it (with it false, every
+    # @Transactional service method got its own fresh, unfiltered Session). Low-risk here because
+    # every service already converts entities to DTOs inside its own transactional boundary —
+    # nothing lazily loads an entity after the transaction closes regardless of this setting.
+    open-in-view: true
     properties:
       hibernate:
         format_sql: true
@@ -58,6 +64,11 @@ lims:
       access-token-ttl: ${JWT_ACCESS_TTL:PT30M}
       refresh-token-ttl: ${JWT_REFRESH_TTL:P7D}
       issuer: lims-backend
+    crypto:
+      # Encrypts per-organization secrets at rest (payment gateway keys, etc — see
+      # np.com.lims.common.crypto.CryptoService). Override for anything but throwaway local dev;
+      # changing this key makes every previously-encrypted value unreadable.
+      key: ${CRYPTO_KEY:change-me-dev-only-crypto-key-change-me-dev-only}
   cors:
     # Comma-separated origin patterns (Spring CorsConfiguration#setAllowedOriginPatterns).
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:[*]}
@@ -78,15 +89,25 @@ lims:
     password: ${IRD_PASSWORD:}
     seller-pan: ${IRD_SELLER_PAN:}
   sms:
-    # No SMS aggregator is wired in until a real SmsGateway bean replaces UnconfiguredSmsGateway.
-    # These properties exist for that implementation to bind to.
-    provider: ${SMS_PROVIDER:}
-    base-url: ${SMS_BASE_URL:}
+    # Sparrow SMS (sparrowsms.com) — the leading SMS aggregator serving Nepal's telecom operators.
+    # Disabled by default — nothing is transmitted until enabled=true AND api-key/from are both
+    # set. API documented at docs.sparrowsms.com (POST base-url with form fields
+    # token/from/to/text) — but a live check found the documented URL returns a bare 404 (see
+    # SparrowSmsGateway's javadoc). Confirm the real working URL from a real account's own
+    # dashboard/examples before enabling this in production; base-url below may need correcting.
+    enabled: ${SMS_ENABLED:false}
+    provider: ${SMS_PROVIDER:Sparrow SMS}
+    base-url: ${SMS_BASE_URL:https://api.sparrowsms.com/v2/sms/}
     api-key: ${SMS_API_KEY:}
     from: ${SMS_FROM:}
   whatsapp:
-    # No WhatsApp Business API credentials are wired in until a real WhatsAppGateway bean
-    # replaces UnconfiguredWhatsAppGateway.
+    # Meta WhatsApp Business Cloud API (WhatsAppCloudApiGateway). Disabled by default — nothing is
+    # transmitted until enabled=true AND phone-number-id/access-token are both set. Unlike
+    # eSewa/CBMS/Sparrow SMS, this has NOT been exercised against a live endpoint this session —
+    # Meta's Cloud API has no anonymous/shared sandbox, only real Business-verified accounts. Send
+    # one real test message from a verified account's own dashboard/API Explorer before enabling
+    # this in production (see WhatsAppCloudApiGateway's javadoc).
+    enabled: ${WHATSAPP_ENABLED:false}
     phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:}
     access-token: ${WHATSAPP_ACCESS_TOKEN:}
     api-version: ${WHATSAPP_API_VERSION:v20.0}
@@ -123,6 +144,15 @@ lims:
     # are never auto-deleted — that retention decision is left to whoever administers the disk.
     directory: ${BACKUP_DIRECTORY:./backups}
     cron: ${BACKUP_CRON:0 0 2 * * *}
+  billing:
+    # Recurring PLATFORM billing — what a clinic owes this deployment for its own subscription
+    # (see np.com.lims.platform.SubscriptionBillingService; unrelated to np.com.lims.billing,
+    # which is a clinic billing its own patients). Runs daily: issues the next period's invoice
+    # once a subscription's current period ends, marks unpaid invoices overdue past their due
+    # date, and suspends an organization after a further 14 days of continued non-payment.
+    # Collected via this deployment's OWN eSewa merchant account (lims.payment.esewa.* above) —
+    # never a clinic's own, see PlatformEsewaClient's javadoc.
+    subscription-cron: ${SUBSCRIPTION_BILLING_CRON:0 30 2 * * *}
 
 springdoc:
   swagger-ui:

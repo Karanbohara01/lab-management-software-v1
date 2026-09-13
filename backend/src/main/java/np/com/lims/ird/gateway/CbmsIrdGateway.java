@@ -3,9 +3,12 @@ package np.com.lims.ird.gateway;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import np.com.lims.common.calendar.BikramSambatCalendar;
+import np.com.lims.common.crypto.CryptoService;
+import np.com.lims.common.tenant.TenantContext;
+import np.com.lims.ird.IrdCredentialsRepository;
+import np.com.lims.ird.entity.IrdCredentials;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -57,8 +60,8 @@ public class CbmsIrdGateway {
     private static final ObjectMapper RESPONSE_MAPPER = new ObjectMapper();
 
     @Bean
-    @ConditionalOnProperty(prefix = "lims.ird", name = "enabled", havingValue = "true")
-    public IrdGateway irdGateway(IrdProperties properties, RestClient.Builder restClientBuilder) {
+    public IrdGateway irdGateway(IrdProperties properties, RestClient.Builder restClientBuilder,
+                                 IrdCredentialsRepository credentialsRepository, CryptoService cryptoService) {
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Duration.ofSeconds(10));
         requestFactory.setReadTimeout(Duration.ofSeconds(20));
@@ -67,7 +70,11 @@ public class CbmsIrdGateway {
                 .requestFactory(requestFactory)
                 .build();
 
-        return new Impl(properties, client);
+        return new Impl(properties, client, credentialsRepository, cryptoService);
+    }
+
+    /** Username/password/seller-pan actually in effect for the current request's organization. */
+    private record Effective(boolean configured, String username, String password, String sellerPan) {
     }
 
     /** Package-private (not an anonymous class) so /api/bill and /api/billreturn can share the request/response plumbing. */
@@ -75,10 +82,34 @@ public class CbmsIrdGateway {
 
         private final IrdProperties properties;
         private final RestClient client;
+        private final IrdCredentialsRepository credentialsRepository;
+        private final CryptoService cryptoService;
 
-        Impl(IrdProperties properties, RestClient client) {
+        Impl(IrdProperties properties, RestClient client, IrdCredentialsRepository credentialsRepository,
+             CryptoService cryptoService) {
             this.properties = properties;
             this.client = client;
+            this.credentialsRepository = credentialsRepository;
+            this.cryptoService = cryptoService;
+        }
+
+        /**
+         * An organization's own credentials (set via Settings) win when it has enabled IRD and
+         * fully configured username/password/seller-pan; otherwise this deployment's shared
+         * application.yml config is used — so a clinic that hasn't set anything up keeps working
+         * exactly as before this per-organization override existed.
+         */
+        private Effective resolve() {
+            Long orgId = TenantContext.get();
+            if (orgId != null) {
+                IrdCredentials c = credentialsRepository.findByOrganizationId(orgId).orElse(null);
+                if (c != null && c.fullyConfigured()) {
+                    return new Effective(true, c.getIrdUsername(), cryptoService.decrypt(c.getIrdPasswordEncrypted()),
+                            c.getIrdSellerPan());
+                }
+            }
+            return new Effective(properties.isFullyConfigured(), properties.username(), properties.password(),
+                    properties.sellerPan());
         }
 
         @Override
@@ -89,15 +120,16 @@ public class CbmsIrdGateway {
 
         @Override
         public boolean isConfigured() {
-            return properties.isFullyConfigured();
+            return resolve().configured();
         }
 
         @Override
         public Result submit(IrdBillPayload payload) {
-            if (!properties.isFullyConfigured()) {
+            Effective effective = resolve();
+            if (!effective.configured()) {
                 return Result.transportError("IRD_MISCONFIGURED",
-                        "lims.ird.enabled is true but base-url/username/password/seller-pan are "
-                                + "not all set. No data was transmitted.");
+                        "IRD is not configured for this organization (neither its own credentials "
+                                + "nor this deployment's shared ones are fully set). No data was transmitted.");
             }
 
             String bsInvoiceDate;
@@ -108,12 +140,12 @@ public class CbmsIrdGateway {
             }
 
             Map<String, Object> body = new LinkedHashMap<>();
-            body.put("username", properties.username());
-            body.put("password", properties.password());
+            body.put("username", effective.username());
+            body.put("password", effective.password());
             // Per the CBMS spec, seller_pan must equal the PAN tied to the Taxpayer Login
             // credentials above — the lab's own PAN on file (payload.sellerPan()) is
             // deliberately NOT used here, since a mismatch is rejected by IRD outright.
-            body.put("seller_pan", properties.sellerPan());
+            body.put("seller_pan", effective.sellerPan());
             body.put("buyer_pan", nullToBlank(payload.buyerPan()));
             body.put("fiscal_year", normalizeFiscalYear(payload.fiscalYear()));
             body.put("buyer_name", nullToBlank(payload.buyerName()));
@@ -138,10 +170,11 @@ public class CbmsIrdGateway {
 
         @Override
         public Result submitCreditNote(IrdCreditNotePayload payload) {
-            if (!properties.isFullyConfigured()) {
+            Effective effective = resolve();
+            if (!effective.configured()) {
                 return Result.transportError("IRD_MISCONFIGURED",
-                        "lims.ird.enabled is true but base-url/username/password/seller-pan are "
-                                + "not all set. No data was transmitted.");
+                        "IRD is not configured for this organization (neither its own credentials "
+                                + "nor this deployment's shared ones are fully set). No data was transmitted.");
             }
 
             String bsCreditNoteDate;
@@ -152,9 +185,9 @@ public class CbmsIrdGateway {
             }
 
             Map<String, Object> body = new LinkedHashMap<>();
-            body.put("username", properties.username());
-            body.put("password", properties.password());
-            body.put("seller_pan", properties.sellerPan());
+            body.put("username", effective.username());
+            body.put("password", effective.password());
+            body.put("seller_pan", effective.sellerPan());
             // Unlike /api/bill (which accepts an empty string), /api/billreturn's buyer_pan is
             // typed as a nullable decimal server-side — an empty string is rejected outright
             // with an HTTP 400 model-binding error (confirmed live). Send JSON null when blank.

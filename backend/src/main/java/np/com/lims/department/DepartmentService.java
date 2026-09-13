@@ -2,6 +2,7 @@ package np.com.lims.department;
 
 import np.com.lims.common.audit.AuditService;
 import np.com.lims.common.exception.ApiException;
+import np.com.lims.common.tenant.TenantGuard;
 import np.com.lims.department.dto.DepartmentDtos.CreateRequest;
 import np.com.lims.department.dto.DepartmentDtos.Response;
 import np.com.lims.department.dto.DepartmentDtos.UpdateRequest;
@@ -74,7 +75,8 @@ public class DepartmentService {
     }
 
     private Department find(Long id) {
-        return repository.findById(id).orElseThrow(() -> ApiException.notFound("Department", id));
+        return TenantGuard.owned(repository.findById(id), Department::getOrganizationId)
+                .orElseThrow(() -> ApiException.notFound("Department", id));
     }
 
     private static String trimToNull(String value) {

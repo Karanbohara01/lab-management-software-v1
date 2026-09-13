@@ -7,11 +7,14 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import np.com.lims.billing.entity.Invoice;
 import np.com.lims.billing.entity.Payment;
 import np.com.lims.common.audit.BaseEntity;
 import np.com.lims.common.exception.ApiException;
+import np.com.lims.common.tenant.TenantContext;
+import org.hibernate.annotations.Filter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -24,7 +27,11 @@ import java.time.Instant;
  */
 @Entity
 @Table(name = "online_payment")
+@Filter(name = "tenantFilter", condition = "organization_id = :tenantId")
 public class OnlinePayment extends BaseEntity {
+
+    @Column(name = "organization_id", nullable = false, updatable = false)
+    private Long organizationId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "invoice_id", nullable = false, updatable = false)
@@ -119,6 +126,17 @@ public class OnlinePayment extends BaseEntity {
         this.failureReason = reason;
         this.verifiedAt = Instant.now();
         this.verifyResponse = rawResponse;
+    }
+
+    @PrePersist
+    private void assignTenant() {
+        if (organizationId == null) {
+            organizationId = TenantContext.require();
+        }
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
     }
 
     public Invoice getInvoice() {

@@ -7,15 +7,22 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import np.com.lims.common.audit.BaseEntity;
+import np.com.lims.common.tenant.TenantContext;
+import org.hibernate.annotations.Filter;
 
 import java.time.Instant;
 
 /** A logged read-back notification of a critical result to the treating clinician / ward. */
 @Entity
 @Table(name = "critical_value_callback")
+@Filter(name = "tenantFilter", condition = "organization_id = :tenantId")
 public class CriticalValueCallback extends BaseEntity {
+
+    @Column(name = "organization_id", nullable = false, updatable = false)
+    private Long organizationId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "test_result_id", nullable = false)
@@ -71,6 +78,15 @@ public class CriticalValueCallback extends BaseEntity {
         c.notifiedAt = Instant.now();
         return c;
     }
+
+    @PrePersist
+    private void assignTenant() {
+        if (organizationId == null) {
+            organizationId = TenantContext.require();
+        }
+    }
+
+    public Long getOrganizationId() { return organizationId; }
 
     public String getNotifiedName() { return notifiedName; }
     public String getNotifiedRole() { return notifiedRole; }

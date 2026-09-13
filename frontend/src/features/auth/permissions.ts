@@ -51,6 +51,7 @@ export const PERMISSIONS = {
   SETTINGS_WRITE: 'SETTINGS_WRITE',
   BACKUP_READ: 'BACKUP_READ',
   BACKUP_MANAGE: 'BACKUP_MANAGE',
+  PLATFORM_MANAGE: 'PLATFORM_MANAGE',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -64,6 +65,7 @@ export const ROLES = {
   ACCOUNTANT: 'ACCOUNTANT',
   DOCTOR: 'DOCTOR',
   SAMPLE_COLLECTION_STAFF: 'SAMPLE_COLLECTION_STAFF',
+  PLATFORM_ADMIN: 'PLATFORM_ADMIN',
 } as const;
 
 export type Role = (typeof ROLES)[keyof typeof ROLES];

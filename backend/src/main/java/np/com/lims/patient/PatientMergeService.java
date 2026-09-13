@@ -3,6 +3,7 @@ package np.com.lims.patient;
 import np.com.lims.common.audit.AuditService;
 import np.com.lims.common.exception.ApiException;
 import np.com.lims.common.exception.ErrorCode;
+import np.com.lims.common.tenant.TenantGuard;
 import np.com.lims.common.web.CurrentUser;
 import np.com.lims.patient.dto.PatientDtos.Detail;
 import np.com.lims.patient.dto.PatientDtos.MergeParty;
@@ -158,6 +159,7 @@ public class PatientMergeService {
     }
 
     private Patient load(Long id) {
-        return patientRepository.findById(id).orElseThrow(() -> ApiException.notFound("Patient", id));
+        return TenantGuard.owned(patientRepository.findById(id), Patient::getOrganizationId)
+                .orElseThrow(() -> ApiException.notFound("Patient", id));
     }
 }

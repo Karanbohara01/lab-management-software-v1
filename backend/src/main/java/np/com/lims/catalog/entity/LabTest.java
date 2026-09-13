@@ -10,9 +10,12 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import np.com.lims.common.audit.BaseEntity;
+import np.com.lims.common.tenant.TenantContext;
 import np.com.lims.department.entity.Department;
+import org.hibernate.annotations.Filter;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -20,9 +23,14 @@ import java.util.List;
 
 @Entity
 @Table(name = "lab_test")
+@Filter(name = "tenantFilter", condition = "organization_id = :tenantId")
 public class LabTest extends BaseEntity {
 
-    @Column(nullable = false, length = 32, unique = true)
+    @Column(name = "organization_id", nullable = false, updatable = false)
+    private Long organizationId;
+
+    /** Unique per organization (see V39), not globally. */
+    @Column(nullable = false, length = 32)
     private String code;
 
     @Column(nullable = false, length = 160)
@@ -194,6 +202,17 @@ public class LabTest extends BaseEntity {
 
     public void setActive(boolean active) {
         this.active = active;
+    }
+
+    @PrePersist
+    private void assignTenant() {
+        if (organizationId == null) {
+            organizationId = TenantContext.require();
+        }
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
     }
 
     public String getCode() {

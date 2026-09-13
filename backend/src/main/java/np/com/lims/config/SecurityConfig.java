@@ -31,7 +31,14 @@ public class SecurityConfig {
             "/actuator/info",
             "/docs/**",
             "/v3/api-docs/**",
-            "/swagger-ui/**"
+            "/swagger-ui/**",
+            // Self-serve clinic signup — see PublicSignupController's class javadoc for why this
+            // is a separate path rather than exempting one method under /platform/**.
+            "/public/plans",
+            "/public/signup",
+            // Patient-facing report verification link (SMS/WhatsApp) — no LabOS login exists for
+            // the person opening it. See ReportController.verify's javadoc for why this is safe.
+            "/reports/verify/**"
     };
 
     @Bean

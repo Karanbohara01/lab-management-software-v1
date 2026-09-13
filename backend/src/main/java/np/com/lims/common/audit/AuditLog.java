@@ -6,7 +6,10 @@ import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import np.com.lims.common.tenant.TenantContext;
+import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.springframework.data.annotation.CreatedDate;
@@ -14,15 +17,24 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 
-/** Append-only record of a sensitive operation. Rows are never updated or deleted by the application. */
+/**
+ * Append-only record of a sensitive operation. Rows are never updated or deleted by the
+ * application. Doesn't extend {@code BaseEntity} (no version/updated_at/created_by columns by
+ * design) — only {@code @Filter} is declared here (not {@code @FilterDef}, which must be
+ * declared exactly once anywhere in the model; see {@code BaseEntity}).
+ */
 @Entity
 @Table(name = "audit_log")
 @EntityListeners(AuditingEntityListener.class)
+@Filter(name = "tenantFilter", condition = "organization_id = :tenantId")
 public class AuditLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "organization_id", nullable = false, updatable = false)
+    private Long organizationId;
 
     @Column(nullable = false, length = 100)
     private String actor;
@@ -75,6 +87,17 @@ public class AuditLog {
         this.afterState = afterState;
         this.ipAddress = ipAddress;
         this.userAgent = userAgent;
+    }
+
+    @PrePersist
+    private void assignTenant() {
+        if (organizationId == null) {
+            organizationId = TenantContext.require();
+        }
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
     }
 
     public Long getId() {

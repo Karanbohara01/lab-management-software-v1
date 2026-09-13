@@ -94,4 +94,29 @@ public final class AdminDtos {
                     u.isEnabled(), u.getLastLoginAt(), u.getCreatedAt());
         }
     }
+
+    // ----- super-admin control center --------------------------------
+
+    /**
+     * One consolidated read for the super-admin control center — organization counts plus every
+     * external integration's honest configured/not-configured status, so the whole system's
+     * operational posture is visible without clicking through half a dozen separate screens.
+     * Every integration field here mirrors what its own dedicated endpoint
+     * ({@code GET /ird/config}, {@code GET /payment-gateways}) already reports — nothing new is
+     * computed, just gathered in one place.
+     */
+    public record SystemStatusResponse(
+            String labName, String fiscalYear,
+            long totalUsers, long activeUsers, long totalBranches, long activeBranches,
+            long totalDepartments, long activeTests,
+            boolean irdConfigured, String irdEnvironment,
+            List<IntegrationStatus> paymentProviders,
+            boolean smsConfigured, String smsProvider,
+            boolean whatsappConfigured,
+            Instant lastBackupAt, String lastBackupStatus
+    ) {
+    }
+
+    public record IntegrationStatus(String name, boolean configured) {
+    }
 }

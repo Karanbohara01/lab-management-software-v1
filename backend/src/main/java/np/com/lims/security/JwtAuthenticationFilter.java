@@ -41,9 +41,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = header.substring(PREFIX.length());
         try {
-            String username = jwtService.parseSubject(token, TokenType.ACCESS);
+            // The subject is the user's numeric id (not username) — see AuthService.issueTokens
+            // and AppUserDetailsService.loadUserById's javadoc for why: usernames are only unique
+            // WITHIN an organization, so an id is the only value guaranteed to resolve to exactly
+            // one account on every request.
+            Long userId = Long.valueOf(jwtService.parseSubject(token, TokenType.ACCESS));
             if (SecurityContextHolder.getContext().getAuthentication() == null) {
-                UserDetails user = userDetailsService.loadUserByUsername(username);
+                UserDetails user = userDetailsService.loadUserById(userId);
                 if (user.isEnabled()) {
                     var authentication = new UsernamePasswordAuthenticationToken(
                             user, null, user.getAuthorities());
@@ -51,8 +55,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             }
-        } catch (ApiException ex) {
-            // Invalid/expired token: leave the context unauthenticated; the entry point handles the 401.
+        } catch (ApiException | NumberFormatException ex) {
+            // Invalid/expired token, or a stale pre-existing token whose subject is still a
+            // username rather than a numeric id (from before this filter switched to id-based
+            // resolution — forces a clean re-login rather than a 500): leave the context
+            // unauthenticated; the entry point handles the 401.
             SecurityContextHolder.clearContext();
         }
 

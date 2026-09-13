@@ -88,7 +88,7 @@ export function DeliverReportModal({
         {isMessaging && (
           <p className="text-xs text-muted">
             Sends a message with a link to this signed report, which the patient (or anyone with
-            the link) can verify at <code className="font-mono">/app/verify/&lt;token&gt;</code>.
+            the link) can verify at <code className="font-mono">/verify/&lt;token&gt;</code>.
             {method === 'SMS'
               ? ' Requires an SMS gateway to be configured on the server.'
               : ' Requires a WhatsApp Business API connection to be configured on the server.'}

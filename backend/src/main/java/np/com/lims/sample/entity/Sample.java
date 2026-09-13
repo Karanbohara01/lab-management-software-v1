@@ -11,13 +11,16 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import np.com.lims.catalog.entity.SpecimenType;
 import np.com.lims.common.audit.BaseEntity;
 import np.com.lims.common.exception.ApiException;
+import np.com.lims.common.tenant.TenantContext;
 import np.com.lims.order.entity.LabOrder;
 import np.com.lims.order.entity.LabOrderItem;
 import np.com.lims.patient.entity.Patient;
+import org.hibernate.annotations.Filter;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -25,7 +28,11 @@ import java.util.List;
 
 @Entity
 @Table(name = "sample")
+@Filter(name = "tenantFilter", condition = "organization_id = :tenantId")
 public class Sample extends BaseEntity {
+
+    @Column(name = "organization_id", nullable = false, updatable = false)
+    private Long organizationId;
 
     @Column(name = "accession_number", nullable = false, length = 24, updatable = false)
     private String accessionNumber;
@@ -168,6 +175,17 @@ public class Sample extends BaseEntity {
         SampleStatus from = this.status;
         this.status = target;
         events.add(new SampleEvent(this, type, from, target, actor, note));
+    }
+
+    @PrePersist
+    private void assignTenant() {
+        if (organizationId == null) {
+            organizationId = TenantContext.require();
+        }
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
     }
 
     public String getAccessionNumber() {

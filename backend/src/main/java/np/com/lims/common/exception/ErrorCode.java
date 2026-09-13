@@ -14,6 +14,8 @@ public enum ErrorCode {
     TOKEN_INVALID(HttpStatus.UNAUTHORIZED),
 
     ACCESS_DENIED(HttpStatus.FORBIDDEN),
+    /** A clinic's account is suspended for non-payment — everything except viewing/paying its own subscription bill is blocked. */
+    SUBSCRIPTION_SUSPENDED(HttpStatus.PAYMENT_REQUIRED),
 
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND),
 

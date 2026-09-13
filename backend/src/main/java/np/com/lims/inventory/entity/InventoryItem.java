@@ -9,10 +9,13 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import np.com.lims.common.audit.BaseEntity;
 import np.com.lims.common.exception.ApiException;
+import np.com.lims.common.tenant.TenantContext;
 import np.com.lims.department.entity.Department;
+import org.hibernate.annotations.Filter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -22,13 +25,18 @@ import java.util.List;
 
 @Entity
 @Table(name = "inventory_item")
+@Filter(name = "tenantFilter", condition = "organization_id = :tenantId")
 public class InventoryItem extends BaseEntity {
 
     private static final Comparator<InventoryBatch> FEFO = Comparator
             .comparing(InventoryBatch::getExpiryDate, Comparator.nullsLast(Comparator.naturalOrder()))
             .thenComparing(b -> b.getId() == null ? Long.MAX_VALUE : b.getId());
 
-    @Column(nullable = false, length = 40, unique = true)
+    @Column(name = "organization_id", nullable = false, updatable = false)
+    private Long organizationId;
+
+    /** Unique per organization (see V35), not globally. */
+    @Column(nullable = false, length = 40)
     private String code;
 
     @Column(nullable = false, length = 200)
@@ -148,6 +156,17 @@ public class InventoryItem extends BaseEntity {
     }
 
     public record BatchDraw(InventoryBatch batch, BigDecimal taken) {
+    }
+
+    @PrePersist
+    private void assignTenant() {
+        if (organizationId == null) {
+            organizationId = TenantContext.require();
+        }
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
     }
 
     public String getCode() {

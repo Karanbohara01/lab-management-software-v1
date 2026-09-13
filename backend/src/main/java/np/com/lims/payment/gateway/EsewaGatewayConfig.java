@@ -2,10 +2,13 @@ package np.com.lims.payment.gateway;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import np.com.lims.common.crypto.CryptoService;
+import np.com.lims.common.tenant.TenantContext;
+import np.com.lims.payment.PaymentCredentialsRepository;
+import np.com.lims.payment.entity.PaymentCredentials;
 import np.com.lims.payment.entity.PaymentProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -50,17 +53,40 @@ public class EsewaGatewayConfig {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Bean(name = "esewaGateway")
-    @ConditionalOnProperty(prefix = "lims.payment.esewa", name = "enabled", havingValue = "true")
-    public PaymentGateway esewaGateway(EsewaProperties properties, RestClient.Builder restClientBuilder) {
+    public PaymentGateway esewaGateway(EsewaProperties properties, RestClient.Builder restClientBuilder,
+                                       PaymentCredentialsRepository credentialsRepository, CryptoService cryptoService) {
         org.springframework.http.client.SimpleClientHttpRequestFactory requestFactory =
                 new org.springframework.http.client.SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Duration.ofSeconds(10));
         requestFactory.setReadTimeout(Duration.ofSeconds(20));
         RestClient client = restClientBuilder.requestFactory(requestFactory).build();
-        return new Impl(properties, client);
+        return new Impl(properties, client, credentialsRepository, cryptoService);
     }
 
-    private record Impl(EsewaProperties properties, RestClient client) implements PaymentGateway {
+    /** Merchant code + secret key actually in effect for the current request's organization. */
+    private record Effective(boolean configured, String merchantCode, String secretKey) {
+    }
+
+    private record Impl(EsewaProperties properties, RestClient client,
+                        PaymentCredentialsRepository credentialsRepository, CryptoService cryptoService)
+            implements PaymentGateway {
+
+        /**
+         * An organization's own credentials (set via Settings) win when it has enabled eSewa and
+         * fully configured its own merchant code + secret; otherwise this deployment's shared
+         * application.yml config is used — so a clinic that hasn't set anything up keeps working
+         * exactly as before this per-organization override existed.
+         */
+        private Effective resolve() {
+            Long orgId = TenantContext.get();
+            if (orgId != null) {
+                PaymentCredentials c = credentialsRepository.findByOrganizationId(orgId).orElse(null);
+                if (c != null && c.esewaFullyConfigured()) {
+                    return new Effective(true, c.getEsewaMerchantCode(), cryptoService.decrypt(c.getEsewaSecretKeyEncrypted()));
+                }
+            }
+            return new Effective(properties.isFullyConfigured(), properties.merchantCode(), properties.secretKey());
+        }
 
         @Override
         public PaymentProvider provider() {
@@ -69,12 +95,13 @@ public class EsewaGatewayConfig {
 
         @Override
         public boolean isConfigured() {
-            return properties.isFullyConfigured();
+            return resolve().configured();
         }
 
         @Override
         public InitiateResult initiate(InitiatePayload payload) {
-            if (!properties.isFullyConfigured()) {
+            Effective effective = resolve();
+            if (!effective.configured()) {
                 return InitiateResult.failed("eSewa is not configured. No checkout was started.");
             }
             String totalAmount = plain(payload.amount());
@@ -83,25 +110,26 @@ public class EsewaGatewayConfig {
             fields.put("tax_amount", "0");
             fields.put("total_amount", totalAmount);
             fields.put("transaction_uuid", payload.transactionUuid());
-            fields.put("product_code", properties.merchantCode());
+            fields.put("product_code", effective.merchantCode());
             fields.put("product_service_charge", "0");
             fields.put("product_delivery_charge", "0");
             fields.put("success_url", payload.successUrl());
             fields.put("failure_url", payload.failureUrl());
             fields.put("signed_field_names", "total_amount,transaction_uuid,product_code");
-            fields.put("signature", sign(totalAmount, payload.transactionUuid(), properties.merchantCode(), properties.secretKey()));
+            fields.put("signature", sign(totalAmount, payload.transactionUuid(), effective.merchantCode(), effective.secretKey()));
             return InitiateResult.form(properties.formAction(), fields, MAPPER.valueToTree(fields).toString());
         }
 
         @Override
         public VerifyResult verify(String transactionUuid, BigDecimal expectedAmount) {
-            if (!properties.isFullyConfigured()) {
+            Effective effective = resolve();
+            if (!effective.configured()) {
                 return VerifyResult.notVerified("eSewa is not configured. Nothing was verified.", null);
             }
             String raw;
             try {
                 String uri = properties.verifyBaseUrl()
-                        + "?product_code=" + urlEncode(properties.merchantCode())
+                        + "?product_code=" + urlEncode(effective.merchantCode())
                         + "&total_amount=" + urlEncode(plain(expectedAmount))
                         + "&transaction_uuid=" + urlEncode(transactionUuid);
                 raw = client.get()

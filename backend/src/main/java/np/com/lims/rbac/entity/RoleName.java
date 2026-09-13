@@ -9,7 +9,9 @@ public enum RoleName {
     PATHOLOGIST,
     ACCOUNTANT,
     DOCTOR,
-    SAMPLE_COLLECTION_STAFF;
+    SAMPLE_COLLECTION_STAFF,
+    /** Platform-level only — clinic onboarding/subscriptions, no access to any clinic's own data. */
+    PLATFORM_ADMIN;
 
     public String authority() {
         return "ROLE_" + name();

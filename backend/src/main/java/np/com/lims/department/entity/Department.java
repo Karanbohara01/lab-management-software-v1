@@ -2,14 +2,21 @@ package np.com.lims.department.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import np.com.lims.common.audit.BaseEntity;
+import np.com.lims.common.tenant.TenantContext;
+import org.hibernate.annotations.Filter;
 
 @Entity
 @Table(name = "department")
+@Filter(name = "tenantFilter", condition = "organization_id = :tenantId")
 public class Department extends BaseEntity {
 
-    @Column(nullable = false, length = 24, unique = true)
+    @Column(name = "organization_id", nullable = false, updatable = false)
+    private Long organizationId;
+
+    @Column(nullable = false, length = 24)
     private String code;
 
     @Column(nullable = false, length = 120)
@@ -39,6 +46,17 @@ public class Department extends BaseEntity {
 
     public void setActive(boolean active) {
         this.active = active;
+    }
+
+    @PrePersist
+    private void assignTenant() {
+        if (organizationId == null) {
+            organizationId = TenantContext.require();
+        }
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
     }
 
     public String getCode() {

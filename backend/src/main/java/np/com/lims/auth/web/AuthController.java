@@ -38,7 +38,7 @@ public class AuthController {
 
     @GetMapping("/me")
     public CurrentUserResponse me(@AuthenticationPrincipal AppUserDetails principal) {
-        return authService.currentUser(principal.getUsername());
+        return authService.currentUser(principal.getUserId());
     }
 
     /** Stateless logout: the client discards its tokens. Endpoint exists for a consistent client contract. */

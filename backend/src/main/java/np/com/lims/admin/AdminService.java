@@ -3,23 +3,39 @@ package np.com.lims.admin;
 import np.com.lims.admin.dto.AdminDtos.AuditDetail;
 import np.com.lims.admin.dto.AdminDtos.AuditListItem;
 import np.com.lims.admin.dto.AdminDtos.CreateUserRequest;
+import np.com.lims.admin.dto.AdminDtos.IntegrationStatus;
 import np.com.lims.admin.dto.AdminDtos.ResetPasswordRequest;
 import np.com.lims.admin.dto.AdminDtos.RoleResponse;
+import np.com.lims.admin.dto.AdminDtos.SystemStatusResponse;
 import np.com.lims.admin.dto.AdminDtos.UpdateUserRequest;
 import np.com.lims.admin.dto.AdminDtos.UserDetail;
 import np.com.lims.admin.dto.AdminDtos.UserListItem;
+import np.com.lims.backup.BackupRunRepository;
+import np.com.lims.backup.entity.BackupRun;
+import np.com.lims.catalog.LabTestRepository;
+import np.com.lims.common.audit.AuditLog;
 import np.com.lims.common.audit.AuditLogRepository;
 import np.com.lims.common.audit.AuditService;
 import np.com.lims.common.exception.ApiException;
 import np.com.lims.common.exception.ErrorCode;
+import np.com.lims.common.tenant.TenantContext;
+import np.com.lims.common.tenant.TenantGuard;
 import np.com.lims.common.web.CurrentUser;
+import np.com.lims.department.DepartmentRepository;
+import np.com.lims.ird.IrdSubmissionService;
+import np.com.lims.messaging.gateway.SmsGateway;
+import np.com.lims.messaging.gateway.WhatsAppGateway;
+import np.com.lims.payment.OnlinePaymentService;
+import np.com.lims.platform.PlanLimitService;
 import np.com.lims.rbac.entity.Role;
 import np.com.lims.rbac.entity.RoleName;
 import np.com.lims.rbac.repository.RoleRepository;
+import np.com.lims.settings.LaboratoryProfileService;
 import np.com.lims.user.entity.User;
 import np.com.lims.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,19 +58,71 @@ public class AdminService {
     private final np.com.lims.branch.BranchRepository branchRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditService auditService;
+    private final DepartmentRepository departmentRepository;
+    private final LabTestRepository labTestRepository;
+    private final BackupRunRepository backupRunRepository;
+    private final LaboratoryProfileService laboratoryProfileService;
+    private final IrdSubmissionService irdSubmissionService;
+    private final OnlinePaymentService onlinePaymentService;
+    private final SmsGateway smsGateway;
+    private final WhatsAppGateway whatsAppGateway;
+    private final PlanLimitService planLimitService;
 
     public AdminService(AuditLogRepository auditLogRepository,
                         UserRepository userRepository,
                         RoleRepository roleRepository,
                         np.com.lims.branch.BranchRepository branchRepository,
                         PasswordEncoder passwordEncoder,
-                        AuditService auditService) {
+                        AuditService auditService,
+                        DepartmentRepository departmentRepository,
+                        LabTestRepository labTestRepository,
+                        BackupRunRepository backupRunRepository,
+                        LaboratoryProfileService laboratoryProfileService,
+                        IrdSubmissionService irdSubmissionService,
+                        OnlinePaymentService onlinePaymentService,
+                        SmsGateway smsGateway,
+                        WhatsAppGateway whatsAppGateway,
+                        PlanLimitService planLimitService) {
         this.auditLogRepository = auditLogRepository;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.branchRepository = branchRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditService = auditService;
+        this.departmentRepository = departmentRepository;
+        this.labTestRepository = labTestRepository;
+        this.backupRunRepository = backupRunRepository;
+        this.laboratoryProfileService = laboratoryProfileService;
+        this.irdSubmissionService = irdSubmissionService;
+        this.onlinePaymentService = onlinePaymentService;
+        this.smsGateway = smsGateway;
+        this.whatsAppGateway = whatsAppGateway;
+        this.planLimitService = planLimitService;
+    }
+
+    // ===== super-admin control center ===========================
+
+    @Transactional(readOnly = true)
+    public SystemStatusResponse systemStatus() {
+        var lab = laboratoryProfileService.require();
+        var irdConfig = irdSubmissionService.config();
+        List<IntegrationStatus> paymentProviders = onlinePaymentService.providerStatuses().stream()
+                .map(s -> new IntegrationStatus(s.provider().name(), s.configured()))
+                .toList();
+        Page<BackupRun> lastBackup = backupRunRepository.findAllByOrderByStartedAtDesc(PageRequest.of(0, 1));
+        BackupRun latest = lastBackup.isEmpty() ? null : lastBackup.getContent().get(0);
+
+        return new SystemStatusResponse(
+                lab.getName(), lab.getFiscalYear(),
+                userRepository.count(), userRepository.countByEnabledTrue(),
+                branchRepository.findAllByOrderByNameAsc().size(), branchRepository.findAllByActiveTrueOrderByNameAsc().size(),
+                departmentRepository.findAllByOrderByNameAsc().size(), labTestRepository.countByActiveTrue(),
+                irdConfig.enabled(), irdConfig.environment(),
+                paymentProviders,
+                smsGateway.isConfigured(), smsGateway.provider(),
+                whatsAppGateway.isConfigured(),
+                latest == null ? null : latest.getStartedAt(),
+                latest == null ? null : latest.getStatus().name());
     }
 
     // ===== audit ================================================
@@ -90,7 +158,8 @@ public class AdminService {
 
     @Transactional(readOnly = true)
     public AuditDetail auditDetail(Long id) {
-        return auditLogRepository.findById(id).map(AuditDetail::from)
+        return TenantGuard.owned(auditLogRepository.findById(id), AuditLog::getOrganizationId)
+                .map(AuditDetail::from)
                 .orElseThrow(() -> ApiException.notFound("Audit entry", id));
     }
 
@@ -120,11 +189,18 @@ public class AdminService {
 
     @Transactional
     public UserDetail createUser(CreateUserRequest request) {
+        planLimitService.requireUserCapacity(userRepository.count());
         String username = request.username().trim();
-        if (userRepository.existsByUsernameIgnoreCase(username)) {
+        Long orgId = TenantContext.require();
+        // Org-scoped, not global — usernames/emails are only unique WITHIN an organization by
+        // design (every clinic can have its own "admin"); the plain existsByUsernameIgnoreCase/
+        // existsByEmailIgnoreCase overloads are NOT tenant-filtered (confirmed live: they were
+        // wrongly blocking a clinic from using a username/email another, unrelated clinic already
+        // had) — see UserRepository's javadoc.
+        if (userRepository.existsByUsernameIgnoreCaseAndOrganizationId(username, orgId)) {
             throw ApiException.conflict("Username " + username + " is already taken");
         }
-        if (userRepository.existsByEmailIgnoreCase(request.email().trim())) {
+        if (userRepository.existsByEmailIgnoreCaseAndOrganizationId(request.email().trim(), orgId)) {
             throw ApiException.conflict("Email " + request.email() + " is already in use");
         }
         User user = User.create(username, request.email().trim().toLowerCase(),
@@ -197,7 +273,8 @@ public class AdminService {
         if (branchId == null) {
             return null;
         }
-        return branchRepository.findById(branchId).orElseThrow(() -> ApiException.notFound("Branch", branchId));
+        return TenantGuard.owned(branchRepository.findById(branchId), np.com.lims.branch.entity.Branch::getOrganizationId)
+                .orElseThrow(() -> ApiException.notFound("Branch", branchId));
     }
 
     private static String trimToNull(String value) {

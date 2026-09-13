@@ -2,6 +2,7 @@ package np.com.lims.inventory;
 
 import np.com.lims.common.audit.AuditService;
 import np.com.lims.common.exception.ApiException;
+import np.com.lims.common.tenant.TenantGuard;
 import np.com.lims.inventory.dto.InventoryDtos.SupplierRequest;
 import np.com.lims.inventory.dto.InventoryDtos.SupplierResponse;
 import np.com.lims.inventory.entity.Supplier;
@@ -74,7 +75,8 @@ public class SupplierService {
     }
 
     private Supplier find(Long id) {
-        return repository.findById(id).orElseThrow(() -> ApiException.notFound("Supplier", id));
+        return TenantGuard.owned(repository.findById(id), Supplier::getOrganizationId)
+                .orElseThrow(() -> ApiException.notFound("Supplier", id));
     }
 
     private static String trimToNull(String value) {

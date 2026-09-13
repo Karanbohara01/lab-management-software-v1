@@ -2,10 +2,13 @@ package np.com.lims.payment.gateway;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import np.com.lims.common.crypto.CryptoService;
+import np.com.lims.common.tenant.TenantContext;
+import np.com.lims.payment.PaymentCredentialsRepository;
+import np.com.lims.payment.entity.PaymentCredentials;
 import np.com.lims.payment.entity.PaymentProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,17 +44,40 @@ public class KhaltiGatewayConfig {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Bean(name = "khaltiGateway")
-    @ConditionalOnProperty(prefix = "lims.payment.khalti", name = "enabled", havingValue = "true")
-    public PaymentGateway khaltiGateway(KhaltiProperties properties, RestClient.Builder restClientBuilder) {
+    public PaymentGateway khaltiGateway(KhaltiProperties properties, RestClient.Builder restClientBuilder,
+                                        PaymentCredentialsRepository credentialsRepository, CryptoService cryptoService) {
         org.springframework.http.client.SimpleClientHttpRequestFactory requestFactory =
                 new org.springframework.http.client.SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Duration.ofSeconds(10));
         requestFactory.setReadTimeout(Duration.ofSeconds(20));
         RestClient client = restClientBuilder.baseUrl(properties.baseUrl()).requestFactory(requestFactory).build();
-        return new Impl(properties, client);
+        return new Impl(properties, client, credentialsRepository, cryptoService);
     }
 
-    private record Impl(KhaltiProperties properties, RestClient client) implements PaymentGateway {
+    /** Secret key actually in effect for the current request's organization. */
+    private record Effective(boolean configured, String secretKey) {
+    }
+
+    private record Impl(KhaltiProperties properties, RestClient client,
+                        PaymentCredentialsRepository credentialsRepository, CryptoService cryptoService)
+            implements PaymentGateway {
+
+        /**
+         * An organization's own secret (set via Settings) wins when it has enabled Khalti and
+         * fully configured one; otherwise this deployment's shared application.yml config is
+         * used — so a clinic that hasn't set anything up keeps working exactly as before this
+         * per-organization override existed.
+         */
+        private Effective resolve() {
+            Long orgId = TenantContext.get();
+            if (orgId != null) {
+                PaymentCredentials c = credentialsRepository.findByOrganizationId(orgId).orElse(null);
+                if (c != null && c.khaltiFullyConfigured()) {
+                    return new Effective(true, cryptoService.decrypt(c.getKhaltiSecretKeyEncrypted()));
+                }
+            }
+            return new Effective(properties.isFullyConfigured(), properties.secretKey());
+        }
 
         @Override
         public PaymentProvider provider() {
@@ -60,12 +86,13 @@ public class KhaltiGatewayConfig {
 
         @Override
         public boolean isConfigured() {
-            return properties.isFullyConfigured();
+            return resolve().configured();
         }
 
         @Override
         public InitiateResult initiate(InitiatePayload payload) {
-            if (!properties.isFullyConfigured()) {
+            Effective effective = resolve();
+            if (!effective.configured()) {
                 return InitiateResult.failed("Khalti is not configured. No checkout was started.");
             }
 
@@ -86,7 +113,7 @@ public class KhaltiGatewayConfig {
             try {
                 raw = client.post()
                         .uri("/epayment/initiate/")
-                        .header("Authorization", "Key " + properties.secretKey())
+                        .header("Authorization", "Key " + effective.secretKey())
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(body)
                         .retrieve()
@@ -110,7 +137,8 @@ public class KhaltiGatewayConfig {
 
         @Override
         public VerifyResult verify(String transactionUuid, BigDecimal expectedAmount) {
-            if (!properties.isFullyConfigured()) {
+            Effective effective = resolve();
+            if (!effective.configured()) {
                 return VerifyResult.notVerified("Khalti is not configured. Nothing was verified.", null);
             }
             // Khalti's lookup takes the pidx it returned at initiate time, not our transaction_uuid
@@ -120,7 +148,7 @@ public class KhaltiGatewayConfig {
             try {
                 raw = client.post()
                         .uri("/epayment/lookup/")
-                        .header("Authorization", "Key " + properties.secretKey())
+                        .header("Authorization", "Key " + effective.secretKey())
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(Map.of("pidx", transactionUuid))
                         .retrieve()

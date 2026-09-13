@@ -6,6 +6,7 @@ import np.com.lims.catalog.entity.TestParameter;
 import np.com.lims.common.audit.AuditService;
 import np.com.lims.common.exception.ApiException;
 import np.com.lims.common.exception.ErrorCode;
+import np.com.lims.common.tenant.TenantGuard;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -162,7 +163,8 @@ public class QcService {
 
     @Transactional
     public RunDto acceptRun(Long runId, String comment) {
-        QcRun run = runRepository.findById(runId).orElseThrow(() -> ApiException.notFound("QC run", runId));
+        QcRun run = TenantGuard.owned(runRepository.findById(runId), QcRun::getOrganizationId)
+                .orElseThrow(() -> ApiException.notFound("QC run", runId));
         run.accept(trim(comment));
         auditService.record(MODULE, "ACCEPT_RUN", "QcRun", runId,
                 "Accepted QC run for " + run.getParameter().getName() + " despite " + run.getStatus(), null, null);

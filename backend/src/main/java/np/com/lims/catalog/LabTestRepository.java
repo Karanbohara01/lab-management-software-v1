@@ -15,6 +15,8 @@ public interface LabTestRepository extends JpaRepository<LabTest, Long> {
 
     boolean existsByCodeIgnoreCase(String code);
 
+    long countByActiveTrue();
+
     // Only one collection level in the graph — Hibernate cannot join-fetch two List collections at once.
     // referenceRanges load lazily inside the caller's read transaction.
     @EntityGraph(attributePaths = {"department", "parameters"})

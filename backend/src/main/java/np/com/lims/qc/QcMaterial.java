@@ -10,9 +10,12 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import np.com.lims.catalog.entity.LabTest;
 import np.com.lims.common.audit.BaseEntity;
+import np.com.lims.common.tenant.TenantContext;
+import org.hibernate.annotations.Filter;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -20,7 +23,11 @@ import java.util.List;
 
 @Entity
 @Table(name = "qc_material")
+@Filter(name = "tenantFilter", condition = "organization_id = :tenantId")
 public class QcMaterial extends BaseEntity {
+
+    @Column(name = "organization_id", nullable = false, updatable = false)
+    private Long organizationId;
 
     @Column(nullable = false, length = 120)
     private String name;
@@ -82,6 +89,15 @@ public class QcMaterial extends BaseEntity {
         targets.add(t);
         return t;
     }
+
+    @PrePersist
+    private void assignTenant() {
+        if (organizationId == null) {
+            organizationId = TenantContext.require();
+        }
+    }
+
+    public Long getOrganizationId() { return organizationId; }
 
     public String getName() { return name; }
     public String getManufacturer() { return manufacturer; }

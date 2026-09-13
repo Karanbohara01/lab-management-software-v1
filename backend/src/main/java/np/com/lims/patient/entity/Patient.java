@@ -10,16 +10,23 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import np.com.lims.common.audit.BaseEntity;
+import np.com.lims.common.tenant.TenantContext;
 import np.com.lims.doctor.entity.Doctor;
+import org.hibernate.annotations.Filter;
 
 import java.time.LocalDate;
 import java.time.Period;
 
 @Entity
 @Table(name = "patient")
+@Filter(name = "tenantFilter", condition = "organization_id = :tenantId")
 public class Patient extends BaseEntity {
+
+    @Column(name = "organization_id", nullable = false, updatable = false)
+    private Long organizationId;
 
     @Column(nullable = false, length = 24, updatable = false)
     private String mrn;
@@ -350,6 +357,17 @@ public class Patient extends BaseEntity {
     }
 
     // --- getters ------------------------------------------------------------------
+
+    @PrePersist
+    private void assignTenant() {
+        if (organizationId == null) {
+            organizationId = TenantContext.require();
+        }
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
+    }
 
     public String getMrn() {
         return mrn;

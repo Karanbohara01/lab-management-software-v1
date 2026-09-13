@@ -2,6 +2,7 @@ package np.com.lims.doctor;
 
 import np.com.lims.common.audit.AuditService;
 import np.com.lims.common.exception.ApiException;
+import np.com.lims.common.tenant.TenantGuard;
 import np.com.lims.doctor.dto.DoctorDtos.Response;
 import np.com.lims.doctor.dto.DoctorDtos.UpsertRequest;
 import np.com.lims.doctor.entity.Doctor;
@@ -91,7 +92,8 @@ public class DoctorService {
     }
 
     private Doctor find(Long id) {
-        return repository.findById(id).orElseThrow(() -> ApiException.notFound("Doctor", id));
+        return TenantGuard.owned(repository.findById(id), Doctor::getOrganizationId)
+                .orElseThrow(() -> ApiException.notFound("Doctor", id));
     }
 
     private static String trimToNull(String value) {

@@ -3,6 +3,7 @@ package np.com.lims.inventory;
 import np.com.lims.common.audit.AuditService;
 import np.com.lims.common.exception.ApiException;
 import np.com.lims.common.web.CurrentUser;
+import np.com.lims.common.tenant.TenantGuard;
 import np.com.lims.department.DepartmentRepository;
 import np.com.lims.department.entity.Department;
 import np.com.lims.inventory.dto.InventoryDtos.AdjustBatchRequest;
@@ -228,7 +229,7 @@ public class InventoryItemService {
         if (departmentId == null) {
             return null;
         }
-        return departmentRepository.findById(departmentId)
+        return TenantGuard.owned(departmentRepository.findById(departmentId), Department::getOrganizationId)
                 .orElseThrow(() -> ApiException.notFound("Department", departmentId));
     }
 

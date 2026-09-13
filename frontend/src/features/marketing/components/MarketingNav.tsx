@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Menu, Microscope, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { NAV_ITEMS, PRODUCT_NAME } from '../data';
-import { AnchorButton, DEMO_MAILTO, LinkButton } from './primitives';
+import { LinkButton } from './primitives';
 
 function Logo() {
   return (
@@ -63,9 +63,9 @@ export function MarketingNav() {
           <LinkButton to="/login" variant="ghost" size="md">
             Sign in
           </LinkButton>
-          <AnchorButton href={DEMO_MAILTO} variant="primary" size="md">
-            Request Demo
-          </AnchorButton>
+          <LinkButton to="/signup" variant="primary" size="md">
+            Start free trial
+          </LinkButton>
         </div>
 
         <button
@@ -125,9 +125,9 @@ export function MarketingNav() {
             <LinkButton to="/login" variant="secondary" size="lg" className="w-full">
               Sign in
             </LinkButton>
-            <AnchorButton href={DEMO_MAILTO} variant="primary" size="lg" className="w-full">
-              Request Demo
-            </AnchorButton>
+            <LinkButton to="/signup" variant="primary" size="lg" className="w-full">
+              Start free trial
+            </LinkButton>
           </div>
         </div>
       </div>

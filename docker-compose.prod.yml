@@ -55,18 +55,27 @@ services:
       DB_USERNAME: lims
       DB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env.prod}
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env.prod — see docs/ENVIRONMENT.md}
+      # Encrypts every clinic's own payment/IRD/SMS/WhatsApp credentials at rest (see
+      # np.com.lims.common.crypto.CryptoService). Required — without a real value here, a
+      # production deployment would silently fall back to the dev-only default key, which is
+      # published in this repo's application.yml and readable by anyone.
+      CRYPTO_KEY: ${CRYPTO_KEY:?set CRYPTO_KEY in .env.prod — see docs/ENVIRONMENT.md}
       APP_PUBLIC_URL: ${APP_PUBLIC_URL:?set APP_PUBLIC_URL in .env.prod, e.g. https://labs.example.com}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-${APP_PUBLIC_URL}}
       # Every one of these is optional — each feature stays honestly disabled until its
-      # variables are set. See docs/ENVIRONMENT.md for the full list this app reads.
+      # variables are set. See docs/ENVIRONMENT.md for the full list this app reads. They set
+      # this deployment's SHARED fallback only — any clinic can override with its own credentials
+      # from Settings → Laboratory profile regardless of what's set here.
       IRD_ENABLED: ${IRD_ENABLED:-false}
       IRD_USERNAME: ${IRD_USERNAME:-}
       IRD_PASSWORD: ${IRD_PASSWORD:-}
       IRD_SELLER_PAN: ${IRD_SELLER_PAN:-}
+      SMS_ENABLED: ${SMS_ENABLED:-false}
       SMS_PROVIDER: ${SMS_PROVIDER:-}
       SMS_BASE_URL: ${SMS_BASE_URL:-}
       SMS_API_KEY: ${SMS_API_KEY:-}
       SMS_FROM: ${SMS_FROM:-}
+      WHATSAPP_ENABLED: ${WHATSAPP_ENABLED:-false}
       WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
       WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
       ESEWA_ENABLED: ${ESEWA_ENABLED:-false}
@@ -76,6 +85,10 @@ services:
       KHALTI_SECRET_KEY: ${KHALTI_SECRET_KEY:-}
       BACKUP_DIRECTORY: /backups
       BACKUP_CRON: ${BACKUP_CRON:-0 0 2 * * *}
+      # Recurring platform billing (what a clinic owes THIS deployment for its own subscription —
+      # see np.com.lims.platform.SubscriptionBillingService). Collected via the SAME ESEWA_* pair
+      # above — this deployment's own merchant account, never a clinic's own.
+      SUBSCRIPTION_BILLING_CRON: ${SUBSCRIPTION_BILLING_CRON:-0 30 2 * * *}
     volumes:
       - lims_backups:/backups
     networks: [lims]

@@ -42,6 +42,30 @@ export interface AppUserDetail extends AppUserListItem {
   createdAt: string;
 }
 
+export interface IntegrationStatus {
+  name: string;
+  configured: boolean;
+}
+
+export interface SystemStatus {
+  labName: string;
+  fiscalYear: string;
+  totalUsers: number;
+  activeUsers: number;
+  totalBranches: number;
+  activeBranches: number;
+  totalDepartments: number;
+  activeTests: number;
+  irdConfigured: boolean;
+  irdEnvironment: string | null;
+  paymentProviders: IntegrationStatus[];
+  smsConfigured: boolean;
+  smsProvider: string | null;
+  whatsappConfigured: boolean;
+  lastBackupAt: string | null;
+  lastBackupStatus: string | null;
+}
+
 export interface AuditQuery {
   module?: string;
   actor?: string;
@@ -53,6 +77,8 @@ export interface AuditQuery {
 }
 
 export const adminApi = {
+  systemStatus: () => httpClient.get<SystemStatus>('/admin/system-status').then((r) => r.data),
+
   audit: (params: AuditQuery) =>
     httpClient.get<PageResponse<AuditListItem>>('/audit-logs', { params }).then((r) => r.data),
 

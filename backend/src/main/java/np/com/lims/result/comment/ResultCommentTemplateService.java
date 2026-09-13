@@ -3,6 +3,7 @@ package np.com.lims.result.comment;
 import np.com.lims.catalog.LabTestRepository;
 import np.com.lims.catalog.entity.LabTest;
 import np.com.lims.common.exception.ApiException;
+import np.com.lims.common.tenant.TenantGuard;
 import np.com.lims.department.DepartmentRepository;
 import np.com.lims.department.entity.Department;
 import org.springframework.stereotype.Service;
@@ -51,7 +52,8 @@ public class ResultCommentTemplateService {
     public List<TemplateDto> applicable(Long testId) {
         Long departmentId = null;
         if (testId != null) {
-            departmentId = testRepository.findById(testId).map(t -> t.getDepartment().getId()).orElse(null);
+            departmentId = TenantGuard.owned(testRepository.findById(testId), LabTest::getOrganizationId)
+                    .map(t -> t.getDepartment().getId()).orElse(null);
         }
         return repository.findApplicable(departmentId, testId).stream().map(TemplateDto::from).toList();
     }
@@ -65,7 +67,7 @@ public class ResultCommentTemplateService {
 
     @Transactional
     public TemplateDto update(Long id, UpsertRequest r) {
-        ResultCommentTemplate t = repository.findById(id)
+        ResultCommentTemplate t = TenantGuard.owned(repository.findById(id), ResultCommentTemplate::getOrganizationId)
                 .orElseThrow(() -> ApiException.notFound("Comment template", id));
         apply(t, r);
         return TemplateDto.from(t);
@@ -73,14 +75,20 @@ public class ResultCommentTemplateService {
 
     @Transactional
     public void delete(Long id) {
-        repository.deleteById(id);
+        // deleteById() has the same bare-findById gap TenantGuard exists for (see its javadoc) —
+        // load-and-check first rather than deleting blind by id.
+        ResultCommentTemplate t = TenantGuard.owned(repository.findById(id), ResultCommentTemplate::getOrganizationId)
+                .orElseThrow(() -> ApiException.notFound("Comment template", id));
+        repository.delete(t);
     }
 
     private void apply(ResultCommentTemplate t, UpsertRequest r) {
-        Department department = r.departmentId() == null ? null : departmentRepository.findById(r.departmentId())
-                .orElseThrow(() -> ApiException.notFound("Department", r.departmentId()));
-        LabTest test = r.testId() == null ? null : testRepository.findById(r.testId())
-                .orElseThrow(() -> ApiException.notFound("Test", r.testId()));
+        Department department = r.departmentId() == null ? null
+                : TenantGuard.owned(departmentRepository.findById(r.departmentId()), Department::getOrganizationId)
+                        .orElseThrow(() -> ApiException.notFound("Department", r.departmentId()));
+        LabTest test = r.testId() == null ? null
+                : TenantGuard.owned(testRepository.findById(r.testId()), LabTest::getOrganizationId)
+                        .orElseThrow(() -> ApiException.notFound("Test", r.testId()));
         t.update(r.scope(), department, test, trim(r.category()), trim(r.title()), trim(r.body()),
                 r.displayOrder(), r.active() == null || r.active());
     }

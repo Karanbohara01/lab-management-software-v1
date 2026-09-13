@@ -40,6 +40,14 @@ public class AdminController {
         this.service = service;
     }
 
+    // ----- super-admin control center --------------------------------
+
+    @GetMapping("/admin/system-status")
+    @PreAuthorize("hasAuthority('PERM_SETTINGS_READ')")
+    public np.com.lims.admin.dto.AdminDtos.SystemStatusResponse systemStatus() {
+        return service.systemStatus();
+    }
+
     // ----- audit ---------------------------------------------------
 
     @GetMapping("/audit-logs")

@@ -5,8 +5,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * The active SMS gateway until a real, credentialed provider is wired in. It sends nothing and
- * every attempt fails with a clear, honest error rather than pretending to succeed.
+ * A safety-net default: if {@code SparrowSmsGateway} were ever conditionally disabled again (it
+ * currently always registers — see that class, which resolves "configured or not" dynamically per
+ * organization/request), this bean would take over and send nothing, every attempt failing with a
+ * clear, honest error rather than pretending to succeed. Currently dormant in practice (its
+ * {@code @ConditionalOnMissingBean} never triggers), kept as the fallback of last resort.
  */
 @Configuration
 public class UnconfiguredSmsGateway {

@@ -10,9 +10,12 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import np.com.lims.common.audit.BaseEntity;
 import np.com.lims.common.exception.ApiException;
+import np.com.lims.common.tenant.TenantContext;
+import org.hibernate.annotations.Filter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -22,7 +25,11 @@ import java.util.List;
 
 @Entity
 @Table(name = "purchase_order")
+@Filter(name = "tenantFilter", condition = "organization_id = :tenantId")
 public class PurchaseOrder extends BaseEntity {
+
+    @Column(name = "organization_id", nullable = false, updatable = false)
+    private Long organizationId;
 
     @Column(name = "po_number", nullable = false, length = 24, updatable = false)
     private String poNumber;
@@ -119,6 +126,17 @@ public class PurchaseOrder extends BaseEntity {
         this.status = PurchaseOrderStatus.CANCELLED;
         this.cancelledAt = Instant.now();
         this.cancelReason = reason;
+    }
+
+    @PrePersist
+    private void assignTenant() {
+        if (organizationId == null) {
+            organizationId = TenantContext.require();
+        }
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
     }
 
     public String getPoNumber() {

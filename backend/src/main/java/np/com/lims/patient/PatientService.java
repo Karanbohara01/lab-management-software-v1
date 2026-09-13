@@ -5,6 +5,7 @@ import np.com.lims.common.exception.ApiException;
 import np.com.lims.common.exception.ErrorCode;
 import np.com.lims.common.sequence.SequenceService;
 import np.com.lims.common.web.CurrentUser;
+import np.com.lims.common.tenant.TenantGuard;
 import np.com.lims.doctor.DoctorRepository;
 import np.com.lims.doctor.entity.Doctor;
 import np.com.lims.patient.dto.PatientDtos.AddressDto;
@@ -259,7 +260,7 @@ public class PatientService {
         if (doctorId == null) {
             return null;
         }
-        return doctorRepository.findById(doctorId)
+        return TenantGuard.owned(doctorRepository.findById(doctorId), Doctor::getOrganizationId)
                 .orElseThrow(() -> ApiException.notFound("Doctor", doctorId));
     }
 

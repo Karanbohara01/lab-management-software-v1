@@ -10,12 +10,15 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import np.com.lims.common.audit.BaseEntity;
 import np.com.lims.common.exception.ApiException;
+import np.com.lims.common.tenant.TenantContext;
 import np.com.lims.order.entity.LabOrder;
 import np.com.lims.patient.entity.Patient;
 import np.com.lims.result.entity.ResultFlag;
+import org.hibernate.annotations.Filter;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -23,7 +26,11 @@ import java.util.List;
 
 @Entity
 @Table(name = "report")
+@Filter(name = "tenantFilter", condition = "organization_id = :tenantId")
 public class Report extends BaseEntity {
+
+    @Column(name = "organization_id", nullable = false, updatable = false)
+    private Long organizationId;
 
     @Column(name = "report_number", nullable = false, length = 24, updatable = false)
     private String reportNumber;
@@ -158,6 +165,17 @@ public class Report extends BaseEntity {
     public boolean hasCritical() {
         return tests.stream().flatMap(t -> t.getParameters().stream())
                 .anyMatch(p -> p.getFlag() == ResultFlag.CRITICAL_LOW || p.getFlag() == ResultFlag.CRITICAL_HIGH);
+    }
+
+    @PrePersist
+    private void assignTenant() {
+        if (organizationId == null) {
+            organizationId = TenantContext.require();
+        }
+    }
+
+    public Long getOrganizationId() {
+        return organizationId;
     }
 
     public String getReportNumber() {

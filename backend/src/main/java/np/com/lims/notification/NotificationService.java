@@ -1,6 +1,7 @@
 package np.com.lims.notification;
 
 import np.com.lims.common.exception.ApiException;
+import np.com.lims.common.tenant.TenantGuard;
 import np.com.lims.notification.entity.Notification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,7 +64,7 @@ public class NotificationService {
 
     @Transactional
     public void markRead(Long id, String username) {
-        Notification notification = repository.findById(id)
+        Notification notification = TenantGuard.owned(repository.findById(id), Notification::getOrganizationId)
                 .orElseThrow(() -> ApiException.notFound("Notification", id));
         notification.markReadBy(username);
     }

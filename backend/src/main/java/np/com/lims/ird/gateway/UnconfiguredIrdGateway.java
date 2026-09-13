@@ -5,8 +5,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * The active gateway until a verified IRD/CBMS implementation is provided. It transmits nothing
- * and every submission attempt is recorded as a transport error with a clear, honest message.
+ * A safety-net default: if {@code CbmsIrdGateway} were ever conditionally disabled again (it
+ * currently always registers — see that class, which now resolves "configured or not" dynamically
+ * per organization/request rather than at bean-creation time), this bean would take over and
+ * transmit nothing, every submission attempt recorded as a transport error with a clear, honest
+ * message. Currently dormant in practice (its {@code @ConditionalOnMissingBean} never triggers),
+ * kept as the fallback of last resort.
  */
 @Configuration
 public class UnconfiguredIrdGateway {

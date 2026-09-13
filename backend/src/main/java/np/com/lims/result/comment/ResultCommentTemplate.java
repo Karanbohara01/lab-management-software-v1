@@ -7,14 +7,21 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import np.com.lims.catalog.entity.LabTest;
 import np.com.lims.common.audit.BaseEntity;
+import np.com.lims.common.tenant.TenantContext;
 import np.com.lims.department.entity.Department;
+import org.hibernate.annotations.Filter;
 
 @Entity
 @Table(name = "result_comment_template")
+@Filter(name = "tenantFilter", condition = "organization_id = :tenantId")
 public class ResultCommentTemplate extends BaseEntity {
+
+    @Column(name = "organization_id", nullable = false, updatable = false)
+    private Long organizationId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
@@ -61,6 +68,15 @@ public class ResultCommentTemplate extends BaseEntity {
     public static ResultCommentTemplate create() {
         return new ResultCommentTemplate();
     }
+
+    @PrePersist
+    private void assignTenant() {
+        if (organizationId == null) {
+            organizationId = TenantContext.require();
+        }
+    }
+
+    public Long getOrganizationId() { return organizationId; }
 
     public CommentScope getScope() { return scope; }
     public Department getDepartment() { return department; }

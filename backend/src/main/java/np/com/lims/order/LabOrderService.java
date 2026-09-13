@@ -8,6 +8,7 @@ import np.com.lims.common.audit.AuditService;
 import np.com.lims.common.exception.ApiException;
 import np.com.lims.common.exception.ErrorCode;
 import np.com.lims.common.sequence.SequenceService;
+import np.com.lims.common.tenant.TenantGuard;
 import np.com.lims.common.web.CurrentUser;
 import np.com.lims.doctor.DoctorRepository;
 import np.com.lims.doctor.entity.Doctor;
@@ -195,7 +196,7 @@ public class LabOrderService {
         if (doctorId == null) {
             return patient.getReferringDoctor();
         }
-        return doctorRepository.findById(doctorId)
+        return TenantGuard.owned(doctorRepository.findById(doctorId), Doctor::getOrganizationId)
                 .orElseThrow(() -> ApiException.notFound("Doctor", doctorId));
     }
 
@@ -205,11 +206,11 @@ public class LabOrderService {
      */
     private Branch resolveBranch(Long requestedBranchId) {
         if (requestedBranchId != null) {
-            return branchRepository.findById(requestedBranchId)
+            return TenantGuard.owned(branchRepository.findById(requestedBranchId), Branch::getOrganizationId)
                     .orElseThrow(() -> ApiException.notFound("Branch", requestedBranchId));
         }
         if (CurrentUser.branchId() != null) {
-            return branchRepository.findById(CurrentUser.branchId())
+            return TenantGuard.owned(branchRepository.findById(CurrentUser.branchId()), Branch::getOrganizationId)
                     .orElseThrow(() -> ApiException.notFound("Branch", CurrentUser.branchId()));
         }
         return branchRepository.findFirstByActiveTrueOrderByIdAsc()

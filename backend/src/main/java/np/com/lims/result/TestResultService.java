@@ -6,6 +6,7 @@ import np.com.lims.catalog.entity.ParameterDataType;
 import np.com.lims.catalog.entity.TestParameter;
 import np.com.lims.common.audit.AuditService;
 import np.com.lims.common.exception.ApiException;
+import np.com.lims.common.tenant.TenantGuard;
 import np.com.lims.common.web.CurrentUser;
 import np.com.lims.notification.NotificationService;
 import np.com.lims.notification.entity.Notification;
@@ -417,7 +418,8 @@ public class TestResultService {
         if (result.getStatus() != ResultStatus.ENTERED) {
             return;
         }
-        LabTest test = labTestRepository.findById(result.getTestId()).orElse(null);
+        LabTest test = TenantGuard.owned(labTestRepository.findById(result.getTestId()), LabTest::getOrganizationId)
+                .orElse(null);
         if (test == null || !test.isAutoVerifyEnabled()) {
             return;
         }

@@ -40,7 +40,10 @@ public class PatientMessagingService {
 
     public SendResult sendReportReady(String channel, String phone, String labName, String patientName,
                                       String reportNumber, String verificationToken) {
-        String link = publicUrl.replaceAll("/+$", "") + "/app/verify/" + verificationToken;
+        // NOT /app/verify/... — that path is the authenticated app shell (login-gated); a real
+        // patient receiving this SMS has no LabOS account. /verify/... is the public, standalone
+        // route (see frontend VerifyReportPage's javadoc for the live bug this fixed).
+        String link = publicUrl.replaceAll("/+$", "") + "/verify/" + verificationToken;
         String text = "Dear " + patientName + ", your lab report " + reportNumber + " from " + labName
                 + " is ready. View & verify: " + link;
 
