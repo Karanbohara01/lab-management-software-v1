@@ -283,7 +283,7 @@ export function ResultEntryPage() {
       )}
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-2">
+        <div className="min-w-0 space-y-4 lg:col-span-2">
           {result.resultMode === 'CULTURE' ? (
             <CultureEntryForm result={result} editable={editable} onSaved={refetch} />
           ) : (

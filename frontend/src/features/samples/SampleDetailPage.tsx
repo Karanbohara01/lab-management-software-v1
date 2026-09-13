@@ -124,7 +124,7 @@ export function SampleDetailPage() {
       )}
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-2">
+        <div className="min-w-0 space-y-4 lg:col-span-2">
           <Card>
             <CardHeader title="Tests on this sample" description={`${sample.items.length} test(s)`} />
             <div className="overflow-x-auto">

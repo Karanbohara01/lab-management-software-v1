@@ -205,7 +205,7 @@ export function InvoiceDetailPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3" data-print-hide>
-        <Card className="lg:col-span-2">
+        <Card className="min-w-0 lg:col-span-2">
           <CardHeader title="Line items" />
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

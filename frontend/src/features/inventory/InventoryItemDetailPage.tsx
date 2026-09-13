@@ -93,7 +93,7 @@ export function InventoryItemDetailPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
+        <Card className="min-w-0">
           <CardHeader title="Batches" />
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
