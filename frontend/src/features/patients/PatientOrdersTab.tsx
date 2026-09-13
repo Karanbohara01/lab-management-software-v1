@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { DataTable, type Column } from '@/components/ui/DataTable';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/PageState';
+import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
@@ -44,7 +44,7 @@ export function PatientOrdersTab({ patientId }: { patientId: number }) {
       </div>
 
       {loading && !data ? (
-        <LoadingState />
+        <TableSkeleton columns={columns.length} rows={3} />
       ) : error ? (
         <ErrorState message={error} onRetry={refetch} />
       ) : data && data.content.length === 0 ? (

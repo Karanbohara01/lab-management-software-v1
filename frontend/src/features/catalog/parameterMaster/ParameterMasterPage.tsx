@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { DataTable, type Column } from '@/components/ui/DataTable';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/PageState';
+import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useAuth } from '@/features/auth/useAuth';
@@ -102,7 +102,7 @@ export function ParameterMasterPage() {
           <SearchInput value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search parameters…" />
         </div>
         {loading && !data ? (
-          <LoadingState />
+          <TableSkeleton columns={columns.length} />
         ) : error ? (
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.content.length === 0 ? (

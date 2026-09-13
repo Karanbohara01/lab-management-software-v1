@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Alert } from '@/components/ui/Alert';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/PageState';
+import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
@@ -113,7 +113,7 @@ export function BackupsPage() {
 
       <Card>
         {loading && !data ? (
-          <LoadingState />
+          <TableSkeleton columns={columns.length} />
         ) : error ? (
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.content.length === 0 ? (

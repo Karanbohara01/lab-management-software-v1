@@ -38,6 +38,45 @@ export function ErrorState({
   );
 }
 
+/**
+ * Placeholder rows shaped like the table that's about to load, instead of a spinner that
+ * disconnects from the content — reduces layout shift and reads as "this is loading" faster than
+ * a centered spinner does. Column widths are varied per row so it doesn't look like a static grid.
+ */
+export function TableSkeleton({ columns = 4, rows = 6 }: { columns?: number; rows?: number }) {
+  const widths = [88, 64, 76, 52, 68, 80, 60, 72];
+  return (
+    <div className="animate-pulse" aria-hidden="true">
+      <div className="hidden sm:block">
+        <table className="w-full text-sm">
+          <tbody>
+            {Array.from({ length: rows }).map((_, r) => (
+              <tr key={r} className="border-b border-border last:border-0">
+                {Array.from({ length: columns }).map((__, c) => (
+                  <td key={c} className="px-4 py-3">
+                    <div
+                      className="h-4 rounded bg-surface-muted"
+                      style={{ width: `${widths[(r + c) % widths.length]}%` }}
+                    />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <ul className="divide-y divide-border sm:hidden">
+        {Array.from({ length: rows }).map((_, r) => (
+          <li key={r} className="space-y-2 px-4 py-3">
+            <div className="h-4 rounded bg-surface-muted" style={{ width: `${widths[r % widths.length]}%` }} />
+            <div className="h-3 w-1/3 rounded bg-surface-muted" />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function EmptyState({
   title,
   message,

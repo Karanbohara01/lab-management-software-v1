@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { DataTable, type Column } from '@/components/ui/DataTable';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/PageState';
+import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { platformApi } from './api';
 import { PlanFormModal } from './PlanFormModal';
@@ -52,7 +52,7 @@ export function PlansPage() {
 
       <Card>
         {loading && !data ? (
-          <LoadingState />
+          <TableSkeleton columns={columns.length} />
         ) : error ? (
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.length === 0 ? (

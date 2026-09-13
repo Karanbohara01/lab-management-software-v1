@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { DataTable, type Column } from '@/components/ui/DataTable';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/PageState';
+import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { StatTileRow, type StatTileData } from '@/features/dashboard/components/StatTile';
 import { useQuery } from '@/hooks/useQuery';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -124,7 +124,7 @@ export function PlatformPage() {
           <SearchInput value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search clinics…" />
         </div>
         {orgsQ.loading && !orgsQ.data ? (
-          <LoadingState />
+          <TableSkeleton columns={columns.length} />
         ) : orgsQ.error ? (
           <ErrorState message={orgsQ.error} onRetry={orgsQ.refetch} />
         ) : orgsQ.data && orgsQ.data.content.length === 0 ? (

@@ -10,7 +10,7 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { Modal } from '@/components/ui/Modal';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/PageState';
+import { LoadingState, TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useToast } from '@/components/ui/toast';
@@ -155,7 +155,7 @@ export function AuditPage() {
         </div>
 
         {loading && !data ? (
-          <LoadingState />
+          <TableSkeleton columns={columns.length} />
         ) : error ? (
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.content.length === 0 ? (

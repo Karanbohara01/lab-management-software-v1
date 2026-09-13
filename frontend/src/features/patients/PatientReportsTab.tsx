@@ -3,7 +3,7 @@ import { AlertTriangle } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { DataTable, type Column } from '@/components/ui/DataTable';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/PageState';
+import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { formatDate } from './format';
 import { reportsApi } from '@/features/reports/api';
@@ -35,7 +35,7 @@ export function PatientReportsTab({ patientId }: { patientId: number }) {
   return (
     <Card>
       {loading && !data ? (
-        <LoadingState />
+        <TableSkeleton columns={columns.length} rows={3} />
       ) : error ? (
         <ErrorState message={error} onRetry={refetch} />
       ) : data && data.content.length === 0 ? (
