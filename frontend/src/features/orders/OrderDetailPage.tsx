@@ -371,7 +371,13 @@ export function OrderDetailPage() {
           {confirmed && (
             <>
               <OrderInvoiceCard orderId={order.id} />
-              <OrderReportCard orderId={order.id} onChange={reload} />
+              <OrderReportCard
+                orderId={order.id}
+                report={report}
+                loading={reportQ.loading && !reportQ.data}
+                hasApprovedResults={results.some((r) => r.status === 'APPROVED')}
+                onChange={reload}
+              />
             </>
           )}
         </div>
