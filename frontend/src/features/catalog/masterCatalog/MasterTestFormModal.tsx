@@ -1,8 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Trash2 } from 'lucide-react';
+import { ListPlus, Plus, Trash2 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
+import { ANALYTE_PRESETS, findAnalytePreset, UNIT_OPTIONS } from '../analytePresets';
 import { DATA_TYPE_LABELS, SPECIMEN_LABELS } from '../types';
 import { masterCatalogAdminApi } from './api';
 import type { MasterTestDetail } from './types';
@@ -37,6 +38,7 @@ const paramSchema = z.object({
   criticalLow: numish,
   criticalHigh: numish,
 });
+type ParamFormValues = z.infer<typeof paramSchema>;
 
 const schema = z.object({
   code: z.string().min(1, 'Required').max(32),
@@ -55,6 +57,52 @@ type FormValues = z.infer<typeof schema>;
 const SPECIMEN_OPTIONS = Object.entries(SPECIMEN_LABELS).map(([value, label]) => ({ value, label }));
 const DATA_TYPE_OPTIONS = Object.entries(DATA_TYPE_LABELS).map(([value, label]) => ({ value, label }));
 
+/** Common department names — just a suggestion list (free text is still fine); a clinic without
+ * a matching department gets one auto-created on import, so consistent naming here means fewer
+ * near-duplicate departments ("Hematology" vs "Haematology") across imports. */
+const DEPARTMENT_SUGGESTIONS = [
+  'Hematology',
+  'Biochemistry',
+  'Clinical Pathology',
+  'Microbiology',
+  'Serology & Immunology',
+  'Endocrinology',
+  'Histopathology',
+  'Cytology',
+  'Molecular Diagnostics',
+  'Coagulation',
+];
+
+const EMPTY_PARAM: ParamFormValues = {
+  code: '',
+  name: '',
+  unit: '',
+  dataType: 'NUMERIC',
+  decimalPlaces: null,
+  groupHeading: '',
+  low: null,
+  high: null,
+  criticalLow: null,
+  criticalHigh: null,
+};
+
+function presetToParam(name: string): ParamFormValues {
+  const preset = findAnalytePreset(name);
+  if (!preset) return { ...EMPTY_PARAM, name };
+  return {
+    code: preset.code ?? '',
+    name: preset.name,
+    unit: preset.unit ?? '',
+    dataType: 'NUMERIC',
+    decimalPlaces: preset.decimalPlaces ?? null,
+    groupHeading: preset.group ?? '',
+    low: preset.low ?? null,
+    high: preset.high ?? null,
+    criticalLow: preset.criticalLow ?? null,
+    criticalHigh: preset.criticalHigh ?? null,
+  };
+}
+
 export function MasterTestFormModal({
   open,
   onClose,
@@ -68,12 +116,14 @@ export function MasterTestFormModal({
 }) {
   const toast = useToast();
   const isEdit = !!test;
+  const [presetPanelOpen, setPresetPanelOpen] = useState(false);
 
   const {
     register,
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -89,9 +139,11 @@ export function MasterTestFormModal({
     },
   });
   const { fields, append, remove } = useFieldArray({ control, name: 'parameters' });
+  const addedNames = new Set(fields.map((f) => f.name.trim().toLowerCase()));
 
   useEffect(() => {
     if (!open) return;
+    setPresetPanelOpen(false);
     if (test) {
       reset({
         code: test.code,
@@ -131,6 +183,24 @@ export function MasterTestFormModal({
       });
     }
   }, [open, test, reset]);
+
+  /** Typing/picking a known analyte name (via the datalist) fills in its unit/range for free. */
+  const applyPresetToRow = (index: number, typed: string) => {
+    const preset = findAnalytePreset(typed);
+    if (!preset) return;
+    const current = fields[index];
+    const empty = (v: unknown) => v === '' || v == null;
+    const put = (key: keyof ParamFormValues, value: string | number) =>
+      setValue(`parameters.${index}.${key}` as 'parameters.0.name', String(value) as never, { shouldDirty: true });
+    if (empty(current?.code) && preset.code) put('code', preset.code);
+    if (empty(current?.unit) && preset.unit) put('unit', preset.unit);
+    if (empty(current?.decimalPlaces) && preset.decimalPlaces != null) put('decimalPlaces', preset.decimalPlaces);
+    if (empty(current?.groupHeading) && preset.group) put('groupHeading', preset.group);
+    if (empty(current?.low) && preset.low != null) put('low', preset.low);
+    if (empty(current?.high) && preset.high != null) put('high', preset.high);
+    if (empty(current?.criticalLow) && preset.criticalLow != null) put('criticalLow', preset.criticalLow);
+    if (empty(current?.criticalHigh) && preset.criticalHigh != null) put('criticalHigh', preset.criticalHigh);
+  };
 
   const onSubmit = handleSubmit(async (values) => {
     const payload = {
@@ -201,10 +271,32 @@ export function MasterTestFormModal({
       }
     >
       <form className="space-y-5" onSubmit={onSubmit} noValidate>
+        <datalist id="master-unit-options">
+          {UNIT_OPTIONS.map((u) => (
+            <option key={u} value={u} />
+          ))}
+        </datalist>
+        <datalist id="master-analyte-options">
+          {ANALYTE_PRESETS.map((p) => (
+            <option key={p.code} value={p.name} />
+          ))}
+        </datalist>
+        <datalist id="master-department-options">
+          {DEPARTMENT_SUGGESTIONS.map((d) => (
+            <option key={d} value={d} />
+          ))}
+        </datalist>
+
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Input label="Code" error={errors.code?.message} {...register('code')} />
           <Input label="Name" className="col-span-2" error={errors.name?.message} {...register('name')} />
-          <Input label="Department" hint="Auto-created per clinic if missing" error={errors.departmentName?.message} {...register('departmentName')} />
+          <Input
+            label="Department"
+            list="master-department-options"
+            hint="Auto-created per clinic if missing"
+            error={errors.departmentName?.message}
+            {...register('departmentName')}
+          />
           <Input label="Category" {...register('category')} />
           <Select label="Specimen type" options={SPECIMEN_OPTIONS} {...register('specimenType')} />
           <Input label="Suggested price" type="number" step="0.01" {...register('suggestedPrice')} />
@@ -216,33 +308,46 @@ export function MasterTestFormModal({
         <div>
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm font-semibold text-foreground">Parameters</p>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() =>
-                append({
-                  code: '',
-                  name: '',
-                  unit: '',
-                  dataType: 'NUMERIC',
-                  decimalPlaces: null,
-                  groupHeading: '',
-                  low: null,
-                  high: null,
-                  criticalLow: null,
-                  criticalHigh: null,
-                })
-              }
-            >
-              <Plus className="h-4 w-4" aria-hidden />
-              Add parameter
-            </Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="secondary" size="sm" onClick={() => setPresetPanelOpen((v) => !v)}>
+                <ListPlus className="h-4 w-4" aria-hidden />
+                Add from presets
+              </Button>
+              <Button type="button" variant="secondary" size="sm" onClick={() => append({ ...EMPTY_PARAM })}>
+                <Plus className="h-4 w-4" aria-hidden />
+                Blank parameter
+              </Button>
+            </div>
           </div>
+
+          {presetPanelOpen && (
+            <div className="mb-3 rounded-md border border-border bg-surface-muted/60 p-3">
+              <p className="mb-2 text-xs text-muted">
+                Click any analyte to add it with its typical unit and reference range pre-filled — everything stays
+                editable afterward. Click several in a row to build up a multi-parameter test quickly.
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {ANALYTE_PRESETS.map((p) => {
+                  const already = addedNames.has(p.name.toLowerCase());
+                  return (
+                    <button
+                      key={p.code}
+                      type="button"
+                      disabled={already}
+                      onClick={() => append(presetToParam(p.name))}
+                      className="rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-foreground hover:border-primary hover:bg-primary/5 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {p.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {fields.length === 0 ? (
             <p className="rounded-md border border-dashed border-border px-3 py-6 text-center text-sm text-muted">
-              No parameters yet.
+              No parameters yet — add from presets above, or add a blank one.
             </p>
           ) : (
             <div className="space-y-2">
@@ -253,10 +358,11 @@ export function MasterTestFormModal({
                     <Input
                       placeholder="Name"
                       className="col-span-2"
+                      list="master-analyte-options"
                       error={errors.parameters?.[i]?.name?.message}
-                      {...register(`parameters.${i}.name`)}
+                      {...register(`parameters.${i}.name`, { onChange: (e) => applyPresetToRow(i, e.target.value) })}
                     />
-                    <Input placeholder="Unit" {...register(`parameters.${i}.unit`)} />
+                    <Input placeholder="Unit" list="master-unit-options" {...register(`parameters.${i}.unit`)} />
                     <Select options={DATA_TYPE_OPTIONS} {...register(`parameters.${i}.dataType`)} />
                     <Button
                       type="button"
