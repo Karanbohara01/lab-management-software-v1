@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
+import { useScrollToTopOnError } from '@/hooks/useScrollToTopOnError';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
@@ -31,6 +32,7 @@ export function LaboratorySettingsPage() {
   const [form, setForm] = useState<LaboratoryProfile | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  useScrollToTopOnError(formError);
 
   useEffect(() => {
     if (data) setForm(data);

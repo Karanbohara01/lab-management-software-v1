@@ -18,6 +18,7 @@ import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { useQuery } from '@/hooks/useQuery';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useScrollToTopOnError } from '@/hooks/useScrollToTopOnError';
 import { ApiError } from '@/types/api';
 import { doctorsApi } from '@/features/doctors/api';
 import { patientsApi } from './api';
@@ -210,6 +211,7 @@ export function RegisterPatientPage() {
   });
 
   const idFields = useFieldArray({ control, name: 'identifiers' });
+  useScrollToTopOnError(errors.root?.message);
 
   useEffect(() => {
     const p = existing.data;
@@ -433,7 +435,8 @@ export function RegisterPatientPage() {
     city: null,
   });
 
-  const onSubmit = handleSubmit(async (values) => {
+  const onSubmit = handleSubmit(
+    async (values) => {
     if (!isEdit && strongDuplicate && !values.duplicateOverrideReason?.trim()) {
       setError('duplicateOverrideReason', {
         message: 'This looks like an existing patient. Give a reason to register a new record, or open the existing one.',
@@ -526,7 +529,21 @@ export function RegisterPatientPage() {
         setError('root', { message: 'Unable to save patient' });
       }
     }
-  });
+    },
+    (formErrors) => {
+      // Zod/RHF per-field validation failed — the invalid field may be in a section the user has
+      // scrolled well past (this form has 7+ sections). Jump to the first one so the failure is
+      // actually visible instead of the submit button just quietly stopping.
+      const firstKey = Object.keys(formErrors)[0];
+      const el = firstKey ? (document.getElementsByName(firstKey)[0] as HTMLElement | undefined) : undefined;
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.focus();
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    },
+  );
 
   if (isEdit && existing.loading && !existing.data) return <LoadingState label="Loading patient…" />;
   if (isEdit && existing.error) return <ErrorState message={existing.error} onRetry={existing.refetch} />;

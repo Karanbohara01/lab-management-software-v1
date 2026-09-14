@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import { useQuery } from '@/hooks/useQuery';
+import { useScrollToTopOnError } from '@/hooks/useScrollToTopOnError';
 import { ApiError } from '@/types/api';
 import { signupApi } from './api';
 
@@ -52,6 +53,7 @@ export function SignupPage() {
   const { isAuthenticated } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  useScrollToTopOnError(serverError);
   const [slugEdited, setSlugEdited] = useState(false);
 
   const { data: plans, loading: plansLoading, error: plansError } = useQuery(() => signupApi.plans(), []);

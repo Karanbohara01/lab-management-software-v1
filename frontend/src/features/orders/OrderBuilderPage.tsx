@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Alert } from '@/components/ui/Alert';
 import { LoadingState } from '@/components/ui/PageState';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useScrollToTopOnError } from '@/hooks/useScrollToTopOnError';
 import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/types/api';
 import { formatMoney } from '@/lib/money';
@@ -76,6 +77,7 @@ export function OrderBuilderPage() {
   const [pricing, setPricing] = useState<OrderPricing>(ZERO_PRICING);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  useScrollToTopOnError(formError);
 
   const [doctors, setDoctors] = useState<{ id: number; fullName: string }[]>([]);
 
