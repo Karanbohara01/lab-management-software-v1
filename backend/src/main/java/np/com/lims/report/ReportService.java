@@ -135,7 +135,8 @@ public class ReportService {
             int order2 = 1;
             for (ResultValue value : result.getValues()) {
                 block.addParameter(value.getParameterName(), value.getParameterUnit(),
-                        displayValue(value), value.getFlag(), value.getReferenceText(), order2++, value.getComment());
+                        displayValue(value), value.getFlag(), value.getReferenceText(), order2++, value.getComment(),
+                        value.getParameter() == null ? null : value.getParameter().getGroupHeading());
             }
         }
 

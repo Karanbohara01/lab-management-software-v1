@@ -45,11 +45,18 @@ public class ReportParameter {
     @Column(length = 300)
     private String comment;
 
+    /** Sub-section label within the test's own parameter table (e.g. "Differential Leukocyte
+     * Count") — captured at report-generation time from TestParameter.groupHeading, same as
+     * every other field here, since a released report is an immutable snapshot. Null means no
+     * sub-grouping for this parameter (renders exactly as before this field existed). */
+    @Column(name = "group_heading", length = 120)
+    private String groupHeading;
+
     protected ReportParameter() {
     }
 
     ReportParameter(ReportTest reportTest, String name, String unit, String valueDisplay,
-                    ResultFlag flag, String referenceText, int displayOrder, String comment) {
+                    ResultFlag flag, String referenceText, int displayOrder, String comment, String groupHeading) {
         this.reportTest = reportTest;
         this.name = name;
         this.unit = unit;
@@ -58,6 +65,7 @@ public class ReportParameter {
         this.referenceText = referenceText;
         this.displayOrder = displayOrder;
         this.comment = comment;
+        this.groupHeading = groupHeading;
     }
 
     public String getComment() {
@@ -86,5 +94,9 @@ public class ReportParameter {
 
     public int getDisplayOrder() {
         return displayOrder;
+    }
+
+    public String getGroupHeading() {
+        return groupHeading;
     }
 }

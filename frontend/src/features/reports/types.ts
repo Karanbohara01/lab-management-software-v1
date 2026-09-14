@@ -21,6 +21,7 @@ export interface ReportParameterLine {
   flag: ResultFlag;
   referenceText: string | null;
   comment: string | null;
+  groupHeading: string | null;
 }
 
 export interface ReportTestBlock {

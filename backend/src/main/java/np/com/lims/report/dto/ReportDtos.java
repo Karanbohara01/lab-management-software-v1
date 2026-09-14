@@ -52,11 +52,12 @@ public final class ReportDtos {
     }
 
     public record ParameterLine(
-            String name, String unit, String value, ResultFlag flag, String referenceText, String comment
+            String name, String unit, String value, ResultFlag flag, String referenceText, String comment,
+            String groupHeading
     ) {
         static ParameterLine from(ReportParameter p) {
             return new ParameterLine(p.getName(), p.getUnit(), p.getValueDisplay(), p.getFlag(),
-                    p.getReferenceText(), p.getComment());
+                    p.getReferenceText(), p.getComment(), p.getGroupHeading());
         }
     }
 

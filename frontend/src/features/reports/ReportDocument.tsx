@@ -132,12 +132,21 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
               </tr>
             </thead>
             <tbody>
-              {test.parameters.map((p) => {
+              {test.parameters.map((p, i) => {
                 const mark = flagMark(p.flag);
+                const previousHeading = i > 0 ? (test.parameters[i - 1]?.groupHeading ?? null) : null;
+                const showHeading = p.groupHeading && p.groupHeading !== previousHeading;
                 return (
                   <Fragment key={p.name}>
+                    {showHeading && (
+                      <tr>
+                        <td colSpan={4} className="bg-gray-50 py-1 pt-2 text-[11px] font-bold uppercase tracking-wide">
+                          {p.groupHeading}
+                        </td>
+                      </tr>
+                    )}
                     <tr className="border-b border-gray-200">
-                      <td className="py-1">{p.name}</td>
+                      <td className={`py-1 ${p.groupHeading ? 'pl-3' : ''}`}>{p.name}</td>
                       <td className="py-1 font-semibold">
                         {p.value ?? '—'}
                         {mark && <span className={`ml-1 ${mark.className}`}>{mark.text}</span>}

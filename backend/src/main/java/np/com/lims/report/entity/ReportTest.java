@@ -89,8 +89,8 @@ public class ReportTest {
     }
 
     public void addParameter(String name, String unit, String valueDisplay, ResultFlag flag,
-                             String referenceText, int order, String comment) {
-        parameters.add(new ReportParameter(this, name, unit, valueDisplay, flag, referenceText, order, comment));
+                             String referenceText, int order, String comment, String groupHeading) {
+        parameters.add(new ReportParameter(this, name, unit, valueDisplay, flag, referenceText, order, comment, groupHeading));
     }
 
     public String getTestCode() {
