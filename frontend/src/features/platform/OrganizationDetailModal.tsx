@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Receipt } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
@@ -57,6 +57,20 @@ export function OrganizationDetailModal({
   );
 
   const current = org?.subscriptionHistory[0] ?? null;
+
+  // Keep the "Change subscription" fields in sync with the clinic's ACTUAL current plan/status
+  // whenever the modal opens (or the org data loads) — previously these only had a *display*
+  // fallback (`planCode || current?.plan.code`) while the underlying state stayed empty/wrong
+  // until the user touched each dropdown, so clicking Apply after only editing the period-end
+  // date or note silently did nothing (empty planCode short-circuited the whole submit) or, for
+  // status, could have silently forced the subscription to ACTIVE even for a Trialing clinic.
+  useEffect(() => {
+    if (!current) return;
+    setPlanCode(current.plan.code);
+    setSubStatus(current.status);
+    setPeriodEnd('');
+    setNote('');
+  }, [organizationId, current?.plan.code, current?.status]);
 
   const act = async (fn: () => Promise<unknown>, msg: string) => {
     setBusy(true);
