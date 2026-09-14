@@ -49,7 +49,7 @@ export function BarcodeLabel({ value, patientName, patientMrn, specimen, contain
   return (
     <div
       style={{ width: '50mm', height: '70mm', padding: '3mm' }}
-      className="box-border flex flex-col items-stretch justify-center gap-[2mm] overflow-hidden border border-border bg-white text-black print:border-0"
+      className="box-border flex flex-col items-stretch justify-start gap-[2mm] overflow-hidden border border-border bg-white text-black print:border-0"
     >
       <svg ref={svgRef} style={{ height: '20mm', width: '100%' }} role="img" aria-label={`Barcode ${value}`} />
       <p style={{ fontSize: '3.4mm' }} className="text-center font-mono font-semibold tracking-wider">
