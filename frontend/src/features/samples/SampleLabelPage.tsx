@@ -30,7 +30,7 @@ export function SampleLabelPage() {
           live via a print-media PDF render that still came out Letter-sized despite the named-page
           CSS being present. This page is always opened in its own dedicated tab for printing (see
           below), so there's no other print flow sharing this document to conflict with. */}
-      <style>{'@media print { @page { size: 50mm 25mm; margin: 0; } }'}</style>
+      <style>{'@media print { @page { size: 50mm 70mm; margin: 0; } }'}</style>
       <div id="report-print" className="flex min-h-screen items-center justify-center bg-white p-6">
         <BarcodeLabel
           value={sample.barcodeValue}
