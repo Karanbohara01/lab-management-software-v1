@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Library, Plus } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -17,6 +17,7 @@ import { departmentsApi } from '@/features/departments/api';
 import { testCatalogApi } from './api';
 import { SPECIMEN_LABELS, type TestDetail, type TestListItem } from './types';
 import { TestFormModal } from './TestFormModal';
+import { ImportMasterTestsModal } from './masterCatalog/ImportMasterTestsModal';
 
 const PAGE_SIZE = 20;
 const npr = new Intl.NumberFormat('en-NP', { style: 'currency', currency: 'NPR', maximumFractionDigits: 0 });
@@ -31,6 +32,7 @@ export function TestCatalogPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<TestDetail | null>(null);
   const [loadingEdit, setLoadingEdit] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const departments = useQuery(() => departmentsApi.list(false), []);
   const debouncedSearch = useDebouncedValue(search, 300);
@@ -83,10 +85,16 @@ export function TestCatalogPage() {
         description="Configure tests, their specimen requirements, pricing and result parameters."
         actions={
           canWrite ? (
-            <Button onClick={openCreate} loading={loadingEdit}>
-              <Plus className="h-4 w-4" aria-hidden />
-              New test
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setImportOpen(true)}>
+                <Library className="h-4 w-4" aria-hidden />
+                Import from master catalogue
+              </Button>
+              <Button onClick={openCreate} loading={loadingEdit}>
+                <Plus className="h-4 w-4" aria-hidden />
+                New test
+              </Button>
+            </div>
           ) : undefined
         }
       />
@@ -154,6 +162,15 @@ export function TestCatalogPage() {
         test={editing}
         departments={departments.data ?? []}
         onSaved={refetch}
+      />
+
+      <ImportMasterTestsModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImported={() => {
+          refetch();
+          departments.refetch();
+        }}
       />
     </>
   );

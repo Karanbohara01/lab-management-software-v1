@@ -2,8 +2,10 @@ package np.com.lims.platform.web;
 
 import jakarta.validation.Valid;
 import np.com.lims.common.api.PageResponse;
+import np.com.lims.platform.MasterCatalogService;
 import np.com.lims.platform.PlatformService;
 import np.com.lims.platform.SubscriptionBillingService;
+import np.com.lims.platform.dto.MasterCatalogDtos;
 import np.com.lims.platform.dto.PlatformDtos.CancelSubscriptionRequest;
 import np.com.lims.platform.dto.PlatformDtos.ChangeOrganizationStatusRequest;
 import np.com.lims.platform.dto.PlatformDtos.ChangeSubscriptionRequest;
@@ -38,10 +40,13 @@ public class PlatformController {
 
     private final PlatformService service;
     private final SubscriptionBillingService billingService;
+    private final MasterCatalogService masterCatalogService;
 
-    public PlatformController(PlatformService service, SubscriptionBillingService billingService) {
+    public PlatformController(PlatformService service, SubscriptionBillingService billingService,
+                              MasterCatalogService masterCatalogService) {
         this.service = service;
         this.billingService = billingService;
+        this.masterCatalogService = masterCatalogService;
     }
 
     @PostMapping("/billing/run-sweep")
@@ -105,5 +110,35 @@ public class PlatformController {
     @PostMapping("/organizations/{id}/subscription/cancel")
     public SubscriptionDto cancelSubscription(@PathVariable Long id, @Valid @RequestBody CancelSubscriptionRequest request) {
         return service.cancelSubscription(id, request);
+    }
+
+    // ===== master lab test catalogue (curation) — clinic-facing browse/import lives on
+    // MasterCatalogController under /catalog/master-tests, not here (needs TEST_CATALOG_* only,
+    // not PERM_PLATFORM_MANAGE) ============================================================
+
+    @GetMapping("/master-tests")
+    public List<MasterCatalogDtos.ListItem> masterTests() {
+        return masterCatalogService.listAll();
+    }
+
+    @GetMapping("/master-tests/{id}")
+    public MasterCatalogDtos.Detail masterTest(@PathVariable Long id) {
+        return masterCatalogService.get(id);
+    }
+
+    @PostMapping("/master-tests")
+    @ResponseStatus(HttpStatus.CREATED)
+    public MasterCatalogDtos.Detail createMasterTest(@Valid @RequestBody MasterCatalogDtos.UpsertRequest request) {
+        return masterCatalogService.create(request);
+    }
+
+    @PutMapping("/master-tests/{id}")
+    public MasterCatalogDtos.Detail updateMasterTest(@PathVariable Long id, @Valid @RequestBody MasterCatalogDtos.UpsertRequest request) {
+        return masterCatalogService.update(id, request);
+    }
+
+    @PostMapping("/master-tests/{id}/active")
+    public void setMasterTestActive(@PathVariable Long id, @RequestParam boolean active) {
+        masterCatalogService.setActive(id, active);
     }
 }
