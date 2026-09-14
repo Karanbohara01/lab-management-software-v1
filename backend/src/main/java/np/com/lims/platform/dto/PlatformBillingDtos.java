@@ -1,6 +1,7 @@
 package np.com.lims.platform.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import np.com.lims.ird.entity.IrdStatus;
 import np.com.lims.platform.entity.PlatformIrdSubmission;
 import np.com.lims.platform.entity.SubscriptionInvoice;
@@ -49,5 +50,23 @@ public final class PlatformBillingDtos {
     }
 
     public record IrdConfigResponse(boolean configured, String environment, String message) {
+    }
+
+    /** Never exposes the decrypted password — only whether one is set. */
+    public record IrdCredentialsResponse(boolean enabled, String username, String sellerPan, String sellerName,
+                                         boolean passwordConfigured) {
+        public static IrdCredentialsResponse empty() {
+            return new IrdCredentialsResponse(false, null, null, null, false);
+        }
+    }
+
+    /** Leave the password blank to keep the existing one — only a non-blank value replaces it. */
+    public record IrdCredentialsUpdateRequest(
+            boolean enabled,
+            @Size(max = 120) String username,
+            @Size(max = 40) String sellerPan,
+            @Size(max = 160) String sellerName,
+            @Size(max = 200) String password
+    ) {
     }
 }

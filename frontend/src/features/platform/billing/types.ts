@@ -47,6 +47,14 @@ export interface PlatformIrdConfig {
   message: string;
 }
 
+export interface PlatformIrdCredentials {
+  enabled: boolean;
+  username: string | null;
+  sellerPan: string | null;
+  sellerName: string | null;
+  passwordConfigured: boolean;
+}
+
 export const SUBSCRIPTION_INVOICE_STATUS_LABEL: Record<SubscriptionInvoiceStatus, string> = {
   PENDING: 'Payment due',
   PAID: 'Paid',

@@ -49,6 +49,7 @@ public class PlatformIrdSubmissionService {
     private final OrganizationRepository organizationRepository;
     private final IrdGateway gateway;
     private final IrdProperties irdProperties;
+    private final PlatformIrdCredentialsService credentialsService;
     private final AuditService auditService;
     private final ObjectMapper objectMapper;
 
@@ -57,6 +58,7 @@ public class PlatformIrdSubmissionService {
                                         OrganizationRepository organizationRepository,
                                         IrdGateway gateway,
                                         IrdProperties irdProperties,
+                                        PlatformIrdCredentialsService credentialsService,
                                         AuditService auditService,
                                         ObjectMapper objectMapper) {
         this.repository = repository;
@@ -64,6 +66,7 @@ public class PlatformIrdSubmissionService {
         this.organizationRepository = organizationRepository;
         this.gateway = gateway;
         this.irdProperties = irdProperties;
+        this.credentialsService = credentialsService;
         this.auditService = auditService;
         this.objectMapper = objectMapper;
     }
@@ -179,13 +182,20 @@ public class PlatformIrdSubmissionService {
     }
 
     private IrdBillPayload buildPayload(SubscriptionInvoice invoice, Organization org) {
-        String sellerName = StringUtils.hasText(irdProperties.sellerName()) ? irdProperties.sellerName() : "LabOS";
+        // Display-only fields (see CbmsIrdGateway.resolve(): the actual transmitted seller_pan
+        // always comes from whichever credential tier is active, not from this payload) — prefer
+        // the platform-admin-configured dashboard credentials, falling back to static config.
+        var platformCreds = credentialsService.get();
+        String sellerName = StringUtils.hasText(platformCreds.sellerName()) ? platformCreds.sellerName()
+                : StringUtils.hasText(irdProperties.sellerName()) ? irdProperties.sellerName() : "LabOS";
+        String sellerPan = StringUtils.hasText(platformCreds.sellerPan()) ? platformCreds.sellerPan()
+                : irdProperties.sellerPan();
         return new IrdBillPayload(
                 invoice.invoiceNumber(),
                 fiscalYearOf(invoice),
                 invoice.getPeriodStart(),
                 sellerName,
-                irdProperties.sellerPan(),
+                sellerPan,
                 org.getName(),
                 org.getPan(),
                 invoice.getTotalAmount(),

@@ -4,12 +4,15 @@ import jakarta.validation.Valid;
 import np.com.lims.common.api.PageResponse;
 import np.com.lims.ird.entity.IrdStatus;
 import np.com.lims.platform.MasterCatalogService;
+import np.com.lims.platform.PlatformIrdCredentialsService;
 import np.com.lims.platform.PlatformIrdSubmissionService;
 import np.com.lims.platform.PlatformService;
 import np.com.lims.platform.SubscriptionBillingService;
 import np.com.lims.platform.dto.MasterCatalogDtos;
 import np.com.lims.platform.dto.PlatformBillingDtos.InvoiceListItem;
 import np.com.lims.platform.dto.PlatformBillingDtos.IrdConfigResponse;
+import np.com.lims.platform.dto.PlatformBillingDtos.IrdCredentialsResponse;
+import np.com.lims.platform.dto.PlatformBillingDtos.IrdCredentialsUpdateRequest;
 import np.com.lims.platform.dto.PlatformBillingDtos.IrdSubmissionDetail;
 import np.com.lims.platform.dto.PlatformBillingDtos.MarkManualRequest;
 import np.com.lims.platform.dto.PlatformDtos.CancelSubscriptionRequest;
@@ -48,13 +51,16 @@ public class PlatformController {
     private final SubscriptionBillingService billingService;
     private final MasterCatalogService masterCatalogService;
     private final PlatformIrdSubmissionService irdService;
+    private final PlatformIrdCredentialsService irdCredentialsService;
 
     public PlatformController(PlatformService service, SubscriptionBillingService billingService,
-                              MasterCatalogService masterCatalogService, PlatformIrdSubmissionService irdService) {
+                              MasterCatalogService masterCatalogService, PlatformIrdSubmissionService irdService,
+                              PlatformIrdCredentialsService irdCredentialsService) {
         this.service = service;
         this.billingService = billingService;
         this.masterCatalogService = masterCatalogService;
         this.irdService = irdService;
+        this.irdCredentialsService = irdCredentialsService;
     }
 
     @PostMapping("/billing/run-sweep")
@@ -156,6 +162,16 @@ public class PlatformController {
     @GetMapping("/billing/ird/config")
     public IrdConfigResponse irdConfig() {
         return irdService.config();
+    }
+
+    @GetMapping("/billing/ird/credentials")
+    public IrdCredentialsResponse irdCredentials() {
+        return irdCredentialsService.get();
+    }
+
+    @PutMapping("/billing/ird/credentials")
+    public IrdCredentialsResponse updateIrdCredentials(@Valid @RequestBody IrdCredentialsUpdateRequest request) {
+        return irdCredentialsService.update(request);
     }
 
     @GetMapping("/subscription-invoices")

@@ -1,10 +1,19 @@
 import { httpClient } from '@/api/client';
 import type { PageResponse } from '@/types/api';
 import type { IrdStatus } from '@/features/ird/types';
-import type { PlatformInvoiceListItem, PlatformIrdConfig, PlatformIrdSubmissionDetail } from './types';
+import type {
+  PlatformInvoiceListItem,
+  PlatformIrdConfig,
+  PlatformIrdCredentials,
+  PlatformIrdSubmissionDetail,
+} from './types';
 
 export const platformBillingApi = {
   config: () => httpClient.get<PlatformIrdConfig>('/platform/billing/ird/config').then((r) => r.data),
+
+  getCredentials: () => httpClient.get<PlatformIrdCredentials>('/platform/billing/ird/credentials').then((r) => r.data),
+  updateCredentials: (payload: { enabled: boolean; username?: string; sellerPan?: string; sellerName?: string; password?: string }) =>
+    httpClient.put<PlatformIrdCredentials>('/platform/billing/ird/credentials', payload).then((r) => r.data),
 
   list: (params: { irdStatus?: IrdStatus; organizationId?: number; page?: number; size?: number }) =>
     httpClient

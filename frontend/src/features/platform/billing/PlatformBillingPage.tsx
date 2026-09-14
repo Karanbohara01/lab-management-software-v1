@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { FileText, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { FileText, CheckCircle2, AlertTriangle, Settings2 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { Select } from '@/components/ui/Select';
 import { DataTable, type Column } from '@/components/ui/DataTable';
@@ -14,6 +15,7 @@ import { formatMoney } from '@/lib/money';
 import { IRD_STATUS_LABEL, IRD_STATUS_TONE, type IrdStatus } from '@/features/ird/types';
 import { platformBillingApi } from './api';
 import { IrdSubmissionModal } from './IrdSubmissionModal';
+import { PlatformIrdCredentialsCard } from './PlatformIrdCredentialsCard';
 import { SUBSCRIPTION_INVOICE_STATUS_LABEL, SUBSCRIPTION_INVOICE_STATUS_TONE, type PlatformInvoiceListItem } from './types';
 
 const PAGE_SIZE = 20;
@@ -32,6 +34,7 @@ export function PlatformBillingPage() {
   const [irdStatus, setIrdStatus] = useState<IrdStatus | ''>('');
   const [page, setPage] = useState(0);
   const [openInvoiceId, setOpenInvoiceId] = useState<number | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const configQ = useQuery(() => platformBillingApi.config(), []);
   const { data, loading, error, refetch } = useQuery(
@@ -79,11 +82,23 @@ export function PlatformBillingPage() {
       <PageHeader
         title="Subscription billing"
         description="What this deployment charges each clinic, and its IRD/CBMS e-billing status — distinct from a clinic's own patient billing."
+        actions={
+          <Button variant="secondary" onClick={() => setSettingsOpen((v) => !v)}>
+            <Settings2 className="h-4 w-4" aria-hidden />
+            IRD settings
+          </Button>
+        }
       />
 
       {configQ.data && !configQ.data.configured && (
         <div className="mb-4">
           <Alert tone="warning">{configQ.data.message}</Alert>
+        </div>
+      )}
+
+      {settingsOpen && (
+        <div className="mb-5">
+          <PlatformIrdCredentialsCard onSaved={() => configQ.refetch()} />
         </div>
       )}
 

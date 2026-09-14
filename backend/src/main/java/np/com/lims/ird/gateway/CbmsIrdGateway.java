@@ -7,6 +7,8 @@ import np.com.lims.common.crypto.CryptoService;
 import np.com.lims.common.tenant.TenantContext;
 import np.com.lims.ird.IrdCredentialsRepository;
 import np.com.lims.ird.entity.IrdCredentials;
+import np.com.lims.platform.PlatformIrdCredentialsRepository;
+import np.com.lims.platform.entity.PlatformIrdCredentials;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -61,7 +63,9 @@ public class CbmsIrdGateway {
 
     @Bean
     public IrdGateway irdGateway(IrdProperties properties, RestClient.Builder restClientBuilder,
-                                 IrdCredentialsRepository credentialsRepository, CryptoService cryptoService) {
+                                 IrdCredentialsRepository credentialsRepository,
+                                 PlatformIrdCredentialsRepository platformCredentialsRepository,
+                                 CryptoService cryptoService) {
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Duration.ofSeconds(10));
         requestFactory.setReadTimeout(Duration.ofSeconds(20));
@@ -70,7 +74,7 @@ public class CbmsIrdGateway {
                 .requestFactory(requestFactory)
                 .build();
 
-        return new Impl(properties, client, credentialsRepository, cryptoService);
+        return new Impl(properties, client, credentialsRepository, platformCredentialsRepository, cryptoService);
     }
 
     /** Username/password/seller-pan actually in effect for the current request's organization. */
@@ -83,21 +87,28 @@ public class CbmsIrdGateway {
         private final IrdProperties properties;
         private final RestClient client;
         private final IrdCredentialsRepository credentialsRepository;
+        private final PlatformIrdCredentialsRepository platformCredentialsRepository;
         private final CryptoService cryptoService;
 
         Impl(IrdProperties properties, RestClient client, IrdCredentialsRepository credentialsRepository,
-             CryptoService cryptoService) {
+             PlatformIrdCredentialsRepository platformCredentialsRepository, CryptoService cryptoService) {
             this.properties = properties;
             this.client = client;
             this.credentialsRepository = credentialsRepository;
+            this.platformCredentialsRepository = platformCredentialsRepository;
             this.cryptoService = cryptoService;
         }
 
         /**
-         * An organization's own credentials (set via Settings) win when it has enabled IRD and
-         * fully configured username/password/seller-pan; otherwise this deployment's shared
-         * application.yml config is used — so a clinic that hasn't set anything up keeps working
-         * exactly as before this per-organization override existed.
+         * Three-tier precedence: (1) an organization's own credentials (set via that clinic's own
+         * Settings) win when it has enabled IRD and fully configured username/password/seller-pan;
+         * (2) otherwise this deployment's own shared credentials as set from the PLATFORM admin
+         * dashboard (platform_ird_credentials — a single row, edited via
+         * PlatformIrdCredentialsService, not tied to any organization); (3) otherwise the static
+         * application.yml/env-var config ({@link IrdProperties}), kept as the lowest-precedence
+         * fallback for a deployment that prefers pure env-var configuration over the dashboard. A
+         * clinic that has configured nothing, and a platform admin who hasn't touched the dashboard
+         * either, keeps working exactly as before both overrides existed.
          */
         private Effective resolve() {
             Long orgId = TenantContext.get();
@@ -107,6 +118,11 @@ public class CbmsIrdGateway {
                     return new Effective(true, c.getIrdUsername(), cryptoService.decrypt(c.getIrdPasswordEncrypted()),
                             c.getIrdSellerPan());
                 }
+            }
+            PlatformIrdCredentials platformCreds = platformCredentialsRepository.findSingleton().orElse(null);
+            if (platformCreds != null && platformCreds.fullyConfigured()) {
+                return new Effective(true, platformCreds.getIrdUsername(),
+                        cryptoService.decrypt(platformCreds.getIrdPasswordEncrypted()), platformCreds.getIrdSellerPan());
             }
             return new Effective(properties.isFullyConfigured(), properties.username(), properties.password(),
                     properties.sellerPan());
