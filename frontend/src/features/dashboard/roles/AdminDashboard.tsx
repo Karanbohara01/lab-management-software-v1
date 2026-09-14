@@ -72,7 +72,7 @@ export function AdminDashboard({ summary, lastUpdated, refreshing, onRefresh }: 
       <WorkflowPipeline summary={summary} samplesCounts={samplesCounts} resultCounts={resultCounts} />
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-2">
+        <div className="min-w-0 space-y-4 lg:col-span-2">
           {canSeeAnalytics && analyticsQ.data && (
             <div className="grid gap-4 md:grid-cols-2">
               <RevenueTrend points={analyticsQ.data.revenueByDay} days={range} />
@@ -83,7 +83,7 @@ export function AdminDashboard({ summary, lastUpdated, refreshing, onRefresh }: 
           {hasPermission(PERMISSIONS.RESULT_READ) && <CriticalResultsPanel />}
         </div>
 
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           {hasPermission(PERMISSIONS.INVENTORY_READ) && <InventoryHealthPanel />}
           {hasPermission(PERMISSIONS.AUDIT_READ) && <RecentActivity />}
         </div>

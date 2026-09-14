@@ -32,7 +32,7 @@ export function QueueShell({
 }) {
   const navigate = useNavigate();
   return (
-    <Card className="p-5">
+    <Card className="min-w-0 p-5">
       <SectionHeader
         title={count != null ? `${title} (${count})` : title}
         description={description}

@@ -13,7 +13,7 @@ export function TurnaroundPanel({ resultCounts }: { resultCounts: Record<string,
   const overduePct = active > 0 ? Math.round((overdue / active) * 100) : 0;
 
   return (
-    <Card className="p-5">
+    <Card className="min-w-0 p-5">
       <SectionHeader
         title="Turnaround risk"
         description="Results still in progress, against their due time."

@@ -15,7 +15,7 @@ export function RevenueTrend({ points, days }: { points: AnalyticsPoint[]; days:
   const barW = points.length > 0 ? (W - padX * 2) / points.length - barGap : 0;
 
   return (
-    <Card className="p-5">
+    <Card className="min-w-0 p-5">
       <SectionHeader
         title="Revenue trend"
         description={`Booked per day · last ${days} day${days === 1 ? '' : 's'} · total ${formatMoney(total)}`}

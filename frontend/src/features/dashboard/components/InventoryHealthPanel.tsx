@@ -18,7 +18,7 @@ export function InventoryHealthPanel() {
   const atRisk = data ? RISK_ORDER.reduce((sum, s) => sum + (data.statusCounts[s] ?? 0), 0) : 0;
 
   return (
-    <Card className="p-5">
+    <Card className="min-w-0 p-5">
       <SectionHeader
         title="Inventory health"
         description="Reagents and consumables needing action."

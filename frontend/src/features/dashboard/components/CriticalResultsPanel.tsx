@@ -26,7 +26,7 @@ export function CriticalResultsPanel() {
   );
 
   return (
-    <Card className="p-5">
+    <Card className="min-w-0 p-5">
       <SectionHeader
         title="Critical results"
         description="Awaiting a documented callback to the treating clinician."

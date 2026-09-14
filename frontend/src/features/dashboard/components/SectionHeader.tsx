@@ -12,11 +12,11 @@ export function SectionHeader({
 }) {
   return (
     <div className="mb-3 flex items-center justify-between gap-3">
-      <div>
-        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
-        {description && <p className="text-xs text-muted">{description}</p>}
+      <div className="min-w-0">
+        <h2 className="truncate text-sm font-semibold text-foreground">{title}</h2>
+        {description && <p className="truncate text-xs text-muted">{description}</p>}
       </div>
-      {action}
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   );
 }

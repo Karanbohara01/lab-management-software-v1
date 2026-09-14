@@ -11,7 +11,7 @@ export function RecentActivity() {
   const { data, loading, error, refetch } = useQuery(() => adminApi.audit({ page: 0, size: 8 }), []);
 
   return (
-    <Card className="p-5">
+    <Card className="min-w-0 p-5">
       <SectionHeader
         title="Recent activity"
         description="Latest actions across the laboratory."

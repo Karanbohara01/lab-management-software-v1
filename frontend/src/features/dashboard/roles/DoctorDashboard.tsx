@@ -28,7 +28,7 @@ export function DoctorDashboard({ lastUpdated, refreshing, onRefresh }: RoleDash
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="p-5">
+        <Card className="min-w-0 p-5">
           <SectionHeader title="Recent orders" />
           {ordersQ.loading && !ordersQ.data ? (
             <LoadingState />
@@ -57,7 +57,7 @@ export function DoctorDashboard({ lastUpdated, refreshing, onRefresh }: RoleDash
           )}
         </Card>
 
-        <Card className="p-5">
+        <Card className="min-w-0 p-5">
           <SectionHeader title="Recent reports" />
           {reportsQ.loading && !reportsQ.data ? (
             <LoadingState />

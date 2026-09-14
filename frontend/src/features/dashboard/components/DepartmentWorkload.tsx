@@ -8,7 +8,7 @@ export function DepartmentWorkload({ points, days }: { points: AnalyticsPoint[];
   const top = [...points].sort((a, b) => b.value - a.value).slice(0, 6);
 
   return (
-    <Card className="p-5">
+    <Card className="min-w-0 p-5">
       <SectionHeader title="Department workload" description={`Share of tests ordered · last ${days} day${days === 1 ? '' : 's'}`} />
       {top.length === 0 ? (
         <p className="text-sm text-muted">No tests ordered in this period.</p>
