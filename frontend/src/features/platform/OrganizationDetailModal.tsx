@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Receipt } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -42,6 +44,7 @@ export function OrganizationDetailModal({
   onChanged: () => void;
 }) {
   const toast = useToast();
+  const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [planCode, setPlanCode] = useState('');
   const [subStatus, setSubStatus] = useState<SubscriptionStatus>('ACTIVE');
@@ -105,13 +108,26 @@ export function OrganizationDetailModal({
         <ErrorState message={error} onRetry={refetch} />
       ) : org ? (
         <div className="space-y-5">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge tone={ORG_STATUS_TONE[org.status]}>{ORG_STATUS_LABEL[org.status]}</Badge>
-            {current && (
-              <Badge tone={SUBSCRIPTION_STATUS_TONE[current.status]}>
-                {current.plan.name} · {SUBSCRIPTION_STATUS_LABEL[current.status]}
-              </Badge>
-            )}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge tone={ORG_STATUS_TONE[org.status]}>{ORG_STATUS_LABEL[org.status]}</Badge>
+              {current && (
+                <Badge tone={SUBSCRIPTION_STATUS_TONE[current.status]}>
+                  {current.plan.name} · {SUBSCRIPTION_STATUS_LABEL[current.status]}
+                </Badge>
+              )}
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                onClose();
+                navigate(`/app/platform/billing?orgId=${org.id}`);
+              }}
+            >
+              <Receipt className="h-3.5 w-3.5" aria-hidden />
+              View billing
+            </Button>
           </div>
 
           <div className="grid gap-2 text-sm sm:grid-cols-2">

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { FileText, CheckCircle2, AlertTriangle, Settings2, Download } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { FileText, CheckCircle2, AlertTriangle, Settings2, Download, X } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -36,22 +37,31 @@ function dt(iso: string): string {
  */
 export function PlatformBillingPage() {
   const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const orgId = searchParams.get('orgId');
+  const orgIdNum = orgId ? Number(orgId) : undefined;
   const [irdStatus, setIrdStatus] = useState<IrdStatus | ''>('');
   const [page, setPage] = useState(0);
   const [openInvoiceId, setOpenInvoiceId] = useState<number | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
 
+  const clearOrgFilter = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('orgId');
+    setSearchParams(next);
+  };
+
   const configQ = useQuery(() => platformBillingApi.config(), []);
   const { data, loading, error, refetch } = useQuery(
-    () => platformBillingApi.list({ irdStatus: irdStatus || undefined, page, size: PAGE_SIZE }),
-    [irdStatus, page],
+    () => platformBillingApi.list({ irdStatus: irdStatus || undefined, organizationId: orgIdNum, page, size: PAGE_SIZE }),
+    [irdStatus, orgIdNum, page],
   );
 
   const exportAll = async () => {
     setExporting(true);
     try {
-      const all = await platformBillingApi.list({ irdStatus: irdStatus || undefined, page: 0, size: EXPORT_LIMIT });
+      const all = await platformBillingApi.list({ irdStatus: irdStatus || undefined, organizationId: orgIdNum, page: 0, size: EXPORT_LIMIT });
       exportCsv(
         all.content.map((i) => ({
           invoiceNumber: i.invoiceNumber,
@@ -134,7 +144,11 @@ export function PlatformBillingPage() {
     <>
       <PageHeader
         title="Subscription billing"
-        description="What this deployment charges each clinic, and its IRD/CBMS e-billing status — distinct from a clinic's own patient billing."
+        description={
+          orgIdNum
+            ? `Invoices for ${data?.content[0]?.organizationName ?? 'this clinic'} — its IRD/CBMS e-billing status.`
+            : "What this deployment charges each clinic, and its IRD/CBMS e-billing status — distinct from a clinic's own patient billing."
+        }
         actions={
           <div className="flex gap-2">
             <Button variant="secondary" loading={exporting} onClick={exportAll}>
@@ -164,7 +178,7 @@ export function PlatformBillingPage() {
       {data && data.totalElements > 0 && <StatTileRow stats={stats} />}
 
       <Card>
-        <div className="flex items-center justify-between gap-3 border-b border-border p-4">
+        <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
           <div className="sm:w-56">
             <Select
               options={[{ value: '', label: 'All IRD statuses' }, ...IRD_STATUSES.map((s) => ({ value: s, label: IRD_STATUS_LABEL[s] }))]}
@@ -175,6 +189,16 @@ export function PlatformBillingPage() {
               }}
             />
           </div>
+          {orgIdNum && (
+            <button
+              type="button"
+              onClick={clearOrgFilter}
+              className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/15"
+            >
+              Filtered to {data?.content[0]?.organizationName ?? 'this clinic'}
+              <X className="h-3 w-3" aria-hidden />
+            </button>
+          )}
         </div>
 
         {loading && !data ? (
