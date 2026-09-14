@@ -16,5 +16,7 @@ export function App() {
     void dispatch(bootstrapAuth());
   }, [dispatch]);
 
-  return <RouterProvider router={router} />;
+  // Opts into React Router v7's behavior now — silences the "Future Flag Warning" console
+  // noise and avoids a breaking change on the next major upgrade.
+  return <RouterProvider router={router} future={{ v7_startTransition: true }} />;
 }
