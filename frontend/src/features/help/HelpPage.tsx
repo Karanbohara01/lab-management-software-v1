@@ -28,6 +28,14 @@ const SECTIONS: Section[] = [
           pathologist sees results awaiting authorization and critical results. If a button or page you expect isn't
           visible, you likely need a different permission — ask your lab administrator.
         </p>
+        <p>
+          Two more roles sit above all of this: <b>Super Admin</b> has full access to everything, including a
+          clinic's own patient data, and has historically doubled as this deployment's own "primary" clinic admin.{' '}
+          <b>Platform Admin</b> is narrower and deliberately has <i>no</i> access to any clinic's patients, orders,
+          results, or billing — it can only onboard/manage clinics, plans, the master test catalogue, and this
+          deployment's own subscription billing (see <b>Platform administration</b>). Give the Platform Admin role to
+          someone who should never see clinical data at all.
+        </p>
       </>
     ),
   },
@@ -136,6 +144,13 @@ const SECTIONS: Section[] = [
           If no gateway is configured, choosing SMS or WhatsApp fails with a clear error rather than silently doing
           nothing — the report stays "released" and can be retried or delivered manually instead.
         </p>
+        <p>
+          A test's parameters print grouped under bold sub-headings when its catalog entry has them set (e.g. CBC's
+          "Differential Leukocyte Count", LFT's "Liver Enzymes") — set per-parameter on the test in <b>Test catalog</b>,
+          or automatically when a parameter name is picked from the built-in preset list. A printed report also shows
+          each test's specimen Collected/Received time, and repeats "Page X of Y" plus the patient's name/MRN on every
+          page so a longer, multi-page report never loses its identity if a page gets separated.
+        </p>
       </>
     ),
   },
@@ -188,6 +203,40 @@ const SECTIONS: Section[] = [
         <p>
           Being able to submit to IRD from this software does <b>not</b> by itself mean your lab is officially
           registered with IRD for e-billing — that registration is a separate administrative process with IRD.
+        </p>
+      </>
+    ),
+  },
+  {
+    id: 'platform',
+    title: 'Platform administration',
+    body: (
+      <>
+        <p>
+          Everything under the <b>Platform</b> section of the sidebar is about running this deployment itself, not
+          any one clinic's day-to-day work — visible only to Super Admin / Platform Admin.
+        </p>
+        <p>
+          <b>Clinics</b> is the clinic registry: onboard a new clinic (creates its subscription and its first Lab
+          Administrator login), change its status or plan, and see its patient/user counts. A clinic onboarded from
+          here starts with an <i>open-ended</i> billing period on purpose (for a negotiated/sales-assisted signup) —
+          it will never be auto-invoiced until someone sets a real billing-period end date on its subscription (or
+          clicks "Start billing today" on the warning banner shown when one is missing). <b>Plans</b> are the pricing
+          tiers offered to clinics.
+        </p>
+        <p>
+          <b>Master catalogue</b> is a shared library of common lab tests (curated here, with proper reference ranges
+          and printed-report sub-groupings already set) that any clinic can import into its own Test catalog with one
+          click, instead of building every test by hand — importing copies the values onto a new, independently-owned
+          test; editing the master later never retroactively changes what a clinic already imported.
+        </p>
+        <p>
+          <b>Billing</b> is what <i>this deployment</i> charges each clinic for its subscription (SUBINV-xxxxxx
+          invoices) — a completely different thing from the "IRD e-billing" section above, which is a clinic filing
+          its own patient bills with IRD. Here, an invoice can be filed with IRD too (this deployment's own CBMS
+          credentials, configurable from "IRD settings" on this page, or recorded as filed manually), and if a
+          filed invoice is later cancelled, filing a credit note works the same deliberate, explicit-action way as
+          the clinic-billing credit-note flow.
         </p>
       </>
     ),
