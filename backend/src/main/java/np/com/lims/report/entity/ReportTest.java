@@ -48,6 +48,12 @@ public class ReportTest {
     @Column(name = "accession_number", length = 24)
     private String accessionNumber;
 
+    @Column(name = "collected_at")
+    private Instant collectedAt;
+
+    @Column(name = "received_at")
+    private Instant receivedAt;
+
     @Column(length = 2000)
     private String comment;
 
@@ -72,8 +78,8 @@ public class ReportTest {
     }
 
     ReportTest(Report report, String testCode, String testName, String departmentName, String method,
-               String specimen, String accessionNumber, String comment, String verifiedBy, String approvedBy,
-               Instant approvedAt, int displayOrder) {
+               String specimen, String accessionNumber, Instant collectedAt, Instant receivedAt, String comment,
+               String verifiedBy, String approvedBy, Instant approvedAt, int displayOrder) {
         this.report = report;
         this.testCode = testCode;
         this.testName = testName;
@@ -81,6 +87,8 @@ public class ReportTest {
         this.method = method;
         this.specimen = specimen;
         this.accessionNumber = accessionNumber;
+        this.collectedAt = collectedAt;
+        this.receivedAt = receivedAt;
         this.comment = comment;
         this.verifiedBy = verifiedBy;
         this.approvedBy = approvedBy;
@@ -115,6 +123,14 @@ public class ReportTest {
 
     public String getAccessionNumber() {
         return accessionNumber;
+    }
+
+    public Instant getCollectedAt() {
+        return collectedAt;
+    }
+
+    public Instant getReceivedAt() {
+        return receivedAt;
     }
 
     public String getComment() {

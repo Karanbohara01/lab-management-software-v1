@@ -17,6 +17,7 @@ public final class LaboratoryProfileDtos {
             @Size(max = 64) String phone,
             @Email @Size(max = 160) String email,
             @Size(max = 40) String panNumber,
+            @Size(max = 60) String accreditationNumber,
             @Size(max = 1000) String reportFooter,
             @Size(max = 2_000_000) String logoDataUri,
             @jakarta.validation.constraints.NotBlank @Size(max = 16) String fiscalYear,
@@ -36,6 +37,7 @@ public final class LaboratoryProfileDtos {
             String phone,
             String email,
             String panNumber,
+            String accreditationNumber,
             String reportFooter,
             String logoDataUri,
             String fiscalYear,
@@ -48,7 +50,7 @@ public final class LaboratoryProfileDtos {
     ) {
         public static Response from(LaboratoryProfile p) {
             return new Response(p.getName(), p.getAddressLine(), p.getCity(), p.getPhone(), p.getEmail(),
-                    p.getPanNumber(), p.getReportFooter(), p.getLogoDataUri(),
+                    p.getPanNumber(), p.getAccreditationNumber(), p.getReportFooter(), p.getLogoDataUri(),
                     p.getFiscalYear(), p.getInvoicePrefix(), p.getDefaultTaxRate(), p.getInventoryExpiryAlertDays(),
                     p.isRequirePaymentBeforeCollection(), p.isPrintReportLetterhead(), p.isPrintInvoiceLetterhead());
         }

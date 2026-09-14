@@ -59,6 +59,7 @@ public class LaboratoryProfileService {
                 trimToNull(request.phone()),
                 trimToNull(request.email()),
                 trimToNull(request.panNumber()),
+                trimToNull(request.accreditationNumber()),
                 trimToNull(request.reportFooter()),
                 trimToNull(request.logoDataUri()));
         profile.updateBilling(request.fiscalYear().trim(), request.invoicePrefix().trim().toUpperCase(),

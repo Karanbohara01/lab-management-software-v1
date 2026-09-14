@@ -7,6 +7,7 @@ export interface LaboratoryProfile {
   phone: string | null;
   email: string | null;
   panNumber: string | null;
+  accreditationNumber: string | null;
   reportFooter: string | null;
   logoDataUri: string | null;
   fiscalYear: string;

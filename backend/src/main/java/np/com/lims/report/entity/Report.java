@@ -120,10 +120,10 @@ public class Report extends BaseEntity {
     }
 
     public ReportTest addTest(String testCode, String testName, String departmentName, String method,
-                              String specimen, String accessionNumber, String comment, String verifiedBy,
-                              String approvedBy, Instant approvedAt) {
+                              String specimen, String accessionNumber, Instant collectedAt, Instant receivedAt,
+                              String comment, String verifiedBy, String approvedBy, Instant approvedAt) {
         ReportTest reportTest = new ReportTest(this, testCode, testName, departmentName, method, specimen,
-                accessionNumber, comment, verifiedBy, approvedBy, approvedAt, tests.size() + 1);
+                accessionNumber, collectedAt, receivedAt, comment, verifiedBy, approvedBy, approvedAt, tests.size() + 1);
         tests.add(reportTest);
         return reportTest;
     }

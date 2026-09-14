@@ -55,8 +55,13 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const verificationUrl = `${origin}/verify/${report.verificationToken}`;
   return (
-    <div id="report-print" className="mx-auto max-w-3xl bg-white p-8 text-[13px] text-black">
-      <header className={`flex items-start border-b-2 border-black pb-3 ${lab.printLetterhead ? 'justify-between' : 'justify-end'}`}>
+    <>
+      {/* Scoped to this route's own print context (always opened in its own tab) — Chromium's
+          print engine supports @page margin boxes for running page numbers, so a multi-page
+          report (e.g. several bundled tests) prints "Page X of Y" without any JS pagination. */}
+      <style>{'@media print { @page { margin: 16mm 12mm; @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 9px; color: #666; } } }'}</style>
+      <div id="report-print" className="mx-auto max-w-3xl bg-white p-8 text-[13px] text-black">
+        <header className={`flex items-start border-b-2 border-black pb-3 ${lab.printLetterhead ? 'justify-between' : 'justify-end'}`}>
         {lab.printLetterhead && (
           <div className="flex items-center gap-3">
             {lab.logoDataUri && <img src={lab.logoDataUri} alt="" className="h-14 w-14 object-contain" />}
@@ -70,6 +75,9 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
                   .filter(Boolean)
                   .join('  ·  ')}
               </p>
+              {lab.accreditationNumber && (
+                <p className="text-xs">Accreditation No: {lab.accreditationNumber}</p>
+              )}
             </div>
           </div>
         )}
@@ -121,6 +129,16 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
               .filter(Boolean)
               .join('   ')}
           </p>
+          {(test.collectedAt || test.receivedAt) && (
+            <p className="text-[11px] text-gray-600">
+              {[
+                test.collectedAt && `Collected: ${dt(test.collectedAt)}`,
+                test.receivedAt && `Received: ${dt(test.receivedAt)}`,
+              ]
+                .filter(Boolean)
+                .join('   ')}
+            </p>
+          )}
 
           <table className="mt-1 w-full text-xs">
             <thead>
@@ -218,7 +236,8 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
             : ''}
         </p>
       </footer>
-    </div>
+      </div>
+    </>
   );
 }
 

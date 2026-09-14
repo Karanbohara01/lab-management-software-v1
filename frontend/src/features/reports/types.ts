@@ -9,6 +9,7 @@ export interface LabHeader {
   phone: string | null;
   email: string | null;
   panNumber: string | null;
+  accreditationNumber: string | null;
   reportFooter: string | null;
   logoDataUri: string | null;
   printLetterhead: boolean;
@@ -31,6 +32,8 @@ export interface ReportTestBlock {
   method: string | null;
   specimen: string | null;
   accessionNumber: string | null;
+  collectedAt: string | null;
+  receivedAt: string | null;
   comment: string | null;
   verifiedBy: string | null;
   approvedBy: string | null;

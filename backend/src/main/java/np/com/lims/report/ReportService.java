@@ -131,6 +131,7 @@ public class ReportService {
                     test == null ? null : test.getMethod(),
                     result.getSample().getSpecimenType().name(),
                     result.getSample().getAccessionNumber(),
+                    result.getSample().getCollectedAt(), result.getSample().getReceivedAt(),
                     blockComment(result), result.getVerifiedBy(), result.getApprovedBy(), result.getApprovedAt());
             int order2 = 1;
             for (ResultValue value : result.getValues()) {

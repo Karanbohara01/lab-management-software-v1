@@ -104,6 +104,13 @@ export function LaboratorySettingsPage() {
                 <Input label="Address" value={form.addressLine ?? ''} disabled={!canWrite} onChange={(e) => set('addressLine', e.target.value)} />
                 <Input label="City" value={form.city ?? ''} disabled={!canWrite} onChange={(e) => set('city', e.target.value)} />
                 <Input label="PAN / VAT number" value={form.panNumber ?? ''} disabled={!canWrite} onChange={(e) => set('panNumber', e.target.value)} />
+                <Input
+                  label="Accreditation number"
+                  placeholder="e.g. NABL / ISO 15189 certificate no."
+                  value={form.accreditationNumber ?? ''}
+                  disabled={!canWrite}
+                  onChange={(e) => set('accreditationNumber', e.target.value)}
+                />
                 <Input label="Phone" value={form.phone ?? ''} disabled={!canWrite} onChange={(e) => set('phone', e.target.value)} />
                 <Input label="Email" type="email" value={form.email ?? ''} disabled={!canWrite} onChange={(e) => set('email', e.target.value)} />
               </div>
@@ -257,6 +264,7 @@ export function LaboratorySettingsPage() {
               <p className="text-muted">{[form.addressLine, form.city].filter(Boolean).join(', ') || '—'}</p>
               <p className="text-muted">{[form.phone, form.email].filter(Boolean).join(' · ') || '—'}</p>
               {form.panNumber && <p className="text-muted">PAN: {form.panNumber}</p>}
+              {form.accreditationNumber && <p className="text-muted">Accreditation: {form.accreditationNumber}</p>}
             </CardBody>
           </Card>
         </div>

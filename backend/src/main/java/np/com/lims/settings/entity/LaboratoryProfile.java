@@ -39,6 +39,11 @@ public class LaboratoryProfile extends BaseEntity {
     @Column(name = "pan_number", length = 40)
     private String panNumber;
 
+    /** NABL/ISO 15189 (or equivalent) accreditation number, printed on the report header
+     * alongside the PAN — optional, since not every lab is accredited yet. */
+    @Column(name = "accreditation_number", length = 60)
+    private String accreditationNumber;
+
     @Column(name = "fiscal_year", nullable = false, length = 16)
     private String fiscalYear;
 
@@ -107,13 +112,14 @@ public class LaboratoryProfile extends BaseEntity {
     }
 
     public void update(String name, String addressLine, String city, String phone, String email,
-                       String panNumber, String reportFooter, String logoDataUri) {
+                       String panNumber, String accreditationNumber, String reportFooter, String logoDataUri) {
         this.name = name;
         this.addressLine = addressLine;
         this.city = city;
         this.phone = phone;
         this.email = email;
         this.panNumber = panNumber;
+        this.accreditationNumber = accreditationNumber;
         this.reportFooter = reportFooter;
         this.logoDataUri = logoDataUri;
     }
@@ -187,6 +193,10 @@ public class LaboratoryProfile extends BaseEntity {
 
     public String getPanNumber() {
         return panNumber;
+    }
+
+    public String getAccreditationNumber() {
+        return accreditationNumber;
     }
 
     public String getReportFooter() {

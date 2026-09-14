@@ -43,11 +43,13 @@ public final class ReportDtos {
 
     public record LabHeader(
             String name, String addressLine, String city, String phone, String email,
-            String panNumber, String reportFooter, String logoDataUri, boolean printLetterhead
+            String panNumber, String accreditationNumber, String reportFooter, String logoDataUri,
+            boolean printLetterhead
     ) {
         static LabHeader from(LaboratoryProfile p) {
             return new LabHeader(p.getName(), p.getAddressLine(), p.getCity(), p.getPhone(), p.getEmail(),
-                    p.getPanNumber(), p.getReportFooter(), p.getLogoDataUri(), p.isPrintReportLetterhead());
+                    p.getPanNumber(), p.getAccreditationNumber(), p.getReportFooter(), p.getLogoDataUri(),
+                    p.isPrintReportLetterhead());
         }
     }
 
@@ -63,13 +65,14 @@ public final class ReportDtos {
 
     public record TestBlock(
             String testCode, String testName, String departmentName, String method, String specimen,
-            String accessionNumber, String comment, String verifiedBy, String approvedBy, Instant approvedAt,
-            List<ParameterLine> parameters
+            String accessionNumber, Instant collectedAt, Instant receivedAt, String comment, String verifiedBy,
+            String approvedBy, Instant approvedAt, List<ParameterLine> parameters
     ) {
         static TestBlock from(ReportTest t) {
             return new TestBlock(t.getTestCode(), t.getTestName(), t.getDepartmentName(), t.getMethod(),
-                    t.getSpecimen(), t.getAccessionNumber(), t.getComment(), t.getVerifiedBy(), t.getApprovedBy(),
-                    t.getApprovedAt(), t.getParameters().stream().map(ParameterLine::from).toList());
+                    t.getSpecimen(), t.getAccessionNumber(), t.getCollectedAt(), t.getReceivedAt(), t.getComment(),
+                    t.getVerifiedBy(), t.getApprovedBy(), t.getApprovedAt(),
+                    t.getParameters().stream().map(ParameterLine::from).toList());
         }
     }
 
