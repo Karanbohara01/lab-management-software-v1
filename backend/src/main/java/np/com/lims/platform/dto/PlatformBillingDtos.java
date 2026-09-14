@@ -2,6 +2,7 @@ package np.com.lims.platform.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import np.com.lims.ird.entity.CreditNoteStatus;
 import np.com.lims.ird.entity.IrdStatus;
 import np.com.lims.platform.entity.PlatformIrdSubmission;
 import np.com.lims.platform.entity.SubscriptionInvoice;
@@ -21,32 +22,39 @@ public final class PlatformBillingDtos {
     public record InvoiceListItem(Long id, String invoiceNumber, Long organizationId, String organizationName,
                                   String planName, BigDecimal totalAmount, BigDecimal taxAmount,
                                   Instant periodStart, Instant periodEnd, Instant dueAt,
-                                  SubscriptionInvoiceStatus status, Instant paidAt, IrdStatus irdStatus) {
-        public static InvoiceListItem from(SubscriptionInvoice inv, String orgName, IrdStatus irdStatus) {
+                                  SubscriptionInvoiceStatus status, Instant paidAt, IrdStatus irdStatus,
+                                  CreditNoteStatus creditNoteStatus) {
+        public static InvoiceListItem from(SubscriptionInvoice inv, String orgName, PlatformIrdSubmission submission) {
             return new InvoiceListItem(inv.getId(), inv.invoiceNumber(), inv.getOrganizationId(), orgName,
                     inv.getPlanName(), inv.getTotalAmount(), inv.getTaxAmount(), inv.getPeriodStart(),
                     inv.getPeriodEnd(), inv.getDueAt(), inv.getStatus(), inv.getPaidAt(),
-                    irdStatus == null ? IrdStatus.NOT_SUBMITTED : irdStatus);
+                    submission == null ? IrdStatus.NOT_SUBMITTED : submission.getStatus(),
+                    submission == null ? CreditNoteStatus.NOT_NEEDED : submission.getCreditNoteStatus());
         }
     }
 
     public record IrdSubmissionDetail(Long id, Long subscriptionInvoiceId, String invoiceNumber, Long organizationId,
                                       String organizationName, String planName, BigDecimal taxableAmount,
                                       BigDecimal taxAmount, BigDecimal totalAmount, SubscriptionInvoiceStatus invoiceStatus,
-                                      IrdStatus status, String providerReference, String lastErrorCode,
+                                      String cancelReason, IrdStatus status, String providerReference, String lastErrorCode,
                                       String lastErrorMessage, int attemptCount, boolean manual, String manualReference,
-                                      String notes, Instant submittedAt, Instant acceptedAt) {
+                                      String notes, Instant submittedAt, Instant acceptedAt, CreditNoteStatus creditNoteStatus,
+                                      String creditNoteNumber, Instant creditNoteFiledAt, String creditNoteErrorMessage) {
         public static IrdSubmissionDetail from(PlatformIrdSubmission s, String orgName) {
             SubscriptionInvoice inv = s.getSubscriptionInvoice();
             return new IrdSubmissionDetail(s.getId(), inv.getId(), inv.invoiceNumber(), inv.getOrganizationId(),
                     orgName, inv.getPlanName(), inv.getTaxableAmount(), inv.getTaxAmount(), inv.getTotalAmount(),
-                    inv.getStatus(), s.getStatus(), s.getProviderReference(), s.getLastErrorCode(),
+                    inv.getStatus(), inv.getCancelReason(), s.getStatus(), s.getProviderReference(), s.getLastErrorCode(),
                     s.getLastErrorMessage(), s.getAttemptCount(), s.isManual(), s.getManualReference(),
-                    s.getNotes(), s.getSubmittedAt(), s.getAcceptedAt());
+                    s.getNotes(), s.getSubmittedAt(), s.getAcceptedAt(), s.getCreditNoteStatus(),
+                    s.getCreditNoteNumber(), s.getCreditNoteFiledAt(), s.getCreditNoteErrorMessage());
         }
     }
 
     public record MarkManualRequest(@NotBlank String reference, String note) {
+    }
+
+    public record CancelInvoiceRequest(@NotBlank @Size(max = 500) String reason) {
     }
 
     public record IrdConfigResponse(boolean configured, String environment, String message) {

@@ -75,6 +75,12 @@ public class SubscriptionInvoice extends BaseEntity {
     @Column(name = "pending_transaction_uuid", length = 80)
     private String pendingTransactionUuid;
 
+    @Column(name = "cancel_reason", length = 500)
+    private String cancelReason;
+
+    @Column(name = "cancelled_at")
+    private Instant cancelledAt;
+
     protected SubscriptionInvoice() {
     }
 
@@ -121,8 +127,20 @@ public class SubscriptionInvoice extends BaseEntity {
         }
     }
 
-    public void cancel() {
+    public void assertCanCancel() {
+        if (status == SubscriptionInvoiceStatus.PAID) {
+            throw np.com.lims.common.exception.ApiException.conflict(
+                    "Invoice " + invoiceNumber() + " is already paid and cannot be cancelled — issue a refund instead");
+        }
+        if (status == SubscriptionInvoiceStatus.CANCELLED) {
+            throw np.com.lims.common.exception.ApiException.conflict("Invoice " + invoiceNumber() + " is already cancelled");
+        }
+    }
+
+    public void cancel(String reason) {
         this.status = SubscriptionInvoiceStatus.CANCELLED;
+        this.cancelReason = reason;
+        this.cancelledAt = Instant.now();
     }
 
     public boolean isSettled() {
@@ -187,5 +205,13 @@ public class SubscriptionInvoice extends BaseEntity {
 
     public String getPendingTransactionUuid() {
         return pendingTransactionUuid;
+    }
+
+    public String getCancelReason() {
+        return cancelReason;
+    }
+
+    public Instant getCancelledAt() {
+        return cancelledAt;
     }
 }

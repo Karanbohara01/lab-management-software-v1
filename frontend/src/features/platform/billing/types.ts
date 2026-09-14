@@ -1,4 +1,4 @@
-import type { IrdStatus } from '@/features/ird/types';
+import type { CreditNoteStatus, IrdStatus } from '@/features/ird/types';
 
 export type SubscriptionInvoiceStatus = 'PENDING' | 'PAID' | 'OVERDUE' | 'CANCELLED';
 
@@ -16,6 +16,7 @@ export interface PlatformInvoiceListItem {
   status: SubscriptionInvoiceStatus;
   paidAt: string | null;
   irdStatus: IrdStatus;
+  creditNoteStatus: CreditNoteStatus;
 }
 
 export interface PlatformIrdSubmissionDetail {
@@ -29,6 +30,7 @@ export interface PlatformIrdSubmissionDetail {
   taxAmount: number;
   totalAmount: number;
   invoiceStatus: SubscriptionInvoiceStatus;
+  cancelReason: string | null;
   status: IrdStatus;
   providerReference: string | null;
   lastErrorCode: string | null;
@@ -39,6 +41,10 @@ export interface PlatformIrdSubmissionDetail {
   notes: string | null;
   submittedAt: string | null;
   acceptedAt: string | null;
+  creditNoteStatus: CreditNoteStatus;
+  creditNoteNumber: string | null;
+  creditNoteFiledAt: string | null;
+  creditNoteErrorMessage: string | null;
 }
 
 export interface PlatformIrdConfig {

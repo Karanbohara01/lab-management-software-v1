@@ -3,7 +3,9 @@ import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
+import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
+import { Alert } from '@/components/ui/Alert';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
@@ -43,6 +45,7 @@ export function OrganizationDetailModal({
   const [busy, setBusy] = useState(false);
   const [planCode, setPlanCode] = useState('');
   const [subStatus, setSubStatus] = useState<SubscriptionStatus>('ACTIVE');
+  const [periodEnd, setPeriodEnd] = useState('');
   const [note, setNote] = useState('');
 
   const { data: org, loading, error, refetch } = useQuery(
@@ -69,8 +72,28 @@ export function OrganizationDetailModal({
   const applySubscriptionChange = () => {
     if (!organizationId || !planCode) return;
     act(
-      () => platformApi.changeSubscription(organizationId, { planCode, status: subStatus, note: note || undefined }),
+      () =>
+        platformApi.changeSubscription(organizationId, {
+          planCode,
+          status: subStatus,
+          currentPeriodEnd: periodEnd ? new Date(periodEnd).toISOString() : undefined,
+          note: note || undefined,
+        }),
       'Subscription updated',
+    );
+  };
+
+  const startBillingToday = () => {
+    if (!organizationId || !current) return;
+    act(
+      () =>
+        platformApi.changeSubscription(organizationId, {
+          planCode: current.plan.code,
+          status: 'ACTIVE',
+          currentPeriodEnd: new Date().toISOString(),
+          note: 'Billing period started by platform admin',
+        }),
+      'Billing period started — the next sweep will issue an invoice',
     );
   };
 
@@ -100,6 +123,19 @@ export function OrganizationDetailModal({
             <Row label="Onboarded" value={dt(org.createdAt)} />
           </div>
           {org.notes && <p className="rounded-md bg-surface-muted p-3 text-sm text-muted">{org.notes}</p>}
+
+          {current && !current.currentPeriodEnd && (
+            <Alert tone="warning">
+              This clinic's billing period has never been started — no subscription invoice will ever be
+              issued until one is. Onboarding via the admin dashboard deliberately leaves this open-ended
+              (for negotiated/sales-assisted signups); set a period end below, or use the quick action.
+              <div className="mt-2">
+                <Button size="sm" disabled={busy} onClick={startBillingToday}>
+                  Start billing today
+                </Button>
+              </div>
+            </Alert>
+          )}
 
           <div className="flex flex-wrap gap-2 border-t border-border pt-4">
             <span className="w-full text-xs font-medium uppercase tracking-wide text-muted">Clinic status</span>
@@ -131,7 +167,18 @@ export function OrganizationDetailModal({
                 onChange={(e) => setSubStatus(e.target.value as SubscriptionStatus)}
                 options={SUB_STATUSES.map((s) => ({ value: s, label: SUBSCRIPTION_STATUS_LABEL[s] }))}
               />
+              <Input
+                label="Current billing period ends"
+                type="date"
+                value={periodEnd}
+                onChange={(e) => setPeriodEnd(e.target.value)}
+              />
             </div>
+            <p className="text-xs text-muted">
+              {current?.currentPeriodEnd
+                ? `Currently billed through ${dt(current.currentPeriodEnd)}. Leave blank to keep it unchanged.`
+                : 'No billing period is set — this clinic will never be auto-invoiced until one is.'}
+            </p>
             <Textarea label="Note" value={note} onChange={(e) => setNote(e.target.value)} />
             <div className="flex justify-end gap-2">
               <Button

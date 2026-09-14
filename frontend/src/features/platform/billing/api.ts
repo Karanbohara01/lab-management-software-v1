@@ -37,4 +37,24 @@ export const platformBillingApi = {
     httpClient
       .post<PlatformIrdSubmissionDetail>(`/platform/subscription-invoices/ird/${submissionId}/manual`, { reference, note })
       .then((r) => r.data),
+
+  cancelInvoice: (invoiceId: number, reason: string) =>
+    httpClient
+      .post<PlatformIrdSubmissionDetail>(`/platform/subscription-invoices/${invoiceId}/cancel`, { reason })
+      .then((r) => r.data),
+
+  submitCreditNote: (submissionId: number) =>
+    httpClient
+      .post<PlatformIrdSubmissionDetail>(`/platform/subscription-invoices/ird/${submissionId}/credit-note/submit`)
+      .then((r) => r.data),
+
+  retryCreditNote: (submissionId: number) =>
+    httpClient
+      .post<PlatformIrdSubmissionDetail>(`/platform/subscription-invoices/ird/${submissionId}/credit-note/retry`)
+      .then((r) => r.data),
+
+  markCreditNoteManual: (submissionId: number, reference: string, note?: string) =>
+    httpClient
+      .post<PlatformIrdSubmissionDetail>(`/platform/subscription-invoices/ird/${submissionId}/credit-note/manual`, { reference, note })
+      .then((r) => r.data),
 };

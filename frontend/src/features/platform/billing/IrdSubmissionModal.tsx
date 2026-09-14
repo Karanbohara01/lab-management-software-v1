@@ -10,7 +10,7 @@ import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
 import { useQuery } from '@/hooks/useQuery';
 import { formatMoney } from '@/lib/money';
-import { IRD_STATUS_LABEL, IRD_STATUS_TONE } from '@/features/ird/types';
+import { CREDIT_NOTE_STATUS_LABEL, CREDIT_NOTE_STATUS_TONE, IRD_STATUS_LABEL, IRD_STATUS_TONE } from '@/features/ird/types';
 import { platformBillingApi } from './api';
 import { SUBSCRIPTION_INVOICE_STATUS_LABEL, SUBSCRIPTION_INVOICE_STATUS_TONE } from './types';
 
@@ -31,9 +31,11 @@ export function IrdSubmissionModal({
 }) {
   const toast = useToast();
   const [busy, setBusy] = useState(false);
-  const [manualOpen, setManualOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState<'bill' | 'creditNote' | null>(null);
   const [manualRef, setManualRef] = useState('');
   const [manualNote, setManualNote] = useState('');
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
 
   const { data: submission, loading, error, refetch } = useQuery(
     () => (invoiceId ? platformBillingApi.getByInvoice(invoiceId) : Promise.resolve(null)),
@@ -56,15 +58,28 @@ export function IrdSubmissionModal({
 
   const submitManual = () => {
     if (!submission || !manualRef.trim()) return;
-    act(
-      () => platformBillingApi.markManual(submission.id, manualRef.trim(), manualNote.trim() || undefined),
-      'Recorded as manually filed',
-    ).then(() => {
-      setManualOpen(false);
+    const fn =
+      manualOpen === 'creditNote'
+        ? () => platformBillingApi.markCreditNoteManual(submission.id, manualRef.trim(), manualNote.trim() || undefined)
+        : () => platformBillingApi.markManual(submission.id, manualRef.trim(), manualNote.trim() || undefined);
+    act(fn, manualOpen === 'creditNote' ? 'Credit note recorded as manually filed' : 'Recorded as manually filed').then(() => {
+      setManualOpen(null);
       setManualRef('');
       setManualNote('');
     });
   };
+
+  const submitCancel = () => {
+    if (!submission || !cancelReason.trim()) return;
+    act(() => platformBillingApi.cancelInvoice(submission.subscriptionInvoiceId, cancelReason.trim()), 'Invoice cancelled').then(
+      () => {
+        setCancelOpen(false);
+        setCancelReason('');
+      },
+    );
+  };
+
+  const canCancelInvoice = submission && (submission.invoiceStatus === 'PENDING' || submission.invoiceStatus === 'OVERDUE');
 
   return (
     <Modal
@@ -86,6 +101,11 @@ export function IrdSubmissionModal({
             </Badge>
             <Badge tone={IRD_STATUS_TONE[submission.status]}>IRD: {IRD_STATUS_LABEL[submission.status]}</Badge>
             {submission.manual && <Badge tone="neutral">Filed manually</Badge>}
+            {submission.creditNoteStatus !== 'NOT_NEEDED' && (
+              <Badge tone={CREDIT_NOTE_STATUS_TONE[submission.creditNoteStatus]}>
+                Credit note: {CREDIT_NOTE_STATUS_LABEL[submission.creditNoteStatus]}
+              </Badge>
+            )}
           </div>
 
           <div className="grid gap-2 text-sm sm:grid-cols-2">
@@ -111,17 +131,34 @@ export function IrdSubmissionModal({
             </p>
           )}
 
+          {submission.invoiceStatus === 'CANCELLED' && submission.cancelReason && (
+            <Alert tone="info">Cancelled — {submission.cancelReason}</Alert>
+          )}
+
+          {submission.creditNoteStatus === 'NEEDED' && (
+            <Alert tone="warning">
+              This bill was already filed with IRD before the invoice was cancelled — a credit note must be
+              filed to reverse it.
+            </Alert>
+          )}
+          {submission.creditNoteStatus === 'FAILED' && submission.creditNoteErrorMessage && (
+            <Alert tone="danger">Credit note failed: {submission.creditNoteErrorMessage}</Alert>
+          )}
+          {submission.creditNoteStatus === 'FILED' && (
+            <Row label="Credit note" value={`${submission.creditNoteNumber ?? '—'} · filed ${dt(submission.creditNoteFiledAt)}`} />
+          )}
+
           {manualOpen ? (
             <div className="space-y-3 rounded-md border border-border p-4">
               <Input
-                label="Manual filing reference"
+                label={manualOpen === 'creditNote' ? 'Manual credit note reference' : 'Manual filing reference'}
                 placeholder="e.g. IRD portal receipt number"
                 value={manualRef}
                 onChange={(e) => setManualRef(e.target.value)}
               />
               <Textarea label="Note (optional)" value={manualNote} onChange={(e) => setManualNote(e.target.value)} />
               <div className="flex justify-end gap-2">
-                <Button variant="secondary" size="sm" onClick={() => setManualOpen(false)}>
+                <Button variant="secondary" size="sm" onClick={() => setManualOpen(null)}>
                   Cancel
                 </Button>
                 <Button size="sm" disabled={!manualRef.trim() || busy} onClick={submitManual}>
@@ -129,11 +166,57 @@ export function IrdSubmissionModal({
                 </Button>
               </div>
             </div>
+          ) : cancelOpen ? (
+            <div className="space-y-3 rounded-md border border-danger/30 p-4">
+              <Textarea
+                label="Reason for cancelling this invoice"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="secondary" size="sm" onClick={() => setCancelOpen(false)}>
+                  Back
+                </Button>
+                <Button variant="danger" size="sm" disabled={!cancelReason.trim() || busy} onClick={submitCancel}>
+                  Confirm cancel
+                </Button>
+              </div>
+            </div>
           ) : (
             <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
-              <Button variant="secondary" disabled={busy} onClick={() => setManualOpen(true)}>
-                Record manual filing
-              </Button>
+              {submission.creditNoteStatus === 'NEEDED' && (
+                <Button
+                  variant="danger"
+                  disabled={busy}
+                  onClick={() => act(() => platformBillingApi.submitCreditNote(submission.id), 'Credit note filed')}
+                >
+                  File credit note
+                </Button>
+              )}
+              {submission.creditNoteStatus === 'FAILED' && (
+                <Button
+                  variant="danger"
+                  disabled={busy}
+                  onClick={() => act(() => platformBillingApi.retryCreditNote(submission.id), 'Retried credit note')}
+                >
+                  Retry credit note
+                </Button>
+              )}
+              {(submission.creditNoteStatus === 'NEEDED' || submission.creditNoteStatus === 'FAILED') && (
+                <Button variant="secondary" disabled={busy} onClick={() => setManualOpen('creditNote')}>
+                  Record manual credit note
+                </Button>
+              )}
+              {canCancelInvoice && (
+                <Button variant="danger" disabled={busy} onClick={() => setCancelOpen(true)}>
+                  Cancel invoice
+                </Button>
+              )}
+              {submission.status !== 'ACCEPTED' && submission.status !== 'DUPLICATE' && (
+                <Button variant="secondary" disabled={busy} onClick={() => setManualOpen('bill')}>
+                  Record manual filing
+                </Button>
+              )}
               {submission.status === 'FAILED' ? (
                 <Button disabled={busy} onClick={() => act(() => platformBillingApi.retry(submission.id), 'Retried')}>
                   Retry submission

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, CheckCircle2, AlertTriangle, Settings2 } from 'lucide-react';
+import { FileText, CheckCircle2, AlertTriangle, Settings2, Download } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -11,12 +11,16 @@ import { Pagination } from '@/components/ui/Pagination';
 import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { StatTileRow, type StatTileData } from '@/features/dashboard/components/StatTile';
 import { useQuery } from '@/hooks/useQuery';
+import { useToast } from '@/components/ui/toast';
 import { formatMoney } from '@/lib/money';
-import { IRD_STATUS_LABEL, IRD_STATUS_TONE, type IrdStatus } from '@/features/ird/types';
+import { exportCsv } from '@/lib/exportData';
+import { CREDIT_NOTE_STATUS_LABEL, CREDIT_NOTE_STATUS_TONE, IRD_STATUS_LABEL, IRD_STATUS_TONE, type IrdStatus } from '@/features/ird/types';
 import { platformBillingApi } from './api';
 import { IrdSubmissionModal } from './IrdSubmissionModal';
 import { PlatformIrdCredentialsCard } from './PlatformIrdCredentialsCard';
 import { SUBSCRIPTION_INVOICE_STATUS_LABEL, SUBSCRIPTION_INVOICE_STATUS_TONE, type PlatformInvoiceListItem } from './types';
+
+const EXPORT_LIMIT = 10_000;
 
 const PAGE_SIZE = 20;
 const IRD_STATUSES: IrdStatus[] = ['NOT_SUBMITTED', 'PENDING', 'SUBMITTED', 'ACCEPTED', 'FAILED', 'DUPLICATE', 'CANCELLED'];
@@ -31,16 +35,58 @@ function dt(iso: string): string {
  * screen, which shows only that clinic's own invoices without any IRD detail.
  */
 export function PlatformBillingPage() {
+  const toast = useToast();
   const [irdStatus, setIrdStatus] = useState<IrdStatus | ''>('');
   const [page, setPage] = useState(0);
   const [openInvoiceId, setOpenInvoiceId] = useState<number | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const configQ = useQuery(() => platformBillingApi.config(), []);
   const { data, loading, error, refetch } = useQuery(
     () => platformBillingApi.list({ irdStatus: irdStatus || undefined, page, size: PAGE_SIZE }),
     [irdStatus, page],
   );
+
+  const exportAll = async () => {
+    setExporting(true);
+    try {
+      const all = await platformBillingApi.list({ irdStatus: irdStatus || undefined, page: 0, size: EXPORT_LIMIT });
+      exportCsv(
+        all.content.map((i) => ({
+          invoiceNumber: i.invoiceNumber,
+          clinic: i.organizationName ?? '',
+          plan: i.planName,
+          taxableAmount: i.totalAmount - i.taxAmount,
+          vat: i.taxAmount,
+          total: i.totalAmount,
+          dueAt: i.dueAt,
+          paymentStatus: i.status,
+          paidAt: i.paidAt ?? '',
+          irdStatus: i.irdStatus,
+          creditNoteStatus: i.creditNoteStatus,
+        })),
+        [
+          { key: 'invoiceNumber', header: 'Invoice' },
+          { key: 'clinic', header: 'Clinic' },
+          { key: 'plan', header: 'Plan' },
+          { key: 'taxableAmount', header: 'Taxable amount' },
+          { key: 'vat', header: 'VAT' },
+          { key: 'total', header: 'Total' },
+          { key: 'dueAt', header: 'Due' },
+          { key: 'paymentStatus', header: 'Payment status' },
+          { key: 'paidAt', header: 'Paid at' },
+          { key: 'irdStatus', header: 'IRD status' },
+          { key: 'creditNoteStatus', header: 'Credit note status' },
+        ],
+        `subscription-invoices-${new Date().toISOString().slice(0, 10)}.csv`,
+      );
+    } catch {
+      toast.error('Export failed');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const stats: StatTileData[] = data
     ? [
@@ -73,7 +119,14 @@ export function PlatformBillingPage() {
     {
       key: 'ird',
       header: 'IRD e-billing',
-      cell: (i) => <Badge tone={IRD_STATUS_TONE[i.irdStatus]}>{IRD_STATUS_LABEL[i.irdStatus]}</Badge>,
+      cell: (i) => (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Badge tone={IRD_STATUS_TONE[i.irdStatus]}>{IRD_STATUS_LABEL[i.irdStatus]}</Badge>
+          {i.creditNoteStatus !== 'NOT_NEEDED' && (
+            <Badge tone={CREDIT_NOTE_STATUS_TONE[i.creditNoteStatus]}>CN: {CREDIT_NOTE_STATUS_LABEL[i.creditNoteStatus]}</Badge>
+          )}
+        </div>
+      ),
     },
   ];
 
@@ -83,10 +136,16 @@ export function PlatformBillingPage() {
         title="Subscription billing"
         description="What this deployment charges each clinic, and its IRD/CBMS e-billing status — distinct from a clinic's own patient billing."
         actions={
-          <Button variant="secondary" onClick={() => setSettingsOpen((v) => !v)}>
-            <Settings2 className="h-4 w-4" aria-hidden />
-            IRD settings
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" loading={exporting} onClick={exportAll}>
+              <Download className="h-4 w-4" aria-hidden />
+              Export CSV
+            </Button>
+            <Button variant="secondary" onClick={() => setSettingsOpen((v) => !v)}>
+              <Settings2 className="h-4 w-4" aria-hidden />
+              IRD settings
+            </Button>
+          </div>
         }
       />
 

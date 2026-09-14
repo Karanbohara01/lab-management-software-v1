@@ -9,6 +9,7 @@ import np.com.lims.platform.PlatformIrdSubmissionService;
 import np.com.lims.platform.PlatformService;
 import np.com.lims.platform.SubscriptionBillingService;
 import np.com.lims.platform.dto.MasterCatalogDtos;
+import np.com.lims.platform.dto.PlatformBillingDtos.CancelInvoiceRequest;
 import np.com.lims.platform.dto.PlatformBillingDtos.InvoiceListItem;
 import np.com.lims.platform.dto.PlatformBillingDtos.IrdConfigResponse;
 import np.com.lims.platform.dto.PlatformBillingDtos.IrdCredentialsResponse;
@@ -200,5 +201,25 @@ public class PlatformController {
     @PostMapping("/subscription-invoices/ird/{submissionId}/manual")
     public IrdSubmissionDetail markIrdManual(@PathVariable Long submissionId, @Valid @RequestBody MarkManualRequest request) {
         return irdService.markManual(submissionId, request.reference(), request.note());
+    }
+
+    @PostMapping("/subscription-invoices/{invoiceId}/cancel")
+    public IrdSubmissionDetail cancelSubscriptionInvoice(@PathVariable Long invoiceId, @Valid @RequestBody CancelInvoiceRequest request) {
+        return irdService.cancelInvoice(invoiceId, request.reason());
+    }
+
+    @PostMapping("/subscription-invoices/ird/{submissionId}/credit-note/submit")
+    public IrdSubmissionDetail submitCreditNote(@PathVariable Long submissionId) {
+        return irdService.submitCreditNote(submissionId);
+    }
+
+    @PostMapping("/subscription-invoices/ird/{submissionId}/credit-note/retry")
+    public IrdSubmissionDetail retryCreditNote(@PathVariable Long submissionId) {
+        return irdService.retryCreditNote(submissionId);
+    }
+
+    @PostMapping("/subscription-invoices/ird/{submissionId}/credit-note/manual")
+    public IrdSubmissionDetail markCreditNoteManual(@PathVariable Long submissionId, @Valid @RequestBody MarkManualRequest request) {
+        return irdService.markCreditNoteManual(submissionId, request.reference(), request.note());
     }
 }
