@@ -1,3 +1,4 @@
+import { Clock, Sparkles, Plug } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { SectionHeader } from '@/features/dashboard/components/SectionHeader';
@@ -8,21 +9,33 @@ function dt(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' });
 }
 
+/** Small coloured initial badge standing in for a clinic logo — avoids the list reading as a bare
+ * wall of text when several clinics share a status badge colour. */
+function ClinicAvatar({ name }: { name: string }) {
+  const initial = name.trim().charAt(0).toUpperCase() || '?';
+  return (
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+      {initial}
+    </span>
+  );
+}
+
 export function UpcomingRenewalsCard({ renewals }: { renewals: UpcomingRenewal[] }) {
   return (
     <Card>
       <div className="p-5 pb-0">
-        <SectionHeader title="Renewals due soon" description="Next 30 days" />
+        <SectionHeader icon={Clock} title="Renewals due soon" description="Next 30 days" />
       </div>
       {renewals.length === 0 ? (
         <p className="px-5 pb-5 text-sm text-muted">Nothing renewing in the next 30 days.</p>
       ) : (
         <ul className="divide-y divide-border">
           {renewals.map((r) => (
-            <li key={r.organizationId} className="flex items-center justify-between px-5 py-3">
-              <div>
-                <p className="text-sm font-medium text-foreground">{r.organizationName}</p>
-                <p className="text-xs text-muted">
+            <li key={r.organizationId} className="flex items-center gap-3 px-5 py-3">
+              <ClinicAvatar name={r.organizationName} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-foreground">{r.organizationName}</p>
+                <p className="truncate text-xs text-muted">
                   {r.planName} · due {dt(r.currentPeriodEnd)}
                 </p>
               </div>
@@ -42,11 +55,11 @@ function AdoptionRow({ label, count, total }: { label: string; count: number; to
       <div className="mb-1.5 flex items-center justify-between text-sm">
         <span className="text-foreground">{label}</span>
         <span className="text-muted">
-          {count} / {total} ({pct}%)
+          <span className="font-medium text-foreground">{count}</span> / {total} ({pct}%)
         </span>
       </div>
-      <div className="h-1.5 rounded-full bg-surface-muted">
-        <div className="h-1.5 rounded-full bg-brand" style={{ width: `${pct}%` }} />
+      <div className="h-2 rounded-full bg-surface-muted">
+        <div className="h-2 rounded-full bg-primary" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
@@ -61,7 +74,7 @@ export function IntegrationAdoptionCard({ adoption }: { adoption: IntegrationAdo
   return (
     <Card>
       <div className="p-5 pb-0">
-        <SectionHeader title="Integration adoption" description="Clinics using their own gateway credentials" />
+        <SectionHeader icon={Plug} title="Integration adoption" description="Clinics using their own gateway credentials" />
       </div>
       {adoption.totalOrganizations === 0 ? (
         <p className="px-5 pb-5 text-sm text-muted">No clinics onboarded yet.</p>
@@ -80,17 +93,18 @@ export function RecentClinicsCard({ clinics }: { clinics: RecentClinic[] }) {
   return (
     <Card>
       <div className="p-5 pb-0">
-        <SectionHeader title="Recently onboarded" />
+        <SectionHeader icon={Sparkles} title="Recently onboarded" />
       </div>
       {clinics.length === 0 ? (
         <p className="px-5 pb-5 text-sm text-muted">No clinics onboarded yet.</p>
       ) : (
         <ul className="divide-y divide-border">
           {clinics.map((c) => (
-            <li key={c.id} className="flex items-center justify-between px-5 py-3">
-              <div>
-                <p className="text-sm font-medium text-foreground">{c.name}</p>
-                <p className="text-xs text-muted">
+            <li key={c.id} className="flex items-center gap-3 px-5 py-3">
+              <ClinicAvatar name={c.name} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-foreground">{c.name}</p>
+                <p className="truncate text-xs text-muted">
                   {c.planName ?? '—'} · {dt(c.createdAt)}
                 </p>
               </div>

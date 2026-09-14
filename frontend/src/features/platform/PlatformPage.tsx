@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Building2, CreditCard, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Plus, Building2, CreditCard, AlertTriangle, TrendingUp, Users2 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -110,8 +110,10 @@ export function PlatformPage() {
       </div>
 
       {dashboardQ.data && (
-        <div className="mb-5 grid gap-4 lg:grid-cols-2">
-          <SignupsTrend points={dashboardQ.data.signupsByMonth} />
+        <div className="mb-5 grid gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <SignupsTrend points={dashboardQ.data.signupsByMonth} />
+          </div>
           <PlanDistributionCard points={dashboardQ.data.planDistribution} />
           <UpcomingRenewalsCard renewals={dashboardQ.data.upcomingRenewals} />
           <RecentClinicsCard clinics={dashboardQ.data.recentClinics} />
@@ -120,8 +122,19 @@ export function PlatformPage() {
       )}
 
       <Card>
-        <div className="flex items-center justify-between gap-3 border-b border-border p-4">
-          <SearchInput value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search clinics…" />
+        <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
+              <Users2 className="h-3.5 w-3.5 text-primary" aria-hidden />
+            </span>
+            <div>
+              <h2 className="text-sm font-semibold text-foreground">All clinics</h2>
+              {orgsQ.data && <p className="text-xs text-muted">{orgsQ.data.totalElements.toLocaleString()} total</p>}
+            </div>
+          </div>
+          <div className="sm:w-72">
+            <SearchInput value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search clinics…" />
+          </div>
         </div>
         {orgsQ.loading && !orgsQ.data ? (
           <TableSkeleton columns={columns.length} />

@@ -1,3 +1,4 @@
+import { TrendingUp } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/features/dashboard/components/SectionHeader';
 import type { SignupPoint } from './types';
@@ -14,31 +15,64 @@ export function SignupsTrend({ points }: { points: SignupPoint[] }) {
   const max = Math.max(1, ...points.map((p) => p.count));
   const total = points.reduce((s, p) => s + p.count, 0);
   const W = 360;
-  const H = 120;
+  const H = 140;
   const padX = 4;
-  const padBottom = 18;
-  const barGap = 8;
+  const padTop = 10;
+  const padBottom = 20;
+  const plotH = H - padTop - padBottom;
+  const barGap = 10;
   const barW = points.length > 0 ? (W - padX * 2) / points.length - barGap : 0;
+  const gridLines = [0.25, 0.5, 0.75, 1];
 
   return (
     <Card className="p-5">
-      <SectionHeader title="Clinics onboarded" description={`Last 6 months · ${total} total`} />
+      <SectionHeader icon={TrendingUp} title="Clinics onboarded" description={`Last 6 months · ${total} total`} />
       {total === 0 ? (
         <p className="text-sm text-muted">No clinics onboarded in this period yet.</p>
       ) : (
         <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Clinics onboarded per month">
+          {gridLines.map((f) => {
+            const y = padTop + plotH * (1 - f);
+            return <line key={f} x1={padX} x2={W - padX} y1={y} y2={y} className="stroke-border" strokeWidth={1} />;
+          })}
+          <line x1={padX} x2={W - padX} y1={padTop + plotH} y2={padTop + plotH} className="stroke-border" strokeWidth={1} />
           {points.map((p, i) => {
-            const h = Math.max(2, ((H - padBottom) * p.count) / max);
+            const h = Math.max(2, (plotH * p.count) / max);
             const x = padX + i * (barW + barGap);
-            const y = H - padBottom - h;
+            const y = padTop + plotH - h;
+            const isLast = i === points.length - 1;
             return (
               <g key={p.month}>
-                <rect x={x} y={y} width={Math.max(1, barW)} height={h} rx={3} className="fill-primary/70">
+                <rect
+                  x={x}
+                  y={y}
+                  width={Math.max(1, barW)}
+                  height={h}
+                  rx={4}
+                  className={isLast ? 'fill-primary' : 'fill-primary/45'}
+                >
                   <title>
-                    {monthLabel(p.month)}: {p.count}
+                    {monthLabel(p.month)}: {p.count} clinic{p.count === 1 ? '' : 's'}
                   </title>
                 </rect>
-                <text x={x + barW / 2} y={H - 4} textAnchor="middle" className="fill-muted" style={{ fontSize: 9 }}>
+                {p.count > 0 && (
+                  <text
+                    x={x + barW / 2}
+                    y={y - 4}
+                    textAnchor="middle"
+                    className={isLast ? 'fill-foreground font-semibold' : 'fill-muted'}
+                    style={{ fontSize: 9 }}
+                  >
+                    {p.count}
+                  </text>
+                )}
+                <text
+                  x={x + barW / 2}
+                  y={H - 5}
+                  textAnchor="middle"
+                  className={isLast ? 'fill-foreground font-medium' : 'fill-muted'}
+                  style={{ fontSize: 9 }}
+                >
                   {monthLabel(p.month)}
                 </text>
               </g>
