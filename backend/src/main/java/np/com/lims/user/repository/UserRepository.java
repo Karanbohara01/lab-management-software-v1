@@ -41,6 +41,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @EntityGraph(attributePaths = {"roles"})
     Optional<User> findWithRolesById(Long id);
 
+    /**
+     * NOT tenant-filtered — see {@link #findByUsernameIgnoreCase}'s javadoc. Safe here because,
+     * unlike username, email is globally unique ({@code UNIQUE (email)}, no per-org qualifier), so
+     * this can never return more than one row. Used only by the unauthenticated forgot-password
+     * flow, which by definition has no tenant context to filter by yet.
+     */
+    Optional<User> findByEmailIgnoreCase(String email);
+
     /** NOT tenant-filtered — see {@link #findByUsernameIgnoreCase}'s javadoc. Use the org-scoped overload below instead. */
     boolean existsByUsernameIgnoreCase(String username);
 

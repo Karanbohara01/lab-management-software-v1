@@ -1,5 +1,5 @@
 import { httpClient } from './client';
-import type { CurrentUser, LoginRequest, TokenResponse } from '@/types/auth';
+import type { CurrentUser, ForgotPasswordRequest, LoginRequest, ResetPasswordRequest, TokenResponse } from '@/types/auth';
 
 export const authApi = {
   login: (payload: LoginRequest) =>
@@ -8,4 +8,10 @@ export const authApi = {
   me: () => httpClient.get<CurrentUser>('/auth/me').then((r) => r.data),
 
   logout: () => httpClient.post<void>('/auth/logout').then(() => undefined),
+
+  forgotPassword: (payload: ForgotPasswordRequest) =>
+    httpClient.post<void>('/auth/forgot-password', payload).then(() => undefined),
+
+  resetPassword: (payload: ResetPasswordRequest) =>
+    httpClient.post<void>('/auth/reset-password', payload).then(() => undefined),
 };

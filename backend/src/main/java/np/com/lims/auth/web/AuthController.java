@@ -3,8 +3,10 @@ package np.com.lims.auth.web;
 import jakarta.validation.Valid;
 import np.com.lims.auth.AuthService;
 import np.com.lims.auth.dto.CurrentUserResponse;
+import np.com.lims.auth.dto.ForgotPasswordRequest;
 import np.com.lims.auth.dto.LoginRequest;
 import np.com.lims.auth.dto.RefreshRequest;
+import np.com.lims.auth.dto.ResetPasswordRequest;
 import np.com.lims.auth.dto.TokenResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -46,5 +48,22 @@ public class AuthController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void logout() {
         // no server-side session/token store yet; Phase 7 may add refresh-token revocation.
+    }
+
+    /**
+     * Public/unauthenticated — see {@code SecurityConfig.PUBLIC_ENDPOINTS}. Always 204 regardless
+     * of whether the email matches an account; see {@code AuthService.forgotPassword}'s javadoc.
+     */
+    @PostMapping("/forgot-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+    }
+
+    /** Public/unauthenticated — see {@code SecurityConfig.PUBLIC_ENDPOINTS}. */
+    @PostMapping("/reset-password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
     }
 }

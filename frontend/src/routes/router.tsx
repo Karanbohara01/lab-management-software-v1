@@ -6,6 +6,8 @@ import { RequirePermission } from './RequirePermission';
 import { lazyPage } from './lazyPage';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { LoginPage } from '@/pages/LoginPage';
+import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage';
+import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { ForbiddenPage, NotFoundPage } from '@/pages/ErrorPages';
 
@@ -22,6 +24,8 @@ function route(path: string, element: ReactNode, anyOf?: string[]) {
 export const router = createBrowserRouter([
   { path: '/', element: lazyPage(() => import('@/features/marketing/LandingPage'), 'LandingPage') },
   { path: '/login', element: <LoginPage /> },
+  { path: '/forgot-password', element: <ForgotPasswordPage /> },
+  { path: '/reset-password', element: <ResetPasswordPage /> },
   { path: '/signup', element: lazyPage(() => import('@/features/signup/SignupPage'), 'SignupPage') },
   {
     path: '/verify/:token',

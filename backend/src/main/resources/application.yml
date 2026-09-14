@@ -32,6 +32,22 @@ spring:
     enabled: true
     baseline-on-migrate: true
     locations: classpath:db/migration
+  mail:
+    # SMTP transport for SmtpEmailGateway (password-reset emails). Spring Boot only registers a
+    # JavaMailSender bean when host is non-blank — EmailGateway.isConfigured() relies on that, so
+    # leaving this blank keeps the whole feature honestly disabled rather than erroring.
+    host: ${SMTP_HOST:}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 10000
+          timeout: 10000
 
 server:
   port: ${SERVER_PORT:8080}
@@ -111,6 +127,14 @@ lims:
     phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:}
     access-token: ${WHATSAPP_ACCESS_TOKEN:}
     api-version: ${WHATSAPP_API_VERSION:v20.0}
+  mail:
+    # Outbound email (currently: password-reset links only). Disabled by default — nothing is sent
+    # until enabled=true AND spring.mail.host above is set. No per-organization override (unlike
+    # SMS/WhatsApp/IRD/payment) — a shared deployment mailbox is enough for an operational email
+    # like a password reset; every clinic on this deployment sends from the same address.
+    enabled: ${MAIL_ENABLED:false}
+    from-address: ${MAIL_FROM_ADDRESS:no-reply@labos.local}
+    from-name: ${MAIL_FROM_NAME:LabOS}
   payment:
     esewa:
       # eSewa ePay v2. Disabled by default — nothing is transmitted until enabled=true AND
