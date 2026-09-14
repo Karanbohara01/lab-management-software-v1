@@ -140,10 +140,12 @@
     padding: 0;
     width: 100%;
   }
-  /* Long reports span multiple pages — repeat each test's column headers on every page rather
-     than only on the first, and never split a single parameter row (or its comment) across a
-     page break. break-inside-avoid on each test's own <section> (in ReportDocument.tsx) keeps a
-     short test together; these two rules handle what that alone can't for a LONG test panel. */
+  /* Long reports span multiple pages. A whole test <section> deliberately does NOT get
+     break-inside: avoid (ReportDocument.tsx) — that forces the ENTIRE test to the next page the
+     moment it doesn't fit in the remaining space, leaving the tail of the previous page mostly
+     blank. Instead: repeat each test's column headers on every page (thead), and never split a
+     single parameter row/comment/group-heading across a page break (tr) — a test's table can
+     break mid-panel, but never mid-row, and never separates a column header from its data. */
   #report-print thead {
     display: table-header-group;
   }

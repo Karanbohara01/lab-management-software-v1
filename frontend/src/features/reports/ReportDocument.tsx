@@ -58,7 +58,13 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
     <>
       {/* Scoped to this route's own print context (always opened in its own tab) — Chromium's
           print engine supports @page margin boxes for running page numbers, so a multi-page
-          report (e.g. several bundled tests) prints "Page X of Y" without any JS pagination. */}
+          report (e.g. several bundled tests) prints "Page X of Y" without any JS pagination.
+          A position:fixed running header was tried first for patient identification on page 2+
+          but proved unreliable across page boundaries in real PDF output (verified live — it
+          landed at inconsistent vertical positions per page instead of repeating at the same
+          spot). Replaced with the row added inside each test's own <thead> below, which rides on
+          thead's already-proven repeat-per-page behavior (the column headers themselves already
+          repeat correctly — same mechanism, just one more row). */}
       <style>{'@media print { @page { margin: 16mm 12mm; @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 9px; color: #666; } } }'}</style>
       <div id="report-print" className="mx-auto max-w-3xl bg-white p-8 text-[13px] text-black">
         <header className={`flex items-start border-b-2 border-black pb-3 ${lab.printLetterhead ? 'justify-between' : 'justify-end'}`}>
@@ -115,12 +121,12 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
       )}
 
       {report.tests.map((test) => (
-        <section key={test.testCode} className="mt-4 break-inside-avoid">
-          <div className="flex items-baseline justify-between border-b border-black">
+        <section key={test.testCode} className="mt-4">
+          <div className="flex items-baseline justify-between border-b border-black break-after-avoid">
             <h2 className="text-sm font-bold uppercase">{test.testName}</h2>
             <span className="text-[11px]">{test.departmentName}</span>
           </div>
-          <p className="text-[11px] text-gray-600">
+          <p className="break-after-avoid text-[11px] text-gray-600">
             {[
               test.method && `Method: ${test.method}`,
               test.specimen && `Specimen: ${test.specimen.replace(/_/g, ' ')}`,
@@ -130,7 +136,7 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
               .join('   ')}
           </p>
           {(test.collectedAt || test.receivedAt) && (
-            <p className="text-[11px] text-gray-600">
+            <p className="break-after-avoid text-[11px] text-gray-600">
               {[
                 test.collectedAt && `Collected: ${dt(test.collectedAt)}`,
                 test.receivedAt && `Received: ${dt(test.receivedAt)}`,
@@ -142,6 +148,17 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
 
           <table className="mt-1 w-full text-xs">
             <thead>
+              {/* Rides on thead's proven repeat-on-every-page print behavior (see the file-level
+                  comment above) so the patient stays identified if this test's table — or any
+                  test after it — spans onto a continuation page with no other patient info on it.
+                  Redundant with the patient block above on page 1 itself; that's an accepted
+                  trade-off (a real report showing the name twice is harmless; showing it zero
+                  times on a separated page is not). */}
+              <tr>
+                <td colSpan={4} className="pb-1 text-[9px] uppercase tracking-wide text-gray-400">
+                  {report.patientName} · MRN {report.patientMrn} · {report.reportNumber}
+                </td>
+              </tr>
               <tr className="border-b border-gray-400 text-left">
                 <th className="py-1">Investigation</th>
                 <th className="py-1">Result</th>
@@ -157,13 +174,13 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
                 return (
                   <Fragment key={p.name}>
                     {showHeading && (
-                      <tr>
+                      <tr className="break-inside-avoid break-after-avoid">
                         <td colSpan={4} className="bg-gray-50 py-1 pt-2 text-[11px] font-bold uppercase tracking-wide">
                           {p.groupHeading}
                         </td>
                       </tr>
                     )}
-                    <tr className="border-b border-gray-200">
+                    <tr className="break-inside-avoid border-b border-gray-200">
                       <td className={`py-1 ${p.groupHeading ? 'pl-3' : ''}`}>{p.name}</td>
                       <td className="py-1 font-semibold">
                         {p.value ?? '—'}
@@ -173,7 +190,7 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
                       <td className="py-1">{p.referenceText ?? ''}</td>
                     </tr>
                     {p.comment && (
-                      <tr>
+                      <tr className="break-inside-avoid">
                         <td colSpan={4} className="pb-1 text-[10px] italic text-gray-600">
                           {p.name}: {p.comment}
                         </td>
@@ -193,7 +210,7 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
         </section>
       ))}
 
-      <footer className="mt-8 border-t border-black pt-3 text-[11px] text-gray-700">
+      <footer className="mt-8 break-inside-avoid border-t border-black pt-3 text-[11px] text-gray-700">
         <div className="mb-6 flex justify-end gap-16">
           <div className="text-center">
             <div className="h-8 w-40 border-b border-gray-500" />
