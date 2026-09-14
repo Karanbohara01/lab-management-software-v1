@@ -23,7 +23,7 @@ export function SampleLabelPage() {
   if (!sample) return null;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white p-6">
+    <div id="report-print" className="flex min-h-screen items-center justify-center bg-white p-6">
       <BarcodeLabel
         value={sample.barcodeValue}
         patientName={sample.patientName}
