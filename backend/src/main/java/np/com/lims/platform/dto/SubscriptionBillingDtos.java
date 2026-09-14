@@ -34,11 +34,13 @@ public final class SubscriptionBillingDtos {
     }
 
     public record SubscriptionInvoiceDto(Long id, String invoiceNumber, String planCode, String planName,
-                                         BigDecimal amount, Instant periodStart, Instant periodEnd, Instant dueAt,
+                                         BigDecimal amount, BigDecimal taxableAmount, BigDecimal taxAmount,
+                                         BigDecimal totalAmount, Instant periodStart, Instant periodEnd, Instant dueAt,
                                          SubscriptionInvoiceStatus status, Instant paidAt, String paymentReference) {
         public static SubscriptionInvoiceDto from(SubscriptionInvoice inv) {
             return new SubscriptionInvoiceDto(inv.getId(), inv.invoiceNumber(), inv.getPlanCode(), inv.getPlanName(),
-                    inv.getAmount(), inv.getPeriodStart(), inv.getPeriodEnd(), inv.getDueAt(), inv.getStatus(),
+                    inv.getAmount(), inv.getTaxableAmount(), inv.getTaxAmount(), inv.getTotalAmount(),
+                    inv.getPeriodStart(), inv.getPeriodEnd(), inv.getDueAt(), inv.getStatus(),
                     inv.getPaidAt(), inv.getPaymentReference());
         }
     }

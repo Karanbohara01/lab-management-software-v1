@@ -332,7 +332,8 @@ public class PlatformService {
 
         Organization org = Organization.create(slug, request.name().trim());
         org.update(request.name().trim(), trimToNull(request.contactName()), trimToNull(request.contactEmail()),
-                trimToNull(request.contactPhone()), trimToNull(request.city()), trimToNull(request.notes()));
+                trimToNull(request.contactPhone()), trimToNull(request.city()), trimToNull(request.notes()),
+                trimToNull(request.pan()));
         Organization saved = organizationRepository.save(org);
 
         Subscription subscription = Subscription.start(saved, plan, SubscriptionStatus.TRIALING, trialPeriodEnd,
@@ -368,7 +369,8 @@ public class PlatformService {
     public OrganizationDetail update(Long id, UpdateOrganizationRequest request) {
         Organization org = load(id);
         org.update(request.name().trim(), trimToNull(request.contactName()), trimToNull(request.contactEmail()),
-                trimToNull(request.contactPhone()), trimToNull(request.city()), trimToNull(request.notes()));
+                trimToNull(request.contactPhone()), trimToNull(request.city()), trimToNull(request.notes()),
+                trimToNull(request.pan()));
         auditService.record(MODULE, "ORGANIZATION_UPDATE", "Organization", id,
                 "Updated clinic " + org.getName(), null, null);
         return get(id);

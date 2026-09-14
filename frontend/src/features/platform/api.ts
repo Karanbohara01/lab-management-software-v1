@@ -38,6 +38,7 @@ export const platformApi = {
     contactEmail?: string;
     contactPhone?: string;
     city?: string;
+    pan?: string;
     notes?: string;
     planCode: string;
     adminUsername: string;
@@ -47,7 +48,15 @@ export const platformApi = {
   }) => httpClient.post<OrganizationDetail>('/platform/organizations', payload).then((r) => r.data),
   updateOrganization: (
     id: number,
-    payload: { name: string; contactName?: string; contactEmail?: string; contactPhone?: string; city?: string; notes?: string },
+    payload: {
+      name: string;
+      contactName?: string;
+      contactEmail?: string;
+      contactPhone?: string;
+      city?: string;
+      pan?: string;
+      notes?: string;
+    },
   ) => httpClient.put<OrganizationDetail>(`/platform/organizations/${id}`, payload).then((r) => r.data),
   changeStatus: (id: number, status: OrganizationStatus) =>
     httpClient.post<OrganizationDetail>(`/platform/organizations/${id}/status`, { status }).then((r) => r.data),

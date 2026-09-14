@@ -36,6 +36,10 @@ public class Organization extends BaseEntity {
     @Column(length = 120)
     private String city;
 
+    /** The clinic's own PAN — used as the buyer PAN when the platform files a subscription invoice with IRD. */
+    @Column(length = 20)
+    private String pan;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private OrganizationStatus status = OrganizationStatus.TRIAL;
@@ -55,13 +59,14 @@ public class Organization extends BaseEntity {
     }
 
     public void update(String name, String contactName, String contactEmail, String contactPhone,
-                       String city, String notes) {
+                       String city, String notes, String pan) {
         this.name = name;
         this.contactName = contactName;
         this.contactEmail = contactEmail;
         this.contactPhone = contactPhone;
         this.city = city;
         this.notes = notes;
+        this.pan = pan;
     }
 
     public void setStatus(OrganizationStatus status) {
@@ -90,6 +95,10 @@ public class Organization extends BaseEntity {
 
     public String getCity() {
         return city;
+    }
+
+    public String getPan() {
+        return pan;
     }
 
     public OrganizationStatus getStatus() {

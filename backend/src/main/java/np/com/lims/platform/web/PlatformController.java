@@ -2,10 +2,16 @@ package np.com.lims.platform.web;
 
 import jakarta.validation.Valid;
 import np.com.lims.common.api.PageResponse;
+import np.com.lims.ird.entity.IrdStatus;
 import np.com.lims.platform.MasterCatalogService;
+import np.com.lims.platform.PlatformIrdSubmissionService;
 import np.com.lims.platform.PlatformService;
 import np.com.lims.platform.SubscriptionBillingService;
 import np.com.lims.platform.dto.MasterCatalogDtos;
+import np.com.lims.platform.dto.PlatformBillingDtos.InvoiceListItem;
+import np.com.lims.platform.dto.PlatformBillingDtos.IrdConfigResponse;
+import np.com.lims.platform.dto.PlatformBillingDtos.IrdSubmissionDetail;
+import np.com.lims.platform.dto.PlatformBillingDtos.MarkManualRequest;
 import np.com.lims.platform.dto.PlatformDtos.CancelSubscriptionRequest;
 import np.com.lims.platform.dto.PlatformDtos.ChangeOrganizationStatusRequest;
 import np.com.lims.platform.dto.PlatformDtos.ChangeSubscriptionRequest;
@@ -41,12 +47,14 @@ public class PlatformController {
     private final PlatformService service;
     private final SubscriptionBillingService billingService;
     private final MasterCatalogService masterCatalogService;
+    private final PlatformIrdSubmissionService irdService;
 
     public PlatformController(PlatformService service, SubscriptionBillingService billingService,
-                              MasterCatalogService masterCatalogService) {
+                              MasterCatalogService masterCatalogService, PlatformIrdSubmissionService irdService) {
         this.service = service;
         this.billingService = billingService;
         this.masterCatalogService = masterCatalogService;
+        this.irdService = irdService;
     }
 
     @PostMapping("/billing/run-sweep")
@@ -140,5 +148,41 @@ public class PlatformController {
     @PostMapping("/master-tests/{id}/active")
     public void setMasterTestActive(@PathVariable Long id, @RequestParam boolean active) {
         masterCatalogService.setActive(id, active);
+    }
+
+    // ===== subscription-invoice IRD/CBMS e-billing — what THIS deployment charges a clinic,
+    // filed with IRD the same way a clinic files its own patient invoices (see np.com.lims.ird) ==
+
+    @GetMapping("/billing/ird/config")
+    public IrdConfigResponse irdConfig() {
+        return irdService.config();
+    }
+
+    @GetMapping("/subscription-invoices")
+    public PageResponse<InvoiceListItem> subscriptionInvoices(
+            @RequestParam(required = false) IrdStatus irdStatus,
+            @RequestParam(required = false) Long organizationId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return PageResponse.from(irdService.list(irdStatus, organizationId, pageable));
+    }
+
+    @GetMapping("/subscription-invoices/{id}/ird")
+    public IrdSubmissionDetail subscriptionInvoiceIrd(@PathVariable Long id) {
+        return irdService.getByInvoice(id);
+    }
+
+    @PostMapping("/subscription-invoices/ird/{submissionId}/submit")
+    public IrdSubmissionDetail submitIrd(@PathVariable Long submissionId) {
+        return irdService.submit(submissionId);
+    }
+
+    @PostMapping("/subscription-invoices/ird/{submissionId}/retry")
+    public IrdSubmissionDetail retryIrd(@PathVariable Long submissionId) {
+        return irdService.retry(submissionId);
+    }
+
+    @PostMapping("/subscription-invoices/ird/{submissionId}/manual")
+    public IrdSubmissionDetail markIrdManual(@PathVariable Long submissionId, @Valid @RequestBody MarkManualRequest request) {
+        return irdService.markManual(submissionId, request.reference(), request.note());
     }
 }

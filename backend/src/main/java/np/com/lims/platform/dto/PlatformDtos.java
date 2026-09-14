@@ -31,6 +31,7 @@ public final class PlatformDtos {
             @Size(max = 32) String contactPhone,
             @Size(max = 120) String city,
             @Size(max = 1000) String notes,
+            @Size(max = 20) String pan,
             @NotBlank String planCode,
             @NotBlank @Size(max = 64) String adminUsername,
             @NotBlank @Email @Size(max = 160) String adminEmail,
@@ -45,7 +46,8 @@ public final class PlatformDtos {
             @Email @Size(max = 160) String contactEmail,
             @Size(max = 32) String contactPhone,
             @Size(max = 120) String city,
-            @Size(max = 1000) String notes
+            @Size(max = 1000) String notes,
+            @Size(max = 20) String pan
     ) {
     }
 
@@ -104,11 +106,11 @@ public final class PlatformDtos {
     }
 
     public record OrganizationDetail(Long id, String slug, String name, String contactName, String contactEmail,
-                                     String contactPhone, String city, OrganizationStatus status, String notes,
-                                     Instant createdAt, List<SubscriptionDto> subscriptionHistory) {
+                                     String contactPhone, String city, String pan, OrganizationStatus status,
+                                     String notes, Instant createdAt, List<SubscriptionDto> subscriptionHistory) {
         public static OrganizationDetail from(Organization o, List<Subscription> history) {
             return new OrganizationDetail(o.getId(), o.getSlug(), o.getName(), o.getContactName(), o.getContactEmail(),
-                    o.getContactPhone(), o.getCity(), o.getStatus(), o.getNotes(), o.getCreatedAt(),
+                    o.getContactPhone(), o.getCity(), o.getPan(), o.getStatus(), o.getNotes(), o.getCreatedAt(),
                     history.stream().map(SubscriptionDto::from).toList());
         }
     }

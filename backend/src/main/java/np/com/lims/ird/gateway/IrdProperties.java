@@ -14,7 +14,8 @@ public record IrdProperties(
         String baseUrl,
         String username,
         String password,
-        String sellerPan
+        String sellerPan,
+        String sellerName
 ) {
     public boolean isFullyConfigured() {
         return enabled

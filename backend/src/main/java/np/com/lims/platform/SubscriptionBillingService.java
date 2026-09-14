@@ -72,6 +72,7 @@ public class SubscriptionBillingService {
     private final SmsGateway smsGateway;
     private final WhatsAppGateway whatsAppGateway;
     private final AuditService auditService;
+    private final PlatformIrdSubmissionService irdSubmissionService;
     private final String publicUrl;
 
     public SubscriptionBillingService(SubscriptionInvoiceRepository invoiceRepository,
@@ -82,6 +83,7 @@ public class SubscriptionBillingService {
                                       SmsGateway smsGateway,
                                       WhatsAppGateway whatsAppGateway,
                                       AuditService auditService,
+                                      PlatformIrdSubmissionService irdSubmissionService,
                                       @org.springframework.beans.factory.annotation.Value("${lims.app.public-url}") String publicUrl) {
         this.invoiceRepository = invoiceRepository;
         this.subscriptionRepository = subscriptionRepository;
@@ -91,6 +93,7 @@ public class SubscriptionBillingService {
         this.smsGateway = smsGateway;
         this.whatsAppGateway = whatsAppGateway;
         this.auditService = auditService;
+        this.irdSubmissionService = irdSubmissionService;
         this.publicUrl = publicUrl;
     }
 
@@ -264,6 +267,7 @@ public class SubscriptionBillingService {
             SubscriptionInvoice invoice = SubscriptionInvoice.issue(org.getId(), sub.getId(), sub.getPlan().getCode(),
                     sub.getPlan().getName(), sub.getPlan().getPriceMonthly(), periodStart, periodEnd, dueAt);
             invoiceRepository.save(invoice);
+            irdSubmissionService.onSubscriptionInvoiceIssued(invoice);
             sub.extendPeriodOnly(periodEnd);
             subscriptionRepository.save(sub);
             notify(org, "INVOICE_ISSUED", "Dear " + org.getName() + ", your LabOS subscription invoice "

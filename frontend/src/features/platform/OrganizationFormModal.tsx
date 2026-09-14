@@ -24,6 +24,7 @@ const createSchema = z.object({
   contactEmail: z.union([z.literal(''), z.string().email().max(160)]).optional(),
   contactPhone: z.string().max(32).optional(),
   city: z.string().max(120).optional(),
+  pan: z.string().max(20).optional(),
   notes: z.string().max(1000).optional(),
   planCode: z.string().min(1, 'Choose a plan'),
   adminUsername: z
@@ -67,6 +68,7 @@ export function OrganizationFormModal({
       contactEmail: '',
       contactPhone: '',
       city: '',
+      pan: '',
       notes: '',
       planCode: plans.find((p) => p.active)?.code ?? '',
       adminUsername: '',
@@ -84,6 +86,7 @@ export function OrganizationFormModal({
         contactEmail: values.contactEmail || undefined,
         contactPhone: values.contactPhone || undefined,
         city: values.city || undefined,
+        pan: values.pan || undefined,
         notes: values.notes || undefined,
       });
       toast.success('Clinic onboarded');
@@ -112,6 +115,12 @@ export function OrganizationFormModal({
           <Input label="Contact email" {...register('contactEmail')} error={errors.contactEmail?.message} />
           <Input label="Contact phone" {...register('contactPhone')} error={errors.contactPhone?.message} />
           <Input label="City" {...register('city')} error={errors.city?.message} />
+          <Input
+            label="PAN"
+            placeholder="Clinic's own PAN (for IRD e-billing)"
+            {...register('pan')}
+            error={errors.pan?.message}
+          />
         </div>
         <Select
           label="Subscription plan"

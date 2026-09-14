@@ -96,6 +96,7 @@ export function OrganizationDetailModal({
             <Row label="Email" value={org.contactEmail} />
             <Row label="Phone" value={org.contactPhone} />
             <Row label="City" value={org.city} />
+            <Row label="PAN" value={org.pan} />
             <Row label="Onboarded" value={dt(org.createdAt)} />
           </div>
           {org.notes && <p className="rounded-md bg-surface-muted p-3 text-sm text-muted">{org.notes}</p>}

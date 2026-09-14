@@ -104,6 +104,10 @@ lims:
     username: ${IRD_USERNAME:}
     password: ${IRD_PASSWORD:}
     seller-pan: ${IRD_SELLER_PAN:}
+    # Display name only (never transmitted to CBMS itself, which identifies the seller purely by
+    # seller-pan/username/password) — shown on the platform's own subscription-invoice IRD records
+    # and print output as who this deployment operator is.
+    seller-name: ${IRD_SELLER_NAME:}
   sms:
     # Sparrow SMS (sparrowsms.com) — the leading SMS aggregator serving Nepal's telecom operators.
     # Disabled by default — nothing is transmitted until enabled=true AND api-key/from are both

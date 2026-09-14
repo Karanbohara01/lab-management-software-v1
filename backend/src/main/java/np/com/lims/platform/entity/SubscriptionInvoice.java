@@ -36,6 +36,23 @@ public class SubscriptionInvoice extends BaseEntity {
     @Column(nullable = false, precision = 12, scale = 2, updatable = false)
     private BigDecimal amount;
 
+    /**
+     * VAT breakdown of {@link #amount} for IRD e-billing purposes — {@code amount} itself remains
+     * the exact NPR figure charged via eSewa, unchanged by adding these. {@code amount} is treated
+     * as VAT-inclusive (the price shown/charged to the clinic already includes 13% VAT, matching
+     * how the plan price is displayed everywhere else in the product), so {@code totalAmount}
+     * always equals {@code amount} and {@code taxableAmount}/{@code taxAmount} are simply that
+     * figure's tax-exclusive/tax components, back-calculated at the fixed 13% Nepal VAT rate.
+     */
+    @Column(name = "taxable_amount", nullable = false, precision = 12, scale = 2, updatable = false)
+    private BigDecimal taxableAmount;
+
+    @Column(name = "tax_amount", nullable = false, precision = 12, scale = 2, updatable = false)
+    private BigDecimal taxAmount;
+
+    @Column(name = "total_amount", nullable = false, precision = 12, scale = 2, updatable = false)
+    private BigDecimal totalAmount;
+
     @Column(name = "period_start", nullable = false, updatable = false)
     private Instant periodStart;
 
@@ -61,6 +78,9 @@ public class SubscriptionInvoice extends BaseEntity {
     protected SubscriptionInvoice() {
     }
 
+    /** Nepal's standard VAT rate — the plan price is treated as VAT-inclusive of this. */
+    private static final BigDecimal VAT_RATE = new BigDecimal("0.13");
+
     public static SubscriptionInvoice issue(Long organizationId, Long subscriptionId, String planCode,
                                             String planName, BigDecimal amount, Instant periodStart,
                                             Instant periodEnd, Instant dueAt) {
@@ -70,6 +90,9 @@ public class SubscriptionInvoice extends BaseEntity {
         inv.planCode = planCode;
         inv.planName = planName;
         inv.amount = amount;
+        inv.totalAmount = amount;
+        inv.taxableAmount = amount.divide(BigDecimal.ONE.add(VAT_RATE), 2, java.math.RoundingMode.HALF_UP);
+        inv.taxAmount = amount.subtract(inv.taxableAmount);
         inv.periodStart = periodStart;
         inv.periodEnd = periodEnd;
         inv.dueAt = dueAt;
@@ -124,6 +147,18 @@ public class SubscriptionInvoice extends BaseEntity {
 
     public BigDecimal getAmount() {
         return amount;
+    }
+
+    public BigDecimal getTaxableAmount() {
+        return taxableAmount;
+    }
+
+    public BigDecimal getTaxAmount() {
+        return taxAmount;
+    }
+
+    public BigDecimal getTotalAmount() {
+        return totalAmount;
     }
 
     public Instant getPeriodStart() {

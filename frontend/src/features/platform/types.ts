@@ -46,6 +46,7 @@ export interface OrganizationDetail {
   contactEmail: string | null;
   contactPhone: string | null;
   city: string | null;
+  pan: string | null;
   status: OrganizationStatus;
   notes: string | null;
   createdAt: string;

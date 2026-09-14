@@ -50,6 +50,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: 'Clinics', to: '/app/platform', icon: Rocket, anyPermission: [PERMISSIONS.PLATFORM_MANAGE] },
       { label: 'Plans', to: '/app/platform/plans', icon: CreditCard, anyPermission: [PERMISSIONS.PLATFORM_MANAGE] },
       { label: 'Master catalogue', to: '/app/platform/master-tests', icon: Library, anyPermission: [PERMISSIONS.PLATFORM_MANAGE] },
+      { label: 'Billing', to: '/app/platform/billing', icon: Receipt, anyPermission: [PERMISSIONS.PLATFORM_MANAGE] },
     ],
   },
   {
