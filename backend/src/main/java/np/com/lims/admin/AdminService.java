@@ -22,6 +22,8 @@ import np.com.lims.common.tenant.TenantContext;
 import np.com.lims.common.tenant.TenantGuard;
 import np.com.lims.common.web.CurrentUser;
 import np.com.lims.department.DepartmentRepository;
+import np.com.lims.doctor.DoctorRepository;
+import np.com.lims.doctor.entity.Doctor;
 import np.com.lims.ird.IrdSubmissionService;
 import np.com.lims.messaging.gateway.SmsGateway;
 import np.com.lims.messaging.gateway.WhatsAppGateway;
@@ -56,6 +58,7 @@ public class AdminService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final np.com.lims.branch.BranchRepository branchRepository;
+    private final DoctorRepository doctorRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditService auditService;
     private final DepartmentRepository departmentRepository;
@@ -72,6 +75,7 @@ public class AdminService {
                         UserRepository userRepository,
                         RoleRepository roleRepository,
                         np.com.lims.branch.BranchRepository branchRepository,
+                        DoctorRepository doctorRepository,
                         PasswordEncoder passwordEncoder,
                         AuditService auditService,
                         DepartmentRepository departmentRepository,
@@ -87,6 +91,7 @@ public class AdminService {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.branchRepository = branchRepository;
+        this.doctorRepository = doctorRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditService = auditService;
         this.departmentRepository = departmentRepository;
@@ -113,7 +118,7 @@ public class AdminService {
         BackupRun latest = lastBackup.isEmpty() ? null : lastBackup.getContent().get(0);
 
         return new SystemStatusResponse(
-                lab.getName(), lab.getFiscalYear(),
+                lab.getName(), np.com.lims.common.calendar.BikramSambatCalendar.currentFiscalYear(java.time.Instant.now()),
                 userRepository.count(), userRepository.countByEnabledTrue(),
                 branchRepository.findAllByOrderByNameAsc().size(), branchRepository.findAllByActiveTrueOrderByNameAsc().size(),
                 departmentRepository.findAllByOrderByNameAsc().size(), labTestRepository.countByActiveTrue(),
@@ -206,8 +211,10 @@ public class AdminService {
         User user = User.create(username, request.email().trim().toLowerCase(),
                 passwordEncoder.encode(request.password()), request.fullName().trim(),
                 trimToNull(request.phone()));
-        resolveRoles(request.roleNames()).forEach(user::addRole);
+        Set<Role> roles = resolveRoles(request.roleNames());
+        roles.forEach(user::addRole);
         user.setHomeBranch(resolveBranch(request.homeBranchId()));
+        user.setDoctor(resolveDoctorLink(roles, request.doctorId()));
         User saved = userRepository.save(user);
         auditService.record(MODULE, "USER_CREATE", "User", saved.getId(),
                 "Created user " + username + " with roles " + request.roleNames(), null, UserDetail.from(saved));
@@ -224,6 +231,7 @@ public class AdminService {
         user.getRoles().clear();
         newRoles.forEach(user::addRole);
         user.setHomeBranch(resolveBranch(request.homeBranchId()));
+        user.setDoctor(resolveDoctorLink(newRoles, request.doctorId()));
         auditService.record(MODULE, "USER_UPDATE", "User", id,
                 "Updated user " + user.getUsername(), before, UserDetail.from(user));
         return UserDetail.from(user);
@@ -275,6 +283,24 @@ public class AdminService {
         }
         return TenantGuard.owned(branchRepository.findById(branchId), np.com.lims.branch.entity.Branch::getOrganizationId)
                 .orElseThrow(() -> ApiException.notFound("Branch", branchId));
+    }
+
+    /**
+     * The doctor-portal RBAC scoping (see CurrentUser.doctorId()) only works if a DOCTOR-role
+     * login is actually tied to a Doctor record, so that link is required — not optional — for
+     * that role, and ignored (forced null) for every other role so a stale/irrelevant link can't
+     * survive a role change away from DOCTOR.
+     */
+    private Doctor resolveDoctorLink(Set<Role> roles, Long doctorId) {
+        boolean isDoctorRole = roles.stream().anyMatch(r -> r.getName() == RoleName.DOCTOR);
+        if (!isDoctorRole) {
+            return null;
+        }
+        if (doctorId == null) {
+            throw ApiException.conflict("A DOCTOR-role user must be linked to a referring doctor record");
+        }
+        return TenantGuard.owned(doctorRepository.findById(doctorId), Doctor::getOrganizationId)
+                .orElseThrow(() -> ApiException.notFound("Doctor", doctorId));
     }
 
     private static String trimToNull(String value) {

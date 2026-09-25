@@ -23,6 +23,16 @@ public final class PlatformDtos {
 
     // ----- requests ---------------------------------------------------
 
+    /**
+     * Full replace, not merge: the permissions list is the complete desired set for the role.
+     * Global (not tenant-scoped) — role/permission are shared platform-wide, so this deliberately
+     * requires PERM_PLATFORM_MANAGE rather than the per-clinic PERM_ROLE_WRITE (which every
+     * clinic's own SUPER_ADMIN holds and would otherwise let one clinic change every other
+     * clinic's role definitions).
+     */
+    public record UpdateRolePermissionsRequest(@NotNull List<String> permissionNames) {
+    }
+
     public record CreateOrganizationRequest(
             @NotBlank @Size(max = 64) String slug,
             @NotBlank @Size(max = 160) String name,

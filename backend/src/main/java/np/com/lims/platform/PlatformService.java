@@ -19,14 +19,18 @@ import np.com.lims.platform.dto.PlatformDtos.SignupPoint;
 import np.com.lims.platform.dto.PlatformDtos.SubscriptionDto;
 import np.com.lims.platform.dto.PlatformDtos.UpcomingRenewal;
 import np.com.lims.platform.dto.PlatformDtos.UpdateOrganizationRequest;
+import np.com.lims.platform.dto.PlatformDtos.UpdateRolePermissionsRequest;
 import np.com.lims.platform.dto.PlatformDtos.UpsertPlanRequest;
 import np.com.lims.platform.entity.Organization;
 import np.com.lims.platform.entity.OrganizationStatus;
 import np.com.lims.platform.entity.Subscription;
 import np.com.lims.platform.entity.SubscriptionPlan;
 import np.com.lims.platform.entity.SubscriptionStatus;
+import np.com.lims.rbac.entity.Permission;
+import np.com.lims.rbac.entity.PermissionName;
 import np.com.lims.rbac.entity.Role;
 import np.com.lims.rbac.entity.RoleName;
+import np.com.lims.rbac.repository.PermissionRepository;
 import np.com.lims.rbac.repository.RoleRepository;
 import np.com.lims.settings.LaboratoryProfileService;
 import np.com.lims.user.entity.User;
@@ -42,6 +46,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Platform-level clinic (organization) and subscription registry. Creating an organization here
@@ -65,6 +70,7 @@ public class PlatformService {
     private final np.com.lims.catalog.ParameterMasterService parameterMasterService;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final PermissionRepository permissionRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditService auditService;
     private final jakarta.persistence.EntityManager entityManager;
@@ -76,6 +82,7 @@ public class PlatformService {
                            np.com.lims.catalog.ParameterMasterService parameterMasterService,
                            UserRepository userRepository,
                            RoleRepository roleRepository,
+                           PermissionRepository permissionRepository,
                            PasswordEncoder passwordEncoder,
                            AuditService auditService,
                            jakarta.persistence.EntityManager entityManager) {
@@ -86,6 +93,7 @@ public class PlatformService {
         this.parameterMasterService = parameterMasterService;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
+        this.permissionRepository = permissionRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditService = auditService;
         this.entityManager = entityManager;
@@ -423,6 +431,62 @@ public class PlatformService {
         auditService.record(MODULE, "SUBSCRIPTION_CANCEL", "Organization", organizationId,
                 "Cancelled subscription for " + org.getName() + ": " + request.reason(), null, null);
         return SubscriptionDto.from(current);
+    }
+
+    // ===== roles & permissions ========================================
+    // Global (not tenant-scoped) — role/permission/role_permission carry no organization_id, so
+    // these deliberately live here (PERM_PLATFORM_MANAGE) rather than in AdminService's per-clinic
+    // role listing (PERM_ROLE_READ) — a per-clinic admin can VIEW the shared role/permission
+    // matrix (see AdminService.roles()) but only a platform admin may CHANGE it, since a change
+    // here affects every clinic on the platform at once.
+
+    @Transactional(readOnly = true)
+    public List<np.com.lims.admin.dto.AdminDtos.RoleResponse> roles() {
+        return roleRepository.findAllByOrderByNameAsc().stream()
+                .map(np.com.lims.admin.dto.AdminDtos.RoleResponse::from).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> permissionNames() {
+        return permissionRepository.findAllByOrderByNameAsc().stream().map(p -> p.getName().name()).toList();
+    }
+
+    @Transactional
+    public np.com.lims.admin.dto.AdminDtos.RoleResponse updateRolePermissions(Long roleId, UpdateRolePermissionsRequest request) {
+        Role role = roleRepository.findById(roleId).orElseThrow(() -> ApiException.notFound("Role", roleId));
+
+        Set<PermissionName> wanted = request.permissionNames().stream().map(name -> {
+            try {
+                return PermissionName.valueOf(name);
+            } catch (IllegalArgumentException ex) {
+                throw ApiException.conflict("Unknown permission: " + name);
+            }
+        }).collect(java.util.stream.Collectors.toSet());
+
+        List<Permission> resolved = permissionRepository.findByNameIn(wanted);
+
+        // Lockout guard: reject a change that would leave NO role anywhere on the platform holding
+        // PERM_PLATFORM_MANAGE — that permission is what makes this very endpoint reachable, so
+        // losing it entirely would be an unrecoverable self-lockout with no way back in through the UI.
+        boolean keepsPlatformManage = wanted.contains(PermissionName.PLATFORM_MANAGE);
+        if (!keepsPlatformManage) {
+            boolean anyOtherRoleHasIt = roleRepository.findAllByOrderByNameAsc().stream()
+                    .filter(r -> !r.getId().equals(roleId))
+                    .flatMap(r -> r.getPermissions().stream())
+                    .anyMatch(p -> p.getName() == PermissionName.PLATFORM_MANAGE);
+            if (!anyOtherRoleHasIt) {
+                throw ApiException.conflict(
+                        "Refusing to remove PLATFORM_MANAGE from every role — this would lock every admin out of platform administration");
+            }
+        }
+
+        Set<Permission> before = Set.copyOf(role.getPermissions());
+        role.replacePermissions(Set.copyOf(resolved));
+        auditService.record(MODULE, "ROLE_PERMISSIONS_UPDATE", "Role", roleId,
+                "Updated permissions for role " + role.getName() + " to " + wanted,
+                before.stream().map(p -> p.getName().name()).sorted().toList(),
+                wanted.stream().map(Enum::name).sorted().toList());
+        return np.com.lims.admin.dto.AdminDtos.RoleResponse.from(role);
     }
 
     // ===== helpers ===================================================

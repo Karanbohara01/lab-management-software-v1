@@ -12,6 +12,7 @@ import jakarta.persistence.Table;
 import np.com.lims.branch.entity.Branch;
 import np.com.lims.common.audit.BaseEntity;
 import np.com.lims.common.tenant.TenantContext;
+import np.com.lims.doctor.entity.Doctor;
 import np.com.lims.rbac.entity.Role;
 import org.hibernate.annotations.Filter;
 
@@ -54,6 +55,16 @@ public class User extends BaseEntity {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "home_branch_id")
     private Branch homeBranch;
+
+    /**
+     * Null for every staff account. Set only for a DOCTOR-role login belonging to a specific
+     * referring physician — see {@link np.com.lims.common.web.CurrentUser#doctorId()}: every
+     * order/report query for such a user must be scoped to this doctor's own referrals, the same
+     * way {@link #homeBranch} scopes a branch-restricted staff account.
+     */
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "doctor_id")
+    private Doctor doctor;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -121,6 +132,14 @@ public class User extends BaseEntity {
 
     public Branch getHomeBranch() {
         return homeBranch;
+    }
+
+    public void setDoctor(Doctor doctor) {
+        this.doctor = doctor;
+    }
+
+    public Doctor getDoctor() {
+        return doctor;
     }
 
     public String getUsername() {

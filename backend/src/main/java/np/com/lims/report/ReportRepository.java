@@ -29,6 +29,7 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
             SELECT r FROM Report r
             WHERE (:status IS NULL OR r.status = :status)
               AND (:patientId IS NULL OR r.patient.id = :patientId)
+              AND (:doctorId IS NULL OR r.order.referringDoctor.id = :doctorId)
               AND (:search IS NULL
                    OR LOWER(r.reportNumber) LIKE LOWER(CONCAT('%', :search, '%'))
                    OR LOWER(r.patient.fullName) LIKE LOWER(CONCAT('%', :search, '%'))
@@ -36,6 +37,7 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
             """)
     Page<Report> search(@Param("status") ReportStatus status,
                         @Param("patientId") Long patientId,
+                        @Param("doctorId") Long doctorId,
                         @Param("search") String search,
                         Pageable pageable);
 }

@@ -5,6 +5,8 @@ import {
   ClipboardList,
   TestTubes,
   ListTree,
+  GitBranch,
+  Percent,
   FlaskConical,
   FileText,
   Receipt,
@@ -51,6 +53,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: 'Plans', to: '/app/platform/plans', icon: CreditCard, anyPermission: [PERMISSIONS.PLATFORM_MANAGE] },
       { label: 'Master catalogue', to: '/app/platform/master-tests', icon: Library, anyPermission: [PERMISSIONS.PLATFORM_MANAGE] },
       { label: 'Billing', to: '/app/platform/billing', icon: Receipt, anyPermission: [PERMISSIONS.PLATFORM_MANAGE] },
+      { label: 'Roles & permissions', to: '/app/platform/roles', icon: ShieldCheck, anyPermission: [PERMISSIONS.PLATFORM_MANAGE] },
     ],
   },
   {
@@ -65,6 +68,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: 'Lab orders', to: '/app/orders', icon: ClipboardList, anyPermission: [PERMISSIONS.LAB_ORDER_READ] },
       { label: 'Test catalog', to: '/app/tests', icon: TestTubes, anyPermission: [PERMISSIONS.TEST_CATALOG_READ] },
       { label: 'Parameter dictionary', to: '/app/parameters', icon: ListTree, anyPermission: [PERMISSIONS.TEST_CATALOG_READ] },
+      { label: 'Reflex rules', to: '/app/reflex-rules', icon: GitBranch, anyPermission: [PERMISSIONS.TEST_CATALOG_READ] },
     ],
   },
   {
@@ -85,6 +89,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: 'Master bill', to: '/app/master-bill', icon: Receipt, anyPermission: [PERMISSIONS.INVOICE_READ] },
       { label: 'Corrections', to: '/app/corrections', icon: Receipt, anyPermission: [PERMISSIONS.INVOICE_READ] },
       { label: 'IRD / e-Billing', to: '/app/ird', icon: ScrollText, anyPermission: [PERMISSIONS.IRD_SUBMISSION_READ] },
+      { label: 'Doctor commission', to: '/app/commission', icon: Percent, anyPermission: [PERMISSIONS.COMMISSION_READ] },
     ],
   },
   {

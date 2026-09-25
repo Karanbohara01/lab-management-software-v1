@@ -22,6 +22,7 @@ public interface LabOrderRepository extends JpaRepository<LabOrder, Long> {
             WHERE (:patientId IS NULL OR o.patient.id = :patientId)
               AND (:status IS NULL OR o.status = :status)
               AND (:branchId IS NULL OR o.branch.id = :branchId)
+              AND (:doctorId IS NULL OR o.referringDoctor.id = :doctorId)
               AND (:search IS NULL
                    OR LOWER(o.orderNumber) LIKE LOWER(CONCAT('%', :search, '%'))
                    OR LOWER(o.patient.fullName) LIKE LOWER(CONCAT('%', :search, '%'))
@@ -30,6 +31,7 @@ public interface LabOrderRepository extends JpaRepository<LabOrder, Long> {
     Page<LabOrder> search(@Param("patientId") Long patientId,
                           @Param("status") OrderStatus status,
                           @Param("branchId") Long branchId,
+                          @Param("doctorId") Long doctorId,
                           @Param("search") String search,
                           Pageable pageable);
 

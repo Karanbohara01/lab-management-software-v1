@@ -40,4 +40,18 @@ public final class CurrentUser {
         }
         return null;
     }
+
+    /**
+     * Null for every staff user (unrestricted). Non-null when the authenticated user is a
+     * DOCTOR-role login tied to a specific referring physician — callers that list or fetch
+     * orders/reports/invoices must scope to this doctor's own referrals rather than trust a
+     * client-supplied doctor filter, the same way {@link #branchId()} scopes branch-restricted staff.
+     */
+    public static Long doctorId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof AppUserDetails details) {
+            return details.getDoctorId();
+        }
+        return null;
+    }
 }

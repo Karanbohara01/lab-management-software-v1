@@ -20,6 +20,8 @@ import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
 import { formatDate } from '@/features/patients/format';
 import { branchesApi, type Branch } from '@/features/branches/api';
+import { doctorsApi } from '@/features/doctors/api';
+import type { Doctor } from '@/features/doctors/types';
 import { adminApi, type AppUserListItem } from './api';
 
 const PAGE_SIZE = 20;
@@ -38,6 +40,7 @@ export function UsersPage() {
   const debouncedSearch = useDebouncedValue(search, 300);
   const roles = useQuery(() => adminApi.roles(), []);
   const branches = useQuery(() => branchesApi.list(true), []);
+  const doctors = useQuery(() => doctorsApi.list({ activeOnly: true, size: 500 }), []);
   const { data, loading, error, refetch } = useQuery(
     () => adminApi.users({ query: debouncedSearch || undefined, page, size: PAGE_SIZE }),
     [debouncedSearch, page],
@@ -66,6 +69,7 @@ export function UsersPage() {
         </span>
       ), hideOnMobile: true },
     { key: 'branch', header: 'Home branch', cell: (u) => u.homeBranchName ?? <span className="text-muted">All branches</span>, hideOnMobile: true },
+    { key: 'doctor', header: 'Referring doctor', cell: (u) => u.doctorName ?? <span className="text-muted">—</span>, hideOnMobile: true },
     { key: 'login', header: 'Last login', cell: (u) => (u.lastLoginAt ? formatDate(u.lastLoginAt) : 'Never'), hideOnMobile: true },
     { key: 'status', header: 'Status', cell: (u) => <Badge tone={u.enabled ? 'success' : 'neutral'}>{u.enabled ? 'Active' : 'Disabled'}</Badge> },
     ...(canWrite
@@ -134,6 +138,7 @@ export function UsersPage() {
         userId={editing?.id ?? null}
         roles={(roles.data ?? []).map((r) => r.name)}
         branches={branches.data ?? []}
+        doctors={doctors.data?.content ?? []}
         onSaved={refetch}
       />
       <ResetPasswordModal user={resetFor} onClose={() => setResetFor(null)} />
@@ -147,6 +152,7 @@ function UserFormModal({
   userId,
   roles,
   branches,
+  doctors,
   onSaved,
 }: {
   open: boolean;
@@ -154,6 +160,7 @@ function UserFormModal({
   userId: number | null;
   roles: string[];
   branches: Branch[];
+  doctors: Doctor[];
   onSaved: () => void;
 }) {
   const toast = useToast();
@@ -165,6 +172,7 @@ function UserFormModal({
     password: '',
     roleNames: [] as string[],
     homeBranchId: '' as string,
+    doctorId: '' as string,
   });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -182,21 +190,25 @@ function UserFormModal({
           password: '',
           roleNames: u.roles,
           homeBranchId: u.homeBranchId ? String(u.homeBranchId) : '',
+          doctorId: u.doctorId ? String(u.doctorId) : '',
         }),
       );
     } else {
-      setF({ username: '', email: '', fullName: '', phone: '', password: '', roleNames: [], homeBranchId: '' });
+      setF({ username: '', email: '', fullName: '', phone: '', password: '', roleNames: [], homeBranchId: '', doctorId: '' });
     }
   }, [open, userId]);
 
   const toggleRole = (r: string) =>
     setF((prev) => ({ ...prev, roleNames: prev.roleNames.includes(r) ? prev.roleNames.filter((x) => x !== r) : [...prev.roleNames, r] }));
 
+  const isDoctorRole = f.roleNames.includes('DOCTOR');
+
   const submit = async () => {
     setBusy(true);
     setErr(null);
     try {
       const homeBranchId = f.homeBranchId ? Number(f.homeBranchId) : null;
+      const doctorId = isDoctorRole && f.doctorId ? Number(f.doctorId) : null;
       if (userId) {
         await adminApi.updateUser(userId, {
           email: f.email.trim(),
@@ -204,6 +216,7 @@ function UserFormModal({
           phone: f.phone || undefined,
           roleNames: f.roleNames,
           homeBranchId,
+          doctorId,
         });
         toast.success('User updated');
       } else {
@@ -214,6 +227,7 @@ function UserFormModal({
           phone: f.phone || undefined,
           roleNames: f.roleNames,
           homeBranchId,
+          doctorId,
           password: f.password,
         });
         toast.success('User created');
@@ -221,7 +235,13 @@ function UserFormModal({
       onSaved();
       onClose();
     } catch (e) {
-      setErr(e instanceof ApiError ? e.message : 'Unable to save user');
+      // A validation 400's top-level message is a generic "Request validation failed" — the
+      // actually useful detail (which field, why) is in fieldErrors, same as DoctorFormModal.
+      if (e instanceof ApiError && e.fieldErrors.length > 0) {
+        setErr(e.fieldErrors.map((fe) => `${fe.field}: ${fe.message}`).join('; '));
+      } else {
+        setErr(e instanceof ApiError ? e.message : 'Unable to save user');
+      }
     } finally {
       setBusy(false);
     }
@@ -236,7 +256,7 @@ function UserFormModal({
       footer={
         <>
           <Button variant="secondary" type="button" onClick={onClose} disabled={busy}>Cancel</Button>
-          <Button onClick={submit} loading={busy} disabled={f.roleNames.length === 0}>{userId ? 'Save' : 'Create user'}</Button>
+          <Button onClick={submit} loading={busy} disabled={f.roleNames.length === 0 || (isDoctorRole && !f.doctorId)}>{userId ? 'Save' : 'Create user'}</Button>
         </>
       }
     >
@@ -278,6 +298,20 @@ function UserFormModal({
             ))}
           </div>
         </div>
+        {isDoctorRole && (
+          <div>
+            <Select
+              label="Referring doctor"
+              placeholder="Select the doctor this login belongs to"
+              value={f.doctorId}
+              onChange={(e) => setF({ ...f, doctorId: e.target.value })}
+              options={doctors.map((d) => ({ value: String(d.id), label: d.fullName }))}
+            />
+            <p className="mt-1 text-xs text-muted">
+              Required for the DOCTOR role — this login will only ever see orders and reports this doctor referred.
+            </p>
+          </div>
+        )}
       </div>
     </Modal>
   );
@@ -303,7 +337,11 @@ function ResetPasswordModal({ user, onClose }: { user: AppUserListItem | null; o
       toast.success(`Password reset for ${user.username}`);
       onClose();
     } catch (e) {
-      setErr(e instanceof ApiError ? e.message : 'Unable to reset password');
+      if (e instanceof ApiError && e.fieldErrors.length > 0) {
+        setErr(e.fieldErrors.map((fe) => `${fe.field}: ${fe.message}`).join('; '));
+      } else {
+        setErr(e instanceof ApiError ? e.message : 'Unable to reset password');
+      }
     } finally {
       setBusy(false);
     }

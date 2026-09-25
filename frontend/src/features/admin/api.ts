@@ -33,6 +33,9 @@ export interface AppUserListItem {
   roles: string[];
   homeBranchId: number | null;
   homeBranchName: string | null;
+  /** Which referring physician this login represents — required (and enforced) when roles include DOCTOR. */
+  doctorId: number | null;
+  doctorName: string | null;
   enabled: boolean;
   lastLoginAt: string | null;
 }
@@ -101,11 +104,20 @@ export const adminApi = {
     roleNames: string[];
     /** Null/omitted = access to every branch (HQ / roaming staff). */
     homeBranchId?: number | null;
+    /** Required when roleNames includes DOCTOR — the referring physician this login represents. */
+    doctorId?: number | null;
     password: string;
   }) => httpClient.post<AppUserDetail>('/users', payload).then((r) => r.data),
   updateUser: (
     id: number,
-    payload: { email: string; fullName: string; phone?: string; roleNames: string[]; homeBranchId?: number | null },
+    payload: {
+      email: string;
+      fullName: string;
+      phone?: string;
+      roleNames: string[];
+      homeBranchId?: number | null;
+      doctorId?: number | null;
+    },
   ) => httpClient.put<AppUserDetail>(`/users/${id}`, payload).then((r) => r.data),
   setEnabled: (id: number, value: boolean) =>
     httpClient.patch<AppUserDetail>(`/users/${id}/enabled`, null, { params: { value } }).then((r) => r.data),

@@ -11,6 +11,13 @@ import type {
   SubscriptionStatus,
 } from './types';
 
+export interface PlatformRole {
+  id: number;
+  name: string;
+  description: string | null;
+  permissions: string[];
+}
+
 export const platformApi = {
   summary: () => httpClient.get<PlatformSummary>('/platform/summary').then((r) => r.data),
   dashboard: () => httpClient.get<PlatformDashboard>('/platform/dashboard').then((r) => r.data),
@@ -67,4 +74,11 @@ export const platformApi = {
   ) => httpClient.post<Subscription>(`/platform/organizations/${id}/subscription`, payload).then((r) => r.data),
   cancelSubscription: (id: number, reason: string) =>
     httpClient.post<Subscription>(`/platform/organizations/${id}/subscription/cancel`, { reason }).then((r) => r.data),
+
+  roles: () => httpClient.get<PlatformRole[]>('/platform/roles').then((r) => r.data),
+  permissions: () => httpClient.get<string[]>('/platform/permissions').then((r) => r.data),
+  updateRolePermissions: (roleId: number, permissionNames: string[]) =>
+    httpClient
+      .put<PlatformRole>(`/platform/roles/${roleId}/permissions`, { permissionNames })
+      .then((r) => r.data),
 };

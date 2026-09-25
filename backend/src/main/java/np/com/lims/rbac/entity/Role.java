@@ -47,4 +47,10 @@ public class Role extends BaseEntity {
     public Set<Permission> getPermissions() {
         return permissions;
     }
+
+    /** Full replace, not merge — the caller (a platform-admin role editor) sends the complete desired set. */
+    public void replacePermissions(Set<Permission> newPermissions) {
+        this.permissions.clear();
+        this.permissions.addAll(newPermissions);
+    }
 }

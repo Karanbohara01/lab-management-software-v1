@@ -26,6 +26,7 @@ import np.com.lims.platform.dto.PlatformDtos.PlanDto;
 import np.com.lims.platform.dto.PlatformDtos.PlatformSummary;
 import np.com.lims.platform.dto.PlatformDtos.SubscriptionDto;
 import np.com.lims.platform.dto.PlatformDtos.UpdateOrganizationRequest;
+import np.com.lims.platform.dto.PlatformDtos.UpdateRolePermissionsRequest;
 import np.com.lims.platform.dto.PlatformDtos.UpsertPlanRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -125,6 +126,25 @@ public class PlatformController {
     @PostMapping("/organizations/{id}/subscription/cancel")
     public SubscriptionDto cancelSubscription(@PathVariable Long id, @Valid @RequestBody CancelSubscriptionRequest request) {
         return service.cancelSubscription(id, request);
+    }
+
+    // ===== roles & permissions — global, platform-wide (see PlatformService's roles/permissionNames/
+    // updateRolePermissions javadoc for why this lives here and not under the per-clinic /roles) ====
+
+    @GetMapping("/roles")
+    public List<np.com.lims.admin.dto.AdminDtos.RoleResponse> roles() {
+        return service.roles();
+    }
+
+    @GetMapping("/permissions")
+    public List<String> permissions() {
+        return service.permissionNames();
+    }
+
+    @PutMapping("/roles/{id}/permissions")
+    public np.com.lims.admin.dto.AdminDtos.RoleResponse updateRolePermissions(
+            @PathVariable Long id, @Valid @RequestBody UpdateRolePermissionsRequest request) {
+        return service.updateRolePermissions(id, request);
     }
 
     // ===== master lab test catalogue (curation) — clinic-facing browse/import lives on

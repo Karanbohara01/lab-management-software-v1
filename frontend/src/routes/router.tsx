@@ -51,6 +51,7 @@ export const router = createBrowserRouter([
       route('branches', lazyPage(() => import('@/features/branches/BranchesPage'), 'BranchesPage'), [P.BRANCH_READ]),
       route('tests', lazyPage(() => import('@/features/catalog/TestCatalogPage'), 'TestCatalogPage'), [P.TEST_CATALOG_READ]),
       route('parameters', lazyPage(() => import('@/features/catalog/parameterMaster/ParameterMasterPage'), 'ParameterMasterPage'), [P.TEST_CATALOG_READ]),
+      route('reflex-rules', lazyPage(() => import('@/features/catalog/ReflexRulesPage'), 'ReflexRulesPage'), [P.TEST_CATALOG_READ]),
 
       route('orders', lazyPage(() => import('@/features/orders/OrdersPage'), 'OrdersPage'), [P.LAB_ORDER_READ]),
       route('orders/new', lazyPage(() => import('@/features/orders/OrderBuilderPage'), 'OrderBuilderPage'), [P.LAB_ORDER_WRITE]),
@@ -75,6 +76,7 @@ export const router = createBrowserRouter([
       route('sales-book', lazyPage(() => import('@/features/billing/SalesBookPage'), 'SalesBookPage'), [P.INVOICE_READ]),
       route('master-bill', lazyPage(() => import('@/features/billing/MasterBillPage'), 'MasterBillPage'), [P.INVOICE_READ]),
       route('corrections', lazyPage(() => import('@/features/billing/CorrectionsReportPage'), 'CorrectionsReportPage'), [P.INVOICE_READ]),
+      route('commission', lazyPage(() => import('@/features/commission/CommissionPage'), 'CommissionPage'), [P.COMMISSION_READ]),
 
       route('ird', lazyPage(() => import('@/features/ird/IrdSubmissionsPage'), 'IrdSubmissionsPage'), [P.IRD_SUBMISSION_READ]),
       route('ird/:id', lazyPage(() => import('@/features/ird/IrdSubmissionDetailPage'), 'IrdSubmissionDetailPage'), [P.IRD_SUBMISSION_READ]),
@@ -90,6 +92,7 @@ export const router = createBrowserRouter([
       route('platform/plans', lazyPage(() => import('@/features/platform/PlansPage'), 'PlansPage'), [P.PLATFORM_MANAGE]),
       route('platform/master-tests', lazyPage(() => import('@/features/catalog/masterCatalog/MasterCatalogPage'), 'MasterCatalogPage'), [P.PLATFORM_MANAGE]),
       route('platform/billing', lazyPage(() => import('@/features/platform/billing/PlatformBillingPage'), 'PlatformBillingPage'), [P.PLATFORM_MANAGE]),
+      route('platform/roles', lazyPage(() => import('@/features/platform/PlatformRolesPage'), 'PlatformRolesPage'), [P.PLATFORM_MANAGE]),
       route('users', lazyPage(() => import('@/features/admin/UsersPage'), 'UsersPage'), [P.USER_READ]),
       route('roles', lazyPage(() => import('@/features/admin/RolesPage'), 'RolesPage'), [P.ROLE_READ]),
       route('audit', lazyPage(() => import('@/features/admin/AuditPage'), 'AuditPage'), [P.AUDIT_READ]),

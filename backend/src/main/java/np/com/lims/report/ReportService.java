@@ -72,21 +72,41 @@ public class ReportService {
     @Transactional(readOnly = true)
     public Page<ListItem> search(ReportStatus status, Long patientId, String query, Pageable pageable) {
         String normalized = StringUtils.hasText(query) ? query.trim() : null;
-        return reportRepository.search(status, patientId, normalized, pageable).map(ListItem::from);
+        // A DOCTOR-role login only ever sees reports for orders they personally referred.
+        Long doctorId = CurrentUser.doctorId();
+        return reportRepository.search(status, patientId, doctorId, normalized, pageable).map(ListItem::from);
     }
 
     @Transactional(readOnly = true)
     public Detail get(Long id) {
         Report report = reportRepository.findDetailedById(id)
                 .orElseThrow(() -> ApiException.notFound("Report", id));
-        return Detail.from(report, laboratoryProfileService.require());
+        return Detail.from(guardDoctorScope(report), laboratoryProfileService.require());
     }
 
     @Transactional(readOnly = true)
     public Detail getByOrder(Long orderId) {
         Report report = reportRepository.findByOrderId(orderId)
                 .orElseThrow(() -> ApiException.notFound("Report for order", orderId));
-        return Detail.from(report, laboratoryProfileService.require());
+        return Detail.from(guardDoctorScope(report), laboratoryProfileService.require());
+    }
+
+    /**
+     * A DOCTOR-role login must never fetch a report by id/order outside their own referrals, even
+     * though {@link #search} already excludes it from their list — reported as 404, not 403, so a
+     * doctor probing ids can't distinguish "not yours" from "doesn't exist".
+     */
+    private Report guardDoctorScope(Report report) {
+        Long doctorId = CurrentUser.doctorId();
+        if (doctorId == null) {
+            return report;
+        }
+        LabOrder order = report.getOrder();
+        if (order == null || order.getReferringDoctor() == null
+                || !doctorId.equals(order.getReferringDoctor().getId())) {
+            throw ApiException.notFound("Report", report.getId());
+        }
+        return report;
     }
 
     @Transactional

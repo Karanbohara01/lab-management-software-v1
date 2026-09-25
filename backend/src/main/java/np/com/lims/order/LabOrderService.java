@@ -74,7 +74,11 @@ public class LabOrderService {
         String normalized = StringUtils.hasText(query) ? query.trim() : null;
         // A branch-restricted user's own scope always wins over whatever the client asked for.
         Long effectiveBranchId = CurrentUser.branchId() != null ? CurrentUser.branchId() : branchId;
-        return orderRepository.search(patientId, status, effectiveBranchId, normalized, pageable).map(ListItem::from);
+        // A DOCTOR-role login only ever sees orders they personally referred — this is not
+        // client-overridable, unlike branchId above which a client may legitimately narrow further.
+        Long doctorId = CurrentUser.doctorId();
+        return orderRepository.search(patientId, status, effectiveBranchId, doctorId, normalized, pageable)
+                .map(ListItem::from);
     }
 
     @Transactional(readOnly = true)
@@ -84,7 +88,7 @@ public class LabOrderService {
 
     @Transactional(readOnly = true)
     public Detail get(Long id) {
-        return Detail.from(load(id));
+        return Detail.from(guardDoctorScope(load(id)));
     }
 
     /** Stateless pricing preview - no persistence, used by the order builder UI. */
@@ -219,6 +223,20 @@ public class LabOrderService {
 
     private LabOrder load(Long id) {
         return orderRepository.findDetailedById(id).orElseThrow(() -> ApiException.notFound("Order", id));
+    }
+
+    /**
+     * A DOCTOR-role login must never fetch an order by id outside their own referrals, even though
+     * {@link #search} already excludes it from their list — reported as 404, not 403, so a doctor
+     * probing ids can't distinguish "not yours" from "doesn't exist".
+     */
+    private LabOrder guardDoctorScope(LabOrder order) {
+        Long doctorId = CurrentUser.doctorId();
+        if (doctorId != null
+                && (order.getReferringDoctor() == null || !doctorId.equals(order.getReferringDoctor().getId()))) {
+            throw ApiException.notFound("Order", order.getId());
+        }
+        return order;
     }
 
     private static String trimToNull(String value) {
