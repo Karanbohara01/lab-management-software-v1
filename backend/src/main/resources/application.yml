@@ -165,6 +165,14 @@ lims:
       base-url: ${KHALTI_BASE_URL:https://dev.khalti.com/api/v2}
       secret-key: ${KHALTI_SECRET_KEY:}
       website-url: ${KHALTI_WEBSITE_URL:${lims.app.public-url}}
+    fonepay:
+      # Third gateway slot (np.com.lims.payment.gateway.FonepayGatewayConfig) — credentials can be
+      # entered and stored, but initiate()/verify() always refuse until Fonepay's real merchant API
+      # spec is obtained and live-verified, the same way eSewa/Khalti/CBMS were. No form-action or
+      # verify-base-url here yet — deliberately, so nothing guesses at an unverified endpoint.
+      enabled: ${FONEPAY_ENABLED:false}
+      merchant-code: ${FONEPAY_MERCHANT_CODE:}
+      secret-key: ${FONEPAY_SECRET_KEY:}
   backup:
     # Mandatory per the e-invoice procedure (दफा ६(ढ)/८(घ)): every fiscal year's database and
     # log must be backed up. Runs on this cron (default 02:00 daily) plus whenever a

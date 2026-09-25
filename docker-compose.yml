@@ -15,7 +15,7 @@ services:
     volumes:
       - lims_mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-plims", "-ulims"]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-plims", "-ulims" ]
       interval: 10s
       timeout: 5s
       retries: 10

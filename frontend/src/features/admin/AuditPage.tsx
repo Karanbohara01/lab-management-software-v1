@@ -15,7 +15,7 @@ import { useQuery } from '@/hooks/useQuery';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/types/api';
-import { exportCsv, exportXml } from '@/lib/exportData';
+import { exportCsv, exportExcel, exportXml } from '@/lib/exportData';
 import { adminApi, type AuditListItem } from './api';
 
 const PAGE_SIZE = 30;
@@ -74,7 +74,7 @@ export function AuditPage() {
     [selectedId],
   );
 
-  const exportAll = async (format: 'csv' | 'xml') => {
+  const exportAll = async (format: 'csv' | 'xls' | 'xml') => {
     setExporting(true);
     try {
       const rows = await adminApi.exportAudit({
@@ -86,6 +86,8 @@ export function AuditPage() {
       });
       if (format === 'csv') {
         exportCsv(rows as unknown as Record<string, unknown>[], EXPORT_COLUMNS as { key: string; header: string }[], 'audit-log.csv');
+      } else if (format === 'xls') {
+        exportExcel(rows as unknown as Record<string, unknown>[], EXPORT_COLUMNS as { key: string; header: string }[], 'AuditLog', 'audit-log.xls');
       } else {
         exportXml(
           rows as unknown as Record<string, unknown>[],
@@ -120,6 +122,10 @@ export function AuditPage() {
             <Button variant="secondary" loading={exporting} onClick={() => exportAll('csv')}>
               <Download className="h-4 w-4" aria-hidden />
               Export CSV
+            </Button>
+            <Button variant="secondary" loading={exporting} onClick={() => exportAll('xls')}>
+              <Download className="h-4 w-4" aria-hidden />
+              Export Excel
             </Button>
             <Button variant="secondary" loading={exporting} onClick={() => exportAll('xml')}>
               <Download className="h-4 w-4" aria-hidden />

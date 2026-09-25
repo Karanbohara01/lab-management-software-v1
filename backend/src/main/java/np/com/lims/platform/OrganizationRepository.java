@@ -11,6 +11,9 @@ public interface OrganizationRepository extends JpaRepository<Organization, Long
 
     boolean existsBySlugIgnoreCase(String slug);
 
+    @Query("SELECT o.id FROM Organization o WHERE o.status IN (np.com.lims.platform.entity.OrganizationStatus.TRIAL, np.com.lims.platform.entity.OrganizationStatus.ACTIVE)")
+    java.util.List<Long> findActiveIds();
+
     @Query("""
             SELECT o FROM Organization o
             WHERE :q IS NULL

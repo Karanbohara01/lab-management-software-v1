@@ -3,7 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="color-scheme" content="light" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      // Set the theme class before React mounts, so the first paint is already correct — avoids
+      // a flash of the wrong theme. Mirrors useTheme.ts's own logic; kept tiny/inline since it
+      // must run before any stylesheet or module loads.
+      (function () {
+        try {
+          var stored = localStorage.getItem('lims-theme');
+          var dark =
+            stored === 'dark' ||
+            (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
     <title>Pathology Management Software | LabOS</title>
     <meta
       name="description"

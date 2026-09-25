@@ -33,6 +33,38 @@
     --radius: 0.625rem;
   }
 
+  /* Dark palette — same token structure as :root, tuned for a dark surface rather than an
+     inverted light one (surfaces get lighter as they lift, not darker; status hues are boosted
+     in lightness/saturation to stay legible at low ambient brightness — the exact values a flat
+     filter/invert would get wrong). Applied via a `.dark` class on <html> (see useTheme.ts),
+     not prefers-color-scheme alone, so a user can override the OS setting explicitly. */
+  .dark {
+    --background: 222 47% 7%;
+    --foreground: 210 40% 96%;
+
+    --surface: 222 40% 10%;
+    --surface-muted: 222 35% 14%;
+
+    --muted: 215 16% 65%;
+    --muted-foreground: 215 20% 75%;
+
+    --border: 217 28% 20%;
+    --input: 217 28% 24%;
+    --ring: 199 89% 55%;
+
+    --primary: 199 89% 55%;
+    --primary-foreground: 222 47% 7%;
+
+    --success: 152 55% 48%;
+    --success-foreground: 222 47% 7%;
+    --warning: 32 90% 58%;
+    --warning-foreground: 222 47% 7%;
+    --danger: 0 72% 60%;
+    --danger-foreground: 222 47% 7%;
+    --critical: 350 84% 62%;
+    --critical-foreground: 222 47% 7%;
+  }
+
   * {
     @apply border-border;
   }

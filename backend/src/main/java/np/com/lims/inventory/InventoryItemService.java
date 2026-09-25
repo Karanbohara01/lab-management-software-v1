@@ -90,9 +90,23 @@ public class InventoryItemService {
 
     @Transactional(readOnly = true)
     public InventorySummary summary() {
+        return buildSummary(itemRepository.findByActiveTrue());
+    }
+
+    /**
+     * Same as {@link #summary()} but explicitly scoped by organization, for callers outside an
+     * HTTP request (the Hibernate tenant filter this deployment otherwise relies on is only
+     * enabled per-request — see {@link InventoryItemRepository#findByActiveTrueAndOrganizationId}).
+     */
+    @Transactional(readOnly = true)
+    public InventorySummary summaryForOrg(Long organizationId) {
+        return buildSummary(itemRepository.findByActiveTrueAndOrganizationId(organizationId));
+    }
+
+    private InventorySummary buildSummary(List<InventoryItem> items) {
         LocalDate today = LocalDate.now();
         int days = alertDays();
-        List<ItemListItem> rows = itemRepository.findByActiveTrue().stream()
+        List<ItemListItem> rows = items.stream()
                 .map(i -> ItemListItem.from(i, today, days)).toList();
         Map<String, Long> counts = new TreeMap<>();
         for (StockStatus s : StockStatus.values()) {

@@ -147,7 +147,13 @@ export function ActionCenter({
       ) : (
         <ul className="divide-y divide-border">
           {visible.map((it) => (
-            <li key={it.key} className="flex items-center gap-3 px-5 py-3">
+            <li
+              key={it.key}
+              className={cn(
+                'flex items-center gap-3 border-l-[3px] px-5 py-3',
+                it.severity === 'critical' ? 'border-l-danger bg-danger/[0.03]' : 'border-l-transparent',
+              )}
+            >
               <span
                 className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', SEVERITY_STYLE[it.severity].badge)}
               >

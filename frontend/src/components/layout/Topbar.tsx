@@ -1,13 +1,35 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardPlus, Keyboard, LogOut, Menu, Plus, UserPlus, UserRound } from 'lucide-react';
+import { ClipboardPlus, Keyboard, LogOut, Menu, Moon, Plus, Sun, SunMoon, UserPlus, UserRound } from 'lucide-react';
 import { useAppDispatch } from '@/store/hooks';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { logout } from '@/features/auth/authSlice';
 import { Button } from '@/components/ui/Button';
 import { NotificationBell } from '@/features/notifications/NotificationBell';
+import { useTheme, type ThemePreference } from '@/hooks/useTheme';
 import { CommandSearch } from './CommandSearch';
+
+const THEME_ORDER: ThemePreference[] = ['light', 'dark', 'system'];
+const THEME_ICON: Record<ThemePreference, typeof Sun> = { light: Sun, dark: Moon, system: SunMoon };
+const THEME_LABEL: Record<ThemePreference, string> = { light: 'Light', dark: 'Dark', system: 'System' };
+
+function ThemeToggle() {
+  const { preference, setPreference } = useTheme();
+  const Icon = THEME_ICON[preference];
+  const next = THEME_ORDER[(THEME_ORDER.indexOf(preference) + 1) % THEME_ORDER.length]!;
+  return (
+    <button
+      type="button"
+      onClick={() => setPreference(next)}
+      className="hidden rounded-md p-2 text-muted-foreground hover:bg-surface-muted hover:text-foreground sm:block"
+      aria-label={`Theme: ${THEME_LABEL[preference]}. Click to switch to ${THEME_LABEL[next]}.`}
+      title={`Theme: ${THEME_LABEL[preference]} (click to change)`}
+    >
+      <Icon className="h-[18px] w-[18px]" aria-hidden />
+    </button>
+  );
+}
 
 export function Topbar({ onOpenMenu, onOpenShortcuts }: { onOpenMenu: () => void; onOpenShortcuts: () => void }) {
   const dispatch = useAppDispatch();
@@ -91,6 +113,8 @@ export function Topbar({ onOpenMenu, onOpenShortcuts }: { onOpenMenu: () => void
       >
         <Keyboard className="h-[18px] w-[18px]" aria-hidden />
       </button>
+
+      <ThemeToggle />
 
       <NotificationBell />
 

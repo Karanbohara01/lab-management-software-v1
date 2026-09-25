@@ -9,6 +9,7 @@ import type { DashboardSummary } from '../api';
 interface Metric {
   label: string;
   value: string;
+  isZero?: boolean;
   caption?: string;
   icon: LucideIcon;
   to?: string;
@@ -25,6 +26,7 @@ export function KpiHero({ summary }: { summary: DashboardSummary }) {
     {
       label: "Today's orders",
       value: String(summary.todayOrders),
+      isZero: summary.todayOrders === 0,
       icon: ClipboardCheck,
       to: '/app/orders',
       permission: 'LAB_ORDER_READ',
@@ -32,6 +34,7 @@ export function KpiHero({ summary }: { summary: DashboardSummary }) {
     {
       label: 'Samples in lab',
       value: String(summary.samplesInLab),
+      isZero: summary.samplesInLab === 0,
       caption: summary.pendingCollection > 0 ? `${summary.pendingCollection} awaiting collection` : 'All collected',
       icon: FlaskConical,
       to: '/app/samples',
@@ -41,6 +44,7 @@ export function KpiHero({ summary }: { summary: DashboardSummary }) {
     {
       label: 'Reports issued',
       value: String(summary.reportsToday),
+      isZero: summary.reportsToday === 0,
       icon: FileCheck2,
       to: '/app/reports',
       permission: 'REPORT_READ',
@@ -48,6 +52,7 @@ export function KpiHero({ summary }: { summary: DashboardSummary }) {
     {
       label: "Today's revenue",
       value: formatMoney(summary.todayRevenue),
+      isZero: summary.todayRevenue === 0,
       caption: summary.outstandingBalance > 0 ? `${formatMoney(summary.outstandingBalance)} outstanding` : 'Fully collected',
       icon: Wallet,
       to: '/app/invoices',
@@ -61,7 +66,7 @@ export function KpiHero({ summary }: { summary: DashboardSummary }) {
       <button
         type="button"
         onClick={() => navigate('/app/patients')}
-        className="group flex min-h-[7.5rem] flex-[2_2_20rem] flex-col justify-between rounded-lg border border-primary/25 shadow-card bg-primary/[0.04] p-5 text-left transition-colors hover:border-primary/40"
+        className="group flex min-h-[7.5rem] flex-[2_2_20rem] flex-col justify-between rounded-lg border-2 border-primary/30 shadow-card bg-primary/[0.07] p-5 text-left transition-colors hover:border-primary/50"
       >
         <div className="flex items-start justify-between">
           <span className="text-sm font-medium text-muted">Patients registered today</span>
@@ -69,7 +74,17 @@ export function KpiHero({ summary }: { summary: DashboardSummary }) {
             <Activity className="h-5 w-5" aria-hidden />
           </span>
         </div>
-        <p className="mt-3 text-4xl font-semibold tracking-tight text-foreground">{summary.todayPatients}</p>
+        {/* A real zero shouldn't carry the same visual weight as a real count — it's the
+            least-actionable number on the dashboard, not the most, so it's dimmed rather than
+            rendered at full strength like every other value here. */}
+        <p
+          className={cn(
+            'mt-3 text-4xl font-semibold tracking-tight',
+            summary.todayPatients > 0 ? 'text-foreground' : 'text-muted-foreground/50',
+          )}
+        >
+          {summary.todayPatients}
+        </p>
         <p className="mt-1 text-xs text-muted">
           {summary.todayOrders} order{summary.todayOrders === 1 ? '' : 's'} placed so far today
         </p>
@@ -89,7 +104,9 @@ export function KpiHero({ summary }: { summary: DashboardSummary }) {
             <span className="text-xs font-medium text-muted">{m.label}</span>
             <m.icon className={cn('h-4 w-4', m.tone === 'warning' ? 'text-warning' : 'text-muted')} aria-hidden />
           </div>
-          <p className="mt-2 text-2xl font-semibold text-foreground">{m.value}</p>
+          <p className={cn('mt-2 text-2xl font-semibold', m.isZero ? 'text-muted-foreground/50' : 'text-foreground')}>
+            {m.value}
+          </p>
           <p className={cn('mt-0.5 text-xs', m.tone === 'warning' ? 'text-warning' : 'text-muted')}>
             {m.caption ?? ' '}
           </p>

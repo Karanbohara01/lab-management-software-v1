@@ -22,6 +22,16 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, Lo
     @EntityGraph(attributePaths = {"department", "batches"})
     List<InventoryItem> findByActiveTrue();
 
+    /**
+     * Same as {@link #findByActiveTrue()} but explicitly scoped by organization — for callers
+     * outside an HTTP request (e.g. {@code NotificationSweeper}), where the Hibernate tenant
+     * filter is never enabled (that only happens per-request, in {@code TenantFilterInterceptor})
+     * regardless of {@code TenantContext} being set. Relying on the ambient filter there returns
+     * every organization's rows mixed together — confirmed live as a real cross-tenant leak.
+     */
+    @EntityGraph(attributePaths = {"department", "batches"})
+    List<InventoryItem> findByActiveTrueAndOrganizationId(Long organizationId);
+
     @Query("""
             SELECT i FROM InventoryItem i
             WHERE (:q IS NULL OR LOWER(i.name) LIKE LOWER(CONCAT('%', :q, '%'))

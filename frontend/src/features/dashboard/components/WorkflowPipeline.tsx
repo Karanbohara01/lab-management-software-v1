@@ -75,15 +75,19 @@ export function WorkflowPipeline({
   return (
     <Card className="mb-5 p-5">
       <SectionHeader title="Laboratory pipeline" description="Where today's work currently stands, end to end." />
+      {/* Tiles flex to fill the card's actual width (evenly, down to a 100px floor) instead of a
+          fixed per-tile width — a fixed width times 8 stages forced a horizontal scrollbar even
+          on a wide desktop viewport with room to spare. overflow-x-auto stays as a genuine
+          fallback for when the floor is actually hit (narrow viewports), not the normal case. */}
       <div className="-mx-1 overflow-x-auto pb-1">
-        <ol className="flex min-w-max items-stretch gap-0 px-1">
+        <ol className="flex items-stretch gap-0 px-1">
           {stages.map((s, i) => (
-            <li key={s.key} className="flex items-stretch">
+            <li key={s.key} className="flex flex-1 items-stretch">
               <button
                 type="button"
                 onClick={() => navigate(s.to)}
                 className={cn(
-                  'flex w-32 flex-col justify-between rounded-lg border px-3 py-2.5 text-left transition-colors hover:border-primary/40 hover:bg-surface-muted',
+                  'flex min-w-[100px] flex-1 flex-col justify-between rounded-lg border px-3 py-2.5 text-left transition-colors hover:border-primary/40 hover:bg-surface-muted',
                   s.tone === 'warning' ? 'border-warning/30' : 'border-border',
                 )}
               >

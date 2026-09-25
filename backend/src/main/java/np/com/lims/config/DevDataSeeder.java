@@ -133,7 +133,7 @@ public class DevDataSeeder implements ApplicationRunner {
 
     private static Doctor referrer(String name, String specialization, String nmc) {
         Doctor d = Doctor.create(name);
-        d.update(name, specialization, "MBBS", nmc, null, null, "Community Referral");
+        d.update(name, specialization, "MBBS", nmc, null, null, "Community Referral", null);
         return d;
     }
 

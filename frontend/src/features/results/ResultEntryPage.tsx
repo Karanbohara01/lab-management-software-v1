@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, CheckCircle2, Save, ShieldCheck, Undo2 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
@@ -80,6 +80,31 @@ export function ResultEntryPage() {
     () => !!result && (result.status === 'PENDING' || result.status === 'ENTERED') && hasPermission(PERMISSIONS.RESULT_ENTER),
     [result, hasPermission],
   );
+
+  const valuesTableRef = useRef<HTMLTableElement>(null);
+
+  /**
+   * Enter moves focus to the next parameter's value field instead of submitting/doing nothing —
+   * a tech entering a 20-parameter CBC panel shouldn't need the mouse for every row. Walks DOM
+   * order among `[data-value-input]` elements rather than tracking an index, so it stays correct
+   * regardless of which rows are actually editable (calculated parameters are skipped since
+   * they're never rendered as an input at all).
+   */
+  const focusNextValueInput = (e: React.KeyboardEvent<HTMLSelectElement | HTMLInputElement>) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const table = valuesTableRef.current;
+    if (!table) return;
+    const inputs = Array.from(table.querySelectorAll<HTMLElement>('[data-value-input]'));
+    const currentIndex = inputs.indexOf(e.currentTarget);
+    const next = inputs[currentIndex + 1];
+    if (next) {
+      next.focus();
+      if (next instanceof HTMLInputElement) next.select();
+    } else {
+      (e.currentTarget as HTMLElement).blur();
+    }
+  };
 
   if (loading && !result) return <LoadingState label="Loading result…" />;
   if (error) return <ErrorState message={error} onRetry={refetch} />;
@@ -290,7 +315,7 @@ export function ResultEntryPage() {
           <Card>
             <CardHeader title="Parameters" />
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table ref={valuesTableRef} className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
                     <th className="px-5 py-2">Parameter</th>
@@ -329,8 +354,10 @@ export function ResultEntryPage() {
                           {editable && !v.calculated ? (
                             choices ? (
                               <select
+                                data-value-input
                                 value={draft[v.parameterId] ?? ''}
                                 onChange={(e) => setDraft((p) => ({ ...p, [v.parameterId]: e.target.value }))}
+                                onKeyDown={focusNextValueInput}
                                 className="h-9 w-40 rounded-md border border-input bg-surface px-2"
                               >
                                 <option value="">—</option>
@@ -342,11 +369,13 @@ export function ResultEntryPage() {
                               </select>
                             ) : (
                               <input
+                                data-value-input
                                 type={v.dataType === 'NUMERIC' ? 'number' : 'text'}
                                 step="any"
                                 inputMode={v.dataType === 'NUMERIC' ? 'decimal' : undefined}
                                 value={draft[v.parameterId] ?? ''}
                                 onChange={(e) => setDraft((p) => ({ ...p, [v.parameterId]: e.target.value }))}
+                                onKeyDown={focusNextValueInput}
                                 className="h-9 w-40 rounded-md border border-input bg-surface px-2 text-base"
                                 aria-label={v.parameterName}
                               />

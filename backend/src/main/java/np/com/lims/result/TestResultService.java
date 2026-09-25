@@ -1,8 +1,11 @@
 package np.com.lims.result;
 
 import np.com.lims.catalog.LabTestRepository;
+import np.com.lims.catalog.ReflexRuleRepository;
 import np.com.lims.catalog.entity.LabTest;
 import np.com.lims.catalog.entity.ParameterDataType;
+import np.com.lims.catalog.entity.ReflexRule;
+import np.com.lims.catalog.entity.ReflexTrigger;
 import np.com.lims.catalog.entity.TestParameter;
 import np.com.lims.common.audit.AuditService;
 import np.com.lims.common.exception.ApiException;
@@ -63,6 +66,7 @@ public class TestResultService {
     private final ReferenceRangeResolver rangeResolver;
     private final AuditService auditService;
     private final NotificationService notificationService;
+    private final ReflexRuleRepository reflexRuleRepository;
 
     public TestResultService(TestResultRepository resultRepository,
                              CriticalValueCallbackRepository callbackRepository,
@@ -71,7 +75,8 @@ public class TestResultService {
                              AntibioticRepository antibioticRepository,
                              ReferenceRangeResolver rangeResolver,
                              AuditService auditService,
-                             NotificationService notificationService) {
+                             NotificationService notificationService,
+                             ReflexRuleRepository reflexRuleRepository) {
         this.resultRepository = resultRepository;
         this.callbackRepository = callbackRepository;
         this.qcService = qcService;
@@ -80,6 +85,7 @@ public class TestResultService {
         this.rangeResolver = rangeResolver;
         this.auditService = auditService;
         this.notificationService = notificationService;
+        this.reflexRuleRepository = reflexRuleRepository;
     }
 
     /** Creates a pending result (with an empty value per parameter) for every test on a received sample. */
@@ -194,6 +200,7 @@ public class TestResultService {
         result.recomputeAbnormalFlags();
         audit(result, "ENTER", "Entered results for " + result.getTestCode());
         maybeAutoVerify(result);
+        checkReflexRules(result);
         return detail(result);
     }
 
@@ -253,6 +260,7 @@ public class TestResultService {
         audit(result, "ENTER_CULTURE", "Entered culture for " + result.getTestCode() + " — " + request.growth()
                 + (result.getCultureIsolates().isEmpty()
                         ? "" : " (" + result.getCultureIsolates().size() + " isolate(s))"));
+        checkReflexRules(result);
         return detail(result);
     }
 
@@ -438,6 +446,38 @@ public class TestResultService {
         result.markAutoVerified();
         audit(result, "AUTO_VERIFY",
                 "Auto-verified " + result.getTestCode() + " — all values normal and in range, no delta breach");
+    }
+
+    /**
+     * Reflex testing (e.g. an abnormal TSH suggesting a reflex Free T4) — suggestion only, never
+     * auto-orders or auto-bills the target test; a human must explicitly place that order the same
+     * as any other test they add. Publishes one notification per matching rule, deduped per
+     * result+rule so re-entering the same result doesn't spam, targeted at whoever can act
+     * (LAB_ORDER_WRITE — the same permission needed to add a test to an order).
+     */
+    private void checkReflexRules(TestResult result) {
+        if (!result.isHasAbnormal() && !result.isHasCritical()) {
+            return;
+        }
+        for (ReflexRule rule : reflexRuleRepository.findBySourceTestIdAndActiveTrue(result.getTestId())) {
+            boolean matches = rule.getTrigger() == ReflexTrigger.CRITICAL ? result.isHasCritical() : result.isHasAbnormal();
+            if (!matches) {
+                continue;
+            }
+            LabTest target = labTestRepository.findById(rule.getTargetTestId()).orElse(null);
+            if (target == null) {
+                continue;
+            }
+            notificationService.publish(Notification.Type.REFLEX_SUGGESTED, Notification.Severity.WARNING,
+                    "Reflex test suggested: " + target.getName(),
+                    result.getTestName() + " for " + result.getPatient().getFullName()
+                            + " (" + result.getPatient().getMrn() + ") came back "
+                            + (rule.getTrigger() == ReflexTrigger.CRITICAL ? "critical" : "abnormal")
+                            + " — consider ordering " + target.getName()
+                            + (rule.getNote() != null ? " (" + rule.getNote() + ")" : ""),
+                    "/orders/" + result.getOrder().getId(), "LAB_ORDER_WRITE",
+                    "reflex:" + result.getId() + ":" + rule.getId());
+        }
     }
 
     private void computeDerived(TestResult result, Patient patient, Integer ageYears, Integer ageDays,

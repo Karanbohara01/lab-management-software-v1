@@ -18,6 +18,13 @@ public interface TestResultRepository extends JpaRepository<TestResult, Long> {
 
     long countByStatus(ResultStatus status);
 
+    /**
+     * Explicitly org-scoped, unlike {@link #countByStatus} — for callers outside an HTTP request
+     * (the Hibernate tenant filter is only enabled per-request; see
+     * {@link #findOverdueUnresolved(Long)} for why relying on it elsewhere is a real cross-tenant leak).
+     */
+    long countByStatusAndOrganizationId(ResultStatus status, Long organizationId);
+
     long countByHasCriticalTrueAndStatusNot(ResultStatus status);
 
     @Query("SELECT r.departmentName, COUNT(r) FROM TestResult r WHERE r.createdAt >= :from "
@@ -83,6 +90,25 @@ public interface TestResultRepository extends JpaRepository<TestResult, Long> {
               AND (:departmentId IS NULL OR r.departmentId = :departmentId)
             """)
     long countCriticalPending(@Param("departmentId") Long departmentId);
+
+    /**
+     * Every result past its TAT due time that hasn't reached a terminal (approved) state yet, for
+     * TAT-breach alerting. Takes {@code organizationId} explicitly rather than relying on the
+     * Hibernate tenant filter — confirmed live that the filter is NOT enabled for a
+     * {@code @Scheduled} job's Hibernate session (only {@code TenantFilterInterceptor}, a
+     * per-HTTP-request hook, enables it), so an unscoped version of this query silently mixed
+     * every organization's overdue results together and mis-attributed them to whichever
+     * organization the sweep happened to be iterating at insert time — a real cross-tenant leak,
+     * not a hypothetical one.
+     */
+    @EntityGraph(attributePaths = {"patient"})
+    @Query("""
+            SELECT r FROM TestResult r
+            WHERE r.organizationId = :organizationId
+              AND r.status <> np.com.lims.result.entity.ResultStatus.APPROVED
+              AND r.dueAt IS NOT NULL AND r.dueAt < CURRENT_TIMESTAMP
+            """)
+    List<TestResult> findOverdueUnresolved(@Param("organizationId") Long organizationId);
 
     /** The patient's most recent approved numeric value for the same test + parameter, for delta checks. */
     @Query("""
