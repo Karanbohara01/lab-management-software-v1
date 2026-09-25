@@ -3,7 +3,9 @@ package np.com.lims.patient.web;
 import jakarta.validation.Valid;
 import np.com.lims.common.api.PageResponse;
 import np.com.lims.patient.PatientMergeService;
+import np.com.lims.patient.PatientPortalService;
 import np.com.lims.patient.PatientService;
+import np.com.lims.patient.dto.PatientPortalDtos.PortalLinkResponse;
 import np.com.lims.patient.dto.PatientDtos.Detail;
 import np.com.lims.patient.dto.PatientDtos.ListItem;
 import np.com.lims.patient.dto.PatientDtos.MatchCandidate;
@@ -37,10 +39,12 @@ public class PatientController {
 
     private final PatientService service;
     private final PatientMergeService mergeService;
+    private final PatientPortalService portalService;
 
-    public PatientController(PatientService service, PatientMergeService mergeService) {
+    public PatientController(PatientService service, PatientMergeService mergeService, PatientPortalService portalService) {
         this.service = service;
         this.mergeService = mergeService;
+        this.portalService = portalService;
     }
 
     @GetMapping
@@ -70,6 +74,13 @@ public class PatientController {
     @PreAuthorize("hasAuthority('PERM_PATIENT_READ')")
     public Detail get(@PathVariable Long id) {
         return service.view(id);
+    }
+
+    /** Staff-facing: get (generating on first request) this patient's self-service portal link, to share manually. */
+    @GetMapping("/{id}/portal-link")
+    @PreAuthorize("hasAuthority('PERM_PATIENT_READ')")
+    public PortalLinkResponse portalLink(@PathVariable Long id) {
+        return portalService.linkFor(id);
     }
 
     @GetMapping("/{id}/merge-preview")

@@ -129,6 +129,10 @@ public class Patient extends BaseEntity {
     @Column(length = 1000)
     private String notes;
 
+    /** Null until first requested — see {@link np.com.lims.patient.PatientPortalService#ensureToken}. */
+    @Column(name = "portal_token", length = 64, unique = true)
+    private String portalToken;
+
     @Column(nullable = false)
     private boolean vip = false;
 
@@ -475,6 +479,14 @@ public class Patient extends BaseEntity {
 
     public String getNotes() {
         return notes;
+    }
+
+    public String getPortalToken() {
+        return portalToken;
+    }
+
+    public void setPortalToken(String portalToken) {
+        this.portalToken = portalToken;
     }
 
     public boolean isVip() {

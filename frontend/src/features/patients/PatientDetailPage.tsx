@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, FilePlus2, GitMerge, Pencil, Printer, ShieldAlert, Star } from 'lucide-react';
+import { ArrowLeft, FilePlus2, GitMerge, Link2, Pencil, Printer, ShieldAlert, Star } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -9,6 +9,8 @@ import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
+import { useToast } from '@/components/ui/toast';
+import { ApiError } from '@/types/api';
 import { patientsApi } from './api';
 import { Alert } from '@/components/ui/Alert';
 import { PatientCard } from './PatientCard';
@@ -63,12 +65,28 @@ export function PatientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
+  const toast = useToast();
   const canWrite = hasPermission(PERMISSIONS.PATIENT_WRITE);
   const canOrder = hasPermission(PERMISSIONS.LAB_ORDER_WRITE);
   const canMerge = hasPermission(PERMISSIONS.PATIENT_MERGE);
 
   const [tab, setTab] = useState<Tab>('overview');
   const [mergeOpen, setMergeOpen] = useState(false);
+  const [linkBusy, setLinkBusy] = useState(false);
+
+  const copyPortalLink = async () => {
+    if (!id) return;
+    setLinkBusy(true);
+    try {
+      const { url } = await patientsApi.portalLink(Number(id));
+      await navigator.clipboard.writeText(url);
+      toast.success('Portal link copied — share it with the patient');
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Unable to get portal link');
+    } finally {
+      setLinkBusy(false);
+    }
+  };
 
   const { data: patient, loading, error, refetch } = useQuery(() => patientsApi.get(Number(id)), [id]);
 
@@ -117,6 +135,12 @@ export function PatientDetailPage() {
               <Printer className="h-4 w-4" aria-hidden />
               Card
             </Button>
+            {!merged && (
+              <Button variant="secondary" disabled={linkBusy} onClick={copyPortalLink}>
+                <Link2 className="h-4 w-4" aria-hidden />
+                Portal link
+              </Button>
+            )}
             {canOrder && !merged && (
               <Button variant="secondary" onClick={() => navigate(`/app/orders/new?patientId=${patient.id}`)}>
                 <FilePlus2 className="h-4 w-4" aria-hidden />

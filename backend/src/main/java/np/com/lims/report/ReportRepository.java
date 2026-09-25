@@ -23,6 +23,9 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
 
     boolean existsByOrderId(Long orderId);
 
+    /** Patient portal: only fully authorized reports — GENERATED (unreleased/preliminary) stays hidden from patients. */
+    java.util.List<Report> findByPatientIdAndStatusInOrderByGeneratedAtDesc(Long patientId, java.util.Collection<ReportStatus> statuses);
+
     long countByGeneratedAtGreaterThanEqual(java.time.Instant from);
 
     @Query("""

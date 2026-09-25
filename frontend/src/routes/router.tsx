@@ -32,6 +32,18 @@ export const router = createBrowserRouter([
     element: lazyPage(() => import('@/features/reports/VerifyReportPage'), 'VerifyReportPage'),
   },
   {
+    path: '/portal/:token',
+    element: lazyPage(() => import('@/features/portal/PatientPortalPage'), 'PatientPortalPage'),
+  },
+  {
+    path: '/portal/:token/reports/:reportId',
+    element: lazyPage(() => import('@/features/portal/PortalReportPage'), 'PortalReportPage'),
+  },
+  {
+    path: '/portal/:token/invoices/:invoiceId',
+    element: lazyPage(() => import('@/features/portal/PortalInvoicePage'), 'PortalInvoicePage'),
+  },
+  {
     path: '/app',
     element: (
       <ProtectedRoute>

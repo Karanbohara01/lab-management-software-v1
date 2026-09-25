@@ -17,6 +17,14 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
     @EntityGraph(attributePaths = "referringDoctor")
     Optional<Patient> findWithDoctorById(Long id);
 
+    /**
+     * Portal lookup runs unauthenticated (no tenant filter enabled — see
+     * TenantFilterInterceptor), so this deliberately searches across every organization; the
+     * 128-bit random token is globally unique and IS the authorization, the same trust model
+     * {@code ReportRepository.findByVerificationToken} already uses.
+     */
+    Optional<Patient> findByPortalToken(String portalToken);
+
     long countByCreatedAtGreaterThanEqual(java.time.Instant from);
 
     @Query("""

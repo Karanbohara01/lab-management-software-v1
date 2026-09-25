@@ -43,4 +43,8 @@ export const patientsApi = {
 
   merge: (survivorId: number, payload: { duplicateId: number; reason: string }) =>
     httpClient.post<PatientDetail>(`/patients/${survivorId}/merge`, payload).then((r) => r.data),
+
+  /** Generates (on first call) and returns this patient's self-service portal link, to share manually. */
+  portalLink: (id: number) =>
+    httpClient.get<{ url: string }>(`/patients/${id}/portal-link`).then((r) => r.data),
 };

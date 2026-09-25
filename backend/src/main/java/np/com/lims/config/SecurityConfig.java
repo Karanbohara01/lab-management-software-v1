@@ -40,7 +40,10 @@ public class SecurityConfig {
             "/public/signup",
             // Patient-facing report verification link (SMS/WhatsApp) — no LabOS login exists for
             // the person opening it. See ReportController.verify's javadoc for why this is safe.
-            "/reports/verify/**"
+            "/reports/verify/**",
+            // Patient self-service portal — same reasoning, token-authenticated instead of
+            // username/password. See PatientPortalController's class javadoc.
+            "/patient-portal/**"
     };
 
     @Bean

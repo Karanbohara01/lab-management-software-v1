@@ -21,6 +21,9 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     boolean existsByOrderId(Long orderId);
 
+    /** Patient portal: everything except drafts (a patient has no business seeing an unissued draft). */
+    java.util.List<Invoice> findByPatientIdAndStatusNotOrderByCreatedAtDesc(Long patientId, InvoiceStatus status);
+
     @Query("SELECT COALESCE(SUM(i.totalAmount - i.amountPaid + i.amountRefunded), 0) FROM Invoice i WHERE i.status = 'ISSUED'")
     java.math.BigDecimal totalOutstanding();
 
