@@ -37,6 +37,10 @@ public class Doctor extends BaseEntity {
     @Column(name = "affiliated_organization", length = 200)
     private String affiliatedOrganization;
 
+    /** Percentage (0-100) of an invoice's taxable amount owed to this doctor for orders they referred. Null/zero = no commission. */
+    @Column(name = "commission_rate", precision = 5, scale = 2)
+    private java.math.BigDecimal commissionRate;
+
     @Column(nullable = false)
     private boolean active = true;
 
@@ -51,7 +55,7 @@ public class Doctor extends BaseEntity {
     }
 
     public void update(String fullName, String specialization, String qualification, String nmcNumber,
-                       String phone, String email, String affiliatedOrganization) {
+                       String phone, String email, String affiliatedOrganization, java.math.BigDecimal commissionRate) {
         this.fullName = fullName;
         this.specialization = specialization;
         this.qualification = qualification;
@@ -59,6 +63,7 @@ public class Doctor extends BaseEntity {
         this.phone = phone;
         this.email = email;
         this.affiliatedOrganization = affiliatedOrganization;
+        this.commissionRate = commissionRate;
     }
 
     public void setActive(boolean active) {
@@ -102,6 +107,10 @@ public class Doctor extends BaseEntity {
 
     public String getAffiliatedOrganization() {
         return affiliatedOrganization;
+    }
+
+    public java.math.BigDecimal getCommissionRate() {
+        return commissionRate;
     }
 
     public boolean isActive() {

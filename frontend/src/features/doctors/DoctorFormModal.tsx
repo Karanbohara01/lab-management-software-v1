@@ -19,6 +19,10 @@ const schema = z.object({
   phone: z.string().max(32).optional(),
   email: z.string().email('Enter a valid email').max(160).or(z.literal('')).optional(),
   affiliatedOrganization: z.string().max(200).optional(),
+  commissionRate: z
+    .string()
+    .optional()
+    .refine((v) => !v || (Number(v) >= 0 && Number(v) <= 100), 'Must be between 0 and 100'),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -30,6 +34,7 @@ const EMPTY: FormValues = {
   phone: '',
   email: '',
   affiliatedOrganization: '',
+  commissionRate: '',
 };
 
 export function DoctorFormModal({
@@ -64,6 +69,7 @@ export function DoctorFormModal({
             phone: doctor.phone ?? '',
             email: doctor.email ?? '',
             affiliatedOrganization: doctor.affiliatedOrganization ?? '',
+            commissionRate: doctor.commissionRate != null ? String(doctor.commissionRate) : '',
           }
         : EMPTY,
     );
@@ -78,6 +84,7 @@ export function DoctorFormModal({
       phone: values.phone || undefined,
       email: values.email || undefined,
       affiliatedOrganization: values.affiliatedOrganization || undefined,
+      commissionRate: values.commissionRate ? Number(values.commissionRate) : null,
     };
     try {
       if (doctor) {
@@ -129,6 +136,16 @@ export function DoctorFormModal({
             label="Affiliated organization"
             error={errors.affiliatedOrganization?.message}
             {...register('affiliatedOrganization')}
+          />
+          <Input
+            label="Commission rate %"
+            type="number"
+            step="any"
+            min={0}
+            max={100}
+            hint="% of taxable invoice value earned on orders this doctor refers. Leave blank for no commission."
+            error={errors.commissionRate?.message}
+            {...register('commissionRate')}
           />
         </div>
       </form>

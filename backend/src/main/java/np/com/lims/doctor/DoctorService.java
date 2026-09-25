@@ -77,7 +77,8 @@ public class DoctorService {
                 trimToNull(r.nmcNumber()),
                 trimToNull(r.phone()),
                 trimToNull(r.email()),
-                trimToNull(r.affiliatedOrganization()));
+                trimToNull(r.affiliatedOrganization()),
+                r.commissionRate());
     }
 
     private void assertNmcAvailable(String nmcNumber, Doctor current) {

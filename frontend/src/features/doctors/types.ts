@@ -7,6 +7,7 @@ export interface Doctor {
   phone: string | null;
   email: string | null;
   affiliatedOrganization: string | null;
+  commissionRate: number | null;
   active: boolean;
 }
 
@@ -18,4 +19,5 @@ export interface DoctorUpsertPayload {
   phone?: string;
   email?: string;
   affiliatedOrganization?: string;
+  commissionRate?: number | null;
 }
