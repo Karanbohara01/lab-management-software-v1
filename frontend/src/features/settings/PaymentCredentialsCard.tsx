@@ -25,6 +25,9 @@ export function PaymentCredentialsCard({ canWrite }: { canWrite: boolean }) {
   const [esewaSecretKey, setEsewaSecretKey] = useState('');
   const [khaltiEnabled, setKhaltiEnabled] = useState(false);
   const [khaltiSecretKey, setKhaltiSecretKey] = useState('');
+  const [fonepayEnabled, setFonepayEnabled] = useState(false);
+  const [fonepayMerchantCode, setFonepayMerchantCode] = useState('');
+  const [fonepaySecretKey, setFonepaySecretKey] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -32,6 +35,8 @@ export function PaymentCredentialsCard({ canWrite }: { canWrite: boolean }) {
     setEsewaEnabled(data.esewaEnabled);
     setEsewaMerchantCode(data.esewaMerchantCode ?? '');
     setKhaltiEnabled(data.khaltiEnabled);
+    setFonepayEnabled(data.fonepayEnabled);
+    setFonepayMerchantCode(data.fonepayMerchantCode ?? '');
   }, [data]);
 
   if (loading && !data) return <LoadingState />;
@@ -47,9 +52,13 @@ export function PaymentCredentialsCard({ canWrite }: { canWrite: boolean }) {
         esewaSecretKey: esewaSecretKey || undefined,
         khaltiEnabled,
         khaltiSecretKey: khaltiSecretKey || undefined,
+        fonepayEnabled,
+        fonepayMerchantCode: fonepayMerchantCode || undefined,
+        fonepaySecretKey: fonepaySecretKey || undefined,
       });
       setEsewaSecretKey('');
       setKhaltiSecretKey('');
+      setFonepaySecretKey('');
       toast.success('Payment gateway settings saved');
       refetch();
     } catch (err) {
@@ -119,6 +128,44 @@ export function PaymentCredentialsCard({ canWrite }: { canWrite: boolean }) {
               disabled={!canWrite}
               onChange={(e) => setKhaltiSecretKey(e.target.value)}
             />
+          )}
+        </div>
+
+        <div className="space-y-3 border-t border-border pt-4">
+          <div className="flex items-center justify-between">
+            <Checkbox
+              label="Use my own Fonepay merchant account"
+              checked={fonepayEnabled}
+              disabled={!canWrite}
+              onChange={(e) => setFonepayEnabled(e.target.checked)}
+            />
+            <Badge tone={data.fonepaySecretConfigured ? 'success' : 'neutral'}>
+              {data.fonepaySecretConfigured ? 'Configured' : 'Not configured'}
+            </Badge>
+          </div>
+          {fonepayEnabled && (
+            <>
+              <Alert tone="warning">
+                Fonepay checkout isn't wired up yet — credentials are saved for when it is, but no payment can be taken
+                through Fonepay from this system today.
+              </Alert>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Input
+                  label="Merchant code"
+                  value={fonepayMerchantCode}
+                  disabled={!canWrite}
+                  onChange={(e) => setFonepayMerchantCode(e.target.value)}
+                />
+                <Input
+                  label="Secret key"
+                  type="password"
+                  placeholder={data.fonepaySecretConfigured ? '•••••••• (leave blank to keep)' : ''}
+                  value={fonepaySecretKey}
+                  disabled={!canWrite}
+                  onChange={(e) => setFonepaySecretKey(e.target.value)}
+                />
+              </div>
+            </>
           )}
         </div>
 

@@ -30,6 +30,24 @@ public interface PaymentGateway {
 
     VerifyResult verify(String transactionUuid, BigDecimal expectedAmount);
 
+    /**
+     * दफा ६(त) / Anusuchi-8 of the e-invoice procedure: when a customer pays via an electronic
+     * payment instrument, the software must automatically send the bill/payment/VAT details to
+     * "the payment system operator or payment service provider" so THEY can credit the customer
+     * 10% of the VAT amount, per Nepal Rastra Bank's national/international standard. Called once,
+     * right after a payment is verified (see {@code OnlinePaymentService.verify}) — never blocks
+     * or reverses the payment itself if this fails, since the money already genuinely changed
+     * hands by this point.
+     *
+     * <p>The regulation names a standard to follow but not a concrete endpoint/schema per
+     * provider — none of eSewa/Khalti/Fonepay's real wire format for this specific call was
+     * available from an authoritative source when this was written (this is a different call than
+     * their ordinary checkout/verify APIs). Every implementation of this method must be honest
+     * about that: return {@link VatRefundResult#notSupported} rather than guessing at a payload
+     * shape or endpoint, until verified real documentation exists for that provider.
+     */
+    VatRefundResult reportVatRefund(VatRefundPayload payload);
+
     record InitiatePayload(
             String transactionUuid, BigDecimal amount, String purchaseOrderName,
             String successUrl, String failureUrl, String customerName, String customerPhone
@@ -66,6 +84,31 @@ public interface PaymentGateway {
 
         public static VerifyResult notVerified(String errorMessage, String raw) {
             return new VerifyResult(false, null, errorMessage, raw);
+        }
+    }
+
+    /** Exactly Anusuchi-8's field list, in order: Seller PAN, Bill Number, Payment Date, Total Amount, VAT, 10%-of-VAT, Customer Id, Transaction Id. */
+    record VatRefundPayload(
+            String sellerPan, String invoiceNumber, java.time.Instant paymentDate,
+            BigDecimal totalAmount, BigDecimal vatAmount, BigDecimal refundAmount,
+            String customerId, String transactionId
+    ) {
+    }
+
+    record VatRefundResult(boolean sent, boolean supported, String errorMessage, String rawResponse) {
+        public static VatRefundResult sent(String raw) {
+            return new VatRefundResult(true, true, null, raw);
+        }
+
+        public static VatRefundResult failed(String errorMessage, String raw) {
+            return new VatRefundResult(false, true, errorMessage, raw);
+        }
+
+        /** Honest default until a provider's real Anusuchi-8 wire format is verified — see {@link #reportVatRefund}. */
+        public static VatRefundResult notSupported(String provider) {
+            return new VatRefundResult(false, false,
+                    provider + " does not yet implement Anusuchi-8 VAT-refund reporting "
+                            + "(no verified API spec for this call was available).", null);
         }
     }
 }

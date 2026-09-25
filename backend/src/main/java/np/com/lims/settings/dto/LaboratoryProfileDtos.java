@@ -20,7 +20,6 @@ public final class LaboratoryProfileDtos {
             @Size(max = 60) String accreditationNumber,
             @Size(max = 1000) String reportFooter,
             @Size(max = 2_000_000) String logoDataUri,
-            @jakarta.validation.constraints.NotBlank @Size(max = 16) String fiscalYear,
             @jakarta.validation.constraints.NotBlank @Size(max = 16) String invoicePrefix,
             @jakarta.validation.constraints.PositiveOrZero java.math.BigDecimal defaultTaxRate,
             @jakarta.validation.constraints.Min(1) Integer inventoryExpiryAlertDays,
@@ -40,6 +39,7 @@ public final class LaboratoryProfileDtos {
             String accreditationNumber,
             String reportFooter,
             String logoDataUri,
+            /** Always the live-computed current fiscal year (see BikramSambatCalendar.currentFiscalYear) — never stored/edited. */
             String fiscalYear,
             String invoicePrefix,
             java.math.BigDecimal defaultTaxRate,
@@ -51,7 +51,8 @@ public final class LaboratoryProfileDtos {
         public static Response from(LaboratoryProfile p) {
             return new Response(p.getName(), p.getAddressLine(), p.getCity(), p.getPhone(), p.getEmail(),
                     p.getPanNumber(), p.getAccreditationNumber(), p.getReportFooter(), p.getLogoDataUri(),
-                    p.getFiscalYear(), p.getInvoicePrefix(), p.getDefaultTaxRate(), p.getInventoryExpiryAlertDays(),
+                    np.com.lims.common.calendar.BikramSambatCalendar.currentFiscalYear(java.time.Instant.now()),
+                    p.getInvoicePrefix(), p.getDefaultTaxRate(), p.getInventoryExpiryAlertDays(),
                     p.isRequirePaymentBeforeCollection(), p.isPrintReportLetterhead(), p.isPrintInvoiceLetterhead());
         }
     }

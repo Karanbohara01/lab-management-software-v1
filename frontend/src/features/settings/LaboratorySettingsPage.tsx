@@ -129,10 +129,10 @@ export function LaboratorySettingsPage() {
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <Input
                   label="Fiscal year"
-                  hint="e.g. 2082/83"
+                  hint="Computed automatically from today's Bikram Sambat date"
                   value={form.fiscalYear}
-                  disabled={!canWrite}
-                  onChange={(e) => set('fiscalYear', e.target.value)}
+                  disabled
+                  readOnly
                 />
                 <Input
                   label="Invoice prefix"
@@ -164,7 +164,7 @@ export function LaboratorySettingsPage() {
                 <code className="font-mono">
                   {form.invoicePrefix}-{form.fiscalYear}-000001
                 </code>
-                . Change the fiscal year when the new year begins.
+                . The fiscal year rolls over automatically at the Shrawan 1 boundary — nothing to change by hand.
               </p>
             </CardBody>
           </Card>

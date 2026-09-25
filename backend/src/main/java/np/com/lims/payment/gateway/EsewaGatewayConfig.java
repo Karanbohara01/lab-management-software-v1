@@ -154,6 +154,15 @@ public class EsewaGatewayConfig {
             }
         }
 
+        @Override
+        public VatRefundResult reportVatRefund(VatRefundPayload payload) {
+            // eSewa's checkout/verify APIs (developer.esewa.com.np) are documented and live-verified
+            // above, but the separate Anusuchi-8 "10%-of-VAT refund reporting" call is not — that's
+            // a different endpoint this session found no authoritative spec for. Honest refusal
+            // rather than guessing at a payload shape eSewa was never confirmed to accept.
+            return VatRefundResult.notSupported("eSewa");
+        }
+
         /** eSewa's signature/amount fields are plain decimal strings with no trailing ".00" noise for whole amounts. */
         private static String plain(BigDecimal amount) {
             return amount.stripTrailingZeros().toPlainString();

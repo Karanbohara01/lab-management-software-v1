@@ -169,5 +169,12 @@ public class KhaltiGatewayConfig {
                 return VerifyResult.notVerified("Unrecognised Khalti response: " + raw, raw);
             }
         }
+
+        @Override
+        public VatRefundResult reportVatRefund(VatRefundPayload payload) {
+            // Same honest gap as eSewa: the Anusuchi-8 refund-reporting call is a different,
+            // undocumented endpoint from Khalti's initiate/lookup APIs above.
+            return VatRefundResult.notSupported("Khalti");
+        }
     }
 }

@@ -37,7 +37,8 @@ public class PaymentCredentialsService {
     public Response get() {
         return repository.findByOrganizationId(TenantContext.require())
                 .map(c -> new Response(c.isEsewaEnabled(), c.getEsewaMerchantCode(), c.getEsewaSecretKeyEncrypted() != null,
-                        c.isKhaltiEnabled(), c.getKhaltiSecretKeyEncrypted() != null))
+                        c.isKhaltiEnabled(), c.getKhaltiSecretKeyEncrypted() != null,
+                        c.isFonepayEnabled(), c.getFonepayMerchantCode(), c.getFonepaySecretKeyEncrypted() != null))
                 .orElseGet(Response::empty);
     }
 
@@ -55,10 +56,15 @@ public class PaymentCredentialsService {
                 ? cryptoService.encrypt(request.khaltiSecretKey().trim()) : null;
         c.updateKhalti(request.khaltiEnabled(), khaltiSecretEnc);
 
+        String fonepaySecretEnc = StringUtils.hasText(request.fonepaySecretKey())
+                ? cryptoService.encrypt(request.fonepaySecretKey().trim()) : null;
+        c.updateFonepay(request.fonepayEnabled(), trimToNull(request.fonepayMerchantCode()), fonepaySecretEnc);
+
         // Never write actual secret values to the audit trail — before/after are intentionally null.
         auditService.record(MODULE, "UPDATE_PAYMENT_CREDENTIALS", "PaymentCredentials", c.getId(),
                 "Updated payment gateway credentials (esewa " + (request.esewaEnabled() ? "on" : "off")
-                        + ", khalti " + (request.khaltiEnabled() ? "on" : "off") + ")", null, null);
+                        + ", khalti " + (request.khaltiEnabled() ? "on" : "off")
+                        + ", fonepay " + (request.fonepayEnabled() ? "on" : "off") + ")", null, null);
         return get();
     }
 

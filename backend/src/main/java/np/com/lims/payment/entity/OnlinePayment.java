@@ -78,6 +78,19 @@ public class OnlinePayment extends BaseEntity {
     @Column(name = "verify_response")
     private String verifyResponse;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "vat_refund_report_status", nullable = false, length = 24)
+    private VatRefundReportStatus vatRefundReportStatus = VatRefundReportStatus.NOT_APPLICABLE;
+
+    @Column(name = "vat_refund_amount", precision = 12, scale = 2)
+    private BigDecimal vatRefundAmount;
+
+    @Column(name = "vat_refund_reported_at")
+    private Instant vatRefundReportedAt;
+
+    @Column(name = "vat_refund_error", length = 500)
+    private String vatRefundError;
+
     protected OnlinePayment() {
     }
 
@@ -126,6 +139,14 @@ public class OnlinePayment extends BaseEntity {
         this.failureReason = reason;
         this.verifiedAt = Instant.now();
         this.verifyResponse = rawResponse;
+    }
+
+    /** Anusuchi-8 reporting is best-effort and never reverses or blocks a payment already recorded. */
+    public void recordVatRefundReport(VatRefundReportStatus status, BigDecimal refundAmount, String errorOrNull) {
+        this.vatRefundReportStatus = status;
+        this.vatRefundAmount = refundAmount;
+        this.vatRefundReportedAt = Instant.now();
+        this.vatRefundError = errorOrNull;
     }
 
     @PrePersist
@@ -181,5 +202,21 @@ public class OnlinePayment extends BaseEntity {
 
     public String getFailureReason() {
         return failureReason;
+    }
+
+    public VatRefundReportStatus getVatRefundReportStatus() {
+        return vatRefundReportStatus;
+    }
+
+    public BigDecimal getVatRefundAmount() {
+        return vatRefundAmount;
+    }
+
+    public Instant getVatRefundReportedAt() {
+        return vatRefundReportedAt;
+    }
+
+    public String getVatRefundError() {
+        return vatRefundError;
     }
 }

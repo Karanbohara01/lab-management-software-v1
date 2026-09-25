@@ -25,6 +25,9 @@ export interface PaymentCredentials {
   esewaSecretConfigured: boolean;
   khaltiEnabled: boolean;
   khaltiSecretConfigured: boolean;
+  fonepayEnabled: boolean;
+  fonepayMerchantCode: string | null;
+  fonepaySecretConfigured: boolean;
 }
 
 export interface IrdCredentials {
@@ -61,6 +64,9 @@ export const settingsApi = {
     esewaSecretKey?: string;
     khaltiEnabled: boolean;
     khaltiSecretKey?: string;
+    fonepayEnabled: boolean;
+    fonepayMerchantCode?: string;
+    fonepaySecretKey?: string;
   }) => httpClient.put<PaymentCredentials>('/settings/payment-credentials', payload).then((r) => r.data),
 
   getIrdCredentials: () => httpClient.get<IrdCredentials>('/settings/ird-credentials').then((r) => r.data),

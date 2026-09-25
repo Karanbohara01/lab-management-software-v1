@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotNull;
 import np.com.lims.payment.entity.OnlinePayment;
 import np.com.lims.payment.entity.OnlinePaymentStatus;
 import np.com.lims.payment.entity.PaymentProvider;
+import np.com.lims.payment.entity.VatRefundReportStatus;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -24,12 +25,14 @@ public final class PaymentGatewayDtos {
     public record OnlinePaymentDto(
             Long id, Long invoiceId, PaymentProvider provider, OnlinePaymentStatus status,
             BigDecimal amount, String transactionUuid, String providerReference,
-            Instant initiatedAt, String initiatedBy, Instant verifiedAt, String failureReason
+            Instant initiatedAt, String initiatedBy, Instant verifiedAt, String failureReason,
+            VatRefundReportStatus vatRefundReportStatus, BigDecimal vatRefundAmount, String vatRefundError
     ) {
         public static OnlinePaymentDto from(OnlinePayment p) {
             return new OnlinePaymentDto(p.getId(), p.getInvoice().getId(), p.getProvider(), p.getStatus(),
                     p.getAmount(), p.getTransactionUuid(), p.getProviderReference(),
-                    p.getInitiatedAt(), p.getInitiatedBy(), p.getVerifiedAt(), p.getFailureReason());
+                    p.getInitiatedAt(), p.getInitiatedBy(), p.getVerifiedAt(), p.getFailureReason(),
+                    p.getVatRefundReportStatus(), p.getVatRefundAmount(), p.getVatRefundError());
         }
     }
 

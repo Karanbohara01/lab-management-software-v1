@@ -140,12 +140,57 @@ public class OnlinePaymentService {
             auditService.record(MODULE, "VERIFIED", "OnlinePayment", onlinePaymentId,
                     onlinePayment.getProvider() + " payment verified for invoice " + invoice.getInvoiceNumber()
                             + ", amount " + onlinePayment.getAmount(), null, null);
+            reportVatRefund(onlinePayment, invoice, gateway);
         } else {
             onlinePayment.markFailed(result.errorMessage(), toJson(result.rawResponse()));
             auditService.record(MODULE, "VERIFY_FAILED", "OnlinePayment", onlinePaymentId,
                     onlinePayment.getProvider() + " payment NOT verified: " + result.errorMessage(), null, null);
         }
         return OnlinePaymentDto.from(onlinePayment);
+    }
+
+    /**
+     * दफा ६(त) / Anusuchi-8: report this verified payment's bill/VAT details to the gateway so it
+     * can credit the customer 10% of the VAT amount. Best-effort — a failure here is recorded on
+     * the {@link OnlinePayment} row and never reopens or reverses the payment already recorded
+     * above, since the money genuinely changed hands regardless of whether this reporting step
+     * succeeds. The refund amount is this payment's proportional share of the invoice's total VAT
+     * (a partial payment only reports VAT on the portion actually paid electronically).
+     */
+    private void reportVatRefund(OnlinePayment onlinePayment, Invoice invoice, PaymentGateway gateway) {
+        BigDecimal invoiceTotal = invoice.getTotalAmount();
+        BigDecimal vatShare = invoiceTotal == null || invoiceTotal.signum() <= 0
+                ? BigDecimal.ZERO
+                : invoice.getTaxAmount().multiply(onlinePayment.getAmount())
+                        .divide(invoiceTotal, 2, java.math.RoundingMode.HALF_UP);
+        BigDecimal refundAmount = vatShare.multiply(BigDecimal.valueOf(0.10)).setScale(2, java.math.RoundingMode.HALF_UP);
+
+        PaymentGateway.VatRefundResult result;
+        try {
+            result = gateway.reportVatRefund(new PaymentGateway.VatRefundPayload(
+                    invoice.getBuyerPan(), invoice.getInvoiceNumber(), java.time.Instant.now(),
+                    invoiceTotal, vatShare, refundAmount,
+                    invoice.getPatient().getMrn(), onlinePayment.getTransactionUuid()));
+        } catch (RuntimeException ex) {
+            log.error("Gateway threw while reporting VAT refund for online payment {}", onlinePayment.getId(), ex);
+            result = PaymentGateway.VatRefundResult.failed(ex.getMessage(), null);
+        }
+
+        if (!result.supported()) {
+            onlinePayment.recordVatRefundReport(np.com.lims.payment.entity.VatRefundReportStatus.NOT_SUPPORTED, vatShare, result.errorMessage());
+            auditService.record(MODULE, "VAT_REFUND_NOT_SUPPORTED", "OnlinePayment", onlinePayment.getId(),
+                    "Anusuchi-8 VAT-refund report skipped for invoice " + invoice.getInvoiceNumber() + ": "
+                            + onlinePayment.getProvider() + " does not yet implement this reporting call", null, null);
+        } else if (result.sent()) {
+            onlinePayment.recordVatRefundReport(np.com.lims.payment.entity.VatRefundReportStatus.SENT, vatShare, null);
+            auditService.record(MODULE, "VAT_REFUND_REPORTED", "OnlinePayment", onlinePayment.getId(),
+                    "Anusuchi-8 VAT-refund report sent to " + onlinePayment.getProvider() + " for invoice "
+                            + invoice.getInvoiceNumber() + ", refund amount " + refundAmount, null, null);
+        } else {
+            onlinePayment.recordVatRefundReport(np.com.lims.payment.entity.VatRefundReportStatus.FAILED, vatShare, result.errorMessage());
+            auditService.record(MODULE, "VAT_REFUND_REPORT_FAILED", "OnlinePayment", onlinePayment.getId(),
+                    "Anusuchi-8 VAT-refund report to " + onlinePayment.getProvider() + " failed: " + result.errorMessage(), null, null);
+        }
     }
 
     @Transactional(readOnly = true)

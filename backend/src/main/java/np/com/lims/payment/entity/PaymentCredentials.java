@@ -40,6 +40,15 @@ public class PaymentCredentials extends BaseEntity {
     @Column(name = "khalti_secret_key_enc", length = 500)
     private String khaltiSecretKeyEncrypted;
 
+    @Column(name = "fonepay_enabled", nullable = false)
+    private boolean fonepayEnabled;
+
+    @Column(name = "fonepay_merchant_code", length = 120)
+    private String fonepayMerchantCode;
+
+    @Column(name = "fonepay_secret_key_enc", length = 500)
+    private String fonepaySecretKeyEncrypted;
+
     protected PaymentCredentials() {
     }
 
@@ -61,6 +70,14 @@ public class PaymentCredentials extends BaseEntity {
         this.khaltiEnabled = enabled;
         if (secretKeyEncryptedOrNull != null) {
             this.khaltiSecretKeyEncrypted = secretKeyEncryptedOrNull;
+        }
+    }
+
+    public void updateFonepay(boolean enabled, String merchantCode, String secretKeyEncryptedOrNull) {
+        this.fonepayEnabled = enabled;
+        this.fonepayMerchantCode = merchantCode;
+        if (secretKeyEncryptedOrNull != null) {
+            this.fonepaySecretKeyEncrypted = secretKeyEncryptedOrNull;
         }
     }
 
@@ -95,12 +112,28 @@ public class PaymentCredentials extends BaseEntity {
         return khaltiSecretKeyEncrypted;
     }
 
+    public boolean isFonepayEnabled() {
+        return fonepayEnabled;
+    }
+
+    public String getFonepayMerchantCode() {
+        return fonepayMerchantCode;
+    }
+
+    public String getFonepaySecretKeyEncrypted() {
+        return fonepaySecretKeyEncrypted;
+    }
+
     public boolean esewaFullyConfigured() {
         return esewaEnabled && hasText(esewaMerchantCode) && hasText(esewaSecretKeyEncrypted);
     }
 
     public boolean khaltiFullyConfigured() {
         return khaltiEnabled && hasText(khaltiSecretKeyEncrypted);
+    }
+
+    public boolean fonepayFullyConfigured() {
+        return fonepayEnabled && hasText(fonepayMerchantCode) && hasText(fonepaySecretKeyEncrypted);
     }
 
     private static boolean hasText(String value) {

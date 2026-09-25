@@ -30,6 +30,12 @@ public class UnconfiguredPaymentGateways {
         return new Unconfigured(PaymentProvider.KHALTI);
     }
 
+    @Bean(name = "fonepayGateway")
+    @ConditionalOnMissingBean(name = "fonepayGateway")
+    public PaymentGateway unconfiguredFonepayGateway() {
+        return new Unconfigured(PaymentProvider.FONEPAY);
+    }
+
     private record Unconfigured(PaymentProvider provider) implements PaymentGateway {
 
         @Override
@@ -46,6 +52,11 @@ public class UnconfiguredPaymentGateways {
         @Override
         public VerifyResult verify(String transactionUuid, BigDecimal expectedAmount) {
             return VerifyResult.notVerified(provider + " is not configured. Nothing was verified.", null);
+        }
+
+        @Override
+        public VatRefundResult reportVatRefund(VatRefundPayload payload) {
+            return VatRefundResult.notSupported(provider.toString());
         }
     }
 }

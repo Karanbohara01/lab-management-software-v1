@@ -1,5 +1,6 @@
-export type PaymentProvider = 'ESEWA' | 'KHALTI';
+export type PaymentProvider = 'ESEWA' | 'KHALTI' | 'FONEPAY';
 export type OnlinePaymentStatus = 'INITIATED' | 'VERIFIED' | 'FAILED';
+export type VatRefundReportStatus = 'NOT_APPLICABLE' | 'SENT' | 'FAILED' | 'NOT_SUPPORTED';
 
 export interface ProviderStatus {
   provider: PaymentProvider;
@@ -25,9 +26,13 @@ export interface OnlinePayment {
   initiatedBy: string;
   verifiedAt: string | null;
   failureReason: string | null;
+  vatRefundReportStatus: VatRefundReportStatus;
+  vatRefundAmount: number | null;
+  vatRefundError: string | null;
 }
 
 export const PROVIDER_LABEL: Record<PaymentProvider, string> = {
   ESEWA: 'eSewa',
   KHALTI: 'Khalti',
+  FONEPAY: 'Fonepay',
 };

@@ -124,8 +124,14 @@ public class LaboratoryProfile extends BaseEntity {
         this.logoDataUri = logoDataUri;
     }
 
-    public void updateBilling(String fiscalYear, String invoicePrefix, java.math.BigDecimal defaultTaxRate) {
-        this.fiscalYear = fiscalYear;
+    /**
+     * {@code fiscalYear} is deliberately not a parameter here any more — it's computed live from
+     * the BS calendar ({@code BikramSambatCalendar.currentFiscalYear}) wherever it's needed
+     * (invoice numbering, this profile's Response DTO), not stored/edited by hand. This entity's
+     * {@link #fiscalYear} column is a legacy leftover from before that (kept so old rows/migrations
+     * stay valid, no longer read for anything).
+     */
+    public void updateBilling(String invoicePrefix, java.math.BigDecimal defaultTaxRate) {
         this.invoicePrefix = invoicePrefix;
         this.defaultTaxRate = defaultTaxRate == null ? java.math.BigDecimal.ZERO : defaultTaxRate;
     }

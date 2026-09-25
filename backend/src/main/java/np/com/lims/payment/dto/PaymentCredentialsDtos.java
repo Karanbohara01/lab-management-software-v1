@@ -14,10 +14,11 @@ public final class PaymentCredentialsDtos {
      */
     public record Response(
             boolean esewaEnabled, String esewaMerchantCode, boolean esewaSecretConfigured,
-            boolean khaltiEnabled, boolean khaltiSecretConfigured
+            boolean khaltiEnabled, boolean khaltiSecretConfigured,
+            boolean fonepayEnabled, String fonepayMerchantCode, boolean fonepaySecretConfigured
     ) {
         public static Response empty() {
-            return new Response(false, null, false, false, false);
+            return new Response(false, null, false, false, false, false, null, false);
         }
     }
 
@@ -27,7 +28,10 @@ public final class PaymentCredentialsDtos {
             @Size(max = 120) String esewaMerchantCode,
             @Size(max = 200) String esewaSecretKey,
             boolean khaltiEnabled,
-            @Size(max = 200) String khaltiSecretKey
+            @Size(max = 200) String khaltiSecretKey,
+            boolean fonepayEnabled,
+            @Size(max = 120) String fonepayMerchantCode,
+            @Size(max = 200) String fonepaySecretKey
     ) {
     }
 }
