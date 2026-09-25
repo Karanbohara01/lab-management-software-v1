@@ -18,7 +18,7 @@ import { branchesApi, type Branch } from '@/features/branches/api';
 import { useAuth } from '@/features/auth/useAuth';
 import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/types/api';
-import { exportCsv, exportXml } from '@/lib/exportData';
+import { exportCsv, exportExcel, exportXml } from '@/lib/exportData';
 import { invoicesApi } from './api';
 import {
   INVOICE_STATUS_TONE,
@@ -72,7 +72,7 @@ export function InvoicesPage() {
     [status, unpaidOnly, branchId, debouncedSearch, page],
   );
 
-  const exportAll = async (format: 'csv' | 'xml') => {
+  const exportAll = async (format: 'csv' | 'xls' | 'xml') => {
     setExporting(true);
     try {
       const rows = await invoicesApi.exportAll({
@@ -83,6 +83,8 @@ export function InvoicesPage() {
       });
       if (format === 'csv') {
         exportCsv(rows as unknown as Record<string, unknown>[], EXPORT_COLUMNS as { key: string; header: string }[], 'invoices.csv');
+      } else if (format === 'xls') {
+        exportExcel(rows as unknown as Record<string, unknown>[], EXPORT_COLUMNS as { key: string; header: string }[], 'Invoices', 'invoices.xls');
       } else {
         exportXml(
           rows as unknown as Record<string, unknown>[],
@@ -136,6 +138,10 @@ export function InvoicesPage() {
             <Button variant="secondary" loading={exporting} onClick={() => exportAll('csv')}>
               <Download className="h-4 w-4" aria-hidden />
               Export CSV
+            </Button>
+            <Button variant="secondary" loading={exporting} onClick={() => exportAll('xls')}>
+              <Download className="h-4 w-4" aria-hidden />
+              Export Excel
             </Button>
             <Button variant="secondary" loading={exporting} onClick={() => exportAll('xml')}>
               <Download className="h-4 w-4" aria-hidden />

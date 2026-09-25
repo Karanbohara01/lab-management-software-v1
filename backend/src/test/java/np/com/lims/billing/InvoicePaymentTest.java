@@ -35,7 +35,7 @@ class InvoicePaymentTest {
         var r = calculator.calculate(order.getItems(), DiscountType.NONE, null, null);
         invoice.applyPricing(r.discountType(), r.discountValue(), r.taxRate(), r.subtotal(), r.discountAmount(),
                 r.taxableAmount(), r.taxAmount(), r.totalAmount());
-        invoice.issue("reception", "INV-2082/83-000001");
+        invoice.issue("reception", "INV-2082/83-000001", "2082/83");
         return invoice;
     }
 
@@ -104,7 +104,7 @@ class InvoicePaymentTest {
         invoice.setBuyerPan("600123456");
         assertThat(invoice.getBuyerPan()).isEqualTo("600123456");
 
-        invoice.issue("reception", "INV-2082/83-000001");
+        invoice.issue("reception", "INV-2082/83-000001", "2082/83");
         assertThatThrownBy(() -> invoice.setBuyerPan("999999999")).isInstanceOf(ApiException.class);
         assertThat(invoice.getBuyerPan()).isEqualTo("600123456");
     }

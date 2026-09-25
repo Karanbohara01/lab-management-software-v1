@@ -71,6 +71,12 @@ export interface InvoiceDetail {
   patientAgeYears: number | null;
   patientPhone: string | null;
   patientAddress: string | null;
+  referringDoctorId: number | null;
+  referringDoctorName: string | null;
+  referringDoctorCommissionRate: number | null;
+  commissionEarned: number | null;
+  transactionDate: string;
+  transactionDateBs: string | null;
   status: InvoiceStatus;
   paymentStatus: PaymentStatus;
   subtotal: number;

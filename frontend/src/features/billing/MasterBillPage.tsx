@@ -8,7 +8,7 @@ import { Select } from '@/components/ui/Select';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { formatMoney } from '@/lib/money';
-import { exportCsv, exportXml } from '@/lib/exportData';
+import { exportCsv, exportExcel, exportXml } from '@/lib/exportData';
 import { invoicesApi } from './api';
 import type { MasterBillRow } from './types';
 
@@ -58,7 +58,7 @@ export function MasterBillPage() {
     <>
       <PageHeader
         title="Master bill report"
-        description="Every bill issued this month, including later-cancelled ones (Anusuchi-5 of the e-invoice procedure). Customer PAN and VAT-refund amount are always blank — this system doesn't capture patient PAN or integrate a payment gateway to compute a refund."
+        description="Every bill issued this month, including later-cancelled ones (Anusuchi-5 of the e-invoice procedure). Customer PAN is blank when the patient didn't supply one; VAT-refund amount is always blank — this system doesn't integrate a payment gateway to compute a refund."
         actions={
           <div className="flex items-center gap-2">
             <Button
@@ -70,6 +70,17 @@ export function MasterBillPage() {
             >
               <Download className="h-4 w-4" aria-hidden />
               Export CSV
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={!data || data.length === 0}
+              onClick={() =>
+                data &&
+                exportExcel(data as unknown as Record<string, unknown>[], EXPORT_COLUMNS as { key: string; header: string }[], 'MasterBill', `${filename}.xls`)
+              }
+            >
+              <Download className="h-4 w-4" aria-hidden />
+              Export Excel
             </Button>
             <Button
               variant="secondary"

@@ -8,7 +8,7 @@ import { Select } from '@/components/ui/Select';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { formatMoney } from '@/lib/money';
-import { exportCsv, exportXml } from '@/lib/exportData';
+import { exportCsv, exportExcel, exportXml } from '@/lib/exportData';
 import { invoicesApi } from './api';
 import type { CorrectionRow } from './types';
 
@@ -57,6 +57,17 @@ export function CorrectionsReportPage() {
             >
               <Download className="h-4 w-4" aria-hidden />
               Export CSV
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={!data || data.length === 0}
+              onClick={() =>
+                data &&
+                exportExcel(data as unknown as Record<string, unknown>[], EXPORT_COLUMNS as { key: string; header: string }[], 'Corrections', `${filename}.xls`)
+              }
+            >
+              <Download className="h-4 w-4" aria-hidden />
+              Export Excel
             </Button>
             <Button
               variant="secondary"

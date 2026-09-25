@@ -34,7 +34,7 @@ class IrdSubmissionAutoRetryTest {
         var r = new OrderPricingCalculator().calculate(order.getItems(), DiscountType.NONE, null, null);
         invoice.applyPricing(r.discountType(), r.discountValue(), r.taxRate(), r.subtotal(), r.discountAmount(),
                 r.taxableAmount(), r.taxAmount(), r.totalAmount());
-        invoice.issue("reception", "INV-2082/83-000001");
+        invoice.issue("reception", "INV-2082/83-000001", "2082/83");
         return IrdSubmission.trackFor(invoice);
     }
 

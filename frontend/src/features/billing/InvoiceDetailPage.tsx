@@ -23,6 +23,8 @@ import {
 } from './types';
 import { AdjustInvoiceModal, RecordPaymentModal, RequestRefundModal } from './InvoiceActionModals';
 import { InvoiceIrdCard } from './InvoiceIrdCard';
+import { InvoiceVatRefundCard } from './InvoiceVatRefundCard';
+import { InvoiceCommissionCard } from './InvoiceCommissionCard';
 import { InvoicePrintDocument } from './InvoicePrintDocument';
 import { PayOnlineModal } from '@/features/payments/PayOnlineModal';
 import { paymentGatewaysApi } from '@/features/payments/api';
@@ -274,7 +276,11 @@ export function InvoiceDetailPage() {
             )}
           </Card>
 
+          {inv.status !== 'DRAFT' && <InvoiceVatRefundCard invoiceId={inv.id} />}
+
           {inv.status !== 'DRAFT' && <div data-print-hide><InvoiceIrdCard invoiceId={inv.id} /></div>}
+
+          <InvoiceCommissionCard invoice={inv} />
 
           {inv.refunds.length > 0 && (
             <Card data-print-hide>

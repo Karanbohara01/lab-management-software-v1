@@ -7,7 +7,7 @@ import { Select } from '@/components/ui/Select';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { formatMoney } from '@/lib/money';
-import { exportCsv } from '@/lib/exportData';
+import { exportCsv, exportExcel } from '@/lib/exportData';
 import { invoicesApi } from './api';
 import type { SalesBookRow } from './types';
 
@@ -74,6 +74,22 @@ export function SalesBookPage() {
               >
                 <Download className="h-4 w-4" aria-hidden />
                 Export CSV
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={!data || data.length === 0}
+                onClick={() =>
+                  data &&
+                  exportExcel(
+                    data as unknown as Record<string, unknown>[],
+                    CSV_COLUMNS as { key: string; header: string }[],
+                    'SalesBook',
+                    `sales-book-${year}-${String(month).padStart(2, '0')}.xls`,
+                  )
+                }
+              >
+                <Download className="h-4 w-4" aria-hidden />
+                Export Excel
               </Button>
               <Button onClick={() => window.print()} disabled={!data || data.length === 0}>
                 <Printer className="h-4 w-4" aria-hidden />

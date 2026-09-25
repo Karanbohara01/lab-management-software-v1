@@ -104,9 +104,12 @@ public final class BillingDtos {
     /**
      * One row of the "master bill" report (Anusuchi-5 of the e-invoice procedure) — every bill
      * ever issued (including later-cancelled ones, per {@code isBillActive}) with its full
-     * lifecycle status in one place. {@code customerPan} and {@code vatRefundAmount} are
-     * honestly always null/zero: this system has no patient-PAN capture and no payment-gateway
-     * integration to compute a VAT refund from, never fabricated as if they were tracked.
+     * lifecycle status in one place. {@code customerPan} is the buyer PAN captured on the invoice
+     * itself (blank for walk-in patients who never supplied one — that's a legitimate empty
+     * value, not a missing feature). {@code vatRefundAmount} stays honestly zero: this system has
+     * no payment-gateway integration to compute a real-time VAT refund from (दफा ६(त)/Anusuchi-8
+     * requires wiring that up to a Nepal Rastra Bank-licensed payment service provider, which is a
+     * separate integration project, not a reporting gap), never fabricated as if it were tracked.
      */
     public record MasterBillRow(
             String fiscalYear, String billNo, String customerName, String customerPan, Instant billDate,
@@ -119,7 +122,7 @@ public final class BillingDtos {
             String lastPaymentMethod = i.getPayments().isEmpty() ? null
                     : i.getPayments().get(i.getPayments().size() - 1).getMethod().name();
             return new MasterBillRow(
-                    i.getFiscalYear(), i.getInvoiceNumber(), PatientPrivacy.displayName(i.getPatient()), null,
+                    i.getFiscalYear(), i.getInvoiceNumber(), PatientPrivacy.displayName(i.getPatient()), i.getBuyerPan(),
                     i.getIssuedAt(),
                     i.getSubtotal(), i.getDiscountAmount(), i.getTaxableAmount(), i.getTaxAmount(), i.getTotalAmount(),
                     submission == null ? "NOT_TRACKED" : submission.getStatus().name(),
@@ -183,6 +186,12 @@ public final class BillingDtos {
             Long id, String invoiceNumber, String fiscalYear, Long orderId, String orderNumber,
             Long patientId, String patientName, String patientMrn, String patientGender, Integer patientAgeYears,
             String patientPhone, String patientAddress,
+            Long referringDoctorId, String referringDoctorName, BigDecimal referringDoctorCommissionRate,
+            BigDecimal commissionEarned,
+            /** Anusuchi-6's "Transactions Date" — distinct from issuedAt ("Invoice Issue Date"):
+             * when the underlying order/transaction happened, not necessarily when the invoice
+             * document was formally issued/numbered (a draft can sit before being issued). */
+            Instant transactionDate, String transactionDateBs,
             InvoiceStatus status, PaymentStatus paymentStatus,
             BigDecimal subtotal, DiscountType discountType, BigDecimal discountValue, BigDecimal discountAmount,
             BigDecimal taxableAmount, BigDecimal taxRate, BigDecimal taxAmount, BigDecimal totalAmount,
@@ -198,15 +207,34 @@ public final class BillingDtos {
 
         /** For contexts (e.g. audit before/after snapshots) that don't have the lab profile handy. */
         public static Detail from(Invoice i) {
-            return from(i, null);
+            return from(i, null, null);
         }
 
         public static Detail from(Invoice i, np.com.lims.settings.entity.LaboratoryProfile lab) {
+            return from(i, lab, null);
+        }
+
+        /**
+         * {@code commissionEarned} is a separate DB lookup (CommissionEntryRepository) the caller
+         * passes in — this factory stays a pure in-memory conversion otherwise, same as before.
+         * Null commissionEarned with a referring doctor present is a real, common, non-error state:
+         * either the doctor has no commission rate configured, or the invoice predates one being
+         * set (rates aren't retroactive) — surfaced honestly on the invoice page rather than left
+         * silently invisible, which is what actually prompted adding this field: a real doctor was
+         * assigned to a real order and nothing on the invoice said so.
+         */
+        public static Detail from(Invoice i, np.com.lims.settings.entity.LaboratoryProfile lab, BigDecimal commissionEarned) {
+            np.com.lims.doctor.entity.Doctor referringDoctor = i.getOrder().getReferringDoctor();
             return new Detail(
                     i.getId(), i.getInvoiceNumber(), i.getFiscalYear(), i.getOrder().getId(), i.getOrder().getOrderNumber(),
                     i.getPatient().getId(), PatientPrivacy.displayName(i.getPatient()), i.getPatient().getMrn(),
                     i.getPatient().getGender().name(), i.getPatient().ageYears(),
                     i.getPatient().getPhone(), addressLine(i.getPatient().getAddress()),
+                    referringDoctor == null ? null : referringDoctor.getId(),
+                    referringDoctor == null ? null : referringDoctor.getFullName(),
+                    referringDoctor == null ? null : referringDoctor.getCommissionRate(),
+                    commissionEarned,
+                    i.getCreatedAt(), issuedAtBs(i.getCreatedAt()),
                     i.getStatus(), i.paymentStatus(),
                     i.getSubtotal(), i.getDiscountType(), i.getDiscountValue(), i.getDiscountAmount(),
                     i.getTaxableAmount(), i.getTaxRate(), i.getTaxAmount(), i.getTotalAmount(),

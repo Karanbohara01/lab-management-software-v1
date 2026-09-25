@@ -9,6 +9,7 @@ import np.com.lims.billing.dto.BillingDtos.SalesBookRow;
 import np.com.lims.billing.entity.Invoice;
 import np.com.lims.billing.entity.InvoiceItem;
 import np.com.lims.billing.entity.InvoiceStatus;
+import np.com.lims.commission.CommissionService;
 import np.com.lims.common.audit.AuditService;
 import np.com.lims.common.exception.ApiException;
 import np.com.lims.common.sequence.SequenceService;
@@ -46,6 +47,7 @@ public class InvoiceService {
     private final AuditService auditService;
     private final IrdSubmissionService irdSubmissionService;
     private final IrdSubmissionRepository irdSubmissionRepository;
+    private final CommissionService commissionService;
 
     public InvoiceService(InvoiceRepository invoiceRepository,
                           LabOrderRepository orderRepository,
@@ -54,7 +56,8 @@ public class InvoiceService {
                           SequenceService sequenceService,
                           AuditService auditService,
                           IrdSubmissionService irdSubmissionService,
-                          IrdSubmissionRepository irdSubmissionRepository) {
+                          IrdSubmissionRepository irdSubmissionRepository,
+                          CommissionService commissionService) {
         this.invoiceRepository = invoiceRepository;
         this.orderRepository = orderRepository;
         this.pricingCalculator = pricingCalculator;
@@ -63,6 +66,7 @@ public class InvoiceService {
         this.auditService = auditService;
         this.irdSubmissionService = irdSubmissionService;
         this.irdSubmissionRepository = irdSubmissionRepository;
+        this.commissionService = commissionService;
     }
 
     @Transactional(readOnly = true)
@@ -96,9 +100,7 @@ public class InvoiceService {
         if (order.getStatus() != OrderStatus.CONFIRMED) {
             throw ApiException.conflict("Invoices can only be raised for confirmed orders");
         }
-        LaboratoryProfile lab = laboratoryProfileService.require();
-
-        Invoice invoice = Invoice.openFor(order, lab.getFiscalYear());
+        Invoice invoice = Invoice.openFor(order, np.com.lims.common.calendar.BikramSambatCalendar.currentFiscalYear(java.time.Instant.now()));
         reprice(invoice, order.getDiscountType(), order.getDiscountValue(), order.getTaxRate());
 
         Invoice saved = invoiceRepository.save(invoice);
@@ -125,9 +127,11 @@ public class InvoiceService {
         if (invoice.getStatus() != InvoiceStatus.DRAFT) {
             throw ApiException.invalidTransition("Only a draft invoice can be issued");
         }
-        String number = nextInvoiceNumber(invoice.getFiscalYear());
-        invoice.issue(CurrentUser.username(), number);
+        String fiscalYear = np.com.lims.common.calendar.BikramSambatCalendar.currentFiscalYear(java.time.Instant.now());
+        String number = nextInvoiceNumber(fiscalYear);
+        invoice.issue(CurrentUser.username(), number, fiscalYear);
         irdSubmissionService.onInvoiceIssued(invoice);
+        commissionService.earnOnInvoiceIssued(invoice);
         auditService.record(MODULE, "ISSUE", "Invoice", id,
                 "Issued invoice " + number, null, detail(invoice));
         return detail(invoice);
@@ -260,7 +264,9 @@ public class InvoiceService {
      * IRD-compliant invoice at all.
      */
     private Detail detail(Invoice invoice) {
-        return Detail.from(invoice, laboratoryProfileService.require());
+        java.math.BigDecimal commissionEarned = invoice.getId() == null ? null
+                : commissionService.commissionForInvoice(invoice.getId());
+        return Detail.from(invoice, laboratoryProfileService.require(), commissionEarned);
     }
 
     private static String trimToNull(String value) {

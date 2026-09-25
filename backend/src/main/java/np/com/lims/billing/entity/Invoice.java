@@ -163,11 +163,18 @@ public class Invoice extends BaseEntity {
         this.buyerPan = buyerPan;
     }
 
-    public void issue(String actor, String invoiceNumber) {
+    /**
+     * {@code fiscalYear} is re-passed here (not just read from the field this instance already
+     * carries from {@link #openFor}) because a draft can sit open across a fiscal-year boundary —
+     * the number minted here must reflect the fiscal year current AT THE MOMENT OF ISSUE, not
+     * whichever one happened to be current when the draft was first opened.
+     */
+    public void issue(String actor, String invoiceNumber, String fiscalYear) {
         assertDraft();
         if (items.isEmpty()) {
             throw ApiException.conflict("Cannot issue an invoice with no items");
         }
+        this.fiscalYear = fiscalYear;
         this.invoiceNumber = invoiceNumber;
         this.status = InvoiceStatus.ISSUED;
         this.issuedAt = Instant.now();

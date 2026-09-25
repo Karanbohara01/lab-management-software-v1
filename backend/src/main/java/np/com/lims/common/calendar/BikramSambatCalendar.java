@@ -163,6 +163,21 @@ public final class BikramSambatCalendar {
      *                                   or past the end of the lookup table (BS 2090 ≈ AD 2034);
      *                                   never silently returns a wrong result outside that range.
      */
+    /**
+     * The Nepal government fiscal year currently in effect for {@code instant}, in the
+     * {@code "YYYY/YY"} form used throughout this codebase (invoice numbering, CBMS
+     * {@code fiscal_year}, Anusuchi-5/6 reports) — e.g. {@code "2082/83"}. Computed live from the
+     * BS calendar rather than relying on an admin to notice the year has turned over and update a
+     * setting by hand (the gap that motivated this method): the fiscal year runs Shrawan 1 (BS
+     * month 4) through the following Ashadh end (BS month 3) — before Shrawan, the fiscal year
+     * that started the PREVIOUS Baisakh is still current.
+     */
+    public static String currentFiscalYear(java.time.Instant instant) {
+        BsDate today = toBs(instant.atZone(java.time.ZoneId.of("Asia/Kathmandu")).toLocalDate());
+        int startYear = today.month() >= 4 ? today.year() : today.year() - 1;
+        return "%d/%02d".formatted(startYear, (startYear + 1) % 100);
+    }
+
     public static BsDate toBs(LocalDate adDate) {
         if (adDate.isBefore(EPOCH)) {
             throw new IllegalArgumentException(

@@ -50,6 +50,10 @@ export function RecordPaymentModal({
   const [reference, setReference] = useState('');
   const [note, setNote] = useState('');
 
+  const numericAmount = Number(amount);
+  const exceedsBalance = Number.isFinite(numericAmount) && numericAmount > invoice.balance;
+  const invalidAmount = !amount || !Number.isFinite(numericAmount) || numericAmount <= 0 || exceedsBalance;
+
   return (
     <Modal
       open={open}
@@ -63,11 +67,12 @@ export function RecordPaymentModal({
           </Button>
           <Button
             loading={busy}
+            disabled={invalidAmount}
             onClick={() =>
               run(
                 () =>
                   invoicesApi.recordPayment(invoice.id, {
-                    amount: Number(amount),
+                    amount: numericAmount,
                     method,
                     reference: reference || undefined,
                     note: note || undefined,
@@ -83,6 +88,15 @@ export function RecordPaymentModal({
     >
       <div className="space-y-4">
         {error && <Alert tone="danger">{error}</Alert>}
+        {/* Caught client-side now, before a round-trip to the server — the backend still rejects
+            an overpayment too (defense in depth), but the user shouldn't have to submit to find
+            out something this form already knows. */}
+        {exceedsBalance && (
+          <Alert tone="warning">
+            This exceeds the outstanding balance of {formatMoney(invoice.balance)}. Reduce the amount, or use a
+            refund/credit flow for anything genuinely owed back to the patient.
+          </Alert>
+        )}
         <Input label="Amount (NPR)" type="number" step="any" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />
         <Select
           label="Method"
