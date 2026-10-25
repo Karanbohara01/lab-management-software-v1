@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useParams, Link } from 'react-router-dom';
@@ -9,6 +9,7 @@ import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
+import { Combobox } from '@/components/ui/Combobox';
 import { Textarea } from '@/components/ui/Textarea';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { Alert } from '@/components/ui/Alert';
@@ -419,10 +420,7 @@ export function RegisterPatientPage() {
   const visibleCandidates = candidates.filter((c) => !dismissed.has(c.id));
   const strongDuplicate = visibleCandidates.some((c) => c.score >= 85);
 
-  const doctorOptions = [
-    { value: '', label: 'Select doctor…' },
-    ...(doctors.data?.content ?? []).map((d) => ({ value: String(d.id), label: d.fullName })),
-  ];
+  const doctorOptions = (doctors.data?.content ?? []).map((d) => ({ value: String(d.id), label: d.fullName }));
 
   const buildAddress = (a: FormValues['address']) => ({
     line: a.line || null,
@@ -651,7 +649,20 @@ export function RegisterPatientPage() {
                 <Input label="External / hospital MRN" {...register('externalMrn')} />
                 <Select label="Referral source" options={REFERRAL_SOURCE_TYPES} {...register('referralSourceType')} />
                 {referralType === 'DOCTOR' ? (
-                  <Select label="Referring doctor" options={doctorOptions} disabled={doctors.loading} {...register('referringDoctorId')} />
+                  <Controller
+                    control={control}
+                    name="referringDoctorId"
+                    render={({ field }) => (
+                      <Combobox
+                        label="Referring doctor"
+                        placeholder="Search doctors…"
+                        options={doctorOptions}
+                        disabled={doctors.loading}
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                      />
+                    )}
+                  />
                 ) : referralType !== 'SELF' ? (
                   <Input label="Referral source name" placeholder="Hospital / camp / organisation" {...register('referralSourceName')} />
                 ) : (
