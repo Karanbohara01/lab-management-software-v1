@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
+import { Combobox } from '@/components/ui/Combobox';
 import { Modal } from '@/components/ui/Modal';
 import { Alert } from '@/components/ui/Alert';
 import { SearchInput } from '@/components/ui/SearchInput';
@@ -300,11 +301,11 @@ function UserFormModal({
         </div>
         {isDoctorRole && (
           <div>
-            <Select
+            <Combobox
               label="Referring doctor"
-              placeholder="Select the doctor this login belongs to"
+              placeholder="Search doctors…"
               value={f.doctorId}
-              onChange={(e) => setF({ ...f, doctorId: e.target.value })}
+              onChange={(doctorId) => setF({ ...f, doctorId })}
               options={doctors.map((d) => ({ value: String(d.id), label: d.fullName }))}
             />
             <p className="mt-1 text-xs text-muted">

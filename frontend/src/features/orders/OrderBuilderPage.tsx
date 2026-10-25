@@ -6,6 +6,7 @@ import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
+import { Combobox } from '@/components/ui/Combobox';
 import { Textarea } from '@/components/ui/Textarea';
 import { Alert } from '@/components/ui/Alert';
 import { LoadingState } from '@/components/ui/PageState';
@@ -364,14 +365,12 @@ export function OrderBuilderPage() {
                   onChange={(e) => setBranchId(e.target.value)}
                 />
               )}
-              <Select
+              <Combobox
                 label="Referring doctor"
-                options={[
-                  { value: '', label: 'No referring doctor' },
-                  ...doctors.map((d) => ({ value: String(d.id), label: d.fullName })),
-                ]}
+                placeholder="No referring doctor"
+                options={doctors.map((d) => ({ value: String(d.id), label: d.fullName }))}
                 value={referringDoctorId}
-                onChange={(e) => setReferringDoctorId(e.target.value)}
+                onChange={setReferringDoctorId}
               />
               <Select
                 label="Priority"
