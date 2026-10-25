@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, Bell, Info } from 'lucide-react';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { notificationsApi, type AppNotification } from './api';
@@ -53,19 +54,21 @@ export function NotificationBell() {
 
   return (
     <div className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="relative rounded-md p-2 text-muted-foreground hover:bg-surface-muted"
-        aria-label={`Notifications${count > 0 ? `, ${count} unread` : ''}`}
-      >
-        <Bell className="h-5 w-5" aria-hidden />
-        {count > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-semibold text-danger-foreground">
-            {count > 9 ? '9+' : count}
-          </span>
-        )}
-      </button>
+      <Tooltip content={count > 0 ? `${count} unread notification${count === 1 ? '' : 's'}` : 'Notifications'}>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="relative rounded-md p-2 text-muted-foreground hover:bg-surface-muted"
+          aria-label={`Notifications${count > 0 ? `, ${count} unread` : ''}`}
+        >
+          <Bell className="h-5 w-5" aria-hidden />
+          {count > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-semibold text-danger-foreground">
+              {count > 9 ? '9+' : count}
+            </span>
+          )}
+        </button>
+      </Tooltip>
 
       {open && (
         <>

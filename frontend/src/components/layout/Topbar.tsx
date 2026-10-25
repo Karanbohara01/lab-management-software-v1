@@ -6,6 +6,7 @@ import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { logout } from '@/features/auth/authSlice';
 import { Button } from '@/components/ui/Button';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { NotificationBell } from '@/features/notifications/NotificationBell';
 import { useTheme, type ThemePreference } from '@/hooks/useTheme';
 import { CommandSearch } from './CommandSearch';
@@ -19,15 +20,16 @@ function ThemeToggle() {
   const Icon = THEME_ICON[preference];
   const next = THEME_ORDER[(THEME_ORDER.indexOf(preference) + 1) % THEME_ORDER.length]!;
   return (
-    <button
-      type="button"
-      onClick={() => setPreference(next)}
-      className="hidden rounded-md p-2 text-muted-foreground hover:bg-surface-muted hover:text-foreground sm:block"
-      aria-label={`Theme: ${THEME_LABEL[preference]}. Click to switch to ${THEME_LABEL[next]}.`}
-      title={`Theme: ${THEME_LABEL[preference]} (click to change)`}
-    >
-      <Icon className="h-[18px] w-[18px]" aria-hidden />
-    </button>
+    <Tooltip content={`Theme: ${THEME_LABEL[preference]} (click to change)`}>
+      <button
+        type="button"
+        onClick={() => setPreference(next)}
+        className="hidden rounded-md p-2 text-muted-foreground hover:bg-surface-muted hover:text-foreground sm:block"
+        aria-label={`Theme: ${THEME_LABEL[preference]}. Click to switch to ${THEME_LABEL[next]}.`}
+      >
+        <Icon className="h-[18px] w-[18px]" aria-hidden />
+      </button>
+    </Tooltip>
   );
 }
 
@@ -104,15 +106,16 @@ export function Topbar({ onOpenMenu, onOpenShortcuts }: { onOpenMenu: () => void
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={onOpenShortcuts}
-        className="hidden rounded-md p-2 text-muted-foreground hover:bg-surface-muted hover:text-foreground sm:block"
-        aria-label="Show keyboard shortcuts"
-        title="Keyboard shortcuts (?)"
-      >
-        <Keyboard className="h-[18px] w-[18px]" aria-hidden />
-      </button>
+      <Tooltip content="Keyboard shortcuts (?)">
+        <button
+          type="button"
+          onClick={onOpenShortcuts}
+          className="hidden rounded-md p-2 text-muted-foreground hover:bg-surface-muted hover:text-foreground sm:block"
+          aria-label="Show keyboard shortcuts"
+        >
+          <Keyboard className="h-[18px] w-[18px]" aria-hidden />
+        </button>
+      </Tooltip>
 
       <ThemeToggle />
 

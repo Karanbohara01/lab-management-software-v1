@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Combobox } from '@/components/ui/Combobox';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { Modal } from '@/components/ui/Modal';
 import { Alert } from '@/components/ui/Alert';
 import { SearchInput } from '@/components/ui/SearchInput';
@@ -79,13 +80,15 @@ export function UsersPage() {
           header: '',
           cell: (u: AppUserListItem) => (
             <div className="flex justify-end gap-1">
-              <button
-                onClick={(e) => { e.stopPropagation(); setResetFor(u); }}
-                className="rounded p-1 text-muted hover:bg-surface-muted"
-                aria-label={`Reset password for ${u.username}`}
-              >
-                <KeyRound className="h-4 w-4" aria-hidden />
-              </button>
+              <Tooltip content="Reset password">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setResetFor(u); }}
+                  className="rounded p-1 text-muted hover:bg-surface-muted"
+                  aria-label={`Reset password for ${u.username}`}
+                >
+                  <KeyRound className="h-4 w-4" aria-hidden />
+                </button>
+              </Tooltip>
               <button
                 onClick={(e) => { e.stopPropagation(); toggleEnabled(u); }}
                 className="rounded px-2 py-0.5 text-xs text-muted hover:bg-surface-muted"
