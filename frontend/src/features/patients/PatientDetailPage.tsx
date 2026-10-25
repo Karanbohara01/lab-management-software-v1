@@ -4,6 +4,7 @@ import { ArrowLeft, FilePlus2, GitMerge, Link2, Pencil, Printer, ShieldAlert, St
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Tabs } from '@/components/ui/Tabs';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
@@ -176,23 +177,7 @@ export function PatientDetailPage() {
         </div>
       )}
 
-      <div className="mb-4 flex gap-1 overflow-x-auto border-b border-border" role="tablist">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            role="tab"
-            aria-selected={tab === t.id}
-            onClick={() => setTab(t.id)}
-            className={
-              tab === t.id
-                ? 'border-b-2 border-primary px-4 py-2 text-sm font-medium text-primary'
-                : 'border-b-2 border-transparent px-4 py-2 text-sm font-medium text-muted hover:text-foreground'
-            }
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <Tabs tabs={TABS} value={tab} onChange={setTab} className="mb-4" />
 
       {tab === 'overview' && (
         <div className="grid gap-4 lg:grid-cols-2">
