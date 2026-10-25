@@ -185,10 +185,12 @@ export function InvoicePrintDocument({ invoice }: { invoice: InvoiceDetail }) {
           {invoice.patientPhone ?? '—'}
         </div>
         <div>
-          <span className="font-semibold text-gray-700">Fiscal Year: </span>
-          {invoice.fiscalYear}
-        </div>
-        <div>
+          {/* Fiscal year is dropped as a standalone field — it's not an IRD-required field (the
+              Anusuchi-5 schedule names exactly 10 fields, and this isn't one of them) and it's
+              already encoded in the Bill Number itself (INV-2083/84-...), so showing it again here
+              was pure redundancy. Patient MRN/Phone/Order No. stay: not IRD-required either, but
+              each does real work (tying the bill to the clinical record, a contact number, the
+              lab order reference) that fiscal year duplicated for free. */}
           <span className="font-semibold text-gray-700">Order No.: </span>
           {invoice.orderNumber}
         </div>
