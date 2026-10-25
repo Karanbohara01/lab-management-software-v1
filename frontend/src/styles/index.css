@@ -172,6 +172,17 @@
     padding: 0;
     width: 100%;
   }
+  /* Browsers strip background colors on print by default unless the user manually enables
+     "Background graphics" in the print dialog — without this, InvoicePrintDocument's colored
+     header row/totals highlight would silently vanish (white text on white paper) for anyone who
+     prints with default settings. Forces them to print as designed regardless. */
+  #report-print,
+  #report-print *,
+  #patient-print,
+  #patient-print * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
   /* Long reports span multiple pages. A whole test <section> deliberately does NOT get
      break-inside: avoid (ReportDocument.tsx) — that forces the ENTIRE test to the next page the
      moment it doesn't fit in the remaining space, leaving the tail of the previous page mostly
