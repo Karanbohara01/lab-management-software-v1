@@ -56,7 +56,7 @@ export function InvoicePrintDocument({ invoice }: { invoice: InvoiceDetail }) {
           on paper and must look identical regardless of the viewer's light/dark mode setting, so
           every accent color below is a literal Tailwind shade (sky-*), never a CSS-variable color. */}
       <div className="h-2 bg-sky-600" aria-hidden />
-      <div className="p-8">
+      <div className="p-6">
       {isCancelled ? (
         <div
           className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden"
@@ -80,23 +80,23 @@ export function InvoicePrintDocument({ invoice }: { invoice: InvoiceDetail }) {
       )}
 
       <div
-        className={`mb-5 flex items-start gap-4 border-b-2 border-sky-700 pb-4 ${invoice.printLetterhead ? 'justify-between' : 'justify-end'}`}
+        className={`mb-3 flex items-start gap-4 border-b-2 border-sky-700 pb-3 ${invoice.printLetterhead ? 'justify-between' : 'justify-end'}`}
       >
         {invoice.printLetterhead && (
           <div>
-            {invoice.labLogoDataUri && <img src={invoice.labLogoDataUri} alt="" className="mb-2 h-14" />}
-            <p className="text-xl font-bold tracking-tight text-sky-900">{invoice.labName ?? 'Laboratory'}</p>
-            {invoice.labAddress && <p className="text-sm text-gray-600">{invoice.labAddress}</p>}
-            <p className="text-sm text-gray-600">
+            {invoice.labLogoDataUri && <img src={invoice.labLogoDataUri} alt="" className="mb-1.5 h-11" />}
+            <p className="text-lg font-bold leading-tight tracking-tight text-sky-900">{invoice.labName ?? 'Laboratory'}</p>
+            {invoice.labAddress && <p className="text-xs leading-snug text-gray-600">{invoice.labAddress}</p>}
+            <p className="text-xs leading-snug text-gray-600">
               {invoice.labPhone ?? ''}
               {invoice.labPhone && invoice.labEmail ? ' · ' : ''}
               {invoice.labEmail ?? ''}
             </p>
-            {invoice.labPan && <p className="text-sm text-gray-600">PAN: {invoice.labPan}</p>}
+            {invoice.labPan && <p className="text-xs leading-snug text-gray-600">PAN: {invoice.labPan}</p>}
           </div>
         )}
         <div className="text-right">
-          <p className="inline-block rounded bg-sky-700 px-3 py-1 text-lg font-bold uppercase tracking-wide text-white">
+          <p className="inline-block rounded bg-sky-700 px-2.5 py-1 text-base font-bold uppercase tracking-wide text-white">
             {title}
           </p>
           {isCancelled && <p className="mt-1 text-sm font-bold text-red-600">CANCELLED</p>}
@@ -107,7 +107,7 @@ export function InvoicePrintDocument({ invoice }: { invoice: InvoiceDetail }) {
       </div>
 
       {isCancelled && (
-        <div className="mb-4 border border-red-600 p-2 text-sm">
+        <div className="mb-3 border border-red-600 p-2 text-sm">
           <p className="font-bold text-red-600">This bill has been cancelled and is no longer valid.</p>
           <p>
             <span className="font-semibold">Cancelled on: </span>
@@ -133,7 +133,7 @@ export function InvoicePrintDocument({ invoice }: { invoice: InvoiceDetail }) {
           letterhead toggle above (which is decorative branding, not a substitute for the
           prescribed Seller's Name/PAN/Address fields) — Bill Number pairs with Transactions Date,
           Seller's PAN pairs with Invoice Issue Date, exactly matching the schedule's own layout. */}
-      <div className="mb-4 grid grid-cols-2 gap-x-6 gap-y-1 rounded-md border border-gray-200 bg-gray-50 p-3 text-sm">
+      <div className="mb-3 grid grid-cols-2 gap-x-6 gap-y-0.5 rounded-md border border-gray-200 bg-gray-50 p-2.5 text-sm">
         <div className="truncate">
           <span className="font-semibold text-gray-700">Bill Number: </span>
           {invoice.invoiceNumber ?? '—'}
@@ -194,32 +194,32 @@ export function InvoicePrintDocument({ invoice }: { invoice: InvoiceDetail }) {
         </div>
       </div>
 
-      <table className="mb-5 w-full border-collapse text-sm">
+      <table className="mb-3 w-full border-collapse text-sm">
         <thead>
           <tr className="bg-sky-700 text-white">
-            <th className="rounded-l py-2 pl-2 text-left">S.No.</th>
+            <th className="rounded-l py-1.5 pl-2 text-left">S.No.</th>
             {/* Anusuchi-5's table always carries an H.S. Code column — filled in only when the
                 line item is an imported good per its customs declaration. A lab test is a
                 service, never an imported good, so the column stays blank, but the column
                 itself is still part of the prescribed layout and must be present. */}
-            <th className="py-2 text-left">H.S. Code</th>
-            <th className="py-2 text-left">Details</th>
-            <th className="py-2 text-center">Qty</th>
-            <th className="py-2 text-right">Per Unit Amount</th>
-            <th className="rounded-r py-2 pr-2 text-right">Total Amount</th>
+            <th className="py-1.5 text-left">H.S. Code</th>
+            <th className="py-1.5 text-left">Details</th>
+            <th className="py-1.5 text-center">Qty</th>
+            <th className="py-1.5 text-right">Per Unit Amount</th>
+            <th className="rounded-r py-1.5 pr-2 text-right">Total Amount</th>
           </tr>
         </thead>
         <tbody>
           {invoice.items.map((item, i) => (
             <tr key={item.id} className="border-b border-gray-200 even:bg-gray-50/70">
-              <td className="py-2 pl-2">{i + 1}</td>
-              <td className="py-2">—</td>
-              <td className="py-2">
+              <td className="py-1.5 pl-2">{i + 1}</td>
+              <td className="py-1.5">—</td>
+              <td className="py-1.5">
                 {item.testName} <span className="text-xs text-gray-500">({item.testCode})</span>
               </td>
-              <td className="py-2 text-center">{item.quantity}</td>
-              <td className="py-2 text-right">{formatMoney(item.unitPrice)}</td>
-              <td className="py-2 pr-2 text-right">{formatMoney(item.lineTotal)}</td>
+              <td className="py-1.5 text-center">{item.quantity}</td>
+              <td className="py-1.5 text-right">{formatMoney(item.unitPrice)}</td>
+              <td className="py-1.5 pr-2 text-right">{formatMoney(item.lineTotal)}</td>
             </tr>
           ))}
         </tbody>
@@ -250,10 +250,10 @@ export function InvoicePrintDocument({ invoice }: { invoice: InvoiceDetail }) {
             </tr>
           )}
           <tr className="border-t-2 border-sky-700 bg-sky-50">
-            <td colSpan={5} className="py-2 text-right text-base font-bold text-sky-900">
+            <td colSpan={5} className="py-1.5 text-right text-base font-bold text-sky-900">
               Total
             </td>
-            <td className="py-2 pr-2 text-right text-base font-bold text-sky-900">{formatMoney(invoice.totalAmount)}</td>
+            <td className="py-1.5 pr-2 text-right text-base font-bold text-sky-900">{formatMoney(invoice.totalAmount)}</td>
           </tr>
           {!isCancelled && (
             <>
@@ -273,13 +273,13 @@ export function InvoicePrintDocument({ invoice }: { invoice: InvoiceDetail }) {
               )}
               <tr className={`border-t border-gray-300 ${invoice.balance > 0 ? 'bg-amber-50' : ''}`}>
                 <td
-                  className={`py-2 text-right font-bold ${invoice.balance > 0 ? 'text-amber-800' : 'text-gray-700'}`}
+                  className={`py-1.5 text-right font-bold ${invoice.balance > 0 ? 'text-amber-800' : 'text-gray-700'}`}
                   colSpan={5}
                 >
                   Balance Due
                 </td>
                 <td
-                  className={`py-2 pr-2 text-right font-bold ${invoice.balance > 0 ? 'text-amber-800' : 'text-gray-700'}`}
+                  className={`py-1.5 pr-2 text-right font-bold ${invoice.balance > 0 ? 'text-amber-800' : 'text-gray-700'}`}
                 >
                   {formatMoney(invoice.balance)}
                 </td>
@@ -289,11 +289,11 @@ export function InvoicePrintDocument({ invoice }: { invoice: InvoiceDetail }) {
         </tfoot>
       </table>
 
-      <p className="mb-8 rounded border border-gray-200 bg-gray-50 px-3 py-2 text-sm italic text-gray-700">
+      <p className="mb-6 rounded border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm italic text-gray-700">
         In words: {amountInWordsNpr(invoice.totalAmount)}
       </p>
 
-      <div className="mt-16 flex justify-end">
+      <div className="mt-8 flex justify-end">
         <div className="w-56 border-t border-black pt-1 text-center text-sm">Authorized Signature</div>
       </div>
       </div>
