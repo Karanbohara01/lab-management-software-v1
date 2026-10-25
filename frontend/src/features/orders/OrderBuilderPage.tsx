@@ -537,23 +537,25 @@ function TestPicker({
           {results.map((t) => {
             const added = existingIds.includes(t.id);
             return (
-              <li key={t.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
-                <span>
-                  <span className="font-medium text-foreground">{t.name}</span>
-                  <span className="ml-2 font-mono text-xs text-muted">{t.code}</span>
-                  <span className="ml-2 text-muted">{formatMoney(t.price)}</span>
-                </span>
-                <Button
-                  size="sm"
-                  variant={added ? 'ghost' : 'secondary'}
+              <li key={t.id}>
+                <button
+                  type="button"
                   disabled={added}
                   onClick={() => {
                     onAdd(t);
                     setTerm('');
                   }}
+                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {added ? 'Added' : <><Plus className="h-4 w-4" aria-hidden /> Add</>}
-                </Button>
+                  <span>
+                    <span className="font-medium text-foreground">{t.name}</span>
+                    <span className="ml-2 font-mono text-xs text-muted">{t.code}</span>
+                    <span className="ml-2 text-muted">{formatMoney(t.price)}</span>
+                  </span>
+                  <span className="flex items-center gap-1 text-xs font-medium text-muted">
+                    {added ? 'Added' : <><Plus className="h-4 w-4" aria-hidden /> Add</>}
+                  </span>
+                </button>
               </li>
             );
           })}

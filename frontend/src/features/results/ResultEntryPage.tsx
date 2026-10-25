@@ -1,6 +1,14 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, ArrowLeft, CheckCircle2, Save, ShieldCheck, Undo2 } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  CheckCircle2,
+  MessageSquarePlus,
+  Save,
+  ShieldCheck,
+  Undo2,
+} from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -47,6 +55,8 @@ export function ResultEntryPage() {
 
   const [draft, setDraft] = useState<Record<number, string>>({});
   const [notes, setNotes] = useState<Record<number, string>>({});
+  const [revealedNotes, setRevealedNotes] = useState<Record<number, boolean>>({});
+  const [pendingNoteFocusId, setPendingNoteFocusId] = useState<number | null>(null);
   const [comment, setComment] = useState('');
   const [templates, setTemplates] = useState<CommentTemplate[]>([]);
   const [saving, setSaving] = useState(false);
@@ -66,6 +76,11 @@ export function ResultEntryPage() {
         ),
       );
       setNotes(Object.fromEntries(result.values.map((v) => [v.parameterId, v.comment ?? ''])));
+      // Rows that already carry a note (e.g. re-opening a partially-entered result) start revealed
+      // so nothing already-filled is silently hidden behind the toggle.
+      setRevealedNotes(
+        Object.fromEntries(result.values.map((v) => [v.parameterId, !!(v.comment && v.comment.trim())])),
+      );
       setComment(result.comment ?? '');
     }
   }, [result]);
@@ -82,6 +97,19 @@ export function ResultEntryPage() {
   );
 
   const valuesTableRef = useRef<HTMLTableElement>(null);
+  const noteInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+
+  // After a toggle reveals a parameter's note field, focus it once it mounts.
+  useEffect(() => {
+    if (pendingNoteFocusId == null) return;
+    noteInputRefs.current[pendingNoteFocusId]?.focus();
+    setPendingNoteFocusId(null);
+  }, [pendingNoteFocusId]);
+
+  const revealNote = (parameterId: number) => {
+    setRevealedNotes((p) => ({ ...p, [parameterId]: true }));
+    setPendingNoteFocusId(parameterId);
+  };
 
   /**
    * Enter moves focus to the next parameter's value field instead of submitting/doing nothing —
@@ -386,13 +414,28 @@ export function ResultEntryPage() {
                             </span>
                           )}
                           {editable && !v.calculated ? (
-                            <input
-                              type="text"
-                              placeholder="note (optional)"
-                              value={notes[v.parameterId] ?? ''}
-                              onChange={(e) => setNotes((p) => ({ ...p, [v.parameterId]: e.target.value }))}
-                              className="mt-1 block h-7 w-52 rounded border border-input bg-surface px-2 text-xs"
-                            />
+                            revealedNotes[v.parameterId] || (notes[v.parameterId] ?? '').trim() ? (
+                              <input
+                                ref={(el) => {
+                                  noteInputRefs.current[v.parameterId] = el;
+                                }}
+                                type="text"
+                                placeholder="note (optional)"
+                                value={notes[v.parameterId] ?? ''}
+                                onChange={(e) => setNotes((p) => ({ ...p, [v.parameterId]: e.target.value }))}
+                                className="mt-1 block h-7 w-52 rounded border border-input bg-surface px-2 text-xs"
+                              />
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => revealNote(v.parameterId)}
+                                aria-label={`Add note for ${v.parameterName}`}
+                                className="mt-1 inline-flex items-center gap-1 text-xs text-muted hover:text-foreground"
+                              >
+                                <MessageSquarePlus className="h-3 w-3" aria-hidden />
+                                Note
+                              </button>
+                            )
                           ) : (
                             v.comment && <p className="mt-0.5 text-xs italic text-muted">{v.comment}</p>
                           )}

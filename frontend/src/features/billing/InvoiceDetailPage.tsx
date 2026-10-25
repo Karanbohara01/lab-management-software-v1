@@ -255,7 +255,10 @@ export function InvoiceDetailPage() {
           <Card data-print-hide>
             <CardHeader title="Payments" />
             {inv.payments.length === 0 ? (
-              <p className="px-5 py-4 text-sm text-muted">No payments recorded.</p>
+              <div className="px-5 py-4 text-sm text-muted">
+                <p>No payments recorded.</p>
+                {inv.status === 'DRAFT' && <p className="mt-1">Issue this invoice to enable recording a payment.</p>}
+              </div>
             ) : (
               <ul className="divide-y divide-border text-sm">
                 {inv.payments.map((p) => (
