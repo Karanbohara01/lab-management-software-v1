@@ -138,7 +138,7 @@ export function InvoicePrintDocument({ invoice }: { invoice: InvoiceDetail }) {
           better than interleaving "Seller's PAN" next to "Invoice Issue Date" in one column.
           Method of payment is its own standalone line, matching how the schedule itself treats
           it (not paired with another field there either). */}
-      <div className="mb-3 space-y-2 rounded-md border border-gray-200 bg-gray-50 p-2.5 text-sm">
+      <div className="mb-3 space-y-2 bg-gray-50 p-2.5 text-sm">
         <div className="grid grid-cols-2 gap-x-6 gap-y-0.5 border-b border-gray-200 pb-2">
           <div className="truncate">
             <span className="font-semibold text-gray-700">Bill Number: </span>
