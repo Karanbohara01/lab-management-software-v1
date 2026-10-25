@@ -133,21 +133,21 @@ export function InvoicePrintDocument({ invoice }: { invoice: InvoiceDetail }) {
           letterhead toggle above (which is decorative branding, not a substitute for the
           prescribed Seller's Name/PAN/Address fields) — Bill Number pairs with Transactions Date,
           Seller's PAN pairs with Invoice Issue Date, exactly matching the schedule's own layout. */}
-      <div className="mb-5 grid grid-cols-2 gap-x-8 gap-y-1.5 rounded-md border border-gray-200 bg-gray-50 p-4 text-sm">
-        <div>
+      <div className="mb-4 grid grid-cols-2 gap-x-6 gap-y-1 rounded-md border border-gray-200 bg-gray-50 p-3 text-sm">
+        <div className="truncate">
           <span className="font-semibold text-gray-700">Bill Number: </span>
           {invoice.invoiceNumber ?? '—'}
         </div>
-        <div>
+        <div className="whitespace-nowrap">
           <span className="font-semibold text-gray-700">Transactions Date: </span>
           {dt(invoice.transactionDate)}
           {invoice.transactionDateBs && ` (${invoice.transactionDateBs} BS)`}
         </div>
-        <div>
+        <div className="truncate">
           <span className="font-semibold text-gray-700">Seller's PAN: </span>
           {invoice.labPan ?? '—'}
         </div>
-        <div>
+        <div className="whitespace-nowrap">
           <span className="font-semibold text-gray-700">Invoice Issue Date: </span>
           {dt(invoice.issuedAt)}
           {invoice.issuedAtBs && ` (${invoice.issuedAtBs} BS)`}
