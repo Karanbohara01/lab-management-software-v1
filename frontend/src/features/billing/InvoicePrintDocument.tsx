@@ -131,68 +131,79 @@ export function InvoicePrintDocument({ invoice }: { invoice: InvoiceDetail }) {
 
       {/* Every field Anusuchi-6 names is present and explicitly labeled here regardless of the
           letterhead toggle above (which is decorative branding, not a substitute for the
-          prescribed Seller's Name/PAN/Address fields) — Bill Number pairs with Transactions Date,
-          Seller's PAN pairs with Invoice Issue Date, exactly matching the schedule's own layout. */}
-      <div className="mb-3 grid grid-cols-2 gap-x-6 gap-y-0.5 rounded-md border border-gray-200 bg-gray-50 p-2.5 text-sm">
-        <div className="truncate">
-          <span className="font-semibold text-gray-700">Bill Number: </span>
-          {invoice.invoiceNumber ?? '—'}
+          prescribed Seller's Name/PAN/Address fields). Grouped by WHO the field is about (invoice
+          reference numbers/dates, then the seller, then the purchaser) rather than the schedule's
+          own left-right pairing order — the schedule mandates these fields be present and
+          correctly labeled, not a specific visual adjacency, and grouping by entity scans far
+          better than interleaving "Seller's PAN" next to "Invoice Issue Date" in one column.
+          Method of payment is its own standalone line, matching how the schedule itself treats
+          it (not paired with another field there either). */}
+      <div className="mb-3 space-y-2 rounded-md border border-gray-200 bg-gray-50 p-2.5 text-sm">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-0.5 border-b border-gray-200 pb-2">
+          <div className="truncate">
+            <span className="font-semibold text-gray-700">Bill Number: </span>
+            {invoice.invoiceNumber ?? '—'}
+          </div>
+          <div>
+            <span className="font-semibold text-gray-700">Order No.: </span>
+            {invoice.orderNumber}
+          </div>
+          <div className="whitespace-nowrap">
+            <span className="font-semibold text-gray-700">Transactions Date: </span>
+            {dt(invoice.transactionDate)}
+            {invoice.transactionDateBs && ` (${invoice.transactionDateBs} BS)`}
+          </div>
+          <div className="whitespace-nowrap">
+            <span className="font-semibold text-gray-700">Invoice Issue Date: </span>
+            {dt(invoice.issuedAt)}
+            {invoice.issuedAtBs && ` (${invoice.issuedAtBs} BS)`}
+          </div>
         </div>
-        <div className="whitespace-nowrap">
-          <span className="font-semibold text-gray-700">Transactions Date: </span>
-          {dt(invoice.transactionDate)}
-          {invoice.transactionDateBs && ` (${invoice.transactionDateBs} BS)`}
+
+        <div className="grid grid-cols-2 gap-x-6 gap-y-0.5">
+          <div>
+            <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-700">Seller</p>
+            <div>
+              <span className="font-semibold text-gray-700">Seller's Name: </span>
+              {invoice.labName ?? '—'}
+            </div>
+            <div>
+              <span className="font-semibold text-gray-700">Address: </span>
+              {invoice.labAddress ?? '—'}
+            </div>
+            <div className="truncate">
+              <span className="font-semibold text-gray-700">Seller's PAN: </span>
+              {invoice.labPan ?? '—'}
+            </div>
+          </div>
+          <div>
+            <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-700">Purchaser</p>
+            <div>
+              <span className="font-semibold text-gray-700">Purchaser's Name: </span>
+              {invoice.patientName}
+            </div>
+            <div>
+              <span className="font-semibold text-gray-700">Address: </span>
+              {invoice.patientAddress ?? '—'}
+            </div>
+            <div className="truncate">
+              <span className="font-semibold text-gray-700">Purchaser's PAN: </span>
+              {invoice.buyerPan ?? '—'}
+            </div>
+            <div>
+              <span className="font-semibold text-gray-700">Patient MRN: </span>
+              {invoice.patientMrn}
+            </div>
+            <div>
+              <span className="font-semibold text-gray-700">Phone: </span>
+              {invoice.patientPhone ?? '—'}
+            </div>
+          </div>
         </div>
-        <div className="truncate">
-          <span className="font-semibold text-gray-700">Seller's PAN: </span>
-          {invoice.labPan ?? '—'}
-        </div>
-        <div className="whitespace-nowrap">
-          <span className="font-semibold text-gray-700">Invoice Issue Date: </span>
-          {dt(invoice.issuedAt)}
-          {invoice.issuedAtBs && ` (${invoice.issuedAtBs} BS)`}
-        </div>
-        <div>
-          <span className="font-semibold text-gray-700">Seller's Name: </span>
-          {invoice.labName ?? '—'}
-        </div>
-        <div>
-          <span className="font-semibold text-gray-700">Address: </span>
-          {invoice.labAddress ?? '—'}
-        </div>
-        <div>
-          <span className="font-semibold text-gray-700">Purchaser's Name: </span>
-          {invoice.patientName}
-        </div>
-        <div>
+
+        <div className="border-t border-gray-200 pt-2">
           <span className="font-semibold text-gray-700">Method of payment: </span>
           {paymentMethod}
-        </div>
-        <div>
-          <span className="font-semibold text-gray-700">Address: </span>
-          {invoice.patientAddress ?? '—'}
-        </div>
-        <div>
-          <span className="font-semibold text-gray-700">Purchaser's PAN: </span>
-          {invoice.buyerPan ?? '—'}
-        </div>
-        <div>
-          <span className="font-semibold text-gray-700">Patient MRN: </span>
-          {invoice.patientMrn}
-        </div>
-        <div>
-          <span className="font-semibold text-gray-700">Phone: </span>
-          {invoice.patientPhone ?? '—'}
-        </div>
-        <div>
-          {/* Fiscal year is dropped as a standalone field — it's not an IRD-required field (the
-              Anusuchi-5 schedule names exactly 10 fields, and this isn't one of them) and it's
-              already encoded in the Bill Number itself (INV-2083/84-...), so showing it again here
-              was pure redundancy. Patient MRN/Phone/Order No. stay: not IRD-required either, but
-              each does real work (tying the bill to the clinical record, a contact number, the
-              lab order reference) that fiscal year duplicated for free. */}
-          <span className="font-semibold text-gray-700">Order No.: </span>
-          {invoice.orderNumber}
         </div>
       </div>
 
