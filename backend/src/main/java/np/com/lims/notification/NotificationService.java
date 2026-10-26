@@ -26,7 +26,23 @@ public class NotificationService {
                                   String linkPath, boolean read, Instant createdAt) {
         static NotificationDto from(Notification n, String username) {
             return new NotificationDto(n.getId(), n.getType().name(), n.getSeverity().name(), n.getTitle(),
-                    n.getMessage(), n.getLinkPath(), n.isReadBy(username), n.getCreatedAt());
+                    n.getMessage(), normalizeLinkPath(n.getLinkPath()), n.isReadBy(username), n.getCreatedAt());
+        }
+
+        /**
+         * Every notification target lives inside the authenticated app shell, mounted at
+         * {@code /app} (see router.tsx) — but every {@code publish(...)} call site across the
+         * codebase writes a bare path like {@code "/results/42"}. react-router treats that as an
+         * absolute URL with no matching route, so it silently falls through to the app's own
+         * top-level catch-all and bounces the user to the public landing page, looking exactly
+         * like the notification simply isn't clickable. Normalized here, at read time, so it
+         * self-heals rows already persisted with the bare path too — no migration needed.
+         */
+        private static String normalizeLinkPath(String linkPath) {
+            if (linkPath == null || linkPath.isBlank() || linkPath.startsWith("/app")) {
+                return linkPath;
+            }
+            return "/app" + linkPath;
         }
     }
 
