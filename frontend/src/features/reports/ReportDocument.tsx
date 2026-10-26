@@ -66,33 +66,40 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
           thead's already-proven repeat-per-page behavior (the column headers themselves already
           repeat correctly — same mechanism, just one more row). */}
       <style>{'@media print { @page { margin: 16mm 12mm; @bottom-right { content: "Page " counter(page) " of " counter(pages); font-size: 9px; color: #666; } } }'}</style>
-      <div id="report-print" className="mx-auto max-w-3xl bg-white p-8 text-[13px] text-black">
-        <header className={`flex items-start border-b-2 border-black pb-3 ${lab.printLetterhead ? 'justify-between' : 'justify-end'}`}>
+      <div id="report-print" className="mx-auto max-w-3xl bg-white text-[13px] text-black">
+        {/* A fixed brand-colored masthead bar, not the app's theme-variable `primary` token — see
+            InvoicePrintDocument's identical comment for why: a printed document must look the same
+            regardless of the viewer's light/dark mode. This only renders once, on page 1 (it isn't
+            in a @page margin box), which matches how a real letterhead masthead works — the
+            per-test patient-identification row further down is what actually repeats per page. */}
+        <div className="h-2 bg-sky-600" aria-hidden />
+        <div className="p-6">
+        <header className={`flex items-start border-b-2 border-sky-700 pb-3 ${lab.printLetterhead ? 'justify-between' : 'justify-end'}`}>
         {lab.printLetterhead && (
           <div className="flex items-center gap-3">
-            {lab.logoDataUri && <img src={lab.logoDataUri} alt="" className="h-14 w-14 object-contain" />}
+            {lab.logoDataUri && <img src={lab.logoDataUri} alt="" className="h-12 w-12 object-contain" />}
             <div>
-              <h1 className="text-lg font-bold uppercase tracking-wide">{lab.name}</h1>
-              <p className="text-xs">
+              <h1 className="text-base font-bold uppercase tracking-wide text-sky-900">{lab.name}</h1>
+              <p className="text-xs text-gray-600">
                 {[lab.addressLine, lab.city].filter(Boolean).join(', ')}
               </p>
-              <p className="text-xs">
+              <p className="text-xs text-gray-600">
                 {[lab.phone && `Tel: ${lab.phone}`, lab.email, lab.panNumber && `PAN: ${lab.panNumber}`]
                   .filter(Boolean)
                   .join('  ·  ')}
               </p>
               {lab.accreditationNumber && (
-                <p className="text-xs">Accreditation No: {lab.accreditationNumber}</p>
+                <p className="text-xs text-gray-600">Accreditation No: {lab.accreditationNumber}</p>
               )}
             </div>
           </div>
         )}
-        <div className="text-right text-xs">
-          <p className="font-semibold">
+        <div className="text-right">
+          <p className="inline-block rounded bg-sky-700 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-white">
             {report.reportType === 'PRELIMINARY' ? 'PRELIMINARY REPORT' : 'LABORATORY REPORT'}
           </p>
-          <p>{report.reportNumber}</p>
-          {report.reportVersion > 1 && <p className="text-red-600">Amended · v{report.reportVersion}</p>}
+          <p className="mt-1 text-xs text-gray-600">{report.reportNumber}</p>
+          {report.reportVersion > 1 && <p className="text-xs font-semibold text-red-600">Amended · v{report.reportVersion}</p>}
         </div>
       </header>
 
@@ -102,7 +109,7 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
         </p>
       )}
 
-      <section className="grid grid-cols-2 gap-x-8 gap-y-1 border-b border-black py-3 text-xs">
+      <section className="mt-3 grid grid-cols-2 gap-x-8 gap-y-1 bg-gray-50 p-2.5 text-xs">
         <Line label="Patient" value={report.patientName} />
         <Line label="Referred by" value={report.referringDoctorName ?? '—'} />
         <Line label="MRN" value={report.patientMrn} />
@@ -122,9 +129,9 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
 
       {report.tests.map((test) => (
         <section key={test.testCode} className="mt-4">
-          <div className="flex items-baseline justify-between border-b border-black break-after-avoid">
-            <h2 className="text-sm font-bold uppercase">{test.testName}</h2>
-            <span className="text-[11px]">{test.departmentName}</span>
+          <div className="flex items-baseline justify-between border-b-2 border-sky-700 break-after-avoid">
+            <h2 className="text-sm font-bold uppercase text-sky-900">{test.testName}</h2>
+            <span className="text-[11px] text-gray-600">{test.departmentName}</span>
           </div>
           <p className="break-after-avoid text-[11px] text-gray-600">
             {[
@@ -159,11 +166,11 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
                   {report.patientName} · MRN {report.patientMrn} · {report.reportNumber}
                 </td>
               </tr>
-              <tr className="border-b border-gray-400 text-left">
-                <th className="py-1">Investigation</th>
-                <th className="py-1">Result</th>
-                <th className="py-1">Unit</th>
-                <th className="py-1">Reference range</th>
+              <tr className="border-b-2 border-sky-700 bg-sky-50 text-left">
+                <th className="py-1 pl-1 text-sky-900">Investigation</th>
+                <th className="py-1 text-sky-900">Result</th>
+                <th className="py-1 text-sky-900">Unit</th>
+                <th className="py-1 text-sky-900">Reference range</th>
               </tr>
             </thead>
             <tbody>
@@ -175,7 +182,10 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
                   <Fragment key={p.name}>
                     {showHeading && (
                       <tr className="break-inside-avoid break-after-avoid">
-                        <td colSpan={4} className="bg-gray-50 py-1 pt-2 text-[11px] font-bold uppercase tracking-wide">
+                        <td
+                          colSpan={4}
+                          className="border-l-2 border-sky-300 bg-gray-50 py-1 pl-1.5 pt-2 text-[11px] font-bold uppercase tracking-wide text-gray-700"
+                        >
                           {p.groupHeading}
                         </td>
                       </tr>
@@ -210,7 +220,7 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
         </section>
       ))}
 
-      <footer className="mt-8 break-inside-avoid border-t border-black pt-3 text-[11px] text-gray-700">
+      <footer className="mt-6 break-inside-avoid border-t border-sky-700 pt-3 text-[11px] text-gray-700">
         <div className="mb-6 flex justify-end gap-16">
           <div className="text-center">
             <div className="h-8 w-40 border-b border-gray-500" />
@@ -253,6 +263,7 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
             : ''}
         </p>
       </footer>
+      </div>
       </div>
     </>
   );
