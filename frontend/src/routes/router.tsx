@@ -23,6 +23,10 @@ function route(path: string, element: ReactNode, anyOf?: string[]) {
 
 export const router = createBrowserRouter([
   { path: '/', element: lazyPage(() => import('@/features/marketing/LandingPage'), 'LandingPage') },
+  // Solutions used to be its own page; it's a section of the landing page again. Keep the old URL working.
+  { path: '/solutions', element: <Navigate to="/#solutions" replace /> },
+  { path: '/blog', element: lazyPage(() => import('@/features/marketing/blog/BlogIndexPage'), 'BlogIndexPage') },
+  { path: '/blog/:slug', element: lazyPage(() => import('@/features/marketing/blog/BlogPostPage'), 'BlogPostPage') },
   { path: '/login', element: <LoginPage /> },
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
   { path: '/reset-password', element: <ResetPasswordPage /> },

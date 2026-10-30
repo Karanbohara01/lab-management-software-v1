@@ -1,11 +1,12 @@
 import { Link, useParams } from 'react-router-dom';
-import { Microscope, FileText, Receipt } from 'lucide-react';
+import { FileText, Receipt } from 'lucide-react';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { formatMoney } from '@/lib/money';
 import { portalApi } from './api';
+import { BrandMark } from '@/components/brand/BrandMark';
 
 const REPORT_STATUS_TONE: Record<string, 'neutral' | 'info' | 'success'> = {
   GENERATED: 'neutral',
@@ -21,7 +22,7 @@ const INVOICE_STATUS_TONE: Record<string, 'neutral' | 'success' | 'danger'> = {
 
 /**
  * Public, unauthenticated landing page for a patient's self-service portal link — a real patient
- * has no LabOS login, so this is a standalone top-level route (not nested under `/app`), the same
+ * has no LIMS login, so this is a standalone top-level route (not nested under `/app`), the same
  * reasoning as VerifyReportPage. Only ever shows what the backend already filtered to be
  * patient-safe (released reports, non-draft invoices) — nothing here re-filters or trusts client
  * state for that; the token itself scopes everything.
@@ -36,10 +37,10 @@ export function PatientPortalPage() {
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <Link
             to="/"
-            aria-label="LabOS home"
-            className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            aria-label="LIMS home"
+            className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            <Microscope className="h-6 w-6" aria-hidden />
+            <BrandMark className="h-14" />
           </Link>
           <div>
             <h1 className="text-xl font-semibold text-foreground">Your lab records</h1>

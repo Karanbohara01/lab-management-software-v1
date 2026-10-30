@@ -16,7 +16,7 @@ export function Section({
 }) {
   return (
     <section id={id} className={cn('scroll-mt-20 py-16 sm:py-24', className)}>
-      {container ? <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">{children}</div> : children}
+      {container ? <div className="mx-auto w-full max-w-page px-4 sm:px-6 lg:px-8">{children}</div> : children}
     </section>
   );
 }
@@ -99,5 +99,5 @@ export function AnchorButton({ href, ...props }: ButtonProps & { href: string })
 }
 
 export const DEMO_MAILTO =
-  'mailto:sales@labos.example?subject=Demo%20request%20—%20LabOS%20Pathology%20Management';
-export const SALES_MAILTO = 'mailto:sales@labos.example?subject=Talk%20to%20Sales%20—%20LabOS';
+  'mailto:sales@labos.example?subject=Demo%20request%20—%20LIMS%20Pathology%20Management';
+export const SALES_MAILTO = 'mailto:sales@labos.example?subject=Talk%20to%20Sales%20—%20LIMS';

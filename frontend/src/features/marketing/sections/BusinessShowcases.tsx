@@ -7,7 +7,7 @@ import { MockBadge, MockShell, MockStat, MockStatGrid, MockTable, MockWindow } f
 
 function BillingMock() {
   return (
-    <MockWindow title="LabOS — Invoice INV-2082/83-000124" canvasClassName="min-w-[36rem]">
+    <MockWindow title="LIMS — Invoice INV-2082/83-000124" canvasClassName="min-w-[36rem]">
       <div className="p-4 text-[11px]">
         <div className="flex items-center justify-between">
           <div>
@@ -52,6 +52,7 @@ function BillingMock() {
 export function BillingShowcase() {
   return (
     <Showcase
+      id="billing"
       eyebrow="Billing & payments"
       title="Billing that follows the laboratory workflow."
       lead="An invoice is raised straight from a confirmed order. Apply discounts and tax, issue it with a fiscal-year number, then record payments and track the balance."
@@ -72,7 +73,7 @@ const IRD_STEPS = ['Invoice created', 'Submission pending', 'Submitted', 'Accept
 
 function EbillingMock() {
   return (
-    <MockWindow title="LabOS — e-Billing">
+    <MockWindow title="LIMS — e-Billing">
       <div className="p-4">
         <ol className="flex flex-wrap items-center gap-1.5 text-[10px]">
           {IRD_STEPS.map((s, i) => (
@@ -110,7 +111,7 @@ export function EbillingShowcase() {
       id="ebilling"
       eyebrow="IRD / e-Billing"
       title="Keep your billing organized and integration-ready."
-      lead="LabOS tracks the electronic billing submission lifecycle — not submitted, pending, submitted, accepted, failed — with a full attempt log and safe retry handling. The integration sits behind a dedicated service, so billing is never blocked by an external system."
+      lead="LIMS tracks the electronic billing submission lifecycle — not submitted, pending, submitted, accepted, failed — with a full attempt log and safe retry handling. The integration sits behind a dedicated service, so billing is never blocked by an external system."
       points={[
         'Honest submission status on every invoice',
         'Per-attempt log with request and response detail',
@@ -128,7 +129,7 @@ export function EbillingShowcase() {
 
 function DashboardMock() {
   return (
-    <MockWindow title="LabOS — Dashboard" canvasClassName="min-w-[44rem]">
+    <MockWindow title="LIMS — Dashboard" canvasClassName="min-w-[44rem]">
       <MockShell active="Dashboard">
         <MockStatGrid cols={4}>
           <MockStat label="Today's patients" value="48" />
@@ -216,7 +217,7 @@ export function AnalyticsSection() {
 
 function InventoryMock() {
   return (
-    <MockWindow title="LabOS — Inventory" canvasClassName="min-w-[40rem]">
+    <MockWindow title="LIMS — Inventory" canvasClassName="min-w-[40rem]">
       <div className="p-4">
         <MockTable
           columns={[
@@ -241,6 +242,7 @@ function InventoryMock() {
 export function InventoryShowcase() {
   return (
     <Showcase
+      id="inventory"
       eyebrow="Inventory"
       title="Never lose track of laboratory supplies."
       lead="Reagents, kits and consumables tracked by batch, with stock levels, expiry and first-expiry-first-out issue — plus low-stock and expiry alerts."
@@ -281,7 +283,7 @@ export function AuditSection() {
         </Reveal>
 
         <Reveal delay={100} className="min-w-0">
-          <MockWindow title="LabOS — Audit log">
+          <MockWindow title="LIMS — Audit log">
             <ul className="divide-y divide-border">
               {AUDIT_EVENTS.map((e) => (
                 <li key={e.t} className="flex gap-3 p-3 text-[11px]">

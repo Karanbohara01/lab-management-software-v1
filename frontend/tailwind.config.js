@@ -45,8 +45,15 @@ export default {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      maxWidth: {
+        // Content column of the public marketing pages (navbar, sections, footer all share it, so
+        // their left/right edges line up). Wider = smaller side margins on large screens.
+        page: '100rem',
+      },
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        // Public landing page only (see LandingPage.tsx) — the app itself stays on Inter.
+        nunito: ['Nunito', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
       fontSize: {

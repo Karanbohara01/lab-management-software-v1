@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -63,6 +63,17 @@
     --danger-foreground: 222 47% 7%;
     --critical: 350 84% 62%;
     --critical-foreground: 222 47% 7%;
+  }
+
+  /* The LIMS logo's colours — its navy wordmark and teal "I" — for the PUBLIC pages only (landing,
+     blog, sign-in). `useForcedLightTheme` puts this class on <html> while one of those pages is
+     showing and takes it off again on leaving, and index.html's first-paint script sets it too, so
+     the dashboard never sees it and keeps the app's own sky-blue. Only the brand colours change;
+     everything else (neutrals, status colours) is the normal light palette. */
+  html.theme-lims {
+    --primary: 208 86% 27%; /* wordmark navy */
+    --ring: 208 86% 40%;
+    --success: 175 75% 30%; /* the teal, darkened enough for small text on white */
   }
 
   * {

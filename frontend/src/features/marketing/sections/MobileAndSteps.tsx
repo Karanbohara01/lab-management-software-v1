@@ -7,7 +7,7 @@ import { MockBadge } from '../components/MockUI';
 
 function Phone({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="mx-auto w-[190px] rounded-[1.75rem] border-[6px] border-slate-800 bg-surface shadow-popover">
+    <div className="mock-ui mx-auto w-[190px] rounded-[1.75rem] border-[6px] border-slate-800 bg-surface shadow-popover">
       <div className="rounded-[1.25rem] overflow-hidden">
         <div className="flex items-center justify-between bg-surface-muted/60 px-3 py-2 text-[10px] font-medium text-muted">
           <span>{title}</span>

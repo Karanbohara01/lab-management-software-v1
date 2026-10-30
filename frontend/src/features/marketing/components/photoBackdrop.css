@@ -1,0 +1,28 @@
+/*
+ * Photo backdrop for the landing page. One fixed, full-viewport layer: the photo with a white veil
+ * painted over it so text stays readable. Raise --lp-veil (0–1) for a fainter photo, lower it for a
+ * stronger one.
+ */
+.lp-backdrop {
+  --lp-veil: 0.8;
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgb(255 255 255 / var(--lp-veil)), rgb(255 255 255 / var(--lp-veil))),
+    url('/marketing/lab-backdrop.webp');
+  background-size: cover;
+  background-position: 70% center; /* keep the hand and tubes in frame on narrow screens */
+  background-repeat: no-repeat;
+}
+
+/* What sits directly on the photo (the page's <main> only — the navbar and footer are opaque). */
+.lp-photo {
+  /* the usual grey body text is a touch light for a photographic backdrop: use the darker grey */
+  --muted: var(--muted-foreground);
+}
+/* Sections that used a solid tint to separate bands now let the photo show through evenly. */
+.lp-photo section.bg-surface {
+  background-color: transparent;
+}

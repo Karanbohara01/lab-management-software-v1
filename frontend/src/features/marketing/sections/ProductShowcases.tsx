@@ -9,7 +9,7 @@ import { IMAGES } from '../data';
 
 function PatientsMock() {
   return (
-    <MockWindow title="LabOS — Patients" canvasClassName="min-w-[44rem]">
+    <MockWindow title="LIMS — Patients" canvasClassName="min-w-[44rem]">
       <MockShell active="Patients">
         <div className="mb-3 flex items-center justify-between gap-2">
           <input
@@ -72,7 +72,7 @@ export function PatientsShowcase() {
 function SamplesMock() {
   const steps = ['Order', 'Collected', 'Received', 'Processing', 'Result', 'Verified'];
   return (
-    <MockWindow title="LabOS — Sample S000242">
+    <MockWindow title="LIMS — Sample S000242">
       <div className="p-4">
         <div className="flex items-center justify-between">
           <div>
@@ -124,7 +124,7 @@ function SamplesMedia() {
           className="w-24 shrink-0 rounded-xl sm:w-28"
         />
         <p className="text-sm leading-relaxed text-muted">
-          Bench work stays hands-on — LabOS keeps the digital trail for every specimen behind it.
+          Bench work stays hands-on — LIMS keeps the digital trail for every specimen behind it.
         </p>
       </div>
     </div>
@@ -134,6 +134,7 @@ function SamplesMedia() {
 export function SamplesShowcase() {
   return (
     <Showcase
+      id="samples"
       eyebrow="Sample tracking"
       title="Know where every specimen is."
       lead="Samples are generated the moment an order is confirmed, each with a unique accession number and barcode. Scan or look one up at any point."
@@ -160,7 +161,7 @@ function ResultsMock() {
     ['Potassium', '6.6', 'mmol/L', '3.5 – 5.1', <MockBadge tone="critical">Critical high</MockBadge>],
   ];
   return (
-    <MockWindow title="LabOS — Result entry · CBC" canvasClassName="min-w-[38rem]">
+    <MockWindow title="LIMS — Result entry · CBC" canvasClassName="min-w-[38rem]">
       <div className="p-4">
         <div className="mb-3 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-[11px]">
           <span className="font-semibold text-foreground">Ramesh Thapa</span>
@@ -212,6 +213,7 @@ function ResultsMedia() {
 export function ResultsShowcase() {
   return (
     <Showcase
+      id="results"
       eyebrow="Result management"
       title="Results designed for laboratory professionals."
       lead="Enter numeric, text or categorical values against each parameter. Reference ranges resolve automatically for the patient's age and sex, with abnormal and critical flagging built in."
@@ -230,8 +232,8 @@ export function ResultsShowcase() {
 
 function ReportMock() {
   return (
-    <MockWindow title="LabOS — Report RPT000124" canvasClassName="min-w-[24rem]">
-      <div className="bg-white p-5 text-[11px] text-slate-800">
+    <MockWindow title="LIMS — Report RPT000124" canvasClassName="min-w-[24rem]">
+      <div className="mock-ui bg-white p-5 text-[11px] text-slate-800">
         <div className="flex items-start justify-between border-b-2 border-slate-800 pb-2">
           <div>
             <p className="text-sm font-bold uppercase">Your Laboratory Name</p>
@@ -274,6 +276,7 @@ function ReportMock() {
 export function ReportShowcase() {
   return (
     <Showcase
+      id="reports"
       eyebrow="Reports"
       title="Turn verified results into professional reports."
       lead="A consolidated report is generated from approved results with your laboratory identity, patient and sample details, reference ranges, flags and signatures — in a print- and PDF-ready layout."

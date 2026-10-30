@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import { Microscope, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { useAppDispatch } from '@/store/hooks';
 import { useAuth } from '@/features/auth/useAuth';
 import { login } from '@/features/auth/authSlice';
@@ -11,9 +11,11 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import { useQuery } from '@/hooks/useQuery';
+import { useForcedLightTheme } from '@/hooks/useTheme';
 import { useScrollToTopOnError } from '@/hooks/useScrollToTopOnError';
 import { ApiError } from '@/types/api';
 import { signupApi } from './api';
+import { BrandMark } from '@/components/brand/BrandMark';
 
 const schema = z.object({
   name: z.string().min(2, 'Enter your laboratory’s name'),
@@ -51,6 +53,7 @@ export function SignupPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { isAuthenticated } = useAuth();
+  useForcedLightTheme();
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   useScrollToTopOnError(serverError);
@@ -120,14 +123,14 @@ export function SignupPage() {
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <Link
             to="/"
-            aria-label="LabOS home"
-            className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            aria-label="LIMS home"
+            className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            <Microscope className="h-6 w-6" aria-hidden />
+            <BrandMark className="h-14" />
           </Link>
           <div>
             <h1 className="text-xl font-semibold text-foreground">Start your free trial</h1>
-            <p className="mt-1 text-sm text-muted">Your own isolated LabOS workspace, ready in seconds.</p>
+            <p className="mt-1 text-sm text-muted">Your own isolated LIMS workspace, ready in seconds.</p>
           </div>
         </div>
 

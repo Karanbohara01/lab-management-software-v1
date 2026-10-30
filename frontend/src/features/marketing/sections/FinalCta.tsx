@@ -6,7 +6,7 @@ import { SCIENCE_TEXTURE } from '../components/Photo';
 export function FinalCta() {
   return (
     <section className="py-16 sm:py-24">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-page px-4 sm:px-6 lg:px-8">
         <Reveal>
           <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-primary/[0.04] px-6 py-14 text-center sm:px-12">
             <div

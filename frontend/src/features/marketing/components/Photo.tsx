@@ -4,7 +4,7 @@ import { cn } from '@/lib/cn';
 
 /** Faint dot grid used as a subtle texture on brand surfaces (masked, low opacity). */
 export const SCIENCE_TEXTURE =
-  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Ccircle cx='14' cy='14' r='1' fill='%230ea5e9' fill-opacity='0.5'/%3E%3C/svg%3E\")";
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Ccircle cx='14' cy='14' r='1' fill='%231769b5' fill-opacity='0.5'/%3E%3C/svg%3E\")";
 
 export interface PhotoProps {
   /** Path under `/marketing/` — see `frontend/public/marketing/README.md`. */
@@ -57,7 +57,7 @@ export function Photo({
       {/* On-brand placeholder shown until a real asset exists at `src`. */}
       <span
         aria-hidden
-        className="absolute inset-0 -z-10 bg-[linear-gradient(135deg,hsl(199_89%_40%/0.14),hsl(210_40%_96%/0.4)_45%,hsl(152_60%_36%/0.12))]"
+        className="absolute inset-0 -z-10 bg-[linear-gradient(135deg,hsl(var(--primary)/0.14),hsl(210_40%_96%/0.4)_45%,hsl(var(--success)/0.12))]"
       />
       <span
         aria-hidden

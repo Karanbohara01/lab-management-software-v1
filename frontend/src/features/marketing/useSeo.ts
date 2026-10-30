@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import { PRODUCT_NAME } from './data';
 
-const TITLE = `Pathology Management Software | ${PRODUCT_NAME}`;
-const DESCRIPTION =
-  'LabOS is a laboratory information management system for pathology labs, diagnostic centers and hospital laboratories — patients, orders, samples, results, reports, billing and e-Billing in one connected platform.';
+const DEFAULT_TITLE = `Pathology Management Software | ${PRODUCT_NAME}`;
+const DEFAULT_DESCRIPTION =
+  'LIMS is a laboratory information management system for pathology labs, diagnostic centers and hospital laboratories — patients, orders, samples, results, reports, billing and e-Billing in one connected platform.';
 
 function upsertMeta(key: 'name' | 'property', keyValue: string, content: string) {
   let el = document.head.querySelector<HTMLMetaElement>(`meta[${key}="${keyValue}"]`);
@@ -15,15 +15,22 @@ function upsertMeta(key: 'name' | 'property', keyValue: string, content: string)
   el.setAttribute('content', content);
 }
 
-/** Sets marketing SEO tags for the landing page; restores the app title on unmount. */
-export function useSeo() {
+interface SeoOptions {
+  title?: string;
+  description?: string;
+  /** Path of this page, for the canonical URL. */
+  path?: string;
+}
+
+/** Sets marketing SEO tags (defaults describe the landing page); restores the app title on unmount. */
+export function useSeo({ title = DEFAULT_TITLE, description = DEFAULT_DESCRIPTION, path = '/' }: SeoOptions = {}) {
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = TITLE;
+    document.title = title;
 
-    upsertMeta('name', 'description', DESCRIPTION);
-    upsertMeta('property', 'og:title', TITLE);
-    upsertMeta('property', 'og:description', DESCRIPTION);
+    upsertMeta('name', 'description', description);
+    upsertMeta('property', 'og:title', title);
+    upsertMeta('property', 'og:description', description);
     upsertMeta('property', 'og:type', 'website');
     upsertMeta('property', 'og:image', `${window.location.origin}/marketing/labos-og.png`);
     upsertMeta('name', 'twitter:card', 'summary_large_image');
@@ -34,10 +41,10 @@ export function useSeo() {
       canonical.rel = 'canonical';
       document.head.appendChild(canonical);
     }
-    canonical.href = window.location.origin + '/';
+    canonical.href = window.location.origin + path;
 
     return () => {
       document.title = previousTitle;
     };
-  }, []);
+  }, [title, description, path]);
 }

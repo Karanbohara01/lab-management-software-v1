@@ -10,13 +10,6 @@ const TONE: Record<Tone, string> = {
   warning: 'bg-amber-50 text-amber-700 ring-amber-200',
   critical: 'bg-red-50 text-red-700 ring-red-200',
 };
-const DOT: Record<Tone, string> = {
-  neutral: 'bg-slate-400',
-  info: 'bg-primary',
-  success: 'bg-emerald-500',
-  warning: 'bg-amber-500',
-  critical: 'bg-red-500',
-};
 
 export function MockBadge({ tone = 'neutral', children }: { tone?: Tone; children: ReactNode }) {
   return (
@@ -79,7 +72,7 @@ export function MockShell({ active, children }: { active: string; children: Reac
           <span className="flex h-5 w-5 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <Microscope className="h-3 w-3" aria-hidden />
           </span>
-          <span className="text-xs font-semibold text-foreground">LabOS</span>
+          <span className="text-xs font-semibold text-foreground">LIMS</span>
         </div>
         <ul className="space-y-0.5">
           {RAIL_ITEMS.map((item) => (
@@ -154,29 +147,6 @@ export function MockTable({ columns, rows }: { columns: Col[]; rows: ReactNode[]
           ))}
         </tbody>
       </table>
-    </div>
-  );
-}
-
-/** Accent card shown as a strip beneath a hero mockup — always inside the viewport. */
-export function FloatingCard({
-  tone,
-  title,
-  subtitle,
-  className,
-}: {
-  tone: Tone;
-  title: string;
-  subtitle: string;
-  className?: string;
-}) {
-  return (
-    <div className={cn('rounded-lg border border-border bg-surface/95 p-3 shadow-popover backdrop-blur', className)}>
-      <div className="flex items-center gap-2">
-        <span className={cn('h-2 w-2 shrink-0 rounded-full', DOT[tone])} />
-        <p className="text-xs font-semibold text-foreground">{title}</p>
-      </div>
-      <p className="mt-0.5 pl-4 text-[11px] text-muted">{subtitle}</p>
     </div>
   );
 }

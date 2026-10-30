@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="310 150 630 510" role="img" aria-label="LIMS">
+  <defs>
+    <!-- userSpaceOnUse: a bounding-box gradient renders nothing on a perfectly straight stroke -->
+    <linearGradient id="navy" gradientUnits="userSpaceOnUse" x1="400" y1="170" x2="900" y2="640">
+      <stop offset="0" stop-color="#0B4A8B"/>
+      <stop offset="1" stop-color="#1769B5"/>
+    </linearGradient>
+    <linearGradient id="teal" gradientUnits="userSpaceOnUse" x1="330" y1="320" x2="920" y2="600">
+      <stop offset="0" stop-color="#14A39A"/>
+      <stop offset="1" stop-color="#2BB59B"/>
+    </linearGradient>
+  </defs>
+
+  <!-- clipboard body -->
+  <path d="M497 232H442Q405 232 405 269V592Q405 625 440 625H650" fill="none" stroke="url(#navy)" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M677 232H742Q777 232 777 269V520" fill="none" stroke="url(#navy)" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- clip (with punched hole) -->
+  <path fill="url(#navy)" fill-rule="evenodd" d="M497 232V215Q497 197 515 197H545Q548 165 582 165Q616 165 619 197H649Q677 197 677 215V232Q677 262 647 262H527Q497 262 497 232ZM565 207a17 17 0 1 0 34 0a17 17 0 1 0 -34 0Z"/>
+
+  <!-- text lines -->
+  <g stroke="#7FB1DB" stroke-width="16" stroke-linecap="round">
+    <path d="M591 322H700"/>
+    <path d="M591 366H676"/>
+    <path d="M591 407H690"/>
+    <path d="M591 449H676"/>
+    <path d="M591 490H650"/>
+  </g>
+
+  <!-- test tube -->
+  <path d="M472 405Q490 395 508 405T545 400V492Q545 523 505 523Q472 523 472 492Z" fill="#2D8FE3"/>
+  <path d="M465 306V492Q465 530 505 530Q545 530 545 492V306" fill="none" stroke="url(#navy)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M455 305H555" stroke="url(#navy)" stroke-width="14" stroke-linecap="round"/>
+  <g fill="#fff">
+    <circle cx="516" cy="388" r="8"/>
+    <circle cx="514" cy="440" r="11"/>
+    <circle cx="518" cy="481" r="7"/>
+  </g>
+
+  <!-- swooshes -->
+  <path fill="url(#teal)" d="M378 452C335 495 325 540 355 570C395 610 520 610 655 543C540 580 430 580 392 548C360 520 360 480 378 452Z"/>
+  <path fill="url(#teal)" d="M800 318C860 305 925 335 915 385C908 420 875 450 838 468C868 430 888 405 880 380C872 350 840 332 800 318Z"/>
+
+  <!-- flask -->
+  <path d="M728 362V440L648 598Q638 625 668 628H862Q892 625 880 598L798 440V362Z" fill="#fff"/>
+  <path d="M672 520Q700 505 725 518T780 515Q805 508 822 525L862 598Q872 618 852 618H678Q658 618 668 598Z" fill="url(#teal)"/>
+  <path d="M728 362V440L648 598Q638 625 668 628H862Q892 625 880 598L798 440V362" fill="none" stroke="url(#navy)" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M712 362H814" stroke="url(#navy)" stroke-width="20" stroke-linecap="round"/>
+  <g fill="#fff">
+    <circle cx="781" cy="548" r="13"/>
+    <circle cx="746" cy="578" r="13"/>
+    <circle cx="793" cy="598" r="10"/>
+  </g>
+</svg>
