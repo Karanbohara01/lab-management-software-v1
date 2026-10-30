@@ -1,10 +1,11 @@
 import { useNavigate } from 'react-router-dom';
-import { Activity, ClipboardCheck, UserPlus, Wallet } from 'lucide-react';
+import { Activity, CalendarClock, ClipboardCheck, UserPlus, Wallet } from 'lucide-react';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { formatMoney } from '@/lib/money';
 import { DashboardHeader } from '../components/DashboardHeader';
 import { StatTileRow } from '../components/StatTile';
+import { TodaysAppointments } from '../components/queues/TodaysAppointments';
 import { DraftOrders } from '../components/queues/DraftOrders';
 import { OutstandingInvoices } from '../components/queues/OutstandingInvoices';
 import type { RoleDashboardProps } from './types';
@@ -31,6 +32,7 @@ export function ReceptionistDashboard({ summary, lastUpdated, refreshing, onRefr
       <StatTileRow
         stats={[
           { label: "Today's patients", value: summary.todayPatients, icon: Activity },
+          { label: "Today's appointments", value: summary.todayAppointments, icon: CalendarClock },
           { label: "Today's orders", value: summary.todayOrders, icon: ClipboardCheck },
           {
             label: 'Outstanding balance',
@@ -42,6 +44,7 @@ export function ReceptionistDashboard({ summary, lastUpdated, refreshing, onRefr
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
+        <TodaysAppointments />
         <DraftOrders />
         <OutstandingInvoices />
       </div>

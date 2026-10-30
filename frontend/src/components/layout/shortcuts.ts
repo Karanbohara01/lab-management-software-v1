@@ -7,6 +7,7 @@
 export const GO_TO_SHORTCUTS: { key: string; to: string }[] = [
   { key: 'd', to: '/app' },
   { key: 'p', to: '/app/patients' },
+  { key: 'a', to: '/app/appointments' },
   { key: 'o', to: '/app/orders' },
   { key: 's', to: '/app/samples' },
   { key: 'r', to: '/app/results' },

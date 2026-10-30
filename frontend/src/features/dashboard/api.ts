@@ -14,6 +14,7 @@ export interface DashboardSummary {
   outstandingBalance: number;
   failedIrdSubmissions: number;
   inventoryAlerts: number;
+  todayAppointments: number;
 }
 
 export const dashboardApi = {

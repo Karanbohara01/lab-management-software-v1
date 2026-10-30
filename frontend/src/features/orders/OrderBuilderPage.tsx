@@ -16,12 +16,13 @@ import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/types/api';
 import { formatMoney } from '@/lib/money';
 import { patientsApi } from '@/features/patients/api';
-import type { PatientListItem } from '@/features/patients/types';
+import { PatientPicker } from '@/features/patients/PatientPicker';
 import { doctorsApi } from '@/features/doctors/api';
 import { testCatalogApi } from '@/features/catalog/api';
 import type { TestListItem } from '@/features/catalog/types';
 import { branchesApi, type Branch } from '@/features/branches/api';
 import { useAuth } from '@/features/auth/useAuth';
+import { appointmentsApi } from '@/features/appointments/api';
 import { ordersApi } from './api';
 import type { DiscountType, OrderPricing, OrderPriority } from './types';
 import { PricingSummary } from './PricingSummary';
@@ -201,6 +202,18 @@ export function OrderBuilderPage() {
         ? await ordersApi.update(Number(id), payload)
         : await ordersApi.create(payload);
       toast.success(confirm ? `Order ${saved.orderNumber} confirmed` : `Draft ${saved.orderNumber} saved`);
+
+      // Booked from an appointment ("Convert to order")? Link the appointment to this order so
+      // it moves to CONVERTED — best-effort: the order itself is already safely created either way.
+      const appointmentId = searchParams.get('appointmentId');
+      if (!isEdit && appointmentId) {
+        try {
+          await appointmentsApi.convert(Number(appointmentId), saved.id);
+        } catch {
+          toast.error('Order created, but the appointment could not be marked as converted');
+        }
+      }
+
       navigate(`/app/orders/${saved.id}`);
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : 'Unable to save the order');
@@ -447,61 +460,6 @@ export function OrderBuilderPage() {
         </div>
       </div>
     </>
-  );
-}
-
-function PatientPicker({ onSelect }: { onSelect: (p: PickedPatient) => void }) {
-  const [term, setTerm] = useState('');
-  const debounced = useDebouncedValue(term, 300);
-  const [results, setResults] = useState<PatientListItem[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (debounced.trim().length < 2) {
-      setResults([]);
-      return;
-    }
-    setLoading(true);
-    patientsApi
-      .list({ query: debounced, activeOnly: true, size: 8 })
-      .then((r) => setResults(r.content))
-      .finally(() => setLoading(false));
-  }, [debounced]);
-
-  return (
-    <div>
-      <Input
-        leadingIcon={<Search className="h-4 w-4" aria-hidden />}
-        placeholder="Search patient by name, MRN or phone"
-        value={term}
-        onChange={(e) => setTerm(e.target.value)}
-      />
-      {loading && <p className="mt-2 text-sm text-muted">Searching…</p>}
-      {results.length > 0 && (
-        <ul className="mt-2 divide-y divide-border rounded-md border border-border">
-          {results.map((p) => (
-            <li key={p.id}>
-              <button
-                type="button"
-                onClick={() => onSelect(p)}
-                className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-surface-muted"
-              >
-                <span>
-                  <span className="font-medium text-foreground">{p.fullName}</span>
-                  <span className="ml-2 text-muted">{p.gender[0]}{p.ageYears != null ? ` · ${p.ageYears}y` : ''}</span>
-                </span>
-                <span className="font-mono text-xs text-muted">{p.mrn}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      {debounced.trim().length >= 2 && !loading && results.length === 0 && (
-        <p className="mt-2 text-sm text-muted">
-          No patients found. <Link to="/app/patients" className="text-primary">Register one first.</Link>
-        </p>
-      )}
-    </div>
   );
 }
 

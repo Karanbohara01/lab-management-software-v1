@@ -2,6 +2,7 @@ import {
   LayoutDashboard,
   Users,
   Stethoscope,
+  CalendarClock,
   ClipboardList,
   TestTubes,
   ListTree,
@@ -64,6 +65,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { label: 'Patients', to: '/app/patients', icon: Users, anyPermission: [PERMISSIONS.PATIENT_READ] },
       { label: 'Referring doctors', to: '/app/doctors', icon: Stethoscope, anyPermission: [PERMISSIONS.DOCTOR_READ] },
+      { label: 'Appointments', to: '/app/appointments', icon: CalendarClock, anyPermission: [PERMISSIONS.APPOINTMENT_READ] },
       { label: 'Lab orders', to: '/app/orders', icon: ClipboardList, anyPermission: [PERMISSIONS.LAB_ORDER_READ] },
       { label: 'Test catalog', to: '/app/tests', icon: TestTubes, anyPermission: [PERMISSIONS.TEST_CATALOG_READ] },
       { label: 'Parameter dictionary', to: '/app/parameters', icon: ListTree, anyPermission: [PERMISSIONS.TEST_CATALOG_READ] },

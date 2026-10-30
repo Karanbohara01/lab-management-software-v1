@@ -1,5 +1,6 @@
 package np.com.lims.dashboard;
 
+import np.com.lims.appointment.AppointmentRepository;
 import np.com.lims.billing.InvoiceRepository;
 import np.com.lims.inventory.InventoryItemService;
 import np.com.lims.ird.IrdSubmissionRepository;
@@ -33,6 +34,7 @@ public class DashboardController {
     private final InvoiceRepository invoiceRepository;
     private final IrdSubmissionRepository irdRepository;
     private final InventoryItemService inventoryItemService;
+    private final AppointmentRepository appointmentRepository;
 
     public DashboardController(PatientRepository patientRepository,
                               LabOrderRepository orderRepository,
@@ -41,7 +43,8 @@ public class DashboardController {
                               ReportRepository reportRepository,
                               InvoiceRepository invoiceRepository,
                               IrdSubmissionRepository irdRepository,
-                              InventoryItemService inventoryItemService) {
+                              InventoryItemService inventoryItemService,
+                              AppointmentRepository appointmentRepository) {
         this.patientRepository = patientRepository;
         this.orderRepository = orderRepository;
         this.sampleRepository = sampleRepository;
@@ -50,6 +53,7 @@ public class DashboardController {
         this.invoiceRepository = invoiceRepository;
         this.irdRepository = irdRepository;
         this.inventoryItemService = inventoryItemService;
+        this.appointmentRepository = appointmentRepository;
     }
 
     public record Summary(
@@ -65,7 +69,8 @@ public class DashboardController {
             BigDecimal todayRevenue,
             BigDecimal outstandingBalance,
             long failedIrdSubmissions,
-            long inventoryAlerts
+            long inventoryAlerts,
+            long todayAppointments
     ) {
     }
 
@@ -74,6 +79,7 @@ public class DashboardController {
     @Transactional(readOnly = true)
     public Summary summary() {
         var startOfToday = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant();
+        var startOfTomorrow = LocalDate.now().plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
         long inventoryAlerts = inventoryItemService.summary().alerts().size();
 
         return new Summary(
@@ -89,7 +95,8 @@ public class DashboardController {
                 invoiceRepository.revenueSince(startOfToday),
                 invoiceRepository.totalOutstanding(),
                 irdRepository.countByStatus(IrdStatus.FAILED),
-                inventoryAlerts
+                inventoryAlerts,
+                appointmentRepository.countByScheduledAtBetween(startOfToday, startOfTomorrow)
         );
     }
 }

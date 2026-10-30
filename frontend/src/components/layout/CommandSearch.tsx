@@ -1,18 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, FlaskConical, Search, User, X } from 'lucide-react';
+import { CalendarClock, FileText, FlaskConical, Search, User, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { patientsApi } from '@/features/patients/api';
 import { ordersApi } from '@/features/orders/api';
+import { appointmentsApi } from '@/features/appointments/api';
+import { APPOINTMENT_STATUS_LABEL } from '@/features/appointments/types';
 import { samplesApi } from '@/features/samples/api';
 import { ApiError } from '@/types/api';
 
 interface Hit {
   key: string;
-  group: 'Patients' | 'Orders' | 'Samples';
+  group: 'Patients' | 'Appointments' | 'Orders' | 'Samples';
   icon: typeof User;
   label: string;
   sub: string;
@@ -52,6 +54,23 @@ export function CommandSearch() {
               label: p.fullName,
               sub: `${p.mrn}${p.phone ? ` · ${p.phone}` : ''}`,
               to: `/app/patients/${p.id}`,
+            })),
+          )
+          .catch(() => []),
+      );
+    }
+    if (hasPermission(PERMISSIONS.APPOINTMENT_READ)) {
+      tasks.push(
+        appointmentsApi
+          .list({ query: term, size: 4 })
+          .then((r) =>
+            r.content.map((a) => ({
+              key: `a${a.id}`,
+              group: 'Appointments' as const,
+              icon: CalendarClock,
+              label: a.appointmentNumber,
+              sub: `${a.patientName} · ${APPOINTMENT_STATUS_LABEL[a.status]}`,
+              to: `/app/appointments/${a.id}`,
             })),
           )
           .catch(() => []),
@@ -120,7 +139,7 @@ export function CommandSearch() {
     setQuery('');
   };
 
-  const groups: Hit['group'][] = ['Patients', 'Orders', 'Samples'];
+  const groups: Hit['group'][] = ['Patients', 'Appointments', 'Orders', 'Samples'];
 
   return (
     <div ref={rootRef} className="relative w-full max-w-md">

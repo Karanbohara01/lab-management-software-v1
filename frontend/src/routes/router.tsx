@@ -70,6 +70,9 @@ export const router = createBrowserRouter([
       route('orders/:id', lazyPage(() => import('@/features/orders/OrderDetailPage'), 'OrderDetailPage'), [P.LAB_ORDER_READ]),
       route('orders/:id/edit', lazyPage(() => import('@/features/orders/OrderBuilderPage'), 'OrderBuilderPage'), [P.LAB_ORDER_WRITE]),
 
+      route('appointments', lazyPage(() => import('@/features/appointments/AppointmentsPage'), 'AppointmentsPage'), [P.APPOINTMENT_READ]),
+      route('appointments/:id', lazyPage(() => import('@/features/appointments/AppointmentDetailPage'), 'AppointmentDetailPage'), [P.APPOINTMENT_READ]),
+
       route('samples', lazyPage(() => import('@/features/samples/SamplesPage'), 'SamplesPage'), [P.SAMPLE_READ]),
       route('samples/:id', lazyPage(() => import('@/features/samples/SampleDetailPage'), 'SampleDetailPage'), [P.SAMPLE_READ]),
       route('samples/:id/label', lazyPage(() => import('@/features/samples/SampleLabelPage'), 'SampleLabelPage'), [P.SAMPLE_READ]),
