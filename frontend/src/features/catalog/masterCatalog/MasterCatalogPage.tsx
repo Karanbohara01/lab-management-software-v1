@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Plus, Library, CheckCircle2, Building2, X } from 'lucide-react';
+import { BackLink } from '@/components/BackLink';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -123,6 +124,7 @@ export function MasterCatalogPage() {
 
   return (
     <>
+      <BackLink to="/app/platform">Back to platform</BackLink>
       <PageHeader
         title="Master lab catalogue"
         description="Curate a shared library of common tests every clinic can import instead of building from scratch."

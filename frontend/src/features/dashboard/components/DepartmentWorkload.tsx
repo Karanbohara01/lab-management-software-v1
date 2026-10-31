@@ -13,7 +13,7 @@ export function DepartmentWorkload({ points, days }: { points: AnalyticsPoint[];
       {top.length === 0 ? (
         <p className="text-sm text-muted">No tests ordered in this period.</p>
       ) : (
-        <ul className="space-y-2.5">
+        <ul className="space-y-4">
           {top.map((p) => {
             const pct = Math.round((p.value / total) * 100);
             return (
@@ -24,8 +24,8 @@ export function DepartmentWorkload({ points, days }: { points: AnalyticsPoint[];
                     {p.value} · {pct}%
                   </span>
                 </div>
-                <div className="mt-1 h-1.5 rounded-full bg-surface-muted">
-                  <div className="h-1.5 rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                <div className="mt-1.5 h-2 rounded-full bg-surface-muted">
+                  <div className="h-2 rounded-full bg-primary" style={{ width: `${pct}%` }} />
                 </div>
               </li>
             );

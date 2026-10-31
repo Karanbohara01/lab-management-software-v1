@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Plus, Users, GitBranch, CreditCard, CheckCircle2 } from 'lucide-react';
+import { BackLink } from '@/components/BackLink';
 import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -51,6 +52,7 @@ export function PlansPage() {
 
   return (
     <>
+      <BackLink to="/app/platform">Back to platform</BackLink>
       <PageHeader
         title="Subscription plans"
         description="Pricing tiers offered when onboarding a clinic. Only active plans are offered for new clinics."

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Check } from 'lucide-react';
+import { BackLink } from '@/components/BackLink';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -198,6 +199,7 @@ export function SubscriptionBillingPage() {
 
   return (
     <>
+      <BackLink to="/app/settings">Back to settings</BackLink>
       <PageHeader
         title="Subscription & billing"
         description="Invoices for this clinic's own LIMS subscription."
