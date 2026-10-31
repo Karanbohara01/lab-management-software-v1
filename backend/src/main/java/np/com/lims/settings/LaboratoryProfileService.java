@@ -4,6 +4,7 @@ import np.com.lims.common.audit.AuditService;
 import np.com.lims.common.exception.ApiException;
 import np.com.lims.common.exception.ErrorCode;
 import np.com.lims.common.tenant.TenantContext;
+import np.com.lims.settings.dto.LaboratoryProfileDtos.Branding;
 import np.com.lims.settings.dto.LaboratoryProfileDtos.Response;
 import np.com.lims.settings.dto.LaboratoryProfileDtos.UpdateRequest;
 import np.com.lims.settings.entity.LaboratoryProfile;
@@ -46,6 +47,11 @@ public class LaboratoryProfileService {
     @Transactional(readOnly = true)
     public Response get() {
         return Response.from(require());
+    }
+
+    @Transactional(readOnly = true)
+    public Branding branding() {
+        return Branding.from(require());
     }
 
     @Transactional
