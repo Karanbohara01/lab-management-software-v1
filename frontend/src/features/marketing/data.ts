@@ -1,12 +1,3 @@
-import {
-  FlaskConical,
-  ShieldCheck,
-  Headset,
-  Microscope,
-  Calculator,
-  type LucideIcon,
-} from 'lucide-react';
-
 export const PRODUCT_NAME = 'LIMS';
 
 /**
@@ -60,13 +51,31 @@ export const NAV_ITEMS: NavItem[] = [
 export const CONTACT_WHATSAPP = { display: '+977 974-7214634', href: 'https://wa.me/9779747214634' } as const;
 export const CONTACT_PHONE = { display: '+977 970-6127862', href: 'tel:+9779706127862' } as const;
 
-export const TRUST_POINTS = [
-  'Barcode-enabled sample tracking',
-  'Role-based access control',
-  'Professional report generation',
-  'Integrated billing workflows',
-  'IRD / e-Billing ready',
-  'Multi-department support',
+/** Opens a WhatsApp chat with the sales number, with the demo request already typed in. */
+export const DEMO_WHATSAPP_HREF = `${CONTACT_WHATSAPP.href}?text=${encodeURIComponent(
+  `Hello, I would like to request a demo of ${PRODUCT_NAME}.`,
+)}`;
+
+export interface TeamContact {
+  name: string;
+  /** Shown as written, e.g. "+977 981-7253042". */
+  display: string;
+  /** What WhatsApp and the dialler need: country code and number, no symbols. */
+  digits: string;
+  /** Portrait under `public/marketing/team/`; until that file exists the row shows the person's initials. */
+  avatar: string;
+}
+
+/** Listed under "More" in the navbar's top strip. The same number serves for both WhatsApp and calls. */
+export const TEAM_CONTACTS: TeamContact[] = [
+  { name: 'Mr. Karan', display: '+977 970-6127862', digits: '9779706127862', avatar: '/marketing/team/karan.webp' },
+  { name: 'Ms. Namita', display: '+977 981-7253042', digits: '9779817253042', avatar: '/marketing/team/namita.webp' },
+  {
+    name: 'Neural Software Solutions Nepal',
+    display: '+977 974-7214634',
+    digits: '9779747214634',
+    avatar: '/marketing/team/neural-software.webp',
+  },
 ];
 
 export interface Feature {
@@ -124,17 +133,18 @@ export const CONNECTED_WORKFLOW = [
 
 export interface Role {
   title: string;
-  icon: LucideIcon;
+  /** Illustration under `public/marketing/roles/` (160×160 transparent PNG). */
+  image: string;
   flow: string[];
   blurb: string;
 }
 
 export const ROLES: Role[] = [
-  { title: 'Receptionist', icon: Headset, flow: ['Patients', 'Orders', 'Billing'], blurb: 'Register a patient and raise a priced order in under a minute.' },
-  { title: 'Lab technician', icon: FlaskConical, flow: ['Samples', 'Processing', 'Results'], blurb: 'Scan a barcode, receive the sample, enter results fast.' },
-  { title: 'Pathologist', icon: Microscope, flow: ['Review', 'Verify', 'Approve'], blurb: 'Review flagged values and authorise reports without hunting through screens.' },
-  { title: 'Accountant', icon: Calculator, flow: ['Invoices', 'Payments', 'Refunds', 'e-Billing'], blurb: 'Trace every invoice, payment and submission from one place.' },
-  { title: 'Administrator', icon: ShieldCheck, flow: ['Users', 'Inventory', 'Reports', 'Audit'], blurb: 'See the whole operation and control who can do what.' },
+  { title: 'Receptionist', image: '/marketing/roles/receptionist.png', flow: ['Patients', 'Orders', 'Billing'], blurb: 'Register a patient and raise a priced order in under a minute.' },
+  { title: 'Lab technician', image: '/marketing/roles/lab-technician.png', flow: ['Samples', 'Processing', 'Results'], blurb: 'Scan a barcode, receive the sample, enter results fast.' },
+  { title: 'Pathologist', image: '/marketing/roles/pathologist.png', flow: ['Review', 'Verify', 'Approve'], blurb: 'Review flagged values and authorise reports without hunting through screens.' },
+  { title: 'Accountant', image: '/marketing/roles/accountant.png', flow: ['Invoices', 'Payments', 'Refunds', 'e-Billing'], blurb: 'Trace every invoice, payment and submission from one place.' },
+  { title: 'Administrator', image: '/marketing/roles/administrator.png', flow: ['Users', 'Inventory', 'Reports', 'Audit'], blurb: 'See the whole operation and control who can do what.' },
 ];
 
 export interface Plan {

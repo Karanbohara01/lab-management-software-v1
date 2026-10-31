@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Pencil } from 'lucide-react';
+import { BackLink } from '@/components/BackLink';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -28,6 +29,7 @@ export function PlatformRolesPage() {
 
   return (
     <>
+      <BackLink to="/app/platform">Back to platform</BackLink>
       <PageHeader
         title="Roles & permissions"
         description="Global permission set for each role — shared by every clinic on this platform."

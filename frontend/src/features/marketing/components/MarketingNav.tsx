@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronDown, Menu, Phone, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
@@ -7,7 +7,10 @@ import { BrandWordmark } from '@/components/brand/BrandWordmark';
 import { CONTACT_PHONE, CONTACT_WHATSAPP, NAV_ITEMS, PRODUCT_NAME } from '../data';
 import { LinkButton } from './primitives';
 import { FeaturesMenu } from './FeaturesMenu';
+import { ContactList } from './ContactsMenu';
 import { WhatsAppIcon } from './WhatsAppIcon';
+
+const CONTACTS_PANEL_ID = 'team-contacts';
 
 const NAV_LINK =
   'whitespace-nowrap rounded-md px-3 py-2 text-[15px] font-bold leading-5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
@@ -20,7 +23,17 @@ const TOP_LINK =
  * Collapses once the page scrolls so the fixed header doesn't permanently eat vertical space;
  * `invisible` while collapsed keeps its links out of the tab order.
  */
-function TopBar({ visible }: { visible: boolean }) {
+function TopBar({
+  visible,
+  contactsOpen,
+  onToggleContacts,
+  moreRef,
+}: {
+  visible: boolean;
+  contactsOpen: boolean;
+  onToggleContacts: () => void;
+  moreRef: RefObject<HTMLButtonElement>;
+}) {
   return (
     <div
       className={cn(
@@ -44,10 +57,20 @@ function TopBar({ visible }: { visible: boolean }) {
             <Phone className="h-4 w-4" aria-hidden />
             {CONTACT_PHONE.display}
           </a>
-          {/* Placeholder — what goes under "More" is still to be designed. */}
-          <button type="button" className={cn(TOP_LINK, '-mr-2')}>
+          {/* The panel it opens is rendered by MarketingNav — this strip clips anything that overflows it. */}
+          <button
+            ref={moreRef}
+            type="button"
+            aria-expanded={contactsOpen}
+            aria-controls={CONTACTS_PANEL_ID}
+            onClick={onToggleContacts}
+            className={cn(TOP_LINK, '-mr-2', contactsOpen && 'text-foreground')}
+          >
             More
-            <ChevronDown className="h-4 w-4" aria-hidden />
+            <ChevronDown
+              className={cn('h-4 w-4 transition-transform duration-150 motion-reduce:transition-none', contactsOpen && 'rotate-180')}
+              aria-hidden
+            />
           </button>
         </div>
       </div>
@@ -67,6 +90,9 @@ function Logo() {
 export function MarketingNav() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const [contactsOpen, setContactsOpen] = useState(false);
+  const moreRef = useRef<HTMLButtonElement>(null);
+  const contactsRef = useRef<HTMLDivElement>(null);
   const { pathname } = useLocation();
 
   useEffect(() => {
@@ -75,6 +101,33 @@ export function MarketingNav() {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  // The contacts panel hangs off the top strip, so it goes when the strip collapses or the page changes.
+  useEffect(() => {
+    if (scrolled) setContactsOpen(false);
+  }, [scrolled]);
+  useEffect(() => setContactsOpen(false), [pathname]);
+
+  useEffect(() => {
+    if (!contactsOpen) return;
+    const outside = (target: EventTarget | null) =>
+      !contactsRef.current?.contains(target as Node) && !moreRef.current?.contains(target as Node);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setContactsOpen(false);
+      moreRef.current?.focus();
+    };
+    const onPointer = (e: PointerEvent) => outside(e.target) && setContactsOpen(false);
+    const onFocus = (e: FocusEvent) => outside(e.target) && setContactsOpen(false);
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('pointerdown', onPointer);
+    document.addEventListener('focusin', onFocus);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onPointer);
+      document.removeEventListener('focusin', onFocus);
+    };
+  }, [contactsOpen]);
 
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : '';
@@ -92,7 +145,32 @@ export function MarketingNav() {
         scrolled && 'shadow-sm',
       )}
     >
-      <TopBar visible={!scrolled} />
+      <TopBar
+        visible={!scrolled}
+        contactsOpen={contactsOpen}
+        onToggleContacts={() => setContactsOpen((o) => !o)}
+        moreRef={moreRef}
+      />
+
+      {/* Who to contact. Lives here, not in the strip, because the strip clips its overflow. */}
+      <div className="pointer-events-none absolute inset-x-0 top-11 z-20 hidden lg:block">
+        <div className="mx-auto flex max-w-page justify-end px-4 sm:px-6 lg:px-8">
+          <div
+            ref={contactsRef}
+            id={CONTACTS_PANEL_ID}
+            role="region"
+            aria-label="Contact the team"
+            className={cn(
+              'w-[40rem] max-w-full rounded-2xl border border-border bg-surface p-5 shadow-popover',
+              'transition-[opacity,transform,visibility] duration-150 motion-reduce:transition-none',
+              contactsOpen ? 'pointer-events-auto visible translate-y-0 opacity-100' : 'invisible -translate-y-1 opacity-0',
+            )}
+          >
+            <ContactList />
+          </div>
+        </div>
+      </div>
+
       <nav className="relative mx-auto flex h-16 max-w-page items-center justify-between px-4 sm:px-6 lg:px-8" aria-label="Main">
         <Logo />
 

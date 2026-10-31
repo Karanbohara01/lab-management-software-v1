@@ -1,3 +1,4 @@
+import { Check } from 'lucide-react';
 import { Section, SectionHeading } from '../components/primitives';
 import { Showcase } from '../components/Showcase';
 import { Reveal } from '../components/Reveal';
@@ -8,7 +9,7 @@ import { MockBadge, MockShell, MockStat, MockStatGrid, MockTable, MockWindow } f
 function BillingMock() {
   return (
     <MockWindow title="LIMS — Invoice INV-2082/83-000124" canvasClassName="min-w-[36rem]">
-      <div className="p-4 text-[11px]">
+      <div className="p-4 text-[13px]">
         <div className="flex items-center justify-between">
           <div>
             <p className="font-mono font-semibold text-foreground">INV-2082/83-000124</p>
@@ -32,7 +33,7 @@ function BillingMock() {
             ['HbA1c', '1', '900.00', '900.00'],
           ]}
         />
-        <div className="ml-auto mt-3 w-44 space-y-1 text-[11px]">
+        <div className="ml-auto mt-3 w-44 space-y-1 text-[13px]">
           <div className="flex justify-between text-muted"><span>Subtotal</span><span className="text-foreground">2,700.00</span></div>
           <div className="flex justify-between text-muted"><span>Discount</span><span className="text-foreground">− 200.00</span></div>
           <div className="flex justify-between border-t border-border pt-1 font-semibold text-foreground"><span>Total</span><span>2,500.00</span></div>
@@ -41,7 +42,7 @@ function BillingMock() {
         </div>
         <div className="mt-3 flex flex-wrap gap-1.5">
           {['Cash', 'Card', 'Bank transfer', 'Digital wallet', 'Credit'].map((m) => (
-            <span key={m} className="rounded-full border border-border px-2 py-0.5 text-[10px] text-muted">{m}</span>
+            <span key={m} className="rounded-full border border-border px-2 py-0.5 text-[12px] text-muted">{m}</span>
           ))}
         </div>
       </div>
@@ -75,7 +76,7 @@ function EbillingMock() {
   return (
     <MockWindow title="LIMS — e-Billing">
       <div className="p-4">
-        <ol className="flex flex-wrap items-center gap-1.5 text-[10px]">
+        <ol className="flex flex-wrap items-center gap-1.5 text-[12px]">
           {IRD_STEPS.map((s, i) => (
             <li key={s} className="flex items-center gap-1.5">
               <span className={`whitespace-nowrap rounded-full px-2 py-1 font-medium ${i < 4 ? 'bg-primary/10 text-primary' : 'border border-border text-muted'}`}>{s}</span>
@@ -84,7 +85,7 @@ function EbillingMock() {
           ))}
         </ol>
 
-        <div className="mt-4 rounded-lg border border-border p-3 text-[11px]">
+        <div className="mt-4 rounded-lg border border-border p-3 text-[13px]">
           <div className="flex items-center justify-between">
             <span className="font-mono font-semibold text-foreground">INV-2082/83-000124</span>
             <MockBadge tone="success">● Accepted</MockBadge>
@@ -92,12 +93,12 @@ function EbillingMock() {
           <p className="mt-1 text-muted">Submitted 07 Sep 2026 — 10:42 AM · reference CBMS-99A2F</p>
         </div>
 
-        <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-[11px]">
+        <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-[13px]">
           <p className="font-semibold text-red-700">INV-2082/83-000121 — Submission failed</p>
           <p className="mt-0.5 text-red-600">Error details available in the attempt log</p>
           <div className="mt-2 flex gap-1.5">
-            <span className="rounded-md border border-red-300 px-2 py-0.5 text-[10px] text-red-700">Review</span>
-            <span className="rounded-md border border-red-300 px-2 py-0.5 text-[10px] text-red-700">Retry</span>
+            <span className="rounded-md border border-red-300 px-2 py-0.5 text-[12px] text-red-700">Review</span>
+            <span className="rounded-md border border-red-300 px-2 py-0.5 text-[12px] text-red-700">Retry</span>
           </div>
         </div>
       </div>
@@ -142,7 +143,7 @@ function DashboardMock() {
           <MockStat label="e-Billing issues" value="1" />
         </MockStatGrid>
         <div className="mt-3 rounded-lg border border-border p-3">
-          <p className="text-[11px] font-semibold text-foreground">Revenue collected · last 14 days</p>
+          <p className="text-[13px] font-semibold text-foreground">Revenue collected · last 14 days</p>
           <div className="mt-2 flex h-16 items-end gap-1">
             {[40, 55, 48, 70, 62, 80, 58, 72, 90, 65, 78, 88, 60, 95].map((h, i) => (
               <span key={i} className="flex-1 rounded-t bg-primary/70" style={{ height: `${h}%` }} />
@@ -180,32 +181,33 @@ export function AnalyticsSection() {
       <Reveal>
         <SectionHeading
           eyebrow="Analytics"
+          size="lg"
           title="Turn laboratory data into operational insight."
           lead="Revenue trends, department workload, most-ordered tests and referral patterns — clean, readable and always current."
           align="center"
         />
       </Reveal>
       <Reveal delay={80}>
-        <div className="mx-auto mt-10 grid max-w-4xl gap-4 sm:grid-cols-2">
-          <div className="rounded-xl border border-border bg-background p-5">
-            <p className="text-sm font-semibold text-foreground">Test volume by department</p>
-            <ul className="mt-4 space-y-3">
+        <div className="mx-auto mt-14 grid max-w-5xl gap-5 sm:grid-cols-2">
+          <div className="rounded-2xl border border-border bg-background p-6">
+            <p className="text-lg font-bold text-foreground">Test volume by department</p>
+            <ul className="mt-5 space-y-4">
               {bars.map((b) => (
-                <li key={b.label} className="text-xs">
-                  <div className="flex justify-between text-muted"><span className="text-foreground">{b.label}</span><span>{b.v}</span></div>
-                  <div className="mt-1 h-2 rounded-full bg-surface-muted"><div className="h-2 rounded-full bg-primary" style={{ width: `${b.v}%` }} /></div>
+                <li key={b.label} className="text-sm">
+                  <div className="flex justify-between text-muted"><span className="font-medium text-foreground">{b.label}</span><span className="font-semibold">{b.v}</span></div>
+                  <div className="mt-1.5 h-2.5 rounded-full bg-surface-muted"><div className="h-2.5 rounded-full bg-primary" style={{ width: `${b.v}%` }} /></div>
                 </li>
               ))}
             </ul>
           </div>
-          <div className="rounded-xl border border-border bg-background p-5">
-            <p className="text-sm font-semibold text-foreground">Revenue trend · 30 days</p>
-            <div className="mt-4 flex h-40 items-end gap-1">
+          <div className="rounded-2xl border border-border bg-background p-6">
+            <p className="text-lg font-bold text-foreground">Revenue trend · 30 days</p>
+            <div className="mt-5 flex h-48 items-end gap-1">
               {Array.from({ length: 30 }).map((_, i) => (
                 <span key={i} className="flex-1 rounded-t bg-primary/60" style={{ height: `${20 + ((i * 53) % 80)}%` }} />
               ))}
             </div>
-            <p className="mt-2 text-xs text-muted">Total collected: NPR 1.9M</p>
+            <p className="mt-3 text-sm font-medium text-muted">Total collected: NPR 1.9M</p>
           </div>
         </div>
       </Reveal>
@@ -269,13 +271,16 @@ export function AuditSection() {
         <Reveal className="min-w-0">
           <SectionHeading
             eyebrow="Security & audit"
+            size="lg"
             title="Give every team member the right level of access — and keep every action traceable."
             lead="Sign-in per user, roles that map to real jobs, and permissions enforced on the server for every request. Sensitive actions are written to an append-only audit log with a before-and-after record."
           />
-          <ul className="mt-6 grid gap-2.5 text-sm text-foreground sm:grid-cols-2">
+          <ul className="mt-7 grid gap-3.5 text-[17px] font-medium text-foreground sm:grid-cols-2">
             {['Role-based permissions', 'User management', 'Protected report access', 'Audit log with change history', 'Secure authentication', 'Failed-login lockout'].map((x) => (
-              <li key={x} className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
+              <li key={x} className="flex items-start gap-3 leading-snug">
+                <span className="mt-px flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />
+                </span>
                 {x}
               </li>
             ))}
@@ -286,8 +291,8 @@ export function AuditSection() {
           <MockWindow title="LIMS — Audit log">
             <ul className="divide-y divide-border">
               {AUDIT_EVENTS.map((e) => (
-                <li key={e.t} className="flex gap-3 p-3 text-[11px]">
-                  <span className="w-16 shrink-0 font-mono text-muted">{e.t}</span>
+                <li key={e.t} className="flex gap-3 p-3.5 text-[14px] leading-snug">
+                  <span className="w-20 shrink-0 font-mono text-muted">{e.t}</span>
                   <span>
                     <span className="font-medium text-foreground">{e.who}</span>
                     <span className="text-muted"> — {e.what}</span>
@@ -295,7 +300,7 @@ export function AuditSection() {
                 </li>
               ))}
             </ul>
-            <p className="border-t border-border px-3 py-2 text-[10px] text-muted">Example data — not a real record.</p>
+            <p className="border-t border-border px-3 py-2 text-[12px] text-muted">Example data — not a real record.</p>
           </MockWindow>
         </Reveal>
       </div>

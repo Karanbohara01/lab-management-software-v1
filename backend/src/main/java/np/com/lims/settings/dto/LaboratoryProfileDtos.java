@@ -56,4 +56,14 @@ public final class LaboratoryProfileDtos {
                     p.isRequirePaymentBeforeCollection(), p.isPrintReportLetterhead(), p.isPrintInvoiceLetterhead());
         }
     }
+
+    /**
+     * Just what every signed-in user may see of the clinic: its name and logo, for the app's header.
+     * Deliberately separate from {@link Response}, which also carries billing and tax settings.
+     */
+    public record Branding(String name, String logoDataUri) {
+        public static Branding from(LaboratoryProfile p) {
+            return new Branding(p.getName(), p.getLogoDataUri());
+        }
+    }
 }

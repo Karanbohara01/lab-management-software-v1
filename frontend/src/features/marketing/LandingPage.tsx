@@ -1,7 +1,6 @@
 import { MarketingLayout } from './components/MarketingLayout';
 import { useSeo } from './useSeo';
 import { Hero } from './sections/Hero';
-import { TrustBar } from './sections/TrustBar';
 import { Problem } from './sections/Problem';
 import { Workflow } from './sections/Workflow';
 import { Features } from './sections/Features';
@@ -20,7 +19,6 @@ import {
   AuditSection,
 } from './sections/BusinessShowcases';
 import { Roles } from './sections/Roles';
-import { MobileShowcase, HowItWorks } from './sections/MobileAndSteps';
 import { Pricing } from './sections/Pricing';
 import { About } from './sections/About';
 import { Blogs } from './sections/Blogs';
@@ -33,10 +31,9 @@ export function LandingPage() {
   return (
     <MarketingLayout photoBackdrop>
       <Hero />
-      <TrustBar />
       <Problem />
-      <Workflow />
       <Features />
+      <Workflow />
 
       <PatientsShowcase />
       <SamplesShowcase />
@@ -49,8 +46,6 @@ export function LandingPage() {
       <AnalyticsSection />
       <InventoryShowcase />
       <AuditSection />
-      <MobileShowcase />
-      <HowItWorks />
       <Pricing />
       <About />
       <Blogs />

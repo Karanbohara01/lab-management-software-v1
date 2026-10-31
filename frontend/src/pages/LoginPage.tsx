@@ -10,6 +10,7 @@ import { clearLoginError, login } from '@/features/auth/authSlice';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
+import { BackLink } from '@/components/BackLink';
 import { BrandMark } from '@/components/brand/BrandMark';
 
 const schema = z.object({
@@ -44,7 +45,10 @@ export function LoginPage() {
   });
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface-muted px-4 py-12">
+    <div className="relative flex min-h-screen items-center justify-center bg-surface-muted px-4 py-12">
+      <BackLink to="/" className="absolute left-4 top-4 mb-0 sm:left-6 sm:top-6">
+        Back to home
+      </BackLink>
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <Link

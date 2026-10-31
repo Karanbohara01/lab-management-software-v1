@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
+import { buttonClasses, type ButtonStyleProps } from './buttonStyles';
 
 /** Section shell with consistent vertical rhythm and a centered max-width container. */
 export function Section({
@@ -34,56 +35,50 @@ export function SectionHeading({
   title,
   lead,
   align = 'left',
+  size = 'md',
   className,
 }: {
   eyebrow?: string;
   title: ReactNode;
   lead?: ReactNode;
   align?: 'left' | 'center';
+  /** `lg` is the bolder, bigger heading used through the product-tour sections. */
+  size?: 'md' | 'lg';
   className?: string;
 }) {
+  const large = size === 'lg';
   return (
-    <div className={cn('max-w-2xl', align === 'center' && 'mx-auto text-center', className)}>
+    <div className={cn(large ? 'max-w-3xl' : 'max-w-2xl', align === 'center' && 'mx-auto text-center', className)}>
       {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
-      <h2 className={cn('text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl', eyebrow && 'mt-4')}>
+      <h2
+        className={cn(
+          'text-balance text-3xl tracking-tight text-foreground sm:text-4xl',
+          large ? 'font-extrabold leading-[1.1] xl:text-[2.6rem]' : 'font-semibold',
+          eyebrow && (large ? 'mt-5' : 'mt-4'),
+        )}
+      >
         {title}
       </h2>
-      {lead && <p className="mt-4 text-pretty text-base leading-relaxed text-muted sm:text-lg">{lead}</p>}
+      {lead && (
+        <p
+          className={cn(
+            'text-pretty leading-relaxed text-muted',
+            large ? 'mt-5 text-[18px] sm:text-[20px]' : 'mt-4 text-base sm:text-lg',
+          )}
+        >
+          {lead}
+        </p>
+      )}
     </div>
   );
 }
 
-type ButtonProps = {
-  children: ReactNode;
-  variant?: 'primary' | 'secondary' | 'ghost';
-  size?: 'md' | 'lg';
-  className?: string;
-};
-
-const VARIANTS: Record<NonNullable<ButtonProps['variant']>, string> = {
-  primary: 'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90',
-  secondary: 'border border-input bg-surface text-foreground hover:bg-surface-muted',
-  ghost: 'text-foreground hover:bg-surface-muted',
-};
-const SIZES: Record<NonNullable<ButtonProps['size']>, string> = {
-  md: 'h-10 px-4 text-sm',
-  lg: 'h-12 px-6 text-base',
-};
-
-function baseClasses({ variant = 'primary', size = 'md', className }: ButtonProps) {
-  return cn(
-    'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors',
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
-    VARIANTS[variant],
-    SIZES[size],
-    className,
-  );
-}
+type ButtonProps = ButtonStyleProps & { children: ReactNode };
 
 /** Router link styled as a button (for /login and future in-app routes). */
 export function LinkButton({ to, ...props }: ButtonProps & { to: string }) {
   return (
-    <Link to={to} className={baseClasses(props)}>
+    <Link to={to} className={buttonClasses(props)}>
       {props.children}
     </Link>
   );
@@ -92,12 +87,10 @@ export function LinkButton({ to, ...props }: ButtonProps & { to: string }) {
 /** Anchor styled as a button (for on-page CTAs and mailto). */
 export function AnchorButton({ href, ...props }: ButtonProps & { href: string }) {
   return (
-    <a href={href} className={baseClasses(props)}>
+    <a href={href} className={buttonClasses(props)}>
       {props.children}
     </a>
   );
 }
 
-export const DEMO_MAILTO =
-  'mailto:sales@labos.example?subject=Demo%20request%20—%20LIMS%20Pathology%20Management';
 export const SALES_MAILTO = 'mailto:sales@labos.example?subject=Talk%20to%20Sales%20—%20LIMS';
