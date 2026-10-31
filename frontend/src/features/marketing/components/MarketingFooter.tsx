@@ -1,18 +1,19 @@
 import { Link } from 'react-router-dom';
-import { Mail, MapPin, Microscope, Phone } from 'lucide-react';
+import { Mail, MapPin, Phone } from 'lucide-react';
+import { BrandMark } from '@/components/brand/BrandMark';
+import { BrandWordmark } from '@/components/brand/BrandWordmark';
 import { FOOTER_COLUMNS, PRODUCT_NAME } from '../data';
 
 export function MarketingFooter() {
   return (
     <footer id="contact" className="scroll-mt-20 border-t border-border bg-surface">
-      <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
+      {/* pb-24 (not py-16): keeps the last row clear of the floating WhatsApp button */}
+      <div className="mx-auto max-w-page px-4 pb-24 pt-16 sm:px-6 lg:px-8">
         <div className="grid gap-10 lg:grid-cols-[1.4fr_repeat(5,1fr)]">
           <div>
-            <Link to="/" className="flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <Microscope className="h-5 w-5" aria-hidden />
-              </span>
-              <span className="text-lg font-semibold text-foreground">{PRODUCT_NAME}</span>
+            <Link to="/" className="flex items-center gap-2.5" aria-label={`${PRODUCT_NAME} home`}>
+              <BrandMark className="h-9" />
+              <BrandWordmark className="h-6" />
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted">
               The connected platform for pathology labs, diagnostic centers and hospital laboratories.

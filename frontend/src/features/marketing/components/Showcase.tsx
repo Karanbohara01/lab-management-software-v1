@@ -26,7 +26,7 @@ export function Showcase({
 }) {
   return (
     <section id={id} className={cn('scroll-mt-20 py-16 sm:py-24', tinted && 'bg-surface')}>
-      <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:px-8">
+      <div className="mx-auto grid max-w-page items-center gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:px-8">
         <Reveal className={cn('min-w-0', flip && 'lg:order-2')}>
           <Eyebrow>{eyebrow}</Eyebrow>
           <h2 className="mt-4 text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">

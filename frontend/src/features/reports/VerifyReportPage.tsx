@@ -1,10 +1,10 @@
 import { useParams, Link } from 'react-router-dom';
-import { Microscope } from 'lucide-react';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { reportsApi } from './api';
+import { BrandMark } from '@/components/brand/BrandMark';
 
 interface Verification {
   found: boolean;
@@ -25,7 +25,7 @@ interface Verification {
  * Public, unauthenticated — the page a patient lands on from the verification link printed on
  * their report or sent by SMS/WhatsApp. Deliberately a standalone top-level route (not nested
  * under the authenticated `/app` shell, which it was mistakenly nested under before): a real
- * patient has no LabOS login, so nesting it behind `ProtectedRoute` meant every such link actually
+ * patient has no LIMS login, so nesting it behind `ProtectedRoute` meant every such link actually
  * sent to a patient redirected straight to the login page — confirmed as a real, live bug (the
  * matching backend endpoint was already correctly public) and fixed by moving this route out.
  */
@@ -39,10 +39,10 @@ export function VerifyReportPage() {
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <Link
             to="/"
-            aria-label="LabOS home"
-            className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            aria-label="LIMS home"
+            className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            <Microscope className="h-6 w-6" aria-hidden />
+            <BrandMark className="h-14" />
           </Link>
           <div>
             <h1 className="text-xl font-semibold text-foreground">Report verification</h1>
@@ -66,7 +66,7 @@ export function VerifyReportPage() {
         ) : (
           <Card>
             <CardBody className="space-y-2 text-sm">
-              <Badge tone="success">Genuine LabOS report</Badge>
+              <Badge tone="success">Genuine LIMS report</Badge>
               <dl className="mt-2 grid grid-cols-2 gap-2">
                 <dt className="text-muted">Report</dt>
                 <dd className="font-mono">

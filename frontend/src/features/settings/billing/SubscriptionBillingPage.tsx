@@ -200,7 +200,7 @@ export function SubscriptionBillingPage() {
     <>
       <PageHeader
         title="Subscription & billing"
-        description="Invoices for this clinic's own LabOS subscription."
+        description="Invoices for this clinic's own LIMS subscription."
       />
 
       {verifying && (

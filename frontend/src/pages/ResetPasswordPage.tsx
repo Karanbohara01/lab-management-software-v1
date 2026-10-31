@@ -3,12 +3,14 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Microscope, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { authApi } from '@/api/auth';
+import { useForcedLightTheme } from '@/hooks/useTheme';
 import { ApiError } from '@/types/api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
+import { BrandMark } from '@/components/brand/BrandMark';
 
 const schema = z
   .object({
@@ -22,6 +24,7 @@ const schema = z
 type FormValues = z.infer<typeof schema>;
 
 export function ResetPasswordPage() {
+  useForcedLightTheme();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
@@ -56,10 +59,10 @@ export function ResetPasswordPage() {
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <Link
             to="/"
-            aria-label="LabOS home"
-            className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            aria-label="LIMS home"
+            className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            <Microscope className="h-6 w-6" aria-hidden />
+            <BrandMark className="h-14" />
           </Link>
           <div>
             <h1 className="text-xl font-semibold text-foreground">Choose a new password</h1>

@@ -3,13 +3,14 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link, Navigate, useLocation } from 'react-router-dom';
-import { Microscope } from 'lucide-react';
 import { useAppDispatch } from '@/store/hooks';
 import { useAuth } from '@/features/auth/useAuth';
+import { useForcedLightTheme } from '@/hooks/useTheme';
 import { clearLoginError, login } from '@/features/auth/authSlice';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
+import { BrandMark } from '@/components/brand/BrandMark';
 
 const schema = z.object({
   username: z.string().min(1, 'Username is required'),
@@ -21,6 +22,7 @@ export function LoginPage() {
   const dispatch = useAppDispatch();
   const location = useLocation();
   const { isAuthenticated, loginPending, loginError } = useAuth();
+  useForcedLightTheme();
 
   const {
     register,
@@ -47,13 +49,13 @@ export function LoginPage() {
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <Link
             to="/"
-            aria-label="LabOS home"
-            className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            aria-label="LIMS home"
+            className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            <Microscope className="h-6 w-6" aria-hidden />
+            <BrandMark className="h-14" />
           </Link>
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Sign in to LabOS</h1>
+            <h1 className="text-xl font-semibold text-foreground">Sign in to LIMS</h1>
             <p className="mt-1 text-sm text-muted">Pathology &amp; Laboratory Management</p>
           </div>
         </div>

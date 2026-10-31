@@ -1,12 +1,5 @@
 import {
-  Users,
-  ClipboardList,
-  ScanBarcode,
   FlaskConical,
-  FileText,
-  Receipt,
-  ScrollText,
-  Boxes,
   ShieldCheck,
   Headset,
   Microscope,
@@ -14,7 +7,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
-export const PRODUCT_NAME = 'LabOS';
+export const PRODUCT_NAME = 'LIMS';
 
 /**
  * Contextual photography. Paths resolve to `frontend/public/marketing/` — the
@@ -24,7 +17,7 @@ export const PRODUCT_NAME = 'LabOS';
 export const IMAGES = {
   problem: {
     src: '/marketing/laboratory-sample-processing.webp',
-    alt: 'Laboratory technician processing sample tubes beside paper registers',
+    alt: 'A laboratory technician holding a blood sample tube, with icons for a paper form, a spreadsheet, a payment card and a report floating above — each marked with a red cross, as separate tools that do not connect',
   },
   samples: {
     src: '/marketing/laboratory-technician-samples.webp',
@@ -42,18 +35,30 @@ export const IMAGES = {
 
 export interface NavItem {
   label: string;
+  /**
+   * Where the link goes — normally a landing-page section (`/#pricing`). The leading `/` means it
+   * still works from any other marketing page, going back home and scrolling to the section.
+   */
   href: string;
+  /** Opens the features mega-menu (desktop hover/focus); the link itself still jumps to `href`. */
+  hasFeatureMenu?: boolean;
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { label: 'Product', href: '#product' },
-  { label: 'Solutions', href: '#solutions' },
-  { label: 'Features', href: '#features' },
-  { label: 'How It Works', href: '#how-it-works' },
-  { label: 'Pricing', href: '#pricing' },
-  { label: 'FAQ', href: '#faq' },
-  { label: 'Contact', href: '#contact' },
+  { label: 'Product', href: '/#product' },
+  { label: 'Solutions', href: '/#solutions' },
+  { label: 'Features', href: '/#features', hasFeatureMenu: true },
+  { label: 'How It Works', href: '/#how-it-works' },
+  { label: 'Pricing', href: '/#pricing' },
+  { label: 'About Us', href: '/#about' },
+  { label: 'Blogs', href: '/#blogs' },
+  { label: 'FAQ', href: '/#faq' },
+  { label: 'Contact', href: '/#contact' },
 ];
+
+/** Sales contact shown in the navbar's top strip. `href`s are what the number actually opens. */
+export const CONTACT_WHATSAPP = { display: '+977 974-7214634', href: 'https://wa.me/9779747214634' } as const;
+export const CONTACT_PHONE = { display: '+977 970-6127862', href: 'tel:+9779706127862' } as const;
 
 export const TRUST_POINTS = [
   'Barcode-enabled sample tracking',
@@ -65,21 +70,24 @@ export const TRUST_POINTS = [
 ];
 
 export interface Feature {
-  icon: LucideIcon;
+  /** Illustration under `public/marketing/features/` (160×160 transparent PNG). */
+  image: string;
   title: string;
   description: string;
+  /** The on-page section that covers this feature — where the navbar's features menu jumps to. */
+  href: string;
 }
 
 export const FEATURES: Feature[] = [
-  { icon: Users, title: 'Patient management', description: 'Complete digital patient records, history, referrals and previous reports.' },
-  { icon: ClipboardList, title: 'Laboratory workflow', description: 'Manage orders, samples, results and verification in one connected flow.' },
-  { icon: ScanBarcode, title: 'Barcode tracking', description: 'Track every specimen from collection through to completion.' },
-  { icon: FlaskConical, title: 'Result management', description: 'Enter, flag, verify and approve results with reference ranges built in.' },
-  { icon: FileText, title: 'Professional reports', description: 'Generate clear, print-ready pathology reports with your letterhead.' },
-  { icon: Receipt, title: 'Billing & payments', description: 'Invoices, discounts, tax, partial payments, balances and refunds.' },
-  { icon: ScrollText, title: 'IRD / e-Billing', description: 'Track the electronic billing submission workflow, status and retries.' },
-  { icon: Boxes, title: 'Inventory', description: 'Reagents, kits and consumables with batches, stock levels and expiry.' },
-  { icon: ShieldCheck, title: 'Role-based access', description: 'Give each team member exactly the access their job needs — nothing more.' },
+  { image: '/marketing/features/patient-management.png', title: 'Patient management', description: 'Complete digital patient records, history, referrals and previous reports.', href: '/#product' },
+  { image: '/marketing/features/laboratory-workflow.png', title: 'Laboratory workflow', description: 'Manage orders, samples, results and verification in one connected flow.', href: '/#how-it-works' },
+  { image: '/marketing/features/barcode-tracking.png', title: 'Barcode tracking', description: 'Track every specimen from collection through to completion.', href: '/#samples' },
+  { image: '/marketing/features/result-management.png', title: 'Result management', description: 'Enter, flag, verify and approve results with reference ranges built in.', href: '/#results' },
+  { image: '/marketing/features/professional-reports.png', title: 'Professional reports', description: 'Generate clear, print-ready pathology reports with your letterhead.', href: '/#reports' },
+  { image: '/marketing/features/billing-payments.png', title: 'Billing & payments', description: 'Invoices, discounts, tax, partial payments, balances and refunds.', href: '/#billing' },
+  { image: '/marketing/features/ird-e-billing.png', title: 'IRD / e-Billing', description: 'Track the electronic billing submission workflow, status and retries.', href: '/#ebilling' },
+  { image: '/marketing/features/inventory.png', title: 'Inventory', description: 'Reagents, kits and consumables with batches, stock levels and expiry.', href: '/#inventory' },
+  { image: '/marketing/features/role-based-access.png', title: 'Role-based access', description: 'Give each team member exactly the access their job needs — nothing more.', href: '/#security' },
 ];
 
 export const WORKFLOW_STEPS = [
@@ -183,7 +191,7 @@ export interface Faq {
 export const FAQS: Faq[] = [
   {
     q: `What is ${PRODUCT_NAME}?`,
-    a: `${PRODUCT_NAME} is a laboratory information management system (LIMS) that connects patients, lab orders, billing, samples, results, reports and daily operations in one platform built for pathology labs, diagnostic centers and hospital laboratories.`,
+    a: `${PRODUCT_NAME} is a laboratory information management system that connects patients, lab orders, billing, samples, results, reports and daily operations in one platform built for pathology labs, diagnostic centers and hospital laboratories.`,
   },
   {
     q: 'Can it manage multiple laboratory departments?',

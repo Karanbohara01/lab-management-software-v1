@@ -4,12 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
+    <link rel="icon" type="image/svg+xml" href="/logo-mark.svg" />
     <script>
       // Set the theme class before React mounts, so the first paint is already correct — avoids
       // a flash of the wrong theme. Mirrors useTheme.ts's own logic; kept tiny/inline since it
-      // must run before any stylesheet or module loads.
+      // must run before any stylesheet or module loads. The landing page, the blog and the sign-in
+      // pages (login, signup, forgot/reset password) are always light (useForcedLightTheme), so
+      // they skip the dark class here — keep these paths in sync with the pages that call that
+      // hook. ('/solutions' is only a redirect to the landing page, listed so it doesn't flash dark.)
       (function () {
         try {
+          var path = window.location.pathname.replace(/\/+$/, '');
+          var lightPaths = ['', '/solutions', '/login', '/signup', '/forgot-password', '/reset-password'];
+          if (lightPaths.indexOf(path) !== -1 || path === '/blog' || path.indexOf('/blog/') === 0) {
+            document.documentElement.style.colorScheme = 'light';
+            document.documentElement.classList.add('theme-lims'); // the logo's colours, from the first paint
+            return;
+          }
           var stored = localStorage.getItem('lims-theme');
           var dark =
             stored === 'dark' ||
@@ -18,12 +29,12 @@
         } catch (e) {}
       })();
     </script>
-    <title>Pathology Management Software | LabOS</title>
+    <title>Pathology Management Software | LIMS</title>
     <meta
       name="description"
-      content="LabOS is a laboratory information management system for pathology labs, diagnostic centers and hospital laboratories — patients, orders, samples, results, reports, billing and e-Billing in one connected platform."
+      content="LIMS is a laboratory information management system for pathology labs, diagnostic centers and hospital laboratories — patients, orders, samples, results, reports, billing and e-Billing in one connected platform."
     />
-    <meta property="og:title" content="Pathology Management Software | LabOS" />
+    <meta property="og:title" content="Pathology Management Software | LIMS" />
     <meta
       property="og:description"
       content="Manage patients, laboratory orders, samples, results, reports, billing, payments and e-Billing workflows from one connected platform."

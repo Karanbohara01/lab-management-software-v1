@@ -16,7 +16,7 @@ const SECTIONS: Section[] = [
     body: (
       <>
         <p>
-          LabOS organizes work around the lab's real pipeline: a patient is registered, a doctor or the patient
+          LIMS organizes work around the lab's real pipeline: a patient is registered, a doctor or the patient
           orders tests, a sample is collected and received, results are entered and verified, a report is generated
           and released, and the visit is billed. Each stage has its own screen, and an order's detail page ties every
           stage together with a single status stepper and a "Next step" button that advances it.
@@ -308,7 +308,7 @@ export function HelpPage() {
 
   return (
     <>
-      <PageHeader title="Help" description="A guide to how LabOS's workflow fits together, screen by screen." />
+      <PageHeader title="Help" description="A guide to how LIMS's workflow fits together, screen by screen." />
       <div className="grid gap-4 lg:grid-cols-4">
         <Card className="lg:col-span-1">
           <nav className="p-2">

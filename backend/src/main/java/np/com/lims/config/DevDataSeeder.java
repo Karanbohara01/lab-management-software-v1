@@ -7,6 +7,7 @@ import np.com.lims.catalog.entity.RangeGender;
 import np.com.lims.catalog.entity.SpecimenType;
 import np.com.lims.catalog.entity.TestParameter;
 import np.com.lims.common.sequence.SequenceService;
+import np.com.lims.common.tenant.TenantContext;
 import np.com.lims.department.DepartmentRepository;
 import np.com.lims.department.entity.Department;
 import np.com.lims.doctor.DoctorRepository;
@@ -14,6 +15,7 @@ import np.com.lims.doctor.entity.Doctor;
 import np.com.lims.patient.PatientRepository;
 import np.com.lims.patient.entity.Gender;
 import np.com.lims.patient.entity.Patient;
+import np.com.lims.platform.OrganizationRepository;
 import np.com.lims.rbac.entity.Role;
 import np.com.lims.rbac.entity.RoleName;
 import np.com.lims.rbac.repository.RoleRepository;
@@ -41,6 +43,7 @@ public class DevDataSeeder implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DevDataSeeder.class);
     private static final String DEV_PASSWORD = "Passw0rd!";
+    private static final String PRIMARY_ORGANIZATION_SLUG = "primary";
 
     private record SeedUser(String username, String email, String fullName, RoleName role) {}
 
@@ -62,6 +65,7 @@ public class DevDataSeeder implements ApplicationRunner {
     private final SequenceService sequenceService;
     private final DepartmentRepository departmentRepository;
     private final LabTestRepository labTestRepository;
+    private final OrganizationRepository organizationRepository;
 
     /** Set {@code lims.dev.seed.enabled=false} (e.g. in application-local.yml) to start with an empty catalog. */
     @Value("${lims.dev.seed.enabled:true}")
@@ -74,7 +78,8 @@ public class DevDataSeeder implements ApplicationRunner {
                          PatientRepository patientRepository,
                          SequenceService sequenceService,
                          DepartmentRepository departmentRepository,
-                         LabTestRepository labTestRepository) {
+                         LabTestRepository labTestRepository,
+                         OrganizationRepository organizationRepository) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
@@ -83,6 +88,7 @@ public class DevDataSeeder implements ApplicationRunner {
         this.sequenceService = sequenceService;
         this.departmentRepository = departmentRepository;
         this.labTestRepository = labTestRepository;
+        this.organizationRepository = organizationRepository;
     }
 
     @Override
@@ -92,9 +98,20 @@ public class DevDataSeeder implements ApplicationRunner {
             log.warn("DEV SEED: disabled (lims.dev.seed.enabled=false) — leaving the database as-is");
             return;
         }
-        seedUsers();
-        seedClinical();
-        seedCatalog();
+        // Seed rows are tenant-owned, and there's no authenticated request at startup to supply a
+        // TenantContext — so stamp them into the baseline "primary" organization (Flyway V32).
+        Long organizationId = organizationRepository.findBySlugIgnoreCase(PRIMARY_ORGANIZATION_SLUG)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Missing baseline organization: " + PRIMARY_ORGANIZATION_SLUG))
+                .getId();
+        TenantContext.set(organizationId);
+        try {
+            seedUsers();
+            seedClinical();
+            seedCatalog();
+        } finally {
+            TenantContext.clear();
+        }
     }
 
     private void seedUsers() {
