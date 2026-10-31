@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Search, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Trash2, X } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -19,7 +19,7 @@ import { patientsApi } from '@/features/patients/api';
 import { PatientPicker } from '@/features/patients/PatientPicker';
 import { doctorsApi } from '@/features/doctors/api';
 import { testCatalogApi } from '@/features/catalog/api';
-import type { TestListItem } from '@/features/catalog/types';
+import { TestPicker } from '@/features/catalog/TestPicker';
 import { branchesApi, type Branch } from '@/features/branches/api';
 import { useAuth } from '@/features/auth/useAuth';
 import { appointmentsApi } from '@/features/appointments/api';
@@ -65,7 +65,9 @@ export function OrderBuilderPage() {
   const { user } = useAuth();
   const isBranchScoped = !!user?.homeBranchId;
 
-  const [loading, setLoading] = useState(isEdit || !!searchParams.get('patientId'));
+  const [loading, setLoading] = useState(
+    isEdit || !!searchParams.get('patientId') || !!searchParams.get('appointmentId'),
+  );
   const [patient, setPatient] = useState<PickedPatient | null>(null);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [branchId, setBranchId] = useState('');
@@ -136,6 +138,30 @@ export function OrderBuilderPage() {
             phone: p.phone,
           });
           if (p.referringDoctorId) setReferringDoctorId(String(p.referringDoctorId));
+        }
+
+        // Converting a booked appointment: carry its expected tests across. The appointment
+        // stores catalog references only (never a price), so current rates are read from the
+        // catalog here — and the server re-prices authoritatively on save regardless.
+        const appointmentId = searchParams.get('appointmentId');
+        if (appointmentId) {
+          const appt = await appointmentsApi.get(Number(appointmentId));
+          if (appt.referringDoctorId) setReferringDoctorId(String(appt.referringDoctorId));
+          if (appt.branchId) setBranchId(String(appt.branchId));
+          if (appt.items.length > 0) {
+            const tests = await Promise.all(appt.items.map((it) => testCatalogApi.get(it.testId)));
+            setRows(
+              appt.items.map((it, i) => ({
+                testId: it.testId,
+                testCode: it.testCode,
+                testName: it.testName,
+                departmentName: it.departmentName,
+                unitPrice: tests[i]?.price ?? 0,
+                quantity: it.quantity,
+                lineDiscount: 0,
+              })),
+            );
+          }
         }
       }
       setLoading(false);
@@ -463,62 +489,3 @@ export function OrderBuilderPage() {
   );
 }
 
-function TestPicker({
-  existingIds,
-  onAdd,
-}: {
-  existingIds: number[];
-  onAdd: (t: TestListItem) => void;
-}) {
-  const [term, setTerm] = useState('');
-  const debounced = useDebouncedValue(term, 300);
-  const [results, setResults] = useState<TestListItem[]>([]);
-
-  useEffect(() => {
-    if (debounced.trim().length < 1) {
-      setResults([]);
-      return;
-    }
-    testCatalogApi.list({ query: debounced, activeOnly: true, size: 8 }).then((r) => setResults(r.content));
-  }, [debounced]);
-
-  return (
-    <div>
-      <Input
-        leadingIcon={<Search className="h-4 w-4" aria-hidden />}
-        placeholder="Search tests by name or code"
-        value={term}
-        onChange={(e) => setTerm(e.target.value)}
-      />
-      {results.length > 0 && (
-        <ul className="mt-2 divide-y divide-border rounded-md border border-border">
-          {results.map((t) => {
-            const added = existingIds.includes(t.id);
-            return (
-              <li key={t.id}>
-                <button
-                  type="button"
-                  disabled={added}
-                  onClick={() => {
-                    onAdd(t);
-                    setTerm('');
-                  }}
-                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <span>
-                    <span className="font-medium text-foreground">{t.name}</span>
-                    <span className="ml-2 font-mono text-xs text-muted">{t.code}</span>
-                    <span className="ml-2 text-muted">{formatMoney(t.price)}</span>
-                  </span>
-                  <span className="flex items-center gap-1 text-xs font-medium text-muted">
-                    {added ? 'Added' : <><Plus className="h-4 w-4" aria-hidden /> Add</>}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
-  );
-}

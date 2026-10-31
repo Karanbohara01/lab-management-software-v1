@@ -1,12 +1,15 @@
 package np.com.lims.appointment;
 
 import np.com.lims.appointment.dto.AppointmentDtos.Detail;
+import np.com.lims.appointment.dto.AppointmentDtos.ItemRequest;
 import np.com.lims.appointment.dto.AppointmentDtos.ListItem;
 import np.com.lims.appointment.dto.AppointmentDtos.SaveRequest;
 import np.com.lims.appointment.entity.Appointment;
 import np.com.lims.appointment.entity.AppointmentStatus;
 import np.com.lims.branch.BranchRepository;
 import np.com.lims.branch.entity.Branch;
+import np.com.lims.catalog.LabTestService;
+import np.com.lims.catalog.entity.LabTest;
 import np.com.lims.common.audit.AuditService;
 import np.com.lims.common.exception.ApiException;
 import np.com.lims.common.exception.ErrorCode;
@@ -28,7 +31,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class AppointmentService {
@@ -41,6 +46,7 @@ public class AppointmentService {
     private final DoctorRepository doctorRepository;
     private final BranchRepository branchRepository;
     private final LabOrderRepository labOrderRepository;
+    private final LabTestService labTestService;
     private final SequenceService sequenceService;
     private final AuditService auditService;
     private final NotificationService notificationService;
@@ -50,6 +56,7 @@ public class AppointmentService {
                               DoctorRepository doctorRepository,
                               BranchRepository branchRepository,
                               LabOrderRepository labOrderRepository,
+                              LabTestService labTestService,
                               SequenceService sequenceService,
                               AuditService auditService,
                               NotificationService notificationService) {
@@ -58,6 +65,7 @@ public class AppointmentService {
         this.doctorRepository = doctorRepository;
         this.branchRepository = branchRepository;
         this.labOrderRepository = labOrderRepository;
+        this.labTestService = labTestService;
         this.sequenceService = sequenceService;
         this.auditService = auditService;
         this.notificationService = notificationService;
@@ -97,6 +105,7 @@ public class AppointmentService {
         String number = sequenceService.nextFormatted(APPOINTMENT_SEQUENCE, "APT", 6);
         Appointment appointment = Appointment.open(number, patient, doctor, branch, request.scheduledAt(),
                 trimToNull(request.reason()));
+        applyItems(appointment, request.items());
 
         Appointment saved = appointmentRepository.save(appointment);
         auditService.record(MODULE, "CREATE", "Appointment", saved.getId(),
@@ -112,6 +121,7 @@ public class AppointmentService {
         Doctor doctor = resolveDoctor(request.referringDoctorId(), appointment.getPatient());
         Branch branch = resolveBranch(request.branchId());
         appointment.reschedule(doctor, branch, request.scheduledAt(), trimToNull(request.reason()));
+        applyItems(appointment, request.items());
 
         auditService.record(MODULE, "UPDATE", "Appointment", id,
                 "Rescheduled appointment " + appointment.getAppointmentNumber(), before, Detail.from(appointment));
@@ -168,6 +178,32 @@ public class AppointmentService {
     }
 
     // ----- helpers ----------------------------------------------------
+
+    /**
+     * Replaces the appointment's expected tests. Validation is the same strictness as an order's
+     * (LabTestService.requireActiveTests, duplicate ids rejected) — but note what is NOT here:
+     * no pricing of any kind. Totals are only ever computed live via the order preview.
+     */
+    private void applyItems(Appointment appointment, List<ItemRequest> items) {
+        List<ItemRequest> requested = items == null ? List.of() : items;
+        Map<Long, ItemRequest> byTest = new LinkedHashMap<>();
+        for (ItemRequest item : requested) {
+            if (byTest.putIfAbsent(item.testId(), item) != null) {
+                throw new ApiException(ErrorCode.VALIDATION_FAILED,
+                        "Test " + item.testId() + " is listed more than once – increase the quantity instead");
+            }
+        }
+        appointment.clearItems();
+        if (byTest.isEmpty()) {
+            return;
+        }
+        List<Long> testIds = List.copyOf(byTest.keySet());
+        Map<Long, LabTest> tests = new LinkedHashMap<>();
+        labTestService.requireActiveTests(testIds).forEach(t -> tests.put(t.getId(), t));
+        for (Long testId : testIds) {
+            appointment.addItem(tests.get(testId), byTest.get(testId).quantity());
+        }
+    }
 
     private Doctor resolveDoctor(Long doctorId, Patient patient) {
         if (doctorId == null) {

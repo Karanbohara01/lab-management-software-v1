@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { Trash2, X } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
@@ -15,8 +15,10 @@ import type { PatientListItem } from '@/features/patients/types';
 import { doctorsApi } from '@/features/doctors/api';
 import type { Doctor } from '@/features/doctors/types';
 import { branchesApi, type Branch } from '@/features/branches/api';
+import { TestPicker } from '@/features/catalog/TestPicker';
 import { appointmentsApi } from './api';
-import type { AppointmentDetail } from './types';
+import { AppointmentEstimate } from './AppointmentEstimate';
+import type { AppointmentDetail, AppointmentTestLine } from './types';
 
 /** Local <-> ISO conversion for a native datetime-local input (no date library in this codebase). */
 function toLocalInputValue(iso: string): string {
@@ -46,6 +48,8 @@ export function AppointmentFormModal({
   const [branchId, setBranchId] = useState('');
   const [scheduledAt, setScheduledAt] = useState('');
   const [reason, setReason] = useState('');
+  // Catalog references + quantity only — no price lives in this state, by design.
+  const [tests, setTests] = useState<AppointmentTestLine[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -81,12 +85,14 @@ export function AppointmentFormModal({
       setBranchId(appointment.branchId ? String(appointment.branchId) : '');
       setScheduledAt(toLocalInputValue(appointment.scheduledAt));
       setReason(appointment.reason ?? '');
+      setTests(appointment.items);
     } else {
       setPatient(null);
       setDoctorId('');
       setBranchId('');
       setScheduledAt('');
       setReason('');
+      setTests([]);
     }
   }, [open, appointment]);
 
@@ -107,6 +113,7 @@ export function AppointmentFormModal({
       branchId: branchId ? Number(branchId) : undefined,
       scheduledAt: new Date(scheduledAt).toISOString(),
       reason: reason.trim() || undefined,
+      items: tests.map((t) => ({ testId: t.testId, quantity: t.quantity })),
     };
     try {
       if (appointment) {
@@ -129,6 +136,7 @@ export function AppointmentFormModal({
     <Modal
       open={open}
       onClose={onClose}
+      size="lg"
       title={appointment ? 'Reschedule appointment' : 'New appointment'}
       footer={
         <>
@@ -163,6 +171,59 @@ export function AppointmentFormModal({
           ) : (
             <PatientPicker onSelect={setPatient} />
           )}
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <p className="text-sm font-medium text-foreground">Tests (optional)</p>
+            <p className="text-xs text-muted">
+              Choose what the visit is expected to need — an indicative total appears below.
+            </p>
+          </div>
+          <TestPicker
+            existingIds={tests.map((t) => t.testId)}
+            onAdd={(t) =>
+              setTests((prev) => [
+                ...prev,
+                { testId: t.id, testCode: t.code, testName: t.name, departmentName: t.departmentName, quantity: 1 },
+              ])
+            }
+          />
+          {tests.length > 0 && (
+            <ul className="divide-y divide-border rounded-md border border-border">
+              {tests.map((t, index) => (
+                <li key={t.testId} className="flex items-center gap-3 px-3 py-2 text-sm">
+                  <span className="min-w-0 flex-1 truncate">
+                    <span className="font-medium text-foreground">{t.testName}</span>
+                    <span className="ml-1.5 font-mono text-xs text-muted">{t.testCode}</span>
+                  </span>
+                  <input
+                    type="number"
+                    min={1}
+                    value={t.quantity}
+                    onChange={(e) =>
+                      setTests((prev) =>
+                        prev.map((row, i) =>
+                          i === index ? { ...row, quantity: Math.max(1, Number(e.target.value) || 1) } : row,
+                        ),
+                      )
+                    }
+                    className="h-8 w-16 rounded-md border border-input bg-surface px-2 text-center"
+                    aria-label={`Quantity for ${t.testName}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setTests((prev) => prev.filter((_, i) => i !== index))}
+                    className="text-muted hover:text-danger"
+                    aria-label={`Remove ${t.testName}`}
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <AppointmentEstimate items={tests} />
         </div>
 
         <Combobox

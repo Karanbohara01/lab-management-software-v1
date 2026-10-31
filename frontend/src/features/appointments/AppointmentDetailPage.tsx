@@ -15,6 +15,7 @@ import { useToast } from '@/components/ui/toast';
 import { formatDateTime } from '@/features/patients/format';
 import { appointmentsApi } from './api';
 import { AppointmentFormModal } from './AppointmentFormModal';
+import { AppointmentEstimate } from './AppointmentEstimate';
 import { APPOINTMENT_STATUS_LABEL, APPOINTMENT_STATUS_TONE } from './types';
 
 export function AppointmentDetailPage() {
@@ -83,6 +84,28 @@ export function AppointmentDetailPage() {
                   </div>
                 )}
               </dl>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader title="Requested tests" description="Indicative only — the lab order sets the final price." />
+            <CardBody className="space-y-3">
+              {appointment.items.length === 0 ? (
+                <p className="text-sm text-muted">No tests chosen at booking.</p>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {appointment.items.map((it) => (
+                    <li key={it.testId} className="flex items-center justify-between py-2 text-sm first:pt-0 last:pb-0">
+                      <span>
+                        <span className="font-medium text-foreground">{it.testName}</span>
+                        <span className="ml-1.5 font-mono text-xs text-muted">{it.testCode}</span>
+                      </span>
+                      <span className="text-muted">× {it.quantity}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <AppointmentEstimate items={appointment.items} />
             </CardBody>
           </Card>
 

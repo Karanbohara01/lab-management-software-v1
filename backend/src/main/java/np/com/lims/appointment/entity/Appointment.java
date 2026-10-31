@@ -1,5 +1,6 @@
 package np.com.lims.appointment.entity;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -7,9 +8,12 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import np.com.lims.branch.entity.Branch;
+import np.com.lims.catalog.entity.LabTest;
 import np.com.lims.common.audit.BaseEntity;
 import np.com.lims.common.exception.ApiException;
 import np.com.lims.common.tenant.TenantContext;
@@ -19,6 +23,8 @@ import np.com.lims.patient.entity.Patient;
 import org.hibernate.annotations.Filter;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "appointment")
@@ -69,6 +75,11 @@ public class Appointment extends BaseEntity {
     @JoinColumn(name = "converted_order_id")
     private LabOrder convertedOrder;
 
+    /** Tests the visit is expected to need — catalog references only, never a price. */
+    @OneToMany(mappedBy = "appointment", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("id ASC")
+    private List<AppointmentTest> items = new ArrayList<>();
+
     protected Appointment() {
     }
 
@@ -88,7 +99,7 @@ public class Appointment extends BaseEntity {
     public void assertEditable() {
         if (!status.isEditable()) {
             throw ApiException.invalidTransition(
-                    "Appointment " + appointmentNumber + " is " + status + " and can no longer be rescheduled");
+                    "Appointment " + appointmentNumber + " is " + status + " and can no longer be changed");
         }
     }
 
@@ -98,6 +109,18 @@ public class Appointment extends BaseEntity {
         this.branch = branch;
         this.scheduledAt = scheduledAt;
         this.reason = reason;
+    }
+
+    public void clearItems() {
+        assertEditable();
+        items.clear();
+    }
+
+    public AppointmentTest addItem(LabTest test, int quantity) {
+        assertEditable();
+        AppointmentTest item = new AppointmentTest(this, test, quantity);
+        items.add(item);
+        return item;
     }
 
     public void checkIn() {
@@ -186,5 +209,9 @@ public class Appointment extends BaseEntity {
 
     public LabOrder getConvertedOrder() {
         return convertedOrder;
+    }
+
+    public List<AppointmentTest> getItems() {
+        return items;
     }
 }
