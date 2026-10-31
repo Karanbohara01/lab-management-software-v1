@@ -4,6 +4,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { Combobox } from '@/components/ui/Combobox';
+import { DateTimePicker } from '@/components/ui/DateTimePicker';
 import { Textarea } from '@/components/ui/Textarea';
 import { Alert } from '@/components/ui/Alert';
 import { ApiError } from '@/types/api';
@@ -181,18 +182,12 @@ export function AppointmentFormModal({
           />
         )}
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-foreground" htmlFor="appointment-scheduled-at">
-            Date &amp; time
-          </label>
-          <input
-            id="appointment-scheduled-at"
-            type="datetime-local"
-            value={scheduledAt}
-            onChange={(e) => setScheduledAt(e.target.value)}
-            className="w-full rounded-md border border-input bg-surface px-3 py-2 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
-        </div>
+        <DateTimePicker
+          label="Date & time"
+          value={scheduledAt}
+          onChange={setScheduledAt}
+          minDate={new Date(new Date().toDateString())}
+        />
 
         <Textarea
           label="Reason (optional)"
