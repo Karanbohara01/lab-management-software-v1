@@ -1,6 +1,6 @@
-import { ArrowRight } from 'lucide-react';
 import { Reveal } from '../components/Reveal';
-import { AnchorButton, DEMO_MAILTO } from '../components/primitives';
+import { AnchorButton } from '../components/primitives';
+import { RequestDemoButton } from '../components/RequestDemo';
 import { SCIENCE_TEXTURE } from '../components/Photo';
 import { HeroCollage } from '../components/HeroCollage';
 
@@ -29,10 +29,7 @@ export function Hero() {
             e-Billing workflows from one connected platform.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <AnchorButton href={DEMO_MAILTO} size="lg">
-              Request a Demo
-              <ArrowRight className="h-4 w-4" aria-hidden />
-            </AnchorButton>
+            <RequestDemoButton />
             <AnchorButton href="#product" variant="secondary" size="lg">
               Explore Platform
             </AnchorButton>

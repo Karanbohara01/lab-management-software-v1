@@ -24,8 +24,12 @@
   :where(.marketing-type) :where(main, footer) .sm\:text-lg { font-size: 1.125rem; }
 }
 
-/* the product mock-ups copy the real app, so they keep the app's sizes */
-:where(.marketing-type) :is(.mock-ui, .mock-root) .text-xs { font-size: 0.75rem; }
-:where(.marketing-type) :is(.mock-ui, .mock-root) .text-sm { font-size: 0.8125rem; }
-:where(.marketing-type) :is(.mock-ui, .mock-root) .text-base { font-size: 0.875rem; }
-:where(.marketing-type) :is(.mock-ui, .mock-root) .text-lg { font-size: 1rem; }
+/*
+ * The product mock-ups imitate the app, so they stay a step smaller than the page text around
+ * them — but only a step: at the app's own sizes (12/13/14/16px) they were too small to read on a
+ * landing page. xs 13, sm 14, base 15, lg 17.
+ */
+:where(.marketing-type) :is(.mock-ui, .mock-root) .text-xs { font-size: 0.8125rem; }
+:where(.marketing-type) :is(.mock-ui, .mock-root) .text-sm { font-size: 0.875rem; }
+:where(.marketing-type) :is(.mock-ui, .mock-root) .text-base { font-size: 0.9375rem; }
+:where(.marketing-type) :is(.mock-ui, .mock-root) .text-lg { font-size: 1.0625rem; }

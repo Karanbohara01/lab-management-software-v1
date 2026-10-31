@@ -15,9 +15,9 @@ function PatientsMock() {
           <input
             readOnly
             value="Search name, MRN or phone"
-            className="h-8 w-44 rounded-md border border-input bg-surface-muted px-2 text-[11px] text-muted"
+            className="h-8 w-44 rounded-md border border-input bg-surface-muted px-2 text-[13px] text-muted"
           />
-          <span className="rounded-md bg-primary px-2 py-1.5 text-[11px] font-medium text-primary-foreground">
+          <span className="rounded-md bg-primary px-2 py-1.5 text-[13px] font-medium text-primary-foreground">
             Register patient
           </span>
         </div>
@@ -37,7 +37,7 @@ function PatientsMock() {
             ]}
         />
         <div className="mt-3 rounded-lg border border-border p-3">
-          <p className="text-[11px] font-semibold text-foreground">Anil Sharma · P000241</p>
+          <p className="text-[13px] font-semibold text-foreground">Anil Sharma · P000241</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             <MockBadge tone="info">3 orders</MockBadge>
             <MockBadge tone="neutral">2 reports</MockBadge>
@@ -77,7 +77,7 @@ function SamplesMock() {
         <div className="flex items-center justify-between">
           <div>
             <p className="font-mono text-xs font-semibold text-foreground">S000242</p>
-            <p className="text-[11px] text-muted">Sita Rai · P000242 · Serum</p>
+            <p className="text-[13px] text-muted">Sita Rai · P000242 · Serum</p>
           </div>
           <MockBadge tone="success">Received</MockBadge>
         </div>
@@ -89,21 +89,21 @@ function SamplesMock() {
               <span key={i} className="w-[2px] bg-foreground" style={{ height: `${(i * 37) % 100}%` }} />
             ))}
           </div>
-          <span className="font-mono text-[11px] tracking-wider text-foreground">S000242</span>
+          <span className="font-mono text-[13px] tracking-wider text-foreground">S000242</span>
         </div>
 
         <ol className="mt-4 space-y-3">
           {steps.map((s, i) => (
             <li key={s} className="flex items-center gap-3">
               <span
-                className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold ${
+                className={`flex h-5 w-5 items-center justify-center rounded-full text-[12px] font-semibold ${
                   i <= 2 ? 'bg-primary text-primary-foreground' : 'border border-border text-muted'
                 }`}
               >
                 {i + 1}
               </span>
               <span className={`text-xs ${i <= 2 ? 'font-medium text-foreground' : 'text-muted'}`}>{s}</span>
-              {i <= 2 && <span className="ml-auto text-[10px] text-muted">10:{38 + i} AM</span>}
+              {i <= 2 && <span className="ml-auto text-[12px] text-muted">10:{38 + i} AM</span>}
             </li>
           ))}
         </ol>
@@ -121,6 +121,7 @@ function SamplesMedia() {
           src={IMAGES.samples.src}
           alt={IMAGES.samples.alt}
           ratio="1 / 1"
+          optional
           className="w-24 shrink-0 rounded-xl sm:w-28"
         />
         <p className="text-sm leading-relaxed text-muted">
@@ -163,7 +164,7 @@ function ResultsMock() {
   return (
     <MockWindow title="LIMS — Result entry · CBC" canvasClassName="min-w-[38rem]">
       <div className="p-4">
-        <div className="mb-3 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-[11px]">
+        <div className="mb-3 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-[13px]">
           <span className="font-semibold text-foreground">Ramesh Thapa</span>
           <span className="mx-2 font-mono text-muted">P000243</span>
           <span className="text-muted">67y · M · S000243</span>
@@ -179,10 +180,10 @@ function ResultsMock() {
           rows={rows.map((r) => [r[0], <span className="font-semibold">{r[1]}</span>, r[2], r[3], r[4]])}
         />
         <div className="mt-3 flex items-center justify-between">
-          <span className="rounded-md border border-input px-2 py-1 text-[11px] text-muted">Save</span>
+          <span className="rounded-md border border-input px-2 py-1 text-[13px] text-muted">Save</span>
           <span className="flex gap-1.5">
-            <span className="rounded-md border border-input px-2 py-1 text-[11px] text-muted">Verify</span>
-            <span className="rounded-md bg-primary px-2 py-1 text-[11px] font-medium text-primary-foreground">Approve</span>
+            <span className="rounded-md border border-input px-2 py-1 text-[13px] text-muted">Verify</span>
+            <span className="rounded-md bg-primary px-2 py-1 text-[13px] font-medium text-primary-foreground">Approve</span>
           </span>
         </div>
       </div>
@@ -233,28 +234,28 @@ export function ResultsShowcase() {
 function ReportMock() {
   return (
     <MockWindow title="LIMS — Report RPT000124" canvasClassName="min-w-[24rem]">
-      <div className="mock-ui bg-white p-5 text-[11px] text-slate-800">
+      <div className="mock-ui bg-white p-5 text-[13px] text-slate-800">
         <div className="flex items-start justify-between border-b-2 border-slate-800 pb-2">
           <div>
             <p className="text-sm font-bold uppercase">Your Laboratory Name</p>
-            <p className="text-[10px]">New Baneshwor, Kathmandu · PAN 301234567</p>
+            <p className="text-[12px]">New Baneshwor, Kathmandu · PAN 301234567</p>
           </div>
-          <p className="text-[10px] font-semibold">LABORATORY REPORT</p>
+          <p className="text-[12px] font-semibold">LABORATORY REPORT</p>
         </div>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-0.5 border-b border-slate-800 py-2 text-[10px]">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-0.5 border-b border-slate-800 py-2 text-[12px]">
           <p><span className="inline-block w-16 font-semibold">Patient</span> Ramesh Thapa</p>
           <p><span className="inline-block w-20 font-semibold">Referred by</span> Dr. A. Sharma</p>
           <p><span className="inline-block w-16 font-semibold">MRN</span> P000243</p>
           <p><span className="inline-block w-20 font-semibold">Report date</span> 07 Sep 2026</p>
         </div>
-        <p className="mt-2 text-[11px] font-bold uppercase">Complete Blood Count</p>
+        <p className="mt-2 text-[13px] font-bold uppercase">Complete Blood Count</p>
         <table className="mt-1 w-full">
           <thead>
-            <tr className="border-b border-slate-300 text-left text-[10px]">
+            <tr className="border-b border-slate-300 text-left text-[12px]">
               <th className="py-1">Investigation</th><th>Result</th><th>Unit</th><th>Reference</th>
             </tr>
           </thead>
-          <tbody className="text-[10px]">
+          <tbody className="text-[12px]">
             <tr className="border-b border-slate-100"><td className="py-1">Haemoglobin</td><td className="font-semibold">14.2</td><td>g/dL</td><td>13 – 17</td></tr>
             <tr className="border-b border-slate-100"><td className="py-1">Platelets</td><td className="font-semibold">112,000 <span className="text-amber-600">L</span></td><td>/µL</td><td>150,000 – 450,000</td></tr>
           </tbody>
@@ -266,7 +267,7 @@ function ReportMock() {
       </div>
       <div className="flex gap-2 border-t border-border bg-surface p-3">
         {['Print', 'Download', 'Share', 'Send'].map((a) => (
-          <span key={a} className="rounded-md border border-input px-2 py-1 text-[11px] text-muted">{a}</span>
+          <span key={a} className="rounded-md border border-input px-2 py-1 text-[13px] text-muted">{a}</span>
         ))}
       </div>
     </MockWindow>

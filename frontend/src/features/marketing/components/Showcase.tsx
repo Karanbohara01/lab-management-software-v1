@@ -26,18 +26,26 @@ export function Showcase({
 }) {
   return (
     <section id={id} className={cn('scroll-mt-20 py-16 sm:py-24', tinted && 'bg-surface')}>
-      <div className="mx-auto grid max-w-page items-center gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:px-8">
+      {/* The picture's column is a little wider than the text's, so the product mock-ups aren't cut off. */}
+      <div
+        className={cn(
+          'mx-auto grid max-w-page items-center gap-10 px-4 sm:px-6 lg:gap-14 lg:px-8',
+          flip ? 'lg:grid-cols-[1.12fr_0.88fr]' : 'lg:grid-cols-[0.88fr_1.12fr]',
+        )}
+      >
         <Reveal className={cn('min-w-0', flip && 'lg:order-2')}>
           <Eyebrow>{eyebrow}</Eyebrow>
-          <h2 className="mt-4 text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+          <h2 className="mt-5 text-balance text-3xl font-extrabold leading-[1.1] tracking-tight text-foreground sm:text-4xl xl:text-[2.6rem]">
             {title}
           </h2>
-          <p className="mt-4 text-pretty leading-relaxed text-muted">{lead}</p>
+          <p className="mt-5 max-w-2xl text-pretty text-[18px] leading-relaxed text-muted sm:text-[20px]">{lead}</p>
           {points && (
-            <ul className="mt-6 space-y-2.5">
+            <ul className="mt-7 space-y-3.5">
               {points.map((p) => (
-                <li key={p} className="flex items-start gap-2.5 text-sm text-foreground">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+                <li key={p} className="flex items-start gap-3 text-[17px] font-medium leading-snug text-foreground">
+                  <span className="mt-px flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />
+                  </span>
                   {p}
                 </li>
               ))}
