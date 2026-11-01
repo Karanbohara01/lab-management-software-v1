@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
-import { Check } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 import { WORKFLOW_STEPS } from '../data';
+import { SectionHeading } from '../components/primitives';
 import { SCENES, STEP_COPY } from './scenes';
 import './workflow.css';
 
@@ -27,6 +28,7 @@ export function AnimatedWorkflow() {
   const [replay, setReplay] = useState(0);
   const seen = useRef(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const stepsRef = useRef<HTMLOListElement>(null);
   const reduced = usePrefersReducedMotion();
   const running = playing && visible && !reduced;
 
@@ -50,17 +52,33 @@ export function AnimatedWorkflow() {
     return () => observer.disconnect();
   }, []);
 
+  // On narrow screens the step list is a single horizontal track; keep the active step centred in
+  // it. Scrolling the list itself (not scrollIntoView) means the page never jumps vertically, and
+  // on wide screens, where the list wraps instead of scrolling, this is simply a no-op.
+  useEffect(() => {
+    const list = stepsRef.current;
+    const step = list?.querySelector<HTMLElement>('.lw-step.is-active');
+    if (!list || !step || typeof list.scrollTo !== 'function') return;
+    list.scrollTo({
+      left: step.offsetLeft - (list.clientWidth - step.offsetWidth) / 2,
+      behavior: reduced ? 'auto' : 'smooth',
+    });
+  }, [active, reduced]);
+
   const Scene = SCENES[active];
   const title = WORKFLOW_STEPS[active];
 
   return (
     <div ref={rootRef} className="lw" style={{ '--interval': `${STEP_MS}ms` } as CSSProperties}>
-      <header className="lw-head">
-        <h2 className="lw-heading">How our lab workflow works</h2>
-        <p className="lw-sub">From registration to e-billing — every sample tracked, every step automated.</p>
-      </header>
+      <SectionHeading
+        align="center"
+        eyebrow="How it works"
+        title="How our lab workflow works"
+        lead="From registration to e-billing — every sample tracked, every step automated."
+        className="lw-head"
+      />
 
-      <ol className="lw-steps">
+      <ol className="lw-steps" ref={stepsRef}>
         {WORKFLOW_STEPS.map((step, i) => (
           <li className="lw-step-wrap" key={step}>
             <button
@@ -70,7 +88,7 @@ export function AnimatedWorkflow() {
               onClick={() => go(i)}
             >
               {i < active ? (
-                <Check className="lw-check-ic" size={16} strokeWidth={2.75} aria-hidden />
+                <Check className="lw-check-ic" size={14} strokeWidth={3} aria-hidden />
               ) : (
                 <span className="lw-num">{pad(i + 1)}</span>
               )}
@@ -87,11 +105,7 @@ export function AnimatedWorkflow() {
                 />
               )}
             </button>
-            {i < COUNT - 1 && (
-              <span className={cn('lw-chev', i < active && 'is-lit')} aria-hidden>
-                ›
-              </span>
-            )}
+            {i < COUNT - 1 && <span className={cn('lw-connector', i < active && 'is-lit')} aria-hidden />}
           </li>
         ))}
       </ol>
@@ -112,16 +126,16 @@ export function AnimatedWorkflow() {
           </div>
           <div className="lw-controls">
             <button type="button" className="lw-icon-btn" onClick={() => go(active - 1)} aria-label="Previous step">
-              <span aria-hidden>‹</span>
+              <ChevronLeft size={18} aria-hidden />
             </button>
             {!reduced && (
               <button type="button" className="lw-play" onClick={() => setPlaying((p) => !p)}>
-                <span aria-hidden>{playing ? '❚❚' : '▶'}</span>
+                {playing ? <Pause size={15} aria-hidden /> : <Play size={15} aria-hidden />}
                 {playing ? 'Pause' : 'Play'}
               </button>
             )}
             <button type="button" className="lw-icon-btn" onClick={() => go(active + 1)} aria-label="Next step">
-              <span aria-hidden>›</span>
+              <ChevronRight size={18} aria-hidden />
             </button>
           </div>
           <p className="lw-next">Next: {WORKFLOW_STEPS[(active + 1) % COUNT]}</p>

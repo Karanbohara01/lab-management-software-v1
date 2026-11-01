@@ -2,11 +2,11 @@
  * Animated "lab workflow" stepper. Every class and keyframe is prefixed `lw-` so none of it can
  * collide with Tailwind utilities (`grow`, `spin`, …) or the rest of the app.
  *
- * Colours: the brand blue and green come from the site tokens, so on the public pages they are the
- * logo's navy and teal (see `html.theme-lims` in index.css). The neutrals (ink, greys, white) and
- * the Inter typeface are the original design's own, kept as-is on purpose. To make those follow
- * the site too, point them at tokens (--lw-ink: hsl(var(--foreground)), --lw-line: hsl(var(--border))
- * …) and drop the `font-family` line so it inherits the page font.
+ * Colours and type follow the site tokens: the brand blue and green are the logo's navy and teal on
+ * the public pages (see `html.theme-lims` in index.css), the neutrals are the page's own foreground /
+ * muted / border / surface, and the typeface is inherited (Nunito on the marketing pages) — so the
+ * widget reads as part of the page rather than a design pasted into it. Only the scenes keep a few
+ * literal colours (tube red, printer slate) because those are illustration, not UI.
  */
 .lw {
   --lw-blue: hsl(var(--primary));
@@ -17,55 +17,60 @@
   --lw-green-line: hsl(var(--success) / 0.3);
   --lw-red: #dc2626;
   --lw-red-50: #fee2e2;
-  --lw-ink: #0f172a;
-  --lw-muted: #64748b;
-  --lw-line: #e2e8f0;
-  --lw-card: #ffffff;
-  --lw-soft: #f8fafc; /* pending pills */
-  font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --lw-ink: hsl(var(--foreground));
+  --lw-muted: hsl(var(--muted));
+  --lw-line: hsl(var(--border));
+  --lw-card: hsl(var(--surface));
+  --lw-soft: hsl(var(--surface) / 0.72); /* pending pills: a frosted chip that sits on the photo */
   line-height: normal; /* the app's base line-height (1.5) would stretch every row in the scenes */
   color: var(--lw-ink);
   max-width: 1080px;
   margin: 0 auto;
 }
 
-/* ---- heading ------------------------------------------------------------------------------ */
-.lw .lw-head { text-align: center; margin-bottom: 30px; }
-.lw .lw-heading { margin: 0; font-size: 32px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; color: var(--lw-ink); }
-.lw .lw-sub { margin: 10px 0 0; font-size: 16px; line-height: 1.5; color: var(--lw-muted); }
+/* ---- heading (the site's SectionHeading; only the spacing to the stepper is ours) --------- */
+.lw .lw-head { margin-bottom: 36px; }
 
-/* ---- step pills ------------------------------------------------------------------------- */
-.lw .lw-steps { list-style: none; padding: 0; margin: 0 0 28px; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 6px; }
-.lw .lw-step-wrap { display: flex; align-items: center; gap: 6px; }
+/* ---- step track ------------------------------------------------------------------------- */
+/* A process map, not a row of tags: numbered badges joined by hairline connectors, two states of
+   colour (brand navy for the path travelled so far, a quiet chip for what's still to come). */
+.lw .lw-steps { list-style: none; padding: 0; margin: 0 0 32px; display: flex; flex-wrap: wrap; justify-content: center; row-gap: 12px; }
+.lw .lw-step-wrap { display: flex; align-items: center; }
 .lw .lw-step {
-  position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: 8px;
-  padding: 9px 16px; border-radius: 999px; background: var(--lw-soft); border: 1px solid var(--lw-line);
-  font: inherit; font-size: 14.5px; color: var(--lw-ink); cursor: pointer;
-  transition: background 0.35s, color 0.35s, border-color 0.35s, transform 0.35s, box-shadow 0.35s;
+  position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: 9px; height: 40px;
+  padding: 0 15px 0 8px; border-radius: 999px; background: var(--lw-soft); border: 1px solid hsl(var(--border) / 0.9);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  font: inherit; font-size: 14px; font-weight: 600; letter-spacing: -0.005em; color: var(--lw-ink); cursor: pointer; white-space: nowrap;
+  transition: background 0.3s, color 0.3s, border-color 0.3s, box-shadow 0.3s;
 }
-.lw .lw-step:hover { border-color: hsl(var(--primary) / 0.5); transform: translateY(-1px); }
+.lw .lw-step:hover { border-color: hsl(var(--primary) / 0.45); background: var(--lw-card); }
 .lw .lw-step:focus-visible { outline: 2px solid var(--lw-blue); outline-offset: 2px; }
-.lw .lw-num { color: var(--lw-blue); font-variant-numeric: tabular-nums; display: inline-flex; transition: color 0.35s; }
-.lw .lw-step.is-active {
-  background: var(--lw-blue); border-color: var(--lw-blue); color: #fff;
-  transform: scale(1.06); box-shadow: 0 8px 22px -8px hsl(var(--primary) / 0.65);
+.lw .lw-num, .lw .lw-check-ic {
+  flex: none; width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center;
+  font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 0;
+  background: var(--lw-blue-50); color: var(--lw-blue); transition: background 0.3s, color 0.3s;
 }
-.lw .lw-step.is-active .lw-num { color: rgb(255 255 255 / 0.75); }
-.lw .lw-step.is-done { background: var(--lw-green-50); border-color: var(--lw-green-line); }
-.lw .lw-check-ic { display: inline-flex; color: var(--lw-green); }
+.lw .lw-step.is-active {
+  background: var(--lw-blue); border-color: var(--lw-blue); color: hsl(var(--primary-foreground));
+  box-shadow: 0 6px 16px -10px hsl(var(--primary) / 0.6);
+}
+.lw .lw-step.is-active .lw-num { background: rgb(255 255 255 / 0.18); color: #fff; }
+.lw .lw-step.is-done { background: var(--lw-blue-50); border-color: hsl(var(--primary) / 0.25); color: var(--lw-blue); }
+.lw .lw-step.is-done .lw-check-ic { background: var(--lw-blue); color: #fff; }
 .lw .lw-bar {
-  position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: rgb(255 255 255 / 0.85);
+  position: absolute; left: 0; bottom: 0; height: 2px; width: 100%; background: rgb(255 255 255 / 0.7);
   transform-origin: left; animation: lw-bar var(--interval) linear forwards;
 }
 @keyframes lw-bar { 0% { transform: scaleX(0); } to { transform: scaleX(1); } }
-.lw .lw-chev { color: #94a3b8; font-size: 20px; line-height: 1; transition: color 0.35s, transform 0.35s; }
-.lw .lw-chev.is-lit { color: var(--lw-green); transform: translateX(2px); }
+.lw .lw-connector { flex: none; width: 22px; height: 1px; background: hsl(var(--border)); transition: background 0.3s; }
+.lw .lw-connector.is-lit { background: hsl(var(--primary) / 0.55); }
 
 /* ---- stage: illustration + copy ---------------------------------------------------------- */
 .lw .lw-stage {
   display: grid; grid-template-columns: 1.1fr 1fr; gap: 28px; align-items: center;
-  background: linear-gradient(135deg, var(--lw-blue-50), var(--lw-card) 60%);
-  border: 1px solid var(--lw-line); border-radius: 22px; padding: 28px;
+  background: hsl(var(--surface) / 0.86); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border: 1px solid var(--lw-line); border-radius: 20px; padding: 32px;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 24px 48px -28px rgb(15 23 42 / 0.28);
 }
 .lw .lw-scene {
   /* no panel behind the illustration — it sits directly on the stage. overflow stays hidden so the
@@ -76,21 +81,23 @@
 @keyframes lw-scene-in { 0% { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: none; } }
 .lw .lw-info { animation: lw-info-in 0.55s cubic-bezier(0.2, 0.8, 0.2, 1); }
 @keyframes lw-info-in { 0% { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
-.lw .lw-kicker { color: var(--lw-blue); font-weight: 600; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; }
-.lw .lw-title { font-size: 28px; font-weight: 600; margin: 6px 0 10px; line-height: 1.2; color: var(--lw-ink); }
+.lw .lw-kicker { color: var(--lw-blue); font-weight: 700; font-size: 12.5px; letter-spacing: 0.08em; text-transform: uppercase; }
+.lw .lw-title { font-size: 28px; font-weight: 700; letter-spacing: -0.015em; margin: 8px 0 10px; line-height: 1.2; color: var(--lw-ink); }
 .lw .lw-desc { color: var(--lw-muted); font-size: 16px; line-height: 1.6; margin: 0 0 20px; }
-.lw .lw-overall { height: 6px; background: var(--lw-line); border-radius: 99px; overflow: hidden; margin-bottom: 18px; }
-.lw .lw-overall span { display: block; height: 100%; background: linear-gradient(90deg, var(--lw-blue), hsl(var(--primary) / 0.55)); border-radius: 99px; transition: width 0.6s ease; }
+.lw .lw-overall { height: 4px; background: var(--lw-line); border-radius: 99px; overflow: hidden; margin-bottom: 20px; }
+.lw .lw-overall span { display: block; height: 100%; background: var(--lw-blue); border-radius: 99px; transition: width 0.6s ease; }
 .lw .lw-controls { display: flex; gap: 8px; flex-wrap: wrap; }
 .lw .lw-controls button {
-  font: inherit; font-size: 15px; border: 1px solid var(--lw-line); background: var(--lw-card); color: var(--lw-ink);
-  border-radius: 10px; padding: 8px 14px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  transition: background 0.2s, border-color 0.2s;
+  font: inherit; font-size: 14.5px; font-weight: 600; height: 40px; border: 1px solid var(--lw-line); background: var(--lw-card); color: var(--lw-ink);
+  border-radius: 10px; padding: 0 16px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
 }
-.lw .lw-controls button:hover { border-color: var(--lw-blue); }
+.lw .lw-controls button:hover { border-color: hsl(var(--primary) / 0.5); }
 .lw .lw-controls button:focus-visible { outline: 2px solid var(--lw-blue); outline-offset: 2px; }
-.lw .lw-controls .lw-icon-btn { padding: 8px 13px; font-size: 18px; line-height: 1; }
-.lw .lw-controls .lw-play { background: var(--lw-ink); color: #fff; border-color: var(--lw-ink); min-width: 96px; }
+.lw .lw-controls .lw-icon-btn { width: 40px; padding: 0; color: var(--lw-muted); }
+.lw .lw-controls .lw-icon-btn:hover { color: var(--lw-ink); background: var(--lw-blue-50); }
+.lw .lw-controls .lw-play { background: var(--lw-blue); color: hsl(var(--primary-foreground)); border-color: var(--lw-blue); min-width: 108px; }
+.lw .lw-controls .lw-play:hover { background: hsl(var(--primary) / 0.9); }
 .lw .lw-next { margin-top: 14px; font-size: 13px; color: var(--lw-muted); }
 
 /* ---- shared scene pieces ----------------------------------------------------------------- */
@@ -196,9 +203,20 @@
 
 /* ---- responsive + reduced motion ---------------------------------------------------------- */
 @media (max-width: 760px) {
-  .lw .lw-stage { grid-template-columns: 1fr; padding: 18px; }
+  /* Eleven steps can't wrap tidily on a phone (it became six ragged rows), so the track becomes a
+     single swipeable row that snaps to steps; the widget keeps the active one centred in it. The
+     mask fades the cut-off ends so it reads as a track that continues, not a clipped layout. */
+  .lw .lw-steps {
+    flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; scroll-snap-type: x proximity;
+    margin: 0 -16px 24px; padding: 2px 24px 10px; scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 20px, #000 calc(100% - 20px), transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 20px, #000 calc(100% - 20px), transparent);
+  }
+  .lw .lw-steps::-webkit-scrollbar { display: none; }
+  .lw .lw-step-wrap { flex: none; scroll-snap-align: center; }
+  .lw .lw-step { font-size: 13.5px; height: 38px; }
+  .lw .lw-stage { grid-template-columns: 1fr; padding: 20px; border-radius: 16px; }
   .lw .lw-scene { height: 260px; }
-  .lw .lw-step { font-size: 13px; padding: 7px 12px; }
   .lw .lw-title { font-size: 22px; }
 }
 @media (prefers-reduced-motion: reduce) {
