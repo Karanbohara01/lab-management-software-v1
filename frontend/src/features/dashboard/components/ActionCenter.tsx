@@ -32,9 +32,12 @@ const SEVERITY_STYLE: Record<Severity, { dot: string; badge: string }> = {
 export function ActionCenter({
   summary,
   resultCounts,
+  className,
 }: {
   summary: DashboardSummary;
   resultCounts: Record<string, number>;
+  /** Merged over the default bottom margin — e.g. `mb-0` inside a stack that spaces its own children. */
+  className?: string;
 }) {
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
@@ -134,7 +137,7 @@ export function ActionCenter({
     );
 
   return (
-    <Card className="mb-5">
+    <Card className={cn('mb-5', className)}>
       <div className="px-5 pt-5">
         <SectionHeader title="Attention required" description="Prioritised across your entire laboratory." />
       </div>

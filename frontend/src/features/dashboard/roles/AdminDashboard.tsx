@@ -67,19 +67,20 @@ export function AdminDashboard({ summary, lastUpdated, refreshing, onRefresh }: 
 
       <KpiHero summary={summary} />
 
-      <ActionCenter summary={summary} resultCounts={resultCounts} />
+      {/* Side by side when the page is wide enough for two readable panels (about 26rem each), stacked when it isn't. */}
+      {canSeeAnalytics && analyticsQ.data && (
+        <div className="mb-5 grid gap-4 [grid-template-columns:repeat(auto-fit,minmax(26rem,1fr))]">
+          <RevenueTrend points={analyticsQ.data.revenueByDay} days={range} detailed />
+          <DepartmentWorkload points={analyticsQ.data.testsByDepartment} days={range} />
+        </div>
+      )}
 
       <WorkflowPipeline summary={summary} samplesCounts={samplesCounts} resultCounts={resultCounts} />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="min-w-0 space-y-4 lg:col-span-2">
-          {canSeeAnalytics && analyticsQ.data && (
-            <div className="grid gap-4 md:grid-cols-2">
-              <RevenueTrend points={analyticsQ.data.revenueByDay} days={range} />
-              <DepartmentWorkload points={analyticsQ.data.testsByDepartment} days={range} />
-            </div>
-          )}
           {hasPermission(PERMISSIONS.RESULT_READ) && <TurnaroundPanel resultCounts={resultCounts} />}
+          <ActionCenter summary={summary} resultCounts={resultCounts} className="mb-0" />
           {hasPermission(PERMISSIONS.RESULT_READ) && <CriticalResultsPanel />}
         </div>
 

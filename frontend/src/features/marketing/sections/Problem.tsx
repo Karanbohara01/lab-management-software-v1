@@ -5,7 +5,6 @@ import {
   Database,
   EyeOff,
   FileText,
-  FlaskConical,
   FolderCog,
   ShieldCheck,
   X,
@@ -13,7 +12,7 @@ import {
 } from 'lucide-react';
 import { Section } from '../components/primitives';
 import { Reveal } from '../components/Reveal';
-import { Photo, SCIENCE_TEXTURE } from '../components/Photo';
+import { Photo } from '../components/Photo';
 import { CONNECTED_WORKFLOW, IMAGES, TRADITIONAL_WORKFLOW } from '../data';
 
 /** Each pain point gets its own icon, as a round tile on its card — alternating the logo's navy and teal. */
@@ -28,27 +27,11 @@ const PAIN_POINTS: { text: string; icon: LucideIcon; tone: string }[] = [
 
 export function Problem() {
   return (
-    <Section id="solutions" className="relative isolate overflow-hidden">
-      {/* soft shapes and a dot grid behind the content (isolate + -z-10 keeps them under it) */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -right-48 -top-40 h-[30rem] w-[44rem] rounded-full bg-primary/[0.07]" />
-        <div className="absolute -bottom-52 -left-40 h-[28rem] w-[42rem] rounded-full bg-primary/[0.06]" />
-        <div
-          className="absolute bottom-10 right-10 hidden h-32 w-52 opacity-70 sm:block"
-          style={{ backgroundImage: SCIENCE_TEXTURE }}
-        />
-      </div>
-
+    <Section id="solutions">
       <div className="grid gap-10 lg:grid-cols-[1.15fr_1fr] lg:items-end lg:gap-14">
         <div>
           <Reveal>
-            <p className="inline-flex items-center gap-2.5 rounded-full bg-primary/10 py-1 pl-1 pr-4 text-xs font-bold uppercase tracking-wider text-primary">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                <FlaskConical className="h-4 w-4" aria-hidden />
-              </span>
-              The problem
-            </p>
-            <h2 className="mt-5 max-w-3xl text-balance text-4xl font-extrabold leading-[1.1] tracking-tight text-foreground sm:text-5xl">
+            <h2 className="max-w-3xl text-balance text-4xl font-extrabold leading-[1.1] tracking-tight text-foreground sm:text-5xl">
               Laboratory operations shouldn&apos;t depend on <span className="text-primary">disconnected systems.</span>
             </h2>
             <p className="mt-5 max-w-xl text-pretty text-base leading-relaxed text-muted sm:text-lg">

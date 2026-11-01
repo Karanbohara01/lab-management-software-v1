@@ -10,6 +10,7 @@ import { Alert } from '@/components/ui/Alert';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { useScrollToTopOnError } from '@/hooks/useScrollToTopOnError';
+import { publishBranding } from '@/hooks/useBranding';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
@@ -24,7 +25,7 @@ const MAX_LOGO_BYTES = 400_000;
 
 export function LaboratorySettingsPage() {
   const toast = useToast();
-  const { hasPermission } = useAuth();
+  const { user, hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.SETTINGS_WRITE);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -59,7 +60,8 @@ export function LaboratorySettingsPage() {
     setSaving(true);
     setFormError(null);
     try {
-      await settingsApi.updateLaboratory({ ...form, name: form.name.trim() });
+      const saved = await settingsApi.updateLaboratory({ ...form, name: form.name.trim() });
+      if (user) publishBranding(user.id, { name: saved.name, logoDataUri: saved.logoDataUri }); // the sidebar follows at once
       toast.success('Laboratory profile saved');
       refetch();
     } catch (err) {

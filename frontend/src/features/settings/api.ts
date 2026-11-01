@@ -19,6 +19,12 @@ export interface LaboratoryProfile {
   printInvoiceLetterhead: boolean;
 }
 
+/** What the app header shows for the signed-in clinic. Readable by every role, unlike the full profile. */
+export interface Branding {
+  name: string;
+  logoDataUri: string | null;
+}
+
 export interface PaymentCredentials {
   esewaEnabled: boolean;
   esewaMerchantCode: string | null;
@@ -51,6 +57,8 @@ export interface WhatsAppCredentials {
 
 export const settingsApi = {
   getLaboratory: () => httpClient.get<LaboratoryProfile>('/settings/laboratory').then((r) => r.data),
+
+  getBranding: () => httpClient.get<Branding>('/settings/laboratory/branding').then((r) => r.data),
 
   updateLaboratory: (payload: LaboratoryProfile) =>
     httpClient.put<LaboratoryProfile>('/settings/laboratory', payload).then((r) => r.data),

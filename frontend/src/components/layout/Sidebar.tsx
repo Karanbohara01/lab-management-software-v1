@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { ChevronDown, ChevronsLeft, ChevronsRight, Microscope, Search, X } from 'lucide-react';
+import { ChevronDown, ChevronsLeft, ChevronsRight, Search, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useAuth } from '@/features/auth/useAuth';
 import { NAV_SECTIONS } from './navigation';
+import { SidebarBrand } from './SidebarBrand';
 
 const SECTION_COLLAPSE_KEY = 'lims.sidebar.collapsedSections';
 
@@ -87,15 +88,7 @@ export function SidebarContent({
           collapsed ? 'justify-center px-2' : 'px-5',
         )}
       >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-sm">
-          <Microscope className="h-[18px] w-[18px]" aria-hidden />
-        </span>
-        {!collapsed && (
-          <div className="min-w-0 leading-tight">
-            <p className="truncate text-sm font-semibold text-foreground">LIMS</p>
-            <p className="truncate text-xs text-muted">Pathology Management</p>
-          </div>
-        )}
+        <SidebarBrand collapsed={collapsed} />
       </div>
 
       {!collapsed && (

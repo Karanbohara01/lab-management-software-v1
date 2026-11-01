@@ -13,7 +13,7 @@ const TONE: Record<Tone, string> = {
 
 export function MockBadge({ tone = 'neutral', children }: { tone?: Tone; children: ReactNode }) {
   return (
-    <span className={cn('inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset', TONE[tone])}>
+    <span className={cn('inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[13px] font-medium ring-1 ring-inset', TONE[tone])}>
       {children}
     </span>
   );
@@ -79,7 +79,7 @@ export function MockShell({ active, children }: { active: string; children: Reac
             <li
               key={item}
               className={cn(
-                'rounded-md px-2 py-1.5 text-[11px] font-medium',
+                'rounded-md px-2 py-1.5 text-[13px] font-medium',
                 item === active ? 'bg-primary/10 text-primary' : 'text-muted',
               )}
             >
@@ -96,9 +96,9 @@ export function MockShell({ active, children }: { active: string; children: Reac
 export function MockStat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="rounded-lg border border-border bg-surface p-3">
-      <p className="text-[11px] leading-tight text-muted">{label}</p>
+      <p className="text-[13px] leading-tight text-muted">{label}</p>
       <p className="mt-0.5 text-lg font-semibold text-foreground">{value}</p>
-      {hint && <p className="text-[11px] text-emerald-600">{hint}</p>}
+      {hint && <p className="text-[13px] text-emerald-600">{hint}</p>}
     </div>
   );
 }
@@ -119,7 +119,7 @@ export function MockTable({ columns, rows }: { columns: Col[]; rows: ReactNode[]
   return (
     <div className="overflow-hidden rounded-lg border border-border">
       <table className="w-full text-left text-xs">
-        <thead className="bg-surface-muted/60 text-[10px] uppercase tracking-wide text-muted">
+        <thead className="bg-surface-muted/60 text-[12px] uppercase tracking-wide text-muted">
           <tr>
             {columns.map((c) => (
               <th key={c.key} className={cn('whitespace-nowrap px-3 py-2 font-semibold', c.align === 'right' && 'text-right', c.align === 'center' && 'text-center')}>

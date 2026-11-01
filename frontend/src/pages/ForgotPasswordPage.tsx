@@ -9,6 +9,7 @@ import { useForcedLightTheme } from '@/hooks/useTheme';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
+import { BackLink } from '@/components/BackLink';
 import { BrandMark } from '@/components/brand/BrandMark';
 
 const schema = z.object({
@@ -44,7 +45,10 @@ export function ForgotPasswordPage() {
   });
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface-muted px-4 py-12">
+    <div className="relative flex min-h-screen items-center justify-center bg-surface-muted px-4 py-12">
+      <BackLink to="/login" className="absolute left-4 top-4 mb-0 sm:left-6 sm:top-6">
+        Back to sign in
+      </BackLink>
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <Link
@@ -88,12 +92,6 @@ export function ForgotPasswordPage() {
             </Button>
           </form>
         )}
-
-        <p className="mt-4 text-center text-xs text-muted">
-          <Link to="/login" className="font-medium text-primary hover:underline">
-            Back to sign in
-          </Link>
-        </p>
       </div>
     </div>
   );

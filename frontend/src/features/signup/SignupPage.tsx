@@ -15,6 +15,7 @@ import { useForcedLightTheme } from '@/hooks/useTheme';
 import { useScrollToTopOnError } from '@/hooks/useScrollToTopOnError';
 import { ApiError } from '@/types/api';
 import { signupApi } from './api';
+import { BackLink } from '@/components/BackLink';
 import { BrandMark } from '@/components/brand/BrandMark';
 
 const schema = z.object({
@@ -118,15 +119,18 @@ export function SignupPage() {
   });
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface-muted px-4 py-12">
-      <div className="w-full max-w-lg">
-        <div className="mb-8 flex flex-col items-center gap-3 text-center">
+    <div className="relative flex min-h-screen items-center justify-center bg-surface-muted px-4 py-6">
+      <BackLink to="/" className="absolute left-4 top-4 mb-0 sm:left-6 sm:top-6">
+        Back to home
+      </BackLink>
+      <div className="w-full max-w-3xl">
+        <div className="mb-4 flex flex-col items-center gap-2 text-center">
           <Link
             to="/"
             aria-label="LIMS home"
             className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            <BrandMark className="h-14" />
+            <BrandMark className="h-12" />
           </Link>
           <div>
             <h1 className="text-xl font-semibold text-foreground">Start your free trial</h1>
@@ -134,28 +138,31 @@ export function SignupPage() {
           </div>
         </div>
 
-        <form onSubmit={onSubmit} className="card space-y-5 p-6" noValidate>
+        <form onSubmit={onSubmit} className="card space-y-4 p-6" noValidate>
           {serverError && <Alert tone="danger">{serverError}</Alert>}
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted">Your laboratory</p>
-            <Input label="Laboratory name" autoFocus error={errors.name?.message} {...register('name')} />
-            <Input
-              label="Workspace URL"
-              hint="Used only as your account's internal identifier."
-              error={errors.slug?.message}
-              {...register('slug', {
-                onChange: () => setSlugEdited(true),
-              })}
-            />
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
+              <Input label="Laboratory name" autoFocus error={errors.name?.message} {...register('name')} />
+              <Input
+                label="Workspace URL"
+                hint="Used only as your account's internal identifier."
+                error={errors.slug?.message}
+                {...register('slug', {
+                  onChange: () => setSlugEdited(true),
+                })}
+              />
               <Input label="City" error={errors.city?.message} {...register('city')} />
               <Input label="Phone" error={errors.contactPhone?.message} {...register('contactPhone')} />
             </div>
           </div>
 
-          <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">Plan</p>
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Plan</p>
+              <p className="text-xs text-muted">14-day free trial. No card required to start.</p>
+            </div>
             {plansLoading ? (
               <p className="text-sm text-muted">Loading plans…</p>
             ) : plansError ? (
@@ -185,24 +192,23 @@ export function SignupPage() {
               </div>
             )}
             {errors.planCode && <p className="text-xs text-danger">{errors.planCode.message}</p>}
-            <p className="text-xs text-muted">14-day free trial. No card required to start.</p>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted">Your admin login</p>
-            <Input label="Your full name" error={errors.adminFullName?.message} {...register('adminFullName')} />
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
+              <Input label="Your full name" error={errors.adminFullName?.message} {...register('adminFullName')} />
               <Input label="Username" autoComplete="username" error={errors.adminUsername?.message} {...register('adminUsername')} />
               <Input label="Email" type="email" autoComplete="email" error={errors.adminEmail?.message} {...register('adminEmail')} />
+              <Input
+                label="Password"
+                type="password"
+                autoComplete="new-password"
+                placeholder="At least 8 characters"
+                error={errors.adminPassword?.message}
+                {...register('adminPassword')}
+              />
             </div>
-            <Input
-              label="Password"
-              type="password"
-              autoComplete="new-password"
-              hint="At least 8 characters."
-              error={errors.adminPassword?.message}
-              {...register('adminPassword')}
-            />
           </div>
 
           <Button type="submit" className="w-full" loading={submitting}>

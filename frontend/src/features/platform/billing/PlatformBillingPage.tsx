@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { FileText, CheckCircle2, AlertTriangle, Settings2, Download, X } from 'lucide-react';
+import { BackLink } from '@/components/BackLink';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -142,6 +143,7 @@ export function PlatformBillingPage() {
 
   return (
     <>
+      <BackLink to="/app/platform">Back to platform</BackLink>
       <PageHeader
         title="Subscription billing"
         description={

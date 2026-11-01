@@ -17,6 +17,8 @@ export interface PhotoProps {
   objectPosition?: string;
   /** Set on an above-the-fold image so it is not lazy-loaded. */
   priority?: boolean;
+  /** A nice-to-have picture: show nothing (not the placeholder) while its file doesn't exist. */
+  optional?: boolean;
   srcSet?: string;
   sizes?: string;
   width?: number;
@@ -39,12 +41,15 @@ export function Photo({
   imgClassName,
   objectPosition,
   priority = false,
+  optional = false,
   srcSet,
   sizes,
   width,
   height,
 }: PhotoProps) {
   const [failed, setFailed] = useState(false);
+
+  if (failed && optional) return null;
 
   return (
     <figure

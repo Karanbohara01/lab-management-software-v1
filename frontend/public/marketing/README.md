@@ -17,6 +17,9 @@ Reference paths in code are already wired (`src/features/marketing/data.ts` →
 | `hero-collage-video-poster.webp` | Hero collage — top-left tile | Still shown before the video starts (and for visitors who prefer reduced motion) | Use the video's first frame so nothing jumps; same shape as the video |
 | `hero-collage-photo-1.webp` | Hero collage — bottom-left tile | Photo | Landscape, ~4:3, at least 800 × 600 |
 | `hero-collage-photo-2.webp` | Hero collage — right tile (tall) | Photo | Portrait, ~2:3, at least 640 × 960 |
+| `roles/receptionist.png`, `roles/lab-technician.png`, `roles/pathologist.png`, `roles/accountant.png`, `roles/administrator.png` | Role cards ("Built around the people who run your laboratory") | One illustration per role | 160 × 160 transparent PNG, same as `features/` |
+| `pricing/starter.webp`, `pricing/professional.webp`, `pricing/enterprise.webp` | Pricing cards — top-right corner of each | Small illustration per plan | About 120 × 115 px, taken from the design reference, so they're soft on high-density screens; replace with larger originals (same names, roughly square) for a sharper result. Hidden on phones and at 1024–1279 px, where the cards are too narrow |
+| `team/karan.webp`, `team/namita.webp`, `team/neural-software.webp` | Navbar → "More" contact panel | Round portrait (or logo) for each person listed | Square, at least 96 × 96 px. Until a file exists the row shows the person's initials. Names and numbers are in `TEAM_CONTACTS` in `data.ts` |
 | `labos-og.png` | Social preview (`og:image`) | LIMS dashboard on a clean background | 1200 × 630 |
 
 ## Specifications
