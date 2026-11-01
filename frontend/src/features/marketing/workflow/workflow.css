@@ -64,6 +64,9 @@
 @keyframes lw-bar { 0% { transform: scaleX(0); } to { transform: scaleX(1); } }
 .lw .lw-connector { flex: none; width: 22px; height: 1px; background: hsl(var(--border)); transition: background 0.3s; }
 .lw .lw-connector.is-lit { background: hsl(var(--primary) / 0.55); }
+/* The step that ends a wrapped row (measured in the component) keeps its connector's space so the
+   row stays centred, but doesn't show a line trailing off the edge. */
+.lw .lw-step-wrap.is-row-end .lw-connector { visibility: hidden; }
 
 /* ---- stage: illustration + copy ---------------------------------------------------------- */
 .lw .lw-stage {

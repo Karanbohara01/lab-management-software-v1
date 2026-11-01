@@ -65,6 +65,29 @@ export function AnimatedWorkflow() {
     });
   }, [active, reduced]);
 
+  // Where the wrapping list breaks into rows, the connector after a row's last step would trail
+  // off into nothing. CSS can't see a flex wrap, so measure it: a step whose successor sits lower
+  // ends a row. Re-measured whenever the list's size changes (viewport, fonts loading).
+  const [rowEnds, setRowEnds] = useState<ReadonlySet<number>>(() => new Set());
+  useEffect(() => {
+    const list = stepsRef.current;
+    if (!list) return;
+    const measure = () => {
+      const items = Array.from(list.children) as HTMLElement[];
+      const ends = new Set<number>();
+      items.forEach((item, i) => {
+        const next = items[i + 1];
+        if (next && next.offsetTop > item.offsetTop) ends.add(i);
+      });
+      setRowEnds((prev) => (prev.size === ends.size && [...ends].every((i) => prev.has(i)) ? prev : ends));
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, []);
+
   const Scene = SCENES[active];
   const title = WORKFLOW_STEPS[active];
 
@@ -80,7 +103,7 @@ export function AnimatedWorkflow() {
 
       <ol className="lw-steps" ref={stepsRef}>
         {WORKFLOW_STEPS.map((step, i) => (
-          <li className="lw-step-wrap" key={step}>
+          <li className={cn('lw-step-wrap', rowEnds.has(i) && 'is-row-end')} key={step}>
             <button
               type="button"
               className={cn('lw-step', i === active && 'is-active', i < active && 'is-done')}
