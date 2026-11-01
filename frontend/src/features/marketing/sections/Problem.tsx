@@ -10,7 +10,9 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react';
+import { cn } from '@/lib/cn';
 import { Section } from '../components/primitives';
+import { TYPE } from '../components/typography';
 import { Reveal } from '../components/Reveal';
 import { Photo } from '../components/Photo';
 import { CONNECTED_WORKFLOW, IMAGES, TRADITIONAL_WORKFLOW } from '../data';
@@ -31,10 +33,10 @@ export function Problem() {
       <div className="grid gap-10 lg:grid-cols-[1.15fr_1fr] lg:items-end lg:gap-14">
         <div>
           <Reveal>
-            <h2 className="max-w-3xl text-balance text-4xl font-extrabold leading-[1.1] tracking-tight text-foreground sm:text-5xl">
+            <h2 className="max-w-3xl text-balance text-display-2 text-foreground">
               Laboratory operations shouldn&apos;t depend on <span className="text-primary">disconnected systems.</span>
             </h2>
-            <p className="mt-5 max-w-xl text-pretty text-base leading-relaxed text-muted sm:text-lg">
+            <p className="mt-5 max-w-xl text-pretty text-lead text-muted">
               Most labs run on a patchwork of registers, spreadsheets, a billing package and a reporting tool that
               don&apos;t talk to each other. The cost is time, errors and lost revenue.
             </p>
@@ -65,7 +67,7 @@ export function Problem() {
                 <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${tone}`}>
                   <Icon className="h-6 w-6" aria-hidden />
                 </span>
-                <span className="flex-1 text-base font-medium text-foreground">{text}</span>
+                <span className="flex-1 text-body font-medium text-foreground">{text}</span>
                 <X className="h-5 w-5 shrink-0 text-red-500" aria-hidden />
               </li>
             ))}
@@ -76,10 +78,10 @@ export function Problem() {
       <Reveal delay={120}>
         <div className="mt-12 grid gap-6 md:grid-cols-[1fr_auto_1fr] md:items-center">
           <div className="rounded-xl border border-border bg-surface p-5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted">Traditional workflow</p>
+            <p className={cn(TYPE.label, 'text-muted')}>Traditional workflow</p>
             <ul className="mt-3 space-y-2">
               {TRADITIONAL_WORKFLOW.map((s) => (
-                <li key={s} className="flex items-center gap-2 text-sm text-muted">
+                <li key={s} className="flex items-center gap-2 text-body-sm text-muted">
                   <span className="h-1.5 w-1.5 rounded-full bg-slate-300" aria-hidden />
                   {s}
                 </li>
@@ -94,10 +96,10 @@ export function Problem() {
           </div>
 
           <div className="rounded-xl border border-primary/30 bg-primary/[0.04] p-5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-primary">Connected workflow</p>
+            <p className={cn(TYPE.label, 'text-primary')}>Connected workflow</p>
             <ul className="mt-3 space-y-2">
               {CONNECTED_WORKFLOW.map((s) => (
-                <li key={s} className="flex items-center gap-2 text-sm text-foreground">
+                <li key={s} className="flex items-center gap-2 text-body-sm text-foreground">
                   <Check className="h-4 w-4 shrink-0 text-primary" aria-hidden />
                   {s}
                 </li>

@@ -1,33 +1,10 @@
 /*
- * A larger type scale for the public marketing pages.
- *
- * The app's Tailwind scale is tuned for the dense dashboard (text-base is 14px, text-sm 13px,
- * text-xs 12px), which reads small on a landing page — measured, over half the body text was under
- * 14px. This lifts those four sizes for the page content and the footer only. The navbar, the
- * dashboard and the product mock-ups (which imitate the real app) keep the app's sizes.
- *
- *   utility     app     marketing
- *   text-xs     12px    13px
- *   text-sm     13px    15px
- *   text-base   14px    16px
- *   text-lg     16px    18px      (also at the sm: breakpoint, for the lead paragraphs)
- *
- * Font size only — line-height stays with each element's own `leading-*`. :where() keeps the
- * specificity equal to the utilities this replaces (it wins on order, as this loads after them),
- * and the mock-up resets below are more specific on purpose so they always win.
- */
-:where(.marketing-type) :where(main, footer) .text-xs { font-size: 0.8125rem; }
-:where(.marketing-type) :where(main, footer) .text-sm { font-size: 0.9375rem; }
-:where(.marketing-type) :where(main, footer) .text-base { font-size: 1rem; }
-:where(.marketing-type) :where(main, footer) .text-lg { font-size: 1.125rem; }
-@media (min-width: 640px) {
-  :where(.marketing-type) :where(main, footer) .sm\:text-lg { font-size: 1.125rem; }
-}
-
-/*
- * The product mock-ups imitate the app, so they stay a step smaller than the page text around
- * them — but only a step: at the app's own sizes (12/13/14/16px) they were too small to read on a
- * landing page. xs 13, sm 14, base 15, lg 17.
+ * The product mock-ups on the marketing pages imitate the real app, so they stay on the app's
+ * dense type scale — lifted one step (xs 13, sm 14, base 15, lg 17) because at the app's own
+ * sizes (12/13/14/16) they were too small to read on a landing page. Everything else on these
+ * pages uses the semantic tokens in tailwind.config.js (text-display-*, text-lead, text-body, …),
+ * which carry their own size/leading/weight, so no other context-dependent remapping exists.
+ * :is() gives these rules enough specificity to beat the utilities regardless of source order.
  */
 :where(.marketing-type) :is(.mock-ui, .mock-root) .text-xs { font-size: 0.8125rem; }
 :where(.marketing-type) :is(.mock-ui, .mock-root) .text-sm { font-size: 0.875rem; }

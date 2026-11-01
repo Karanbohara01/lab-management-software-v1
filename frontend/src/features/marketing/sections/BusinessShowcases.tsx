@@ -1,5 +1,5 @@
-import { Check } from 'lucide-react';
-import { Section, SectionHeading } from '../components/primitives';
+import { CheckBullet, Section, SectionHeading } from '../components/primitives';
+import { TYPE } from '../components/typography';
 import { Showcase } from '../components/Showcase';
 import { Reveal } from '../components/Reveal';
 import { MockBadge, MockShell, MockStat, MockStatGrid, MockTable, MockWindow } from '../components/MockUI';
@@ -12,7 +12,7 @@ function BillingMock() {
       <div className="p-4 text-[13px]">
         <div className="flex items-center justify-between">
           <div>
-            <p className="font-mono font-semibold text-foreground">INV-2082/83-000124</p>
+            <p className="font-mono font-medium text-foreground">INV-2082/83-000124</p>
             <p className="text-muted">Sita Rai · P000242 · 07 Sep 2026</p>
           </div>
           <span className="flex gap-1.5">
@@ -87,7 +87,7 @@ function EbillingMock() {
 
         <div className="mt-4 rounded-lg border border-border p-3 text-[13px]">
           <div className="flex items-center justify-between">
-            <span className="font-mono font-semibold text-foreground">INV-2082/83-000124</span>
+            <span className="font-mono font-medium text-foreground">INV-2082/83-000124</span>
             <MockBadge tone="success">● Accepted</MockBadge>
           </div>
           <p className="mt-1 text-muted">Submitted 07 Sep 2026 — 10:42 AM · reference CBMS-99A2F</p>
@@ -190,24 +190,24 @@ export function AnalyticsSection() {
       <Reveal delay={80}>
         <div className="mx-auto mt-14 grid max-w-5xl gap-5 sm:grid-cols-2">
           <div className="rounded-2xl border border-border bg-background p-6">
-            <p className="text-lg font-bold text-foreground">Test volume by department</p>
+            <h3 className={TYPE.h4}>Test volume by department</h3>
             <ul className="mt-5 space-y-4">
               {bars.map((b) => (
-                <li key={b.label} className="text-sm">
-                  <div className="flex justify-between text-muted"><span className="font-medium text-foreground">{b.label}</span><span className="font-semibold">{b.v}</span></div>
+                <li key={b.label} className="text-body-sm">
+                  <div className="flex justify-between text-muted"><span className="font-medium text-foreground">{b.label}</span><span className="font-medium tabular-nums">{b.v}</span></div>
                   <div className="mt-1.5 h-2.5 rounded-full bg-surface-muted"><div className="h-2.5 rounded-full bg-primary" style={{ width: `${b.v}%` }} /></div>
                 </li>
               ))}
             </ul>
           </div>
           <div className="rounded-2xl border border-border bg-background p-6">
-            <p className="text-lg font-bold text-foreground">Revenue trend · 30 days</p>
+            <h3 className={TYPE.h4}>Revenue trend · 30 days</h3>
             <div className="mt-5 flex h-48 items-end gap-1">
               {Array.from({ length: 30 }).map((_, i) => (
                 <span key={i} className="flex-1 rounded-t bg-primary/60" style={{ height: `${20 + ((i * 53) % 80)}%` }} />
               ))}
             </div>
-            <p className="mt-3 text-sm font-medium text-muted">Total collected: NPR 1.9M</p>
+            <p className="mt-3 text-body-sm font-medium tabular-nums text-muted">Total collected: NPR 1.9M</p>
           </div>
         </div>
       </Reveal>
@@ -275,14 +275,9 @@ export function AuditSection() {
             title="Give every team member the right level of access — and keep every action traceable."
             lead="Sign-in per user, roles that map to real jobs, and permissions enforced on the server for every request. Sensitive actions are written to an append-only audit log with a before-and-after record."
           />
-          <ul className="mt-7 grid gap-3.5 text-[17px] font-medium text-foreground sm:grid-cols-2">
+          <ul className="mt-8 grid gap-3.5 sm:grid-cols-2">
             {['Role-based permissions', 'User management', 'Protected report access', 'Audit log with change history', 'Secure authentication', 'Failed-login lockout'].map((x) => (
-              <li key={x} className="flex items-start gap-3 leading-snug">
-                <span className="mt-px flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />
-                </span>
-                {x}
-              </li>
+              <CheckBullet key={x}>{x}</CheckBullet>
             ))}
           </ul>
         </Reveal>

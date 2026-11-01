@@ -1,5 +1,7 @@
 import { MapPin, ShieldCheck, Users } from 'lucide-react';
+import { cn } from '@/lib/cn';
 import { Section, SectionHeading } from '../components/primitives';
+import { TYPE } from '../components/typography';
 import { Reveal } from '../components/Reveal';
 import { PRODUCT_NAME } from '../data';
 
@@ -39,8 +41,8 @@ export function About() {
               <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <p.icon className="h-5 w-5" aria-hidden />
               </span>
-              <h3 className="mt-4 text-base font-semibold text-foreground">{p.title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-muted">{p.body}</p>
+              <h3 className={cn('mt-4', TYPE.h4)}>{p.title}</h3>
+              <p className={cn('mt-1.5', TYPE.bodySm)}>{p.body}</p>
             </div>
           </Reveal>
         ))}

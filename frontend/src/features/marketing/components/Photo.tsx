@@ -90,7 +90,7 @@ export function Photo({
       )}
 
       {failed && (
-        <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-surface/95 to-transparent px-3 pb-2 pt-6 text-[11px] leading-snug text-muted">
+        <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-surface/95 to-transparent px-3 pb-2 pt-6 text-caption text-muted">
           <span className="line-clamp-2">{alt}</span>
         </figcaption>
       )}

@@ -1,5 +1,5 @@
 import { Reveal } from '../components/Reveal';
-import { AnchorButton } from '../components/primitives';
+import { AnchorButton, Eyebrow } from '../components/primitives';
 import { RequestDemoButton } from '../components/RequestDemo';
 import { SCIENCE_TEXTURE } from '../components/Photo';
 import { HeroCollage } from '../components/HeroCollage';
@@ -18,13 +18,11 @@ export function Hero() {
       />
       <div className="mx-auto grid max-w-page items-center gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:px-8">
         <Reveal className="min-w-0">
-          <p className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
-            Laboratory information management
-          </p>
-          <h1 className="mt-5 text-balance text-4xl font-semibold leading-[1.1] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+          <Eyebrow>Laboratory information management</Eyebrow>
+          <h1 className="mt-5 max-w-[18ch] text-balance text-display-1 font-bold text-foreground">
             The operating system for modern laboratories.
           </h1>
-          <p className="mt-5 max-w-xl text-pretty text-base leading-relaxed text-muted sm:text-lg">
+          <p className="mt-5 max-w-xl text-pretty text-lead text-muted">
             Manage patients, laboratory orders, samples, results, reports, billing, payments and
             e-Billing workflows from one connected platform.
           </p>
@@ -34,7 +32,7 @@ export function Hero() {
               Explore Platform
             </AnchorButton>
           </div>
-          <p className="mt-6 text-sm text-muted">
+          <p className="mt-6 text-caption text-muted">
             Built for pathology labs, diagnostic centers and hospital laboratories.
           </p>
         </Reveal>

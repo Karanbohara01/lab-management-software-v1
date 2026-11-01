@@ -1,6 +1,5 @@
 import { ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { Section, SectionHeading } from '../components/primitives';
+import { LinkButton, Section, SectionHeading } from '../components/primitives';
 import { Reveal } from '../components/Reveal';
 import { PostGrid } from '../blog/PostCard';
 import { latestPosts } from '../blog/posts';
@@ -22,13 +21,10 @@ export function Blogs() {
           <PostGrid posts={latestPosts(3)} />
         </div>
         <div className="mt-8 flex justify-center">
-          <Link
-            to="/blog"
-            className="inline-flex items-center gap-2 rounded-lg border border-input bg-surface px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
+          <LinkButton to="/blog" variant="secondary" size="lg">
             View all articles
             <ArrowRight className="h-4 w-4" aria-hidden />
-          </Link>
+          </LinkButton>
         </div>
       </Reveal>
     </Section>

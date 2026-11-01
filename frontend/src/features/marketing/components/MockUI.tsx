@@ -97,7 +97,7 @@ export function MockStat({ label, value, hint }: { label: string; value: string;
   return (
     <div className="rounded-lg border border-border bg-surface p-3">
       <p className="text-[13px] leading-tight text-muted">{label}</p>
-      <p className="mt-0.5 text-lg font-semibold text-foreground">{value}</p>
+      <p className="mt-0.5 text-lg font-semibold tabular-nums text-foreground">{value}</p>
       {hint && <p className="text-[13px] text-emerald-600">{hint}</p>}
     </div>
   );
@@ -118,7 +118,7 @@ interface Col {
 export function MockTable({ columns, rows }: { columns: Col[]; rows: ReactNode[][] }) {
   return (
     <div className="overflow-hidden rounded-lg border border-border">
-      <table className="w-full text-left text-xs">
+      <table className="w-full text-left text-xs tabular-nums">
         <thead className="bg-surface-muted/60 text-[12px] uppercase tracking-wide text-muted">
           <tr>
             {columns.map((c) => (

@@ -12,11 +12,13 @@ import { WhatsAppIcon } from './WhatsAppIcon';
 
 const CONTACTS_PANEL_ID = 'team-contacts';
 
+// Nav links share the buttons' type (`text-button`: 15px / 500) so the bar reads as one voice;
+// they sit in the muted ink and step up to the foreground on hover / when current.
 const NAV_LINK =
-  'whitespace-nowrap rounded-md px-3 py-2 text-[15px] font-bold leading-5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+  'whitespace-nowrap rounded-md px-3 py-2 text-button text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 const TOP_LINK =
-  'inline-flex items-center gap-2 rounded-md px-2 py-1 text-base font-bold leading-5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+  'inline-flex items-center gap-2 rounded-md px-2 py-1 text-button text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 /**
  * Contact strip above the main bar (desktop only — the mobile drawer carries the same links).
@@ -248,7 +250,7 @@ export function MarketingNav() {
                     onClick={() => setOpen(false)}
                     aria-current={pathname === item.href ? 'page' : undefined}
                     className={cn(
-                      'block rounded-md px-3 py-3 text-lg font-bold text-foreground hover:bg-surface-muted',
+                      'block rounded-md px-3 py-3 text-body-lg font-medium text-foreground hover:bg-surface-muted',
                       pathname === item.href && 'bg-surface-muted',
                     )}
                   >
@@ -264,14 +266,14 @@ export function MarketingNav() {
                 href={CONTACT_WHATSAPP.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 rounded-md px-3 py-3 text-base font-medium text-foreground hover:bg-surface-muted"
+                className="flex items-center gap-3 rounded-md px-3 py-3 text-body font-medium text-foreground hover:bg-surface-muted"
               >
                 <WhatsAppIcon className="h-5 w-5 text-[#25D366]" />
                 {CONTACT_WHATSAPP.display}
               </a>
               <a
                 href={CONTACT_PHONE.href}
-                className="flex items-center gap-3 rounded-md px-3 py-3 text-base font-medium text-foreground hover:bg-surface-muted"
+                className="flex items-center gap-3 rounded-md px-3 py-3 text-body font-medium text-foreground hover:bg-surface-muted"
               >
                 <Phone className="h-5 w-5" aria-hidden />
                 {CONTACT_PHONE.display}

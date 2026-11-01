@@ -4,6 +4,7 @@ import { cn } from '@/lib/cn';
 import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 import { FEATURES } from '../data';
 import { FeatureIcon } from './FeatureIcon';
+import { TYPE } from './typography';
 
 /** Drift speed while auto-scrolling. */
 const SPEED_PX_PER_SEC = 40;
@@ -176,8 +177,8 @@ export function FeatureMarquee() {
                 )}
               >
                 <FeatureIcon src={feature.image} className="h-14 w-14" imgClassName="h-11 w-11" />
-                <h3 className="mt-4 text-base font-semibold text-foreground">{feature.title}</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-muted">{feature.description}</p>
+                <h3 className={cn('mt-4', TYPE.h4)}>{feature.title}</h3>
+                <p className={cn('mt-1.5', TYPE.bodySm)}>{feature.description}</p>
               </li>
             ))}
           </ul>
@@ -189,7 +190,7 @@ export function FeatureMarquee() {
           <button
             type="button"
             onClick={() => setPausedByUser((p) => !p)}
-            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-caption font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {pausedByUser ? <Play className="h-3.5 w-3.5" aria-hidden /> : <Pause className="h-3.5 w-3.5" aria-hidden />}
             {pausedByUser ? 'Play auto-scroll' : 'Pause auto-scroll'}

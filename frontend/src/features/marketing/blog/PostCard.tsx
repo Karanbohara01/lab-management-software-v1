@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom';
+import { cn } from '@/lib/cn';
+import { TYPE } from '../components/typography';
 import { formatPostDate, readingMinutes, type Post } from './posts';
 
 /** One post as a card: illustration, category, title, excerpt, date and reading time. The whole card is the link. */
@@ -21,12 +23,10 @@ export function PostCard({ post }: { post: Post }) {
         />
       </div>
       <div className="flex flex-1 flex-col p-5">
-        <span className="text-xs font-semibold uppercase tracking-wider text-primary">{post.category}</span>
-        <h3 className="mt-2 text-lg font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">
-          {post.title}
-        </h3>
-        <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">{post.excerpt}</p>
-        <p className="mt-4 text-xs text-muted">
+        <span className={cn(TYPE.label, 'text-primary')}>{post.category}</span>
+        <h3 className={cn('mt-2 text-balance transition-colors group-hover:text-primary', TYPE.h4)}>{post.title}</h3>
+        <p className={cn('mt-2 flex-1', TYPE.bodySm)}>{post.excerpt}</p>
+        <p className={cn('mt-4', TYPE.caption)}>
           {formatPostDate(post.date)} · {readingMinutes(post)} min read
         </p>
       </div>
@@ -54,11 +54,11 @@ export function PostRow({ post }: { post: Post }) {
         />
       </span>
       <span className="min-w-0">
-        <span className="block text-xs font-semibold uppercase tracking-wider text-primary">{post.category}</span>
-        <span className="mt-0.5 block text-sm font-semibold leading-snug text-foreground transition-colors group-hover:text-primary">
+        <span className={cn('block', TYPE.label, 'text-primary')}>{post.category}</span>
+        <span className="mt-0.5 block text-body-sm font-semibold text-foreground transition-colors group-hover:text-primary">
           {post.title}
         </span>
-        <span className="mt-1 block text-xs text-muted">
+        <span className={cn('mt-1 block', TYPE.caption)}>
           {formatPostDate(post.date)} · {readingMinutes(post)} min read
         </span>
       </span>

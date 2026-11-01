@@ -29,6 +29,15 @@
         } catch (e) {}
       })();
     </script>
+    <!-- Fonts are requested from here rather than an @import inside the bundled CSS, so the browser
+         discovers them one round-trip earlier. Inter is requested with its optical-size axis so large
+         headings get the display cut instead of the text cut scaled up. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
     <title>Pathology Management Software | LIMS</title>
     <meta
       name="description"

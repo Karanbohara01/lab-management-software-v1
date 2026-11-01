@@ -1,6 +1,6 @@
 import { ArrowRight } from 'lucide-react';
 import { Reveal } from '../components/Reveal';
-import { AnchorButton, LinkButton, SALES_MAILTO } from '../components/primitives';
+import { AnchorButton, LinkButton, SALES_MAILTO, SectionHeading } from '../components/primitives';
 import { SCIENCE_TEXTURE } from '../components/Photo';
 
 export function FinalCta() {
@@ -19,22 +19,21 @@ export function FinalCta() {
               style={{ backgroundImage: SCIENCE_TEXTURE }}
             />
             <div className="relative">
-            <h2 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-              Ready to modernize your laboratory?
-            </h2>
-            <p className="mx-auto mt-4 max-w-xl text-pretty text-base leading-relaxed text-muted">
-              Connect patients, samples, results, reports, billing, payments and daily laboratory
-              operations in one platform.
-            </p>
-            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-              <LinkButton to="/signup" size="lg">
-                Start free trial
-                <ArrowRight className="h-4 w-4" aria-hidden />
-              </LinkButton>
-              <AnchorButton href={SALES_MAILTO} variant="secondary" size="lg">
-                Talk to Sales
-              </AnchorButton>
-            </div>
+              <SectionHeading
+                align="center"
+                title="Ready to modernize your laboratory?"
+                lead="Connect patients, samples, results, reports, billing, payments and daily laboratory operations in one platform."
+                className="max-w-xl"
+              />
+              <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+                <LinkButton to="/signup" size="lg">
+                  Start free trial
+                  <ArrowRight className="h-4 w-4" aria-hidden />
+                </LinkButton>
+                <AnchorButton href={SALES_MAILTO} variant="secondary" size="lg">
+                  Talk to Sales
+                </AnchorButton>
+              </div>
             </div>
           </div>
         </Reveal>

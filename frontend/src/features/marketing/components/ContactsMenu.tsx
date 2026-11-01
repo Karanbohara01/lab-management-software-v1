@@ -18,7 +18,7 @@ function initials(name: string): string {
 export function ContactAvatar({ contact }: { contact: TeamContact }) {
   const [failed, setFailed] = useState(false);
   return (
-    <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-base font-bold text-primary ring-2 ring-primary/25">
+    <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-body font-semibold text-primary ring-2 ring-primary/25">
       {failed ? (
         <span aria-hidden>{initials(contact.name)}</span>
       ) : (
@@ -39,7 +39,7 @@ export function ContactAvatar({ contact }: { contact: TeamContact }) {
 }
 
 const NUMBER_LINK =
-  'inline-flex items-center gap-2.5 whitespace-nowrap rounded-md py-1 text-[16px] font-semibold text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+  'inline-flex items-center gap-2.5 whitespace-nowrap rounded-md py-1 text-body font-medium text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 /** One row per person: portrait and name, a WhatsApp number and a phone number. */
 export function ContactList() {
@@ -52,7 +52,7 @@ export function ContactList() {
         >
           <div className="flex min-w-0 items-center gap-4">
             <ContactAvatar contact={contact} />
-            <span className="text-[16px] font-medium leading-snug text-foreground/80">{contact.name}</span>
+            <span className="text-body font-medium text-foreground/80">{contact.name}</span>
           </div>
           <a
             href={`https://wa.me/${contact.digits}`}

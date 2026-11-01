@@ -15,10 +15,10 @@ export function MarketingFooter() {
               <BrandMark className="h-9" />
               <BrandWordmark className="h-6" />
             </Link>
-            <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted">
+            <p className="mt-4 max-w-xs text-pretty text-body-sm text-muted">
               The connected platform for pathology labs, diagnostic centers and hospital laboratories.
             </p>
-            <ul className="mt-4 space-y-2 text-sm text-muted">
+            <ul className="mt-4 space-y-2 text-body-sm text-muted">
               <li className="flex items-center gap-2"><Mail className="h-4 w-4" aria-hidden /> hello@labos.example</li>
               <li className="flex items-center gap-2"><Phone className="h-4 w-4" aria-hidden /> +977 1 4000000</li>
               <li className="flex items-center gap-2"><MapPin className="h-4 w-4" aria-hidden /> Kathmandu, Nepal</li>
@@ -27,11 +27,11 @@ export function MarketingFooter() {
 
           {FOOTER_COLUMNS.map((col) => (
             <div key={col.heading}>
-              <h3 className="text-sm font-semibold text-foreground">{col.heading}</h3>
+              <h3 className="text-body-sm font-semibold text-foreground">{col.heading}</h3>
               <ul className="mt-3 space-y-2">
                 {col.links.map((link) => (
                   <li key={link}>
-                    <a href="#" className="text-sm text-muted transition-colors hover:text-foreground">
+                    <a href="#" className="text-body-sm text-muted transition-colors hover:text-foreground">
                       {link}
                     </a>
                   </li>
@@ -41,7 +41,7 @@ export function MarketingFooter() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 text-xs text-muted sm:flex-row">
+        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 text-caption text-muted sm:flex-row">
           <p>© {new Date().getFullYear()} {PRODUCT_NAME}. All rights reserved.</p>
           <p className="flex gap-4">
             <a href="#" className="hover:text-foreground">Privacy</a>

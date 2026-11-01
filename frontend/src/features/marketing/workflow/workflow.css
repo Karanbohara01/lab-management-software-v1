@@ -4,7 +4,7 @@
  *
  * Colours and type follow the site tokens: the brand blue and green are the logo's navy and teal on
  * the public pages (see `html.theme-lims` in index.css), the neutrals are the page's own foreground /
- * muted / border / surface, and the typeface is inherited (Nunito on the marketing pages) — so the
+ * muted / border / surface, and the typeface is inherited (Inter, the page font) — so the
  * widget reads as part of the page rather than a design pasted into it. Only the scenes keep a few
  * literal colours (tube red, printer slate) because those are illustration, not UI.
  */
@@ -84,14 +84,17 @@
 @keyframes lw-scene-in { 0% { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: none; } }
 .lw .lw-info { animation: lw-info-in 0.55s cubic-bezier(0.2, 0.8, 0.2, 1); }
 @keyframes lw-info-in { 0% { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
-.lw .lw-kicker { color: var(--lw-blue); font-weight: 700; font-size: 12.5px; letter-spacing: 0.08em; text-transform: uppercase; }
-.lw .lw-title { font-size: 28px; font-weight: 700; letter-spacing: -0.015em; margin: 8px 0 10px; line-height: 1.2; color: var(--lw-ink); }
-.lw .lw-desc { color: var(--lw-muted); font-size: 16px; line-height: 1.6; margin: 0 0 20px; }
+/* These mirror the page's type tokens (tailwind.config.js): kicker = label, title = heading-2,
+   description = body, controls = button, "Next" = caption — so the widget's copy matches the
+   sections around it even though it's styled in plain CSS. */
+.lw .lw-kicker { color: var(--lw-blue); font-weight: 600; font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; }
+.lw .lw-title { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.01em; margin: 8px 0 10px; line-height: 1.3; color: var(--lw-ink); text-wrap: balance; }
+.lw .lw-desc { color: var(--lw-muted); font-size: 1rem; line-height: 1.5; margin: 0 0 20px; text-wrap: pretty; }
 .lw .lw-overall { height: 4px; background: var(--lw-line); border-radius: 99px; overflow: hidden; margin-bottom: 20px; }
 .lw .lw-overall span { display: block; height: 100%; background: var(--lw-blue); border-radius: 99px; transition: width 0.6s ease; }
 .lw .lw-controls { display: flex; gap: 8px; flex-wrap: wrap; }
 .lw .lw-controls button {
-  font: inherit; font-size: 14.5px; font-weight: 600; height: 40px; border: 1px solid var(--lw-line); background: var(--lw-card); color: var(--lw-ink);
+  font: inherit; font-size: 0.9375rem; font-weight: 500; letter-spacing: -0.005em; height: 40px; border: 1px solid var(--lw-line); background: var(--lw-card); color: var(--lw-ink);
   border-radius: 10px; padding: 0 16px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   transition: background 0.2s, border-color 0.2s, color 0.2s;
 }
@@ -101,7 +104,7 @@
 .lw .lw-controls .lw-icon-btn:hover { color: var(--lw-ink); background: var(--lw-blue-50); }
 .lw .lw-controls .lw-play { background: var(--lw-blue); color: hsl(var(--primary-foreground)); border-color: var(--lw-blue); min-width: 108px; }
 .lw .lw-controls .lw-play:hover { background: hsl(var(--primary) / 0.9); }
-.lw .lw-next { margin-top: 14px; font-size: 13px; color: var(--lw-muted); }
+.lw .lw-next { margin-top: 14px; font-size: 0.8125rem; color: var(--lw-muted); }
 
 /* ---- shared scene pieces ----------------------------------------------------------------- */
 .lw .lw-card { width: 82%; max-width: 400px; background: var(--lw-card); border-radius: 14px; padding: 16px 18px; box-shadow: 0 10px 30px -12px rgb(15 23 42 / 0.25); font-size: 13.5px; }
@@ -109,7 +112,7 @@
 .lw .lw-col { display: flex; flex-direction: column; }
 .lw .lw-center { display: flex; align-items: center; justify-content: center; flex-direction: column; width: 100%; height: 100%; position: relative; gap: 14px; }
 .lw .lw-label { color: var(--lw-muted); font-size: 12px; }
-.lw .lw-mono { font-family: ui-monospace, Menlo, monospace; font-weight: 600; color: var(--lw-blue); }
+.lw .lw-mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-weight: 500; color: var(--lw-blue); }
 .lw .lw-avatar { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--lw-blue); color: hsl(var(--primary-foreground)); font-weight: 700; }
 .lw .lw-field { display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 8px; margin-top: 8px; }
 .lw .lw-input { height: 28px; border: 1px solid var(--lw-line); border-radius: 7px; display: flex; align-items: center; padding: 0 8px; overflow: hidden; }
