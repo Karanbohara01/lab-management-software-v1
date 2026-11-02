@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/toast';
@@ -8,11 +7,12 @@ import { ApiError } from '@/types/api';
 import { reportsApi } from '@/features/reports/api';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
+import { useNavigateFrom } from '@/lib/navigation';
 import { QueueShell } from './QueueShell';
 
 /** Pathologist worklist: generated reports waiting on an electronic signature. */
 export function ReportsToRelease() {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
   const toast = useToast();
   const [busyId, setBusyId] = useState<number | null>(null);

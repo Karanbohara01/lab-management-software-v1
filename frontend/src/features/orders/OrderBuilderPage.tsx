@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Trash2, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useParams, useSearchParams } from 'react-router-dom';
+import { Trash2, X } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -12,6 +12,8 @@ import { Alert } from '@/components/ui/Alert';
 import { LoadingState } from '@/components/ui/PageState';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useScrollToTopOnError } from '@/hooks/useScrollToTopOnError';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
+import { useBackTarget, useNavigateFrom } from '@/lib/navigation';
 import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/types/api';
 import { formatMoney } from '@/lib/money';
@@ -60,7 +62,9 @@ export function OrderBuilderPage() {
   const { id } = useParams<{ id: string }>();
   const isEdit = !!id;
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
+  const location = useLocation();
+  const { back } = useBackTarget();
   const toast = useToast();
   const { user } = useAuth();
   const isBranchScoped = !!user?.homeBranchId;
@@ -173,6 +177,19 @@ export function OrderBuilderPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  /**
+   * This form is plain state, so there's no `isDirty` to read: compare what's on screen against
+   * the snapshot taken once loading finished (an empty form, the order being edited, or whatever
+   * a patient/appointment preset filled in). Anything the user changed after that is unsaved work.
+   */
+  const snapshot = JSON.stringify({ patient: patient?.id ?? null, branchId, referringDoctorId, clinicalNotes, priority, rows, discountType, discountValue, taxRate });
+  const baseline = useRef<string | null>(null);
+  useEffect(() => {
+    if (!loading && baseline.current === null) baseline.current = snapshot;
+  }, [loading, snapshot]);
+  const isDirty = baseline.current !== null && snapshot !== baseline.current;
+  const { allowNextNavigation, dialog: unsavedDialog } = useUnsavedChanges(isDirty);
+
   // ---- pricing preview (debounced) --------------------------------
   const priceInputs = useMemo(
     () => ({
@@ -240,7 +257,10 @@ export function OrderBuilderPage() {
         }
       }
 
-      navigate(`/app/orders/${saved.id}`);
+      // The order is saved, so the unsaved-changes guard mustn't challenge this. Replace, so Back
+      // from the order skips this builder and returns to wherever the user started.
+      allowNextNavigation();
+      navigate(`/app/orders/${saved.id}`, { replace: true, state: location.state });
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : 'Unable to save the order');
     } finally {
@@ -252,11 +272,18 @@ export function OrderBuilderPage() {
 
   return (
     <>
-      <Link to="/app/orders" className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        Lab orders
-      </Link>
-      <PageHeader title={isEdit ? 'Edit draft order' : 'New lab order'} />
+      {unsavedDialog}
+      <PageHeader
+        back={back}
+        title={isEdit ? 'Edit draft order' : 'New lab order'}
+        actions={
+          // This form had no way out but the back link, which always went to the orders list even
+          // when the user arrived from a patient or an appointment.
+          <Button variant="secondary" type="button" onClick={() => navigate(back.href)}>
+            Cancel
+          </Button>
+        }
+      />
 
       {formError && (
         <div className="mb-4">

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { ChevronDown, ChevronsLeft, ChevronsRight, Search, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useAuth } from '@/features/auth/useAuth';
@@ -38,9 +38,9 @@ export function SidebarContent({
   const { hasAnyPermission } = useAuth();
   const leaf = useLeafHandle();
   /**
-   * The pages above the current one. Several pages live under a section they don't share a URL
-   * prefix with (Users sits under Control center), and NavLink only knows about prefixes — so the
-   * section stays lit by matching any ancestor too.
+   * The current page and everything above it. Several pages live under a section they don't share
+   * a URL prefix with (Users sits under Control center), so a path prefix alone can't say which
+   * item to light — the route's own ancestor chain can.
    */
   const ancestorHrefs = useMemo(
     () =>
@@ -49,6 +49,17 @@ export function SidebarContent({
       ),
     [leaf],
   );
+  const { pathname } = useLocation();
+  /**
+   * Which nav item is "where I am". The route's own chain settles it for every listed page; the
+   * path-prefix fallback covers anything not in appRoutes.ts. Dashboard is exact — it is every
+   * page's last ancestor, and lighting it everywhere would say nothing.
+   */
+  const isItemActive = (to: string) => {
+    if (to === '/app') return pathname === '/app';
+    if (ancestorHrefs.has(to)) return true;
+    return pathname === to || pathname.startsWith(`${to}/`);
+  };
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(readCollapsedSections);
   const [query, setQuery] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
@@ -171,64 +182,56 @@ export function SidebarContent({
                 <ul className="space-y-0.5">
                   {items.map((item) => {
                     const match = !collapsed ? splitMatch(item.label, trimmedQuery) : null;
+                    const isActive = isItemActive(item.to);
                     return (
                       <li key={item.to}>
-                        <NavLink
+                        <Link
                           to={item.to}
-                          end={item.to === '/app' || item.to === '/app/platform'}
                           onClick={() => {
                             setQuery('');
                             onNavigate?.();
                           }}
                           title={collapsed ? item.label : undefined}
                           aria-disabled={item.upcoming || undefined}
-                          className={({ isActive }) =>
-                            cn(
-                              'group relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-100',
-                              collapsed && 'justify-center px-0',
-                              isActive || ancestorHrefs.has(item.to)
-                                ? 'bg-primary/10 text-primary'
-                                : 'text-muted-foreground hover:bg-surface-muted hover:text-foreground',
-                              item.upcoming && 'pointer-events-none opacity-50',
-                            )
-                          }
+                          aria-current={isActive ? 'page' : undefined}
+                          className={cn(
+                            'group relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-100',
+                            collapsed && 'justify-center px-0',
+                            isActive
+                              ? 'bg-primary/10 text-primary'
+                              : 'text-muted-foreground hover:bg-surface-muted hover:text-foreground',
+                            item.upcoming && 'pointer-events-none opacity-50',
+                          )}
                         >
-                          {({ isActive: routeActive }) => {
-                            const isActive = routeActive || ancestorHrefs.has(item.to);
-                            return (
+                          <span
+                            className={cn(
+                              'absolute left-0 h-[18px] w-[3px] rounded-full bg-primary transition-opacity duration-100',
+                              isActive ? 'opacity-100' : 'opacity-0',
+                            )}
+                            aria-hidden
+                          />
+                          <item.icon className="h-4 w-4 shrink-0" aria-hidden />
+                          {!collapsed && (
                             <>
-                              <span
-                                className={cn(
-                                  'absolute left-0 h-[18px] w-[3px] rounded-full bg-primary transition-opacity duration-100',
-                                  isActive ? 'opacity-100' : 'opacity-0',
+                              <span className="flex-1 truncate">
+                                {match ? (
+                                  <>
+                                    {match[0]}
+                                    <span className="rounded-sm bg-primary/20 text-foreground">{match[1]}</span>
+                                    {match[2]}
+                                  </>
+                                ) : (
+                                  item.label
                                 )}
-                                aria-hidden
-                              />
-                              <item.icon className="h-4 w-4 shrink-0" aria-hidden />
-                              {!collapsed && (
-                                <>
-                                  <span className="flex-1 truncate">
-                                    {match ? (
-                                      <>
-                                        {match[0]}
-                                        <span className="rounded-sm bg-primary/20 text-foreground">{match[1]}</span>
-                                        {match[2]}
-                                      </>
-                                    ) : (
-                                      item.label
-                                    )}
-                                  </span>
-                                  {item.upcoming && (
-                                    <span className="rounded bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted">
-                                      Soon
-                                    </span>
-                                  )}
-                                </>
+                              </span>
+                              {item.upcoming && (
+                                <span className="rounded bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted">
+                                  Soon
+                                </span>
                               )}
                             </>
-                            );
-                          }}
-                        </NavLink>
+                          )}
+                        </Link>
                       </li>
                     );
                   })}

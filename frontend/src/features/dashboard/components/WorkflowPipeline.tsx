@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { Card } from '@/components/ui/Card';
@@ -6,6 +5,7 @@ import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { SectionHeader } from './SectionHeader';
 import type { DashboardSummary } from '../api';
+import { useNavigateFrom } from '@/lib/navigation';
 
 interface Stage {
   key: string;
@@ -26,7 +26,7 @@ export function WorkflowPipeline({
   samplesCounts: Record<string, number>;
   resultCounts: Record<string, number>;
 }) {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
 
   const stages = ([

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
+import { useBackTarget } from '@/lib/navigation';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -13,6 +14,7 @@ import { departmentsApi, type Department } from './api';
 import { DepartmentFormModal } from './DepartmentFormModal';
 
 export function DepartmentsPage() {
+  const { back } = useBackTarget();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.DEPARTMENT_WRITE);
   const [editing, setEditing] = useState<Department | null>(null);
@@ -34,6 +36,7 @@ export function DepartmentsPage() {
   return (
     <>
       <PageHeader
+        back={back}
         title="Departments"
         description="Laboratory departments group tests, staff and work queues."
         actions={

@@ -1,9 +1,9 @@
-import { Link } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
+import { LinkFrom } from '@/lib/navigation';
 import { resultsApi } from '@/features/results/api';
 import { RESULT_STATUS_LABEL, RESULT_STATUS_TONE } from '@/features/results/types';
 
@@ -23,7 +23,7 @@ export function SampleResultsCard({ sampleId }: { sampleId: number }) {
         <ul className="divide-y divide-border">
           {data.content.map((r) => (
             <li key={r.id}>
-              <Link
+              <LinkFrom
                 to={`/app/results/${r.id}`}
                 className="flex items-center justify-between px-5 py-3 text-sm hover:bg-surface-muted"
               >
@@ -33,7 +33,7 @@ export function SampleResultsCard({ sampleId }: { sampleId: number }) {
                   <span className="font-mono text-xs text-muted">{r.testCode}</span>
                 </span>
                 <Badge tone={RESULT_STATUS_TONE[r.status]}>{RESULT_STATUS_LABEL[r.status]}</Badge>
-              </Link>
+              </LinkFrom>
             </li>
           ))}
         </ul>

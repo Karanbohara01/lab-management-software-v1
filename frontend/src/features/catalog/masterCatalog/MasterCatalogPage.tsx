@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Plus, Library, CheckCircle2, Building2, X } from 'lucide-react';
-import { BackLink } from '@/components/BackLink';
 import { PageHeader } from '@/components/PageHeader';
+import { useBackTarget } from '@/lib/navigation';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -11,7 +11,7 @@ import { DataTable, type Column } from '@/components/ui/DataTable';
 import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { StatTileRow, type StatTileData } from '@/features/dashboard/components/StatTile';
 import { useToast } from '@/components/ui/toast';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useListParams, useSearchInput } from '@/hooks/useListParams';
 import { useQuery } from '@/hooks/useQuery';
 import { formatMoney } from '@/lib/money';
 import { SPECIMEN_LABELS } from '../types';
@@ -19,40 +19,42 @@ import { masterCatalogAdminApi } from './api';
 import { MasterTestFormModal } from './MasterTestFormModal';
 import type { MasterTestDetail, MasterTestListItem } from './types';
 
+/** Lives in the URL, so the view survives a refresh and can be shared, even though it filters client-side. */
+const PARAMS = { q: '', department: '', status: '' };
+
 export function MasterCatalogPage() {
+  const { back } = useBackTarget();
   const toast = useToast();
   const { data, loading, error, refetch } = useQuery(() => masterCatalogAdminApi.list(), []);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<MasterTestDetail | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
 
-  const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 250);
-  const [department, setDepartment] = useState('');
-  const [status, setStatus] = useState('');
+  const { params, set, reset } = useListParams(PARAMS);
+  const [search, setSearch] = useSearchInput(params.q, (q) => set({ q }, { replace: true }), 250);
 
   const departments = useMemo(() => {
-    const set = new Set((data ?? []).map((t) => t.departmentName));
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
+    const names = new Set((data ?? []).map((t) => t.departmentName));
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
   }, [data]);
 
   const filtered = useMemo(() => {
     if (!data) return [];
-    const q = debouncedSearch.trim().toLowerCase();
+    const q = params.q.trim().toLowerCase();
     return data.filter((t) => {
-      if (department && t.departmentName !== department) return false;
-      if (status === 'active' && !t.active) return false;
-      if (status === 'hidden' && t.active) return false;
+      if (params.department && t.departmentName !== params.department) return false;
+      if (params.status === 'active' && !t.active) return false;
+      if (params.status === 'hidden' && t.active) return false;
       if (q && !t.name.toLowerCase().includes(q) && !t.code.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [data, debouncedSearch, department, status]);
+  }, [data, params.q, params.department, params.status]);
 
-  const hasFilters = !!(search || department || status);
+  const hasFilters = !!(search || params.department || params.status);
   const clearFilters = () => {
+    // The search box holds its own text while typing, so clearing the URL alone would leave it filled.
     setSearch('');
-    setDepartment('');
-    setStatus('');
+    reset();
   };
 
   const stats: StatTileData[] = data
@@ -124,8 +126,8 @@ export function MasterCatalogPage() {
 
   return (
     <>
-      <BackLink to="/app/platform">Back to platform</BackLink>
       <PageHeader
+        back={back}
         title="Master lab catalogue"
         description="Curate a shared library of common tests every clinic can import instead of building from scratch."
         actions={
@@ -162,8 +164,8 @@ export function MasterCatalogPage() {
                       { value: '', label: 'All departments' },
                       ...departments.map((d) => ({ value: d, label: d })),
                     ]}
-                    value={department}
-                    onChange={(e) => setDepartment(e.target.value)}
+                    value={params.department}
+                    onChange={(e) => set({ department: e.target.value })}
                   />
                 </div>
                 <div className="sm:w-40">
@@ -173,8 +175,8 @@ export function MasterCatalogPage() {
                       { value: 'active', label: 'Active' },
                       { value: 'hidden', label: 'Hidden' },
                     ]}
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
+                    value={params.status}
+                    onChange={(e) => set({ status: e.target.value })}
                   />
                 </div>
                 {hasFilters && (

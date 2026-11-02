@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/cn';
@@ -27,17 +27,31 @@ const SIZES: Record<NonNullable<ModalProps['size']>, string> = {
   xl: 'sm:max-w-4xl',
 };
 
+const RequestCloseContext = createContext<(() => void) | null>(null);
+
 /**
- * Gives a modal's own Cancel button the same "are you sure" treatment as Escape and the backdrop.
- * `requestClose` asks when `confirmClose` is set; `onClose` always closes outright (use after a save).
+ * The modal's own "try to close" action, for a Cancel button the call site renders in `footer` (or
+ * anywhere in the body). It asks before discarding when the modal is in `confirmClose` mode, using
+ * the same single prompt Escape and the backdrop use — so a modal never ends up with two of them.
+ * Outside a `Modal` it falls back to a no-op, so a footer can be rendered standalone in a test.
  */
-export function useModalClose(confirmClose: boolean | undefined, onClose: () => void) {
-  const [asking, setAsking] = useState(false);
-  const requestClose = useCallback(() => {
-    if (confirmClose) setAsking(true);
-    else onClose();
-  }, [confirmClose, onClose]);
-  return { asking, setAsking, requestClose };
+export function useModalRequestClose(): () => void {
+  const requestClose = useContext(RequestCloseContext);
+  return requestClose ?? (() => undefined);
+}
+
+/**
+ * The Cancel button for a modal's footer. It routes through the modal's own close request, so a
+ * form with unsaved edits (`confirmClose`) asks before throwing them away — instead of every form
+ * modal repeating that logic. Render it inside `footer`, not around the `Modal`.
+ */
+export function ModalCancelButton({ children = 'Cancel' }: { children?: ReactNode }) {
+  const requestClose = useModalRequestClose();
+  return (
+    <Button variant="secondary" type="button" onClick={requestClose}>
+      {children}
+    </Button>
+  );
 }
 
 export function Modal({
@@ -107,55 +121,57 @@ export function Modal({
   if (!open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <div className="absolute inset-0 bg-foreground/40 animate-fade-in" onClick={requestClose} aria-hidden />
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-title"
-        tabIndex={-1}
-        className={cn(
-          'relative z-10 flex max-h-[92vh] w-full flex-col rounded-t-xl bg-surface shadow-popover animate-fade-in sm:rounded-xl',
-          SIZES[size],
-        )}
-      >
-        <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
-          <div>
-            <h2 id="modal-title" className="text-lg font-semibold text-foreground">
-              {title}
-            </h2>
-            {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}
-          </div>
-          <button
-            type="button"
-            onClick={requestClose}
-            className="rounded-md p-1 text-muted hover:bg-surface-muted hover:text-foreground"
-            aria-label="Close dialog"
-          >
-            <X className="h-5 w-5" aria-hidden />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
-
-        {asking ? (
-          <div className="flex flex-col gap-3 border-t border-border bg-surface-muted/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-foreground">Discard your unsaved changes?</p>
-            <div className="flex shrink-0 justify-end gap-2">
-              <Button variant="secondary" type="button" onClick={() => setAsking(false)}>
-                Keep editing
-              </Button>
-              <Button variant="danger" type="button" onClick={onClose}>
-                Discard
-              </Button>
+    <RequestCloseContext.Provider value={requestClose}>
+      <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+        <div className="absolute inset-0 bg-foreground/40 animate-fade-in" onClick={requestClose} aria-hidden />
+        <div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-title"
+          tabIndex={-1}
+          className={cn(
+            'relative z-10 flex max-h-[92vh] w-full flex-col rounded-t-xl bg-surface shadow-popover animate-fade-in sm:rounded-xl',
+            SIZES[size],
+          )}
+        >
+          <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
+            <div>
+              <h2 id="modal-title" className="text-lg font-semibold text-foreground">
+                {title}
+              </h2>
+              {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}
             </div>
+            <button
+              type="button"
+              onClick={requestClose}
+              className="rounded-md p-1 text-muted hover:bg-surface-muted hover:text-foreground"
+              aria-label="Close dialog"
+            >
+              <X className="h-5 w-5" aria-hidden />
+            </button>
           </div>
-        ) : (
-          footer && <div className="flex justify-end gap-2 border-t border-border px-5 py-4">{footer}</div>
-        )}
+
+          <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
+
+          {asking ? (
+            <div className="flex flex-col gap-3 border-t border-border bg-surface-muted/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-foreground">Discard your unsaved changes?</p>
+              <div className="flex shrink-0 justify-end gap-2">
+                <Button variant="secondary" type="button" onClick={() => setAsking(false)}>
+                  Keep editing
+                </Button>
+                <Button variant="danger" type="button" onClick={onClose}>
+                  Discard
+                </Button>
+              </div>
+            </div>
+          ) : (
+            footer && <div className="flex justify-end gap-2 border-t border-border px-5 py-4">{footer}</div>
+          )}
+        </div>
       </div>
-    </div>,
+    </RequestCloseContext.Provider>,
     document.body,
   );
 }

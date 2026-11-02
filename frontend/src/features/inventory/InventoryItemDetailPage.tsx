@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Minus, Pencil, PackagePlus, Trash2 } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Minus, Pencil, PackagePlus, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/Badge';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
+import { useBackTarget } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
@@ -19,6 +20,7 @@ import { CATEGORY_LABEL, STOCK_STATUS_LABEL, STOCK_STATUS_TONE, type InventoryBa
 
 export function InventoryItemDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { back } = useBackTarget();
   const toast = useToast();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.INVENTORY_WRITE);
@@ -54,12 +56,8 @@ export function InventoryItemDetailPage() {
 
   return (
     <>
-      <Link to="/app/inventory" className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        Inventory
-      </Link>
-
       <PageHeader
+        back={back}
         title={item.name}
         description={`${item.code} · ${CATEGORY_LABEL[item.category]}${item.departmentName ? ` · ${item.departmentName}` : ''}`}
         actions={

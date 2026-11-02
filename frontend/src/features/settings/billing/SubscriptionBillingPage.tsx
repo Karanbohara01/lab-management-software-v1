@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { Check } from 'lucide-react';
-import { BackLink } from '@/components/BackLink';
 import { PageHeader } from '@/components/PageHeader';
+import { useBackTarget } from '@/lib/navigation';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -144,6 +144,8 @@ function dt(iso: string): string {
  * PlatformEsewaClient javadoc for why that distinction matters).
  */
 export function SubscriptionBillingPage() {
+  const { back } = useBackTarget();
+  const location = useLocation();
   const { invoiceId } = useParams<{ invoiceId?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const toast = useToast();
@@ -171,11 +173,16 @@ export function SubscriptionBillingPage() {
       .catch((err) => toast.error(err instanceof ApiError ? err.message : 'Unable to verify payment'))
       .finally(() => {
         setVerifying(false);
-        setSearchParams((prev) => {
-          const next = new URLSearchParams(prev);
-          next.delete('gatewayResult');
-          return next;
-        }, { replace: true });
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            next.delete('gatewayResult');
+            return next;
+          },
+          // Carry the router state over — without it this rewrite drops the origin and the
+          // "Back to …" link falls back to the static parent.
+          { replace: true, state: location.state },
+        );
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invoiceId]);
@@ -199,8 +206,8 @@ export function SubscriptionBillingPage() {
 
   return (
     <>
-      <BackLink to="/app/settings">Back to settings</BackLink>
       <PageHeader
+        back={back}
         title="Subscription & billing"
         description="Invoices for this clinic's own LIMS subscription."
       />

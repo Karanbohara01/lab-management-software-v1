@@ -10,6 +10,8 @@ import { Alert } from '@/components/ui/Alert';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { useScrollToTopOnError } from '@/hooks/useScrollToTopOnError';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
+import { useBackTarget } from '@/lib/navigation';
 import { publishBranding } from '@/hooks/useBranding';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
@@ -29,6 +31,7 @@ export function LaboratorySettingsPage() {
   const canWrite = hasPermission(PERMISSIONS.SETTINGS_WRITE);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const { back } = useBackTarget();
   const { data, loading, error, refetch } = useQuery(() => settingsApi.getLaboratory(), []);
   const [form, setForm] = useState<LaboratoryProfile | null>(null);
   const [saving, setSaving] = useState(false);
@@ -38,6 +41,10 @@ export function LaboratorySettingsPage() {
   useEffect(() => {
     if (data) setForm(data);
   }, [data]);
+
+  // Edits live in plain state, so "unsaved" is the form differing from what the server returned.
+  const isDirty = !!form && !!data && JSON.stringify(form) !== JSON.stringify(data);
+  const { dialog: unsavedDialog } = useUnsavedChanges(isDirty);
 
   if (loading && !form) return <LoadingState />;
   if (error) return <ErrorState message={error} onRetry={refetch} />;
@@ -73,7 +80,9 @@ export function LaboratorySettingsPage() {
 
   return (
     <>
+      {unsavedDialog}
       <PageHeader
+        back={back}
         title="Laboratory profile"
         description="Identity and letterhead used on generated reports."
         actions={

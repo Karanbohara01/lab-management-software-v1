@@ -1,8 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
   AlertTriangle,
-  ArrowLeft,
   CheckCircle2,
   MessageSquarePlus,
   Save,
@@ -18,6 +17,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
+import { LinkFrom, useBackTarget } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
@@ -44,10 +44,7 @@ const CHOICE_OPTIONS: Partial<Record<ResultValue['dataType'], string[]>> = {
 
 export function ResultEntryPage() {
   const { id } = useParams<{ id: string }>();
-  const [searchParams] = useSearchParams();
-  const fromOrder = searchParams.get('from')?.startsWith('order:')
-    ? searchParams.get('from')!.slice('order:'.length)
-    : null;
+  const { back } = useBackTarget();
   const toast = useToast();
   const { hasPermission } = useAuth();
 
@@ -231,15 +228,8 @@ export function ResultEntryPage() {
 
   return (
     <>
-      <Link
-        to={fromOrder ? `/app/orders/${fromOrder}` : `/app/samples/${result.sampleId}`}
-        className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        {fromOrder ? `Order ${result.orderNumber}` : `Sample ${result.accessionNumber}`}
-      </Link>
-
       <PageHeader
+        back={back}
         title={result.testName}
         description={`${result.testCode} · ${result.departmentName} · Order ${result.orderNumber}`}
         actions={
@@ -263,7 +253,9 @@ export function ResultEntryPage() {
             {result.patientAgeYears != null ? ` · ${result.patientAgeYears}y` : ''}
           </span>
           <span className="mx-2 text-muted">·</span>
-          <span className="font-mono text-xs text-muted">{result.accessionNumber}</span>
+          <LinkFrom to={`/app/samples/${result.sampleId}`} className="font-mono text-xs text-muted hover:underline">
+            {result.accessionNumber}
+          </LinkFrom>
         </p>
       </div>
 

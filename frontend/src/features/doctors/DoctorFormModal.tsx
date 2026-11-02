@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Modal } from '@/components/ui/Modal';
+import { Modal, ModalCancelButton } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
@@ -54,7 +54,7 @@ export function DoctorFormModal({
     handleSubmit,
     reset,
     setError,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: EMPTY });
 
   useEffect(() => {
@@ -112,11 +112,10 @@ export function DoctorFormModal({
       onClose={onClose}
       title={doctor ? 'Edit referring doctor' : 'Add referring doctor'}
       size="lg"
+      confirmClose={isDirty && !isSubmitting}
       footer={
         <>
-          <Button variant="secondary" onClick={onClose} type="button">
-            Cancel
-          </Button>
+          <ModalCancelButton />
           <Button type="submit" form="doctor-form" loading={isSubmitting}>
             {doctor ? 'Save changes' : 'Add doctor'}
           </Button>

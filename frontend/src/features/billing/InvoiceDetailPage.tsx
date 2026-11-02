@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Ban, Banknote, CreditCard, Pencil, Printer, RotateCcw, Send } from 'lucide-react';
+import { useLocation, useParams, useSearchParams } from 'react-router-dom';
+import { Ban, Banknote, CreditCard, Pencil, Printer, RotateCcw, Send } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -9,6 +9,7 @@ import { Alert } from '@/components/ui/Alert';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
+import { LinkFrom, useBackTarget } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
@@ -36,6 +37,8 @@ function dt(iso: string | null): string {
 export function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const { back } = useBackTarget();
   const toast = useToast();
   const { hasPermission } = useAuth();
 
@@ -70,12 +73,17 @@ export function InvoiceDetailPage() {
       .catch((err) => toast.error(err instanceof ApiError ? err.message : 'Unable to verify payment'))
       .finally(() => {
         setVerifyingGateway(false);
-        setSearchParams((prev) => {
-          const next = new URLSearchParams(prev);
-          next.delete('onlinePaymentId');
-          next.delete('gatewayResult');
-          return next;
-        }, { replace: true });
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            next.delete('onlinePaymentId');
+            next.delete('gatewayResult');
+            return next;
+          },
+          // Carry the router state over — without it this rewrite drops the origin and the
+          // "Back to …" link falls back to the invoice list.
+          { replace: true, state: location.state },
+        );
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -131,14 +139,8 @@ export function InvoiceDetailPage() {
   return (
     <>
       <div data-print-hide>
-        <Link
-          to={`/app/orders/${inv.orderId}`}
-          className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-          Order {inv.orderNumber}
-        </Link>
         <PageHeader
+          back={back}
           title={inv.invoiceNumber ?? 'Draft invoice'}
           description={`${inv.patientName} · ${inv.patientMrn}`}
           actions={
@@ -208,7 +210,14 @@ export function InvoiceDetailPage() {
 
       <div className="grid gap-4 lg:grid-cols-3" data-print-hide>
         <Card className="min-w-0 lg:col-span-2">
-          <CardHeader title="Line items" />
+          <CardHeader
+            title="Line items"
+            description={
+              <LinkFrom to={`/app/orders/${inv.orderId}`} className="hover:underline">
+                Order {inv.orderNumber}
+              </LinkFrom>
+            }
+          />
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>

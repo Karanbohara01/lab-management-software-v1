@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Ban, Pencil } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Ban, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -9,6 +9,7 @@ import { Alert } from '@/components/ui/Alert';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
+import { LinkFrom, useBackTarget, useNavigateFrom } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
@@ -29,7 +30,8 @@ import { OrderWorkflow, computeStage, type WorkflowAction } from './OrderWorkflo
 
 export function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
+  const { back } = useBackTarget();
   const toast = useToast();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.LAB_ORDER_WRITE);
@@ -110,7 +112,7 @@ export function OrderDetailPage() {
         );
       case 'enter': {
         const first = results.find((r) => r.status === 'PENDING');
-        if (first) navigate(`/app/results/${first.id}?from=order:${order.id}`);
+        if (first) navigate(`/app/results/${first.id}`);
         return;
       }
       case 'verify':
@@ -242,15 +244,8 @@ export function OrderDetailPage() {
 
   return (
     <>
-      <Link
-        to={`/app/patients/${order.patientId}`}
-        className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        {order.patientName}
-      </Link>
-
       <PageHeader
+        back={back}
         title={`Order ${order.orderNumber}`}
         description={`${order.patientName} · ${order.patientMrn} · placed ${formatDate(order.orderedAt)}`}
         actions={
@@ -328,7 +323,6 @@ export function OrderDetailPage() {
                 onReload={reload}
               />
               <OrderResultsCard
-                orderId={order.id}
                 results={results}
                 busyId={busyRow}
                 onVerify={rowVerify}
@@ -345,7 +339,10 @@ export function OrderDetailPage() {
               <div>
                 <span className="text-muted">Patient</span>
                 <p className="font-medium text-foreground">
-                  {order.patientName} <span className="font-mono text-xs text-muted">{order.patientMrn}</span>
+                  <LinkFrom to={`/app/patients/${order.patientId}`} className="hover:underline">
+                    {order.patientName}
+                  </LinkFrom>{' '}
+                  <span className="font-mono text-xs text-muted">{order.patientMrn}</span>
                 </p>
               </div>
               <div>

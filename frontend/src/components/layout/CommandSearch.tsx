@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { CalendarClock, FileText, FlaskConical, Search, User, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -11,6 +10,7 @@ import { appointmentsApi } from '@/features/appointments/api';
 import { APPOINTMENT_STATUS_LABEL } from '@/features/appointments/types';
 import { samplesApi } from '@/features/samples/api';
 import { ApiError } from '@/types/api';
+import { useNavigateFrom } from '@/lib/navigation';
 
 interface Hit {
   key: string;
@@ -23,7 +23,7 @@ interface Hit {
 
 /** Global "jump to" search: patients, orders and samples in one box — the laboratory's command bar. */
 export function CommandSearch() {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);

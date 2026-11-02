@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
+import { useBackTarget } from '@/lib/navigation';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -13,6 +14,7 @@ import { branchesApi, type Branch } from './api';
 import { BranchFormModal } from './BranchFormModal';
 
 export function BranchesPage() {
+  const { back } = useBackTarget();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.BRANCH_WRITE);
   const [editing, setEditing] = useState<Branch | null>(null);
@@ -35,6 +37,7 @@ export function BranchesPage() {
   return (
     <>
       <PageHeader
+        back={back}
         title="Branches"
         description="Locations and collection centers. Staff with a home branch see only that branch's orders, samples and invoices."
         actions={

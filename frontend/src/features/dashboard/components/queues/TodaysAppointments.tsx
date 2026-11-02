@@ -1,8 +1,8 @@
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { useQuery } from '@/hooks/useQuery';
 import { appointmentsApi } from '@/features/appointments/api';
 import { formatDateTime } from '@/features/patients/format';
+import { useNavigateFrom } from '@/lib/navigation';
 import { QueueShell } from './QueueShell';
 
 function todayBounds(): { from: string; to: string } {
@@ -15,7 +15,7 @@ function todayBounds(): { from: string; to: string } {
 
 /** Front-desk worklist: today's still-scheduled appointments, waiting on the patient to arrive. */
 export function TodaysAppointments() {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { from, to } = todayBounds();
   const { data, loading, error, refetch } = useQuery(
     () => appointmentsApi.list({ status: 'SCHEDULED', scheduledFrom: from, scheduledTo: to, size: 8 }),

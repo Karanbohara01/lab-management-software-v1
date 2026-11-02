@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Plus, Users, GitBranch, CreditCard, CheckCircle2 } from 'lucide-react';
-import { BackLink } from '@/components/BackLink';
 import { PageHeader } from '@/components/PageHeader';
+import { useBackTarget } from '@/lib/navigation';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { ErrorState, EmptyState } from '@/components/ui/PageState';
@@ -15,6 +15,7 @@ import type { Plan } from './types';
 /** Subscription plans offered to clinics — previously fixed at three seeded rows with no way to
  * change a price or add a tier without a migration. Real CRUD now, same as everything else. */
 export function PlansPage() {
+  const { back } = useBackTarget();
   const [editing, setEditing] = useState<Plan | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -52,8 +53,8 @@ export function PlansPage() {
 
   return (
     <>
-      <BackLink to="/app/platform">Back to platform</BackLink>
       <PageHeader
+        back={back}
         title="Subscription plans"
         description="Pricing tiers offered when onboarding a clinic. Only active plans are offered for new clinics."
         actions={

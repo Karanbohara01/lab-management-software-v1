@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { FileText, CheckCircle2, AlertTriangle, Settings2, Download, X } from 'lucide-react';
-import { BackLink } from '@/components/BackLink';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -13,6 +11,8 @@ import { Pagination } from '@/components/ui/Pagination';
 import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { StatTileRow, type StatTileData } from '@/features/dashboard/components/StatTile';
 import { useQuery } from '@/hooks/useQuery';
+import { useListParams } from '@/hooks/useListParams';
+import { useBackTarget } from '@/lib/navigation';
 import { useToast } from '@/components/ui/toast';
 import { formatMoney } from '@/lib/money';
 import { exportCsv } from '@/lib/exportData';
@@ -25,6 +25,8 @@ import { SUBSCRIPTION_INVOICE_STATUS_LABEL, SUBSCRIPTION_INVOICE_STATUS_TONE, ty
 const EXPORT_LIMIT = 10_000;
 
 const PAGE_SIZE = 20;
+/** Lives in the URL, so the filters and page survive leaving the page and coming back. */
+const PARAMS = { irdStatus: '', orgId: '', page: 1 };
 const IRD_STATUSES: IrdStatus[] = ['NOT_SUBMITTED', 'PENDING', 'SUBMITTED', 'ACCEPTED', 'FAILED', 'DUPLICATE', 'CANCELLED'];
 
 function dt(iso: string): string {
@@ -38,25 +40,20 @@ function dt(iso: string): string {
  */
 export function PlatformBillingPage() {
   const toast = useToast();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const orgId = searchParams.get('orgId');
-  const orgIdNum = orgId ? Number(orgId) : undefined;
-  const [irdStatus, setIrdStatus] = useState<IrdStatus | ''>('');
-  const [page, setPage] = useState(0);
+  const { back } = useBackTarget();
+  const { params, set } = useListParams(PARAMS);
+  const irdStatus = params.irdStatus as IrdStatus | '';
+  const orgIdNum = params.orgId ? Number(params.orgId) : undefined;
+  const page = params.page - 1;
   const [openInvoiceId, setOpenInvoiceId] = useState<number | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
 
-  const clearOrgFilter = () => {
-    const next = new URLSearchParams(searchParams);
-    next.delete('orgId');
-    setSearchParams(next);
-  };
-
   const configQ = useQuery(() => platformBillingApi.config(), []);
   const { data, loading, error, refetch } = useQuery(
     () => platformBillingApi.list({ irdStatus: irdStatus || undefined, organizationId: orgIdNum, page, size: PAGE_SIZE }),
-    [irdStatus, orgIdNum, page],
+    [params.irdStatus, params.orgId, params.page],
+    { cacheKey: `platform-billing:${params.irdStatus}:${params.orgId}:${params.page}` },
   );
 
   const exportAll = async () => {
@@ -143,8 +140,8 @@ export function PlatformBillingPage() {
 
   return (
     <>
-      <BackLink to="/app/platform">Back to platform</BackLink>
       <PageHeader
+        back={back}
         title="Subscription billing"
         description={
           orgIdNum
@@ -185,16 +182,13 @@ export function PlatformBillingPage() {
             <Select
               options={[{ value: '', label: 'All IRD statuses' }, ...IRD_STATUSES.map((s) => ({ value: s, label: IRD_STATUS_LABEL[s] }))]}
               value={irdStatus}
-              onChange={(e) => {
-                setIrdStatus(e.target.value as IrdStatus | '');
-                setPage(0);
-              }}
+              onChange={(e) => set({ irdStatus: e.target.value })}
             />
           </div>
           {orgIdNum && (
             <button
               type="button"
-              onClick={clearOrgFilter}
+              onClick={() => set({ orgId: '' })}
               className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/15"
             >
               Filtered to {data?.content[0]?.organizationName ?? 'this clinic'}
@@ -221,7 +215,7 @@ export function PlatformBillingPage() {
                 rowKey={(i) => i.id}
                 onRowClick={(i) => setOpenInvoiceId(i.id)}
               />
-              <Pagination page={data.page} totalPages={data.totalPages} totalElements={data.totalElements} onPageChange={setPage} />
+              <Pagination page={data.page} totalPages={data.totalPages} totalElements={data.totalElements} onPageChange={(p) => set({ page: p + 1 })} />
             </>
           )
         )}

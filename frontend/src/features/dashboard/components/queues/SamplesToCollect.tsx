@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/toast';
 import { useQuery } from '@/hooks/useQuery';
@@ -9,11 +8,12 @@ import { SPECIMEN_LABELS } from '@/features/catalog/types';
 import { formatDateTime } from '@/features/patients/format';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
+import { useNavigateFrom } from '@/lib/navigation';
 import { QueueShell } from './QueueShell';
 
 /** Sample-collection staff worklist: specimens ordered but not yet drawn from the patient. */
 export function SamplesToCollect() {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
   const toast = useToast();
   const [busyId, setBusyId] = useState<number | null>(null);

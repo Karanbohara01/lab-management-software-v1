@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { SectionHeader } from '../SectionHeader';
+import { useNavigateFrom } from '@/lib/navigation';
 
 /** Shared shell for a role's worklist: title, count badge, loading/error/empty states, "view all" link. */
 export function QueueShell({
@@ -30,7 +30,7 @@ export function QueueShell({
   emptyMessage?: string;
   children: ReactNode;
 }) {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   return (
     <Card className="min-w-0 p-5">
       <SectionHeader

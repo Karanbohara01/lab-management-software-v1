@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Ban, PackageCheck, Pencil, Send } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Ban, PackageCheck, Pencil, Send } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -9,6 +9,7 @@ import { Alert } from '@/components/ui/Alert';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
+import { useBackTarget } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
@@ -20,6 +21,7 @@ import { PO_STATUS_TONE } from './types';
 
 export function PurchaseOrderDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { back } = useBackTarget();
   const toast = useToast();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.INVENTORY_WRITE);
@@ -52,12 +54,8 @@ export function PurchaseOrderDetailPage() {
 
   return (
     <>
-      <Link to="/app/purchase-orders" className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        Purchase orders
-      </Link>
-
       <PageHeader
+        back={back}
         title={po.poNumber}
         description={`${po.supplierName}${po.expectedDate ? ` · expected ${formatDate(po.expectedDate)}` : ''}`}
         actions={

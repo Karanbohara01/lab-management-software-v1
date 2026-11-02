@@ -1,5 +1,4 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ScanLine } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
@@ -12,7 +11,8 @@ import { Pagination } from '@/components/ui/Pagination';
 import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { cn } from '@/lib/cn';
 import { useQuery } from '@/hooks/useQuery';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useListParams, useSearchInput } from '@/hooks/useListParams';
+import { useNavigateFrom } from '@/lib/navigation';
 import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/types/api';
 import { SearchInput } from '@/components/ui/SearchInput';
@@ -32,24 +32,22 @@ const TABS: { value: '' | SampleStatus; label: string }[] = [
   { value: 'RECEIVED', label: 'Received' },
   { value: 'REJECTED', label: 'Rejected' },
 ];
+/** Lives in the URL, so returning from a sample lands on the same tab, filters, search and page. */
+const PARAMS = { status: '', departmentId: '', branchId: '', q: '', page: 1 };
 
 export function SamplesPage() {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const toast = useToast();
   const { user } = useAuth();
   const isHq = !user?.homeBranchId;
 
-  const [status, setStatus] = useState<'' | SampleStatus>('');
-  const [departmentId, setDepartmentId] = useState('');
-  const [branchId, setBranchId] = useState('');
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(0);
+  const { params, set } = useListParams(PARAMS);
+  const [search, setSearch] = useSearchInput(params.q, (q) => set({ q }, { replace: true }));
   const [scan, setScan] = useState('');
   const [branches, setBranches] = useState<Branch[]>([]);
 
   const departments = useQuery(() => departmentsApi.list(true), []);
   const summary = useQuery(() => samplesApi.summary(), []);
-  const debouncedSearch = useDebouncedValue(search, 300);
 
   useEffect(() => {
     if (isHq) branchesApi.list(true).then(setBranches);
@@ -58,14 +56,15 @@ export function SamplesPage() {
   const { data, loading, error, refetch } = useQuery(
     () =>
       samplesApi.list({
-        status: status || undefined,
-        departmentId: departmentId ? Number(departmentId) : undefined,
-        branchId: branchId ? Number(branchId) : undefined,
-        query: debouncedSearch || undefined,
-        page,
+        status: (params.status as SampleStatus) || undefined,
+        departmentId: params.departmentId ? Number(params.departmentId) : undefined,
+        branchId: params.branchId ? Number(params.branchId) : undefined,
+        query: params.q || undefined,
+        page: params.page - 1,
         size: PAGE_SIZE,
       }),
-    [status, departmentId, branchId, debouncedSearch, page],
+    [params.status, params.departmentId, params.branchId, params.q, params.page],
+    { cacheKey: `samples:${params.status}:${params.departmentId}:${params.branchId}:${params.q}:${params.page}` },
   );
 
   const onScan = async (e: FormEvent) => {
@@ -129,13 +128,10 @@ export function SamplesPage() {
             return (
               <button
                 key={tab.value || 'all'}
-                onClick={() => {
-                  setStatus(tab.value);
-                  setPage(0);
-                }}
+                onClick={() => set({ status: tab.value })}
                 className={cn(
                   'rounded-md px-3 py-1.5 text-sm font-medium',
-                  status === tab.value ? 'bg-primary/10 text-primary' : 'text-muted hover:bg-surface-muted',
+                  params.status === tab.value ? 'bg-primary/10 text-primary' : 'text-muted hover:bg-surface-muted',
                 )}
               >
                 {tab.label}
@@ -151,10 +147,7 @@ export function SamplesPage() {
           <div className="sm:max-w-xs sm:flex-1">
             <SearchInput
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(0);
-              }}
+              onChange={(e) => setSearch(e.target.value)}
               placeholder="Search accession, patient or MRN"
             />
           </div>
@@ -164,22 +157,16 @@ export function SamplesPage() {
                 { value: '', label: 'All departments' },
                 ...(departments.data ?? []).map((d) => ({ value: String(d.id), label: d.name })),
               ]}
-              value={departmentId}
-              onChange={(e) => {
-                setDepartmentId(e.target.value);
-                setPage(0);
-              }}
+              value={params.departmentId}
+              onChange={(e) => set({ departmentId: e.target.value })}
             />
           </div>
           {isHq && (
             <div className="sm:w-56">
               <Select
                 options={[{ value: '', label: 'All branches' }, ...branches.map((b) => ({ value: String(b.id), label: b.name }))]}
-                value={branchId}
-                onChange={(e) => {
-                  setBranchId(e.target.value);
-                  setPage(0);
-                }}
+                value={params.branchId}
+                onChange={(e) => set({ branchId: e.target.value })}
               />
             </div>
           )}
@@ -201,13 +188,14 @@ export function SamplesPage() {
                 columns={columns}
                 rows={data.content}
                 rowKey={(s) => s.id}
+                rowHref={(s) => `/app/samples/${s.id}`}
                 onRowClick={(s) => navigate(`/app/samples/${s.id}`)}
               />
               <Pagination
                 page={data.page}
                 totalPages={data.totalPages}
                 totalElements={data.totalElements}
-                onPageChange={setPage}
+                onPageChange={(p) => set({ page: p + 1 })}
               />
             </>
           )

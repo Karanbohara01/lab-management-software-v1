@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Modal } from '@/components/ui/Modal';
+import { Modal, ModalCancelButton } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
@@ -56,7 +56,7 @@ export function OrganizationFormModal({
     handleSubmit,
     reset,
     setError,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<FormValues>({ resolver: zodResolver(createSchema) });
 
   useEffect(() => {
@@ -100,7 +100,13 @@ export function OrganizationFormModal({
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Onboard a new clinic" size="lg">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Onboard a new clinic"
+      size="lg"
+      confirmClose={isDirty && !isSubmitting}
+    >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {errors.root && <Alert tone="danger">{errors.root.message}</Alert>}
         <Alert tone="info">
@@ -148,9 +154,7 @@ export function OrganizationFormModal({
         </div>
 
         <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
+          <ModalCancelButton />
           <Button type="submit" loading={isSubmitting}>
             Onboard clinic
           </Button>

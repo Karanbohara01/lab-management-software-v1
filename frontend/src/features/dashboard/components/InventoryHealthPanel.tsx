@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -7,12 +6,13 @@ import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { inventoryApi } from '@/features/inventory/api';
 import { STOCK_STATUS_LABEL, STOCK_STATUS_TONE, type StockStatus } from '@/features/inventory/types';
+import { useNavigateFrom } from '@/lib/navigation';
 import { SectionHeader } from './SectionHeader';
 
 const RISK_ORDER: StockStatus[] = ['EXPIRED', 'OUT_OF_STOCK', 'LOW_STOCK', 'EXPIRING_SOON'];
 
 export function InventoryHealthPanel() {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { data, loading, error, refetch } = useQuery(() => inventoryApi.summary(), []);
 
   const atRisk = data ? RISK_ORDER.reduce((sum, s) => sum + (data.statusCounts[s] ?? 0), 0) : 0;

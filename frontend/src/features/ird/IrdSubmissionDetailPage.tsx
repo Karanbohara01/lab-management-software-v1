@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Ban, RefreshCw, Send, ClipboardCheck, Receipt, Printer } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Ban, RefreshCw, Send, ClipboardCheck, Receipt, Printer } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
+import { LinkFrom, useBackTarget } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
@@ -25,6 +26,7 @@ import { CREDIT_NOTE_STATUS_LABEL, CREDIT_NOTE_STATUS_TONE, IRD_STATUS_LABEL, IR
 
 export function IrdSubmissionDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { back } = useBackTarget();
   const toast = useToast();
   const { hasPermission } = useAuth();
   const canManage = hasPermission(PERMISSIONS.IRD_SUBMISSION_MANAGE);
@@ -94,15 +96,8 @@ export function IrdSubmissionDetailPage() {
         </div>
       )}
       <div data-print-hide>
-      <Link
-        to={`/app/invoices/${sub.invoiceId}`}
-        className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        Invoice {sub.invoiceNumber}
-      </Link>
-
       <PageHeader
+        back={back}
         title={`IRD submission · ${sub.invoiceNumber}`}
         description={`${sub.patientName} · ${sub.patientMrn}`}
         actions={
@@ -158,6 +153,13 @@ export function IrdSubmissionDetailPage() {
           </div>
         }
       />
+
+      <p className="mb-4 text-sm text-muted">
+        Filed for{' '}
+        <LinkFrom to={`/app/invoices/${sub.invoiceId}`} className="text-foreground hover:underline">
+          invoice {sub.invoiceNumber}
+        </LinkFrom>
+      </p>
 
       <IrdConfigBanner />
 

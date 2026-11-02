@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import {
   Users,
   MapPin,
@@ -21,6 +20,7 @@ import { Button } from '@/components/ui/Button';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { StatTileRow, type StatTileData } from '@/features/dashboard/components/StatTile';
 import { useQuery } from '@/hooks/useQuery';
+import { useNavigateFrom } from '@/lib/navigation';
 import { adminApi } from './api';
 
 function dt(iso: string | null): string {
@@ -36,7 +36,7 @@ function dt(iso: string | null): string {
  * only reports status, it never lets a secret be typed into the browser.
  */
 export function ControlCenterPage() {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { data: status, loading, error, refetch } = useQuery(() => adminApi.systemStatus(), []);
 
   if (loading && !status) return <LoadingState label="Loading system status…" />;

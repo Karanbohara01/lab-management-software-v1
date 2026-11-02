@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Printer, RefreshCw, Send, ShieldCheck } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Printer, RefreshCw, Send, ShieldCheck } from 'lucide-react';
+import { BackLink } from '@/components/BackLink';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
+import { usePageTitle } from '@/components/layout/PageTitleContext';
+import { LinkFrom, useBackTarget } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
@@ -16,12 +19,15 @@ import { DeliverReportModal } from './DeliverReportModal';
 
 export function ReportViewPage() {
   const { id } = useParams<{ id: string }>();
+  const { back } = useBackTarget();
   const toast = useToast();
   const { hasPermission } = useAuth();
   const [deliverOpen, setDeliverOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const { data: report, loading, error, refetch } = useQuery(() => reportsApi.get(Number(id)), [id]);
+  // This page draws its own print-aware header rather than PageHeader, so it publishes its title itself.
+  usePageTitle(report?.reportNumber);
 
   if (loading && !report) return <LoadingState label="Loading report…" />;
   if (error) return <ErrorState message={error} onRetry={refetch} />;
@@ -46,13 +52,9 @@ export function ReportViewPage() {
   return (
     <>
       <div data-print-hide>
-        <Link
-          to={`/app/orders/${report.orderId}`}
-          className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-          Order {report.orderNumber}
-        </Link>
+        <BackLink to={back.href} className="mb-3">
+          Back to {back.label}
+        </BackLink>
 
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <h1 className="mr-2 text-xl font-semibold text-foreground">{report.reportNumber}</h1>
@@ -60,6 +62,9 @@ export function ReportViewPage() {
           {report.reportType === 'PRELIMINARY' && <Badge tone="warning">Preliminary</Badge>}
           {report.reportVersion > 1 && <Badge tone="warning">v{report.reportVersion}</Badge>}
           {report.signedBy && <Badge tone="success">Signed</Badge>}
+          <LinkFrom to={`/app/orders/${report.orderId}`} className="text-sm text-muted hover:underline">
+            Order {report.orderNumber}
+          </LinkFrom>
           <div className="flex-1" />
           <Button variant="secondary" onClick={() => window.print()}>
             <Printer className="h-4 w-4" aria-hidden />

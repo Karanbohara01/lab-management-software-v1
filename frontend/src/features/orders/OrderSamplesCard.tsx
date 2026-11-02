@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { LinkFrom } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { SPECIMEN_LABELS } from '@/features/catalog/types';
@@ -34,7 +35,9 @@ export function OrderSamplesCard({
         {samples.map((s) => (
           <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm">
             <div className="min-w-0">
-              <span className="font-mono text-xs text-muted">{s.accessionNumber}</span>
+              <LinkFrom to={`/app/samples/${s.id}`} className="font-mono text-xs text-muted hover:underline">
+                {s.accessionNumber}
+              </LinkFrom>
               <span className="ml-2 text-foreground">{SPECIMEN_LABELS[s.specimenType]}</span>
               <span className="ml-2 text-muted">· {s.testCount} test(s)</span>
               {s.conditionSummary && (

@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import { ScrollText } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
+import { LinkFrom, useNavigateFrom } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
@@ -14,7 +14,7 @@ import { irdApi } from '@/features/ird/api';
 import { IRD_STATUS_LABEL, IRD_STATUS_TONE } from '@/features/ird/types';
 
 export function InvoiceIrdCard({ invoiceId }: { invoiceId: number }) {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const toast = useToast();
   const { hasPermission } = useAuth();
   const canManage = hasPermission(PERMISSIONS.IRD_SUBMISSION_MANAGE);
@@ -58,9 +58,9 @@ export function InvoiceIrdCard({ invoiceId }: { invoiceId: number }) {
               <Badge tone={IRD_STATUS_TONE[sub.data.status]}>{IRD_STATUS_LABEL[sub.data.status]}</Badge>
               {sub.data.manual && <Badge tone="neutral">Manual</Badge>}
             </span>
-            <Link to={`/app/ird/${sub.data.id}`} className="text-sm text-primary">
+            <LinkFrom to={`/app/ird/${sub.data.id}`} className="text-sm text-primary">
               Details
-            </Link>
+            </LinkFrom>
           </div>
           {config.data && !config.data.enabled && (
             <p className="text-xs text-muted">

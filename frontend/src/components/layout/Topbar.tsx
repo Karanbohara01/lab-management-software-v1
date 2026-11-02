@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigateFrom } from '@/lib/navigation';
 import { ClipboardPlus, Keyboard, LogOut, Menu, Moon, Plus, Sun, SunMoon, UserPlus, UserRound } from 'lucide-react';
 import { useAppDispatch } from '@/store/hooks';
 import { useAuth } from '@/features/auth/useAuth';
@@ -35,7 +35,8 @@ function ThemeToggle() {
 
 export function Topbar({ onOpenMenu, onOpenShortcuts }: { onOpenMenu: () => void; onOpenShortcuts: () => void }) {
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
+  // The create forms record where they were opened from, so Cancel and the back link return there.
+  const navigateFrom = useNavigateFrom();
   const { user, hasPermission } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -78,7 +79,7 @@ export function Topbar({ onOpenMenu, onOpenShortcuts }: { onOpenMenu: () => void
                     role="menuitem"
                     onClick={() => {
                       setCreateOpen(false);
-                      navigate('/app/orders/new');
+                      navigateFrom('/app/orders/new');
                     }}
                     className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm text-foreground hover:bg-surface-muted"
                   >
@@ -92,7 +93,7 @@ export function Topbar({ onOpenMenu, onOpenShortcuts }: { onOpenMenu: () => void
                     role="menuitem"
                     onClick={() => {
                       setCreateOpen(false);
-                      navigate('/app/patients/new');
+                      navigateFrom('/app/patients/new');
                     }}
                     className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm text-foreground hover:bg-surface-muted"
                   >

@@ -1,7 +1,7 @@
-import { Link } from 'react-router-dom';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { formatMoney } from '@/lib/money';
+import { LinkFrom } from '@/lib/navigation';
 import type { InvoiceDetail } from './types';
 
 /**
@@ -37,9 +37,9 @@ export function InvoiceCommissionCard({ invoice }: { invoice: InvoiceDetail }) {
         ) : (
           <p className="text-xs text-muted">No commission rate set for this doctor.</p>
         )}
-        <Link to="/app/commission" className="inline-block text-xs text-primary hover:underline">
+        <LinkFrom to="/app/commission" className="inline-block text-xs text-primary hover:underline">
           View commission ledger
-        </Link>
+        </LinkFrom>
       </CardBody>
     </Card>
   );

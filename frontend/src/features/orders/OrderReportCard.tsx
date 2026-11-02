@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { FileText } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingState } from '@/components/ui/PageState';
+import { LinkFrom } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
@@ -75,12 +75,12 @@ export function OrderReportCard({
             </Button>
           )}
           <div className="flex gap-2">
-            <Link to={`/app/reports/${report.id}`} className="flex-1">
+            <LinkFrom to={`/app/reports/${report.id}`} className="flex-1">
               <Button variant="secondary" className="w-full">
                 <FileText className="h-4 w-4" aria-hidden />
                 Open report
               </Button>
-            </Link>
+            </LinkFrom>
             {canGenerate && report.status === 'GENERATED' && (
               <Button
                 variant="ghost"

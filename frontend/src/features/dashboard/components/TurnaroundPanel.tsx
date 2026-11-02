@@ -1,12 +1,12 @@
-import { useNavigate } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { useNavigateFrom } from '@/lib/navigation';
 import { SectionHeader } from './SectionHeader';
 
 /** Turnaround risk, built from the results actually in flight — no fabricated average-minute figures. */
 export function TurnaroundPanel({ resultCounts }: { resultCounts: Record<string, number> }) {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const active = (resultCounts.PENDING ?? 0) + (resultCounts.ENTERED ?? 0) + (resultCounts.VERIFIED ?? 0);
   const overdue = resultCounts.OVERDUE ?? 0;
   const onTrack = Math.max(0, active - overdue);

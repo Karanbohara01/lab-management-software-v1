@@ -1,11 +1,14 @@
-import { useState } from 'react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Select';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
+import { useListParams } from '@/hooks/useListParams';
 import { useQuery } from '@/hooks/useQuery';
 import { analyticsApi, type AnalyticsPoint as Point } from './api';
 import { RevenueTrendChart } from './RevenueTrendChart';
+
+/** The window lives in the URL, so a view of the figures can be bookmarked or shared. */
+const PARAMS = { days: '30' };
 
 /** Ranked horizontal bar list — value direct-labeled, single hue sized by magnitude. */
 function BarList({ points, format }: { points: Point[]; format?: (n: number) => string }) {
@@ -32,8 +35,12 @@ function BarList({ points, format }: { points: Point[]; format?: (n: number) => 
 }
 
 export function AnalyticsPage() {
-  const [days, setDays] = useState('30');
-  const { data, loading, error, refetch } = useQuery(() => analyticsApi.overview(Number(days)), [days]);
+  const { params, set } = useListParams(PARAMS);
+  const { data, loading, error, refetch } = useQuery(
+    () => analyticsApi.overview(Number(params.days)),
+    [params.days],
+    { cacheKey: `analytics:${params.days}` },
+  );
 
   return (
     <>
@@ -48,8 +55,8 @@ export function AnalyticsPage() {
                 { value: '30', label: 'Last 30 days' },
                 { value: '90', label: 'Last 90 days' },
               ]}
-              value={days}
-              onChange={(e) => setDays(e.target.value)}
+              value={params.days}
+              onChange={(e) => set({ days: e.target.value })}
             />
           </div>
         }

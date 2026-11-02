@@ -12,8 +12,8 @@ import { Alert } from '@/components/ui/Alert';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
 import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
+import { useListParams, useSearchInput } from '@/hooks/useListParams';
 import { useQuery } from '@/hooks/useQuery';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
@@ -22,19 +22,22 @@ import { suppliersApi } from './api';
 import type { Supplier } from './types';
 
 const PAGE_SIZE = 20;
+/** Lives in the URL, so the search and page survive leaving the page and coming back. */
+const PARAMS = { q: '', page: 1 };
 
 export function SuppliersPage() {
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.INVENTORY_WRITE);
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(0);
   const [editing, setEditing] = useState<Supplier | null>(null);
   const [open, setOpen] = useState(false);
 
-  const debouncedSearch = useDebouncedValue(search, 300);
+  const { params, set } = useListParams(PARAMS);
+  const [search, setSearch] = useSearchInput(params.q, (q) => set({ q }, { replace: true }));
+
   const { data, loading, error, refetch } = useQuery(
-    () => suppliersApi.list({ query: debouncedSearch || undefined, activeOnly: false, page, size: PAGE_SIZE }),
-    [debouncedSearch, page],
+    () => suppliersApi.list({ query: params.q || undefined, activeOnly: false, page: params.page - 1, size: PAGE_SIZE }),
+    [params.q, params.page],
+    { cacheKey: `suppliers:${params.q}:${params.page}` },
   );
 
   const columns: Column<Supplier>[] = [
@@ -62,7 +65,7 @@ export function SuppliersPage() {
       <Card>
         <div className="border-b border-border p-4">
           <div className="max-w-sm">
-            <SearchInput value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} placeholder="Search suppliers" />
+            <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search suppliers" />
           </div>
         </div>
         {loading && !data ? (
@@ -80,7 +83,12 @@ export function SuppliersPage() {
                 rowKey={(s) => s.id}
                 onRowClick={canWrite ? (s) => { setEditing(s); setOpen(true); } : undefined}
               />
-              <Pagination page={data.page} totalPages={data.totalPages} totalElements={data.totalElements} onPageChange={setPage} />
+              <Pagination
+                page={data.page}
+                totalPages={data.totalPages}
+                totalElements={data.totalElements}
+                onPageChange={(p) => set({ page: p + 1 })}
+              />
             </>
           )
         )}

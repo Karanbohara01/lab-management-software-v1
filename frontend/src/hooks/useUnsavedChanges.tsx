@@ -1,6 +1,19 @@
-import { useCallback, useEffect, useRef, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useBlocker } from 'react-router-dom';
 import { UnsavedChangesDialog } from '@/components/UnsavedChangesDialog';
+
+/**
+ * "Has this form been edited?" for forms built from plain `useState` rather than react-hook-form
+ * (which answers it with `isDirty`). Both sides are compared by value, so a field edited and then
+ * put back reports clean. `initial` is the same object the form prefills itself from — deriving it
+ * once and comparing against it avoids snapshotting a baseline before an async prefill lands,
+ * which would report every freshly opened edit form as dirty.
+ */
+export function useIsDirty(current: unknown, initial: unknown): boolean {
+  const a = useMemo(() => JSON.stringify(current ?? null), [current]);
+  const b = useMemo(() => JSON.stringify(initial ?? null), [initial]);
+  return a !== b;
+}
 
 /**
  * Keeps a dirty form from being lost: blocks in-app navigation (route change only — URL-param

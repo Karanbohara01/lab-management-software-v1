@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import { Receipt } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
+import { LinkFrom, useNavigateFrom } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
@@ -15,7 +15,7 @@ import { invoicesApi } from '@/features/billing/api';
 import { INVOICE_STATUS_TONE, PAYMENT_STATUS_TONE } from '@/features/billing/types';
 
 export function OrderInvoiceCard({ orderId }: { orderId: number }) {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const toast = useToast();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.INVOICE_WRITE);
@@ -62,12 +62,12 @@ export function OrderInvoiceCard({ orderId }: { orderId: number }) {
             Total {formatMoney(invoice.data.totalAmount)} · Balance{' '}
             <span className="font-medium text-foreground">{formatMoney(invoice.data.balance)}</span>
           </p>
-          <Link to={`/app/invoices/${invoice.data.id}`}>
+          <LinkFrom to={`/app/invoices/${invoice.data.id}`}>
             <Button variant="secondary" className="w-full">
               <Receipt className="h-4 w-4" aria-hidden />
               Open invoice
             </Button>
-          </Link>
+          </LinkFrom>
         </CardBody>
       ) : (
         <CardBody>

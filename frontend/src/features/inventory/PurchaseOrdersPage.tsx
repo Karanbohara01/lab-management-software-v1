@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
@@ -10,8 +9,9 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
 import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
+import { useListParams, useSearchInput } from '@/hooks/useListParams';
 import { useQuery } from '@/hooks/useQuery';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useNavigateFrom } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { formatDate } from '@/features/patients/format';
@@ -20,21 +20,29 @@ import { PurchaseOrderBuilderModal } from './PurchaseOrderModals';
 import { PO_STATUS_TONE, type PurchaseOrderListItem, type PurchaseOrderStatus } from './types';
 
 const PAGE_SIZE = 20;
+/** Lives in the URL, so returning from a PO lands on the same search, filter and page. */
+const PARAMS = { q: '', status: '', page: 1 };
 
 export function PurchaseOrdersPage() {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.INVENTORY_WRITE);
 
-  const [status, setStatus] = useState<'' | PurchaseOrderStatus>('');
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(0);
   const [open, setOpen] = useState(false);
 
-  const debouncedSearch = useDebouncedValue(search, 300);
+  const { params, set } = useListParams(PARAMS);
+  const [search, setSearch] = useSearchInput(params.q, (q) => set({ q }, { replace: true }));
+
   const { data, loading, error, refetch } = useQuery(
-    () => purchaseOrdersApi.list({ status: status || undefined, query: debouncedSearch || undefined, page, size: PAGE_SIZE }),
-    [status, debouncedSearch, page],
+    () =>
+      purchaseOrdersApi.list({
+        status: (params.status as PurchaseOrderStatus) || undefined,
+        query: params.q || undefined,
+        page: params.page - 1,
+        size: PAGE_SIZE,
+      }),
+    [params.status, params.q, params.page],
+    { cacheKey: `purchase-orders:${params.q}:${params.status}:${params.page}` },
   );
 
   const columns: Column<PurchaseOrderListItem>[] = [
@@ -56,7 +64,7 @@ export function PurchaseOrdersPage() {
       <Card>
         <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row">
           <div className="sm:max-w-xs sm:flex-1">
-            <SearchInput value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} placeholder="Search PO no. or supplier" />
+            <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search PO no. or supplier" />
           </div>
           <div className="sm:w-52">
             <Select
@@ -68,8 +76,8 @@ export function PurchaseOrdersPage() {
                 { value: 'RECEIVED', label: 'Received' },
                 { value: 'CANCELLED', label: 'Cancelled' },
               ]}
-              value={status}
-              onChange={(e) => { setStatus(e.target.value as '' | PurchaseOrderStatus); setPage(0); }}
+              value={params.status}
+              onChange={(e) => set({ status: e.target.value })}
             />
           </div>
         </div>
@@ -83,8 +91,19 @@ export function PurchaseOrdersPage() {
         ) : (
           data && (
             <>
-              <DataTable columns={columns} rows={data.content} rowKey={(p) => p.id} onRowClick={(p) => navigate(`/app/purchase-orders/${p.id}`)} />
-              <Pagination page={data.page} totalPages={data.totalPages} totalElements={data.totalElements} onPageChange={setPage} />
+              <DataTable
+                columns={columns}
+                rows={data.content}
+                rowKey={(p) => p.id}
+                rowHref={(p) => `/app/purchase-orders/${p.id}`}
+                onRowClick={(p) => navigate(`/app/purchase-orders/${p.id}`)}
+              />
+              <Pagination
+                page={data.page}
+                totalPages={data.totalPages}
+                totalElements={data.totalElements}
+                onPageChange={(p) => set({ page: p + 1 })}
+              />
             </>
           )
         )}

@@ -1,13 +1,13 @@
-import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { adminApi } from '@/features/admin/api';
+import { useNavigateFrom } from '@/lib/navigation';
 import { SectionHeader } from './SectionHeader';
 
 export function RecentActivity() {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { data, loading, error, refetch } = useQuery(() => adminApi.audit({ page: 0, size: 8 }), []);
 
   return (

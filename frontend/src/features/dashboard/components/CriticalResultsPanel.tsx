@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -6,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { resultsApi } from '@/features/results/api';
+import { useNavigateFrom } from '@/lib/navigation';
 import { SectionHeader } from './SectionHeader';
 
 function timeAgo(iso: string): string {
@@ -19,7 +19,7 @@ function timeAgo(iso: string): string {
 
 /** Critical values that still need a documented clinician callback — clinical priority, not decoration. */
 export function CriticalResultsPanel() {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { data, loading, error, refetch } = useQuery(
     () => resultsApi.list({ criticalPendingOnly: true, size: 6, page: 0 }),
     [],

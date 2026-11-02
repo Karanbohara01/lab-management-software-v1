@@ -1,13 +1,13 @@
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { useQuery } from '@/hooks/useQuery';
 import { invoicesApi } from '@/features/billing/api';
 import { formatMoney } from '@/lib/money';
+import { useNavigateFrom } from '@/lib/navigation';
 import { QueueShell } from './QueueShell';
 
 /** Front-desk / accounts worklist: invoices with a balance still owed. */
 export function OutstandingInvoices() {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { data, loading, error, refetch } = useQuery(
     () => invoicesApi.list({ unpaidOnly: true, size: 8 }),
     [],

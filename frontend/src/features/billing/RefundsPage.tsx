@@ -8,6 +8,7 @@ import { Select } from '@/components/ui/Select';
 import { Pagination } from '@/components/ui/Pagination';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useListParams } from '@/hooks/useListParams';
 import { useQuery } from '@/hooks/useQuery';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
@@ -18,19 +19,26 @@ import { refundsApi } from './api';
 import { REFUND_STATUS_TONE, type RefundEntry, type RefundStatus } from './types';
 
 const PAGE_SIZE = 20;
+/** Lives in the URL, so the filter and page survive leaving the page and coming back. */
+const PARAMS = { status: 'REQUESTED', page: 1 };
 
 export function RefundsPage() {
   const toast = useToast();
   const { hasPermission } = useAuth();
   const canDecide = hasPermission(PERMISSIONS.REFUND_APPROVE);
 
-  const [status, setStatus] = useState<'' | RefundStatus>('REQUESTED');
-  const [page, setPage] = useState(0);
+  const { params, set } = useListParams(PARAMS);
   const [reject, setReject] = useState<RefundEntry | null>(null);
 
   const { data, loading, error, refetch } = useQuery(
-    () => refundsApi.list({ status: status || undefined, page, size: PAGE_SIZE }),
-    [status, page],
+    () =>
+      refundsApi.list({
+        status: (params.status as RefundStatus) || undefined,
+        page: params.page - 1,
+        size: PAGE_SIZE,
+      }),
+    [params.status, params.page],
+    { cacheKey: `refunds:${params.status}:${params.page}` },
   );
 
   const decide = async (fn: () => Promise<unknown>, msg: string) => {
@@ -58,11 +66,8 @@ export function RefundsPage() {
                 { value: 'APPROVED', label: 'Approved' },
                 { value: 'REJECTED', label: 'Rejected' },
               ]}
-              value={status}
-              onChange={(e) => {
-                setStatus(e.target.value as '' | RefundStatus);
-                setPage(0);
-              }}
+              value={params.status}
+              onChange={(e) => set({ status: e.target.value })}
             />
           </div>
         </div>
@@ -122,7 +127,7 @@ export function RefundsPage() {
                 page={data.page}
                 totalPages={data.totalPages}
                 totalElements={data.totalElements}
-                onPageChange={setPage}
+                onPageChange={(p) => set({ page: p + 1 })}
               />
             </>
           )

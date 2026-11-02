@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/toast';
 import { useQuery } from '@/hooks/useQuery';
@@ -8,11 +7,12 @@ import { refundsApi } from '@/features/billing/api';
 import { formatMoney } from '@/lib/money';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
+import { useNavigateFrom } from '@/lib/navigation';
 import { QueueShell } from './QueueShell';
 
 /** Accounts worklist: refund requests awaiting the segregated approval step. */
 export function RefundsToApprove() {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
   const toast = useToast();
   const [busyId, setBusyId] = useState<number | null>(null);

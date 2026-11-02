@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
 import { AlertOctagon, CheckCircle2, Clock, FileCheck, FlaskConical, Package, ScrollText } from 'lucide-react';
 import { cn } from '@/lib/cn';
@@ -8,6 +7,7 @@ import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { SectionHeader } from './SectionHeader';
 import type { DashboardSummary } from '../api';
+import { useNavigateFrom } from '@/lib/navigation';
 
 type Severity = 'critical' | 'warning' | 'info';
 
@@ -39,7 +39,7 @@ export function ActionCenter({
   /** Merged over the default bottom margin — e.g. `mb-0` inside a stack that spaces its own children. */
   className?: string;
 }) {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
 
   const criticalPending = resultCounts.CRITICAL_PENDING ?? summary.unresolvedCriticalResults;

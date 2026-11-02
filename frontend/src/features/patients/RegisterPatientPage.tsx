@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useNavigate, useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { useLocation, useParams } from 'react-router-dom';
+import { Plus, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -20,6 +20,8 @@ import { PERMISSIONS } from '@/features/auth/permissions';
 import { useQuery } from '@/hooks/useQuery';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useScrollToTopOnError } from '@/hooks/useScrollToTopOnError';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
+import { useBackTarget, useNavigateFrom } from '@/lib/navigation';
 import { ApiError } from '@/types/api';
 import { doctorsApi } from '@/features/doctors/api';
 import { patientsApi } from './api';
@@ -185,7 +187,9 @@ function SectionCard({ title, description, children }: { title: string; descript
 export function RegisterPatientPage() {
   const { id } = useParams<{ id: string }>();
   const isEdit = !!id;
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
+  const location = useLocation();
+  const { back } = useBackTarget();
   const toast = useToast();
   const canConfidential = useAuth().hasPermission(PERMISSIONS.PATIENT_CONFIDENTIAL);
 
@@ -205,11 +209,12 @@ export function RegisterPatientPage() {
     setValue,
     setError,
     control,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: EMPTY,
   });
+  const { allowNextNavigation, dialog: unsavedDialog } = useUnsavedChanges(isDirty);
 
   const idFields = useFieldArray({ control, name: 'identifiers' });
   useScrollToTopOnError(errors.root?.message);
@@ -515,7 +520,11 @@ export function RegisterPatientPage() {
         ? await patientsApi.update(Number(id), payload)
         : await patientsApi.create(payload);
       toast.success(isEdit ? 'Patient updated' : `Patient registered · ${saved.mrn}`);
-      navigate(`/app/patients/${saved.id}`);
+      // The form is still "dirty" (react-hook-form only clears that on reset) but the data is
+      // saved, so the guard mustn't challenge this navigation. Replace, so Back from the patient
+      // skips this form and returns to wherever the user started.
+      allowNextNavigation();
+      navigate(`/app/patients/${saved.id}`, { replace: true, state: location.state });
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.fieldErrors.length > 0) {
@@ -546,16 +555,11 @@ export function RegisterPatientPage() {
   if (isEdit && existing.loading && !existing.data) return <LoadingState label="Loading patient…" />;
   if (isEdit && existing.error) return <ErrorState message={existing.error} onRetry={existing.refetch} />;
 
-  const backTo = isEdit ? `/app/patients/${id}` : '/app/patients';
-
   return (
     <>
-      <Link to={backTo} className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        {isEdit ? 'Back to patient' : 'Back to patients'}
-      </Link>
-
+      {unsavedDialog}
       <PageHeader
+        back={back}
         title={isEdit ? `Edit patient · ${existing.data?.mrn ?? ''}` : 'Register patient'}
         description={
           isEdit
@@ -766,7 +770,8 @@ export function RegisterPatientPage() {
 
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface/95 backdrop-blur">
           <div className="mx-auto flex max-w-5xl items-center justify-end gap-3 px-4 py-3">
-            <Button variant="secondary" type="button" onClick={() => navigate(backTo)}>
+            {/* Leaves to wherever the user came from; the guard asks first if anything was typed. */}
+            <Button variant="secondary" type="button" onClick={() => navigate(back.href)}>
               Cancel
             </Button>
             <Button type="submit" loading={isSubmitting}>

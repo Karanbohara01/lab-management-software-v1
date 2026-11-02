@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { RefreshCw } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
@@ -10,8 +9,9 @@ import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
 import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { cn } from '@/lib/cn';
+import { useListParams, useSearchInput } from '@/hooks/useListParams';
 import { useQuery } from '@/hooks/useQuery';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useNavigateFrom } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
@@ -36,22 +36,30 @@ const TABS: { value: '' | IrdStatus; label: string }[] = [
   { value: 'SUBMITTED', label: 'Submitted' },
   { value: 'ACCEPTED', label: 'Accepted' },
 ];
+/** Lives in the URL, so returning from a submission lands on the same tab, search and page. */
+const PARAMS = { q: '', status: '', page: 1 };
 
 export function IrdSubmissionsPage() {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const toast = useToast();
   const { hasPermission } = useAuth();
   const canManage = hasPermission(PERMISSIONS.IRD_SUBMISSION_MANAGE);
-  const [status, setStatus] = useState<'' | IrdStatus>('');
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(0);
   const [sweeping, setSweeping] = useState(false);
 
+  const { params, set } = useListParams(PARAMS);
+  const [search, setSearch] = useSearchInput(params.q, (q) => set({ q }, { replace: true }));
+
   const summary = useQuery(() => irdApi.summary(), []);
-  const debouncedSearch = useDebouncedValue(search, 300);
   const { data, loading, error, refetch } = useQuery(
-    () => irdApi.list({ status: status || undefined, query: debouncedSearch || undefined, page, size: PAGE_SIZE }),
-    [status, debouncedSearch, page],
+    () =>
+      irdApi.list({
+        status: (params.status as IrdStatus) || undefined,
+        query: params.q || undefined,
+        page: params.page - 1,
+        size: PAGE_SIZE,
+      }),
+    [params.status, params.q, params.page],
+    { cacheKey: `ird:${params.q}:${params.status}:${params.page}` },
   );
 
   const runSweepNow = async () => {
@@ -115,13 +123,10 @@ export function IrdSubmissionsPage() {
             return (
               <button
                 key={tab.value || 'all'}
-                onClick={() => {
-                  setStatus(tab.value);
-                  setPage(0);
-                }}
+                onClick={() => set({ status: tab.value })}
                 className={cn(
                   'rounded-md px-3 py-1.5 text-sm font-medium',
-                  status === tab.value ? 'bg-primary/10 text-primary' : 'text-muted hover:bg-surface-muted',
+                  params.status === tab.value ? 'bg-primary/10 text-primary' : 'text-muted hover:bg-surface-muted',
                 )}
               >
                 {tab.label}
@@ -137,10 +142,7 @@ export function IrdSubmissionsPage() {
           <div className="max-w-sm">
             <SearchInput
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(0);
-              }}
+              onChange={(e) => setSearch(e.target.value)}
               placeholder="Search invoice no. or patient"
             />
           </div>
@@ -159,13 +161,14 @@ export function IrdSubmissionsPage() {
                 columns={columns}
                 rows={data.content}
                 rowKey={(s) => s.id}
+                rowHref={(s) => `/app/ird/${s.id}`}
                 onRowClick={(s) => navigate(`/app/ird/${s.id}`)}
               />
               <Pagination
                 page={data.page}
                 totalPages={data.totalPages}
                 totalElements={data.totalElements}
-                onPageChange={setPage}
+                onPageChange={(p) => set({ page: p + 1 })}
               />
             </>
           )

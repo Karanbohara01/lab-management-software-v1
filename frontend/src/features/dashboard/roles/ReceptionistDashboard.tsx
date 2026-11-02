@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import { Activity, CalendarClock, ClipboardCheck, UserPlus, Wallet } from 'lucide-react';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
@@ -8,11 +7,12 @@ import { StatTileRow } from '../components/StatTile';
 import { TodaysAppointments } from '../components/queues/TodaysAppointments';
 import { DraftOrders } from '../components/queues/DraftOrders';
 import { OutstandingInvoices } from '../components/queues/OutstandingInvoices';
+import { useNavigateFrom } from '@/lib/navigation';
 import type { RoleDashboardProps } from './types';
 
 /** Front desk: registration, order intake and billing — where every visit begins. */
 export function ReceptionistDashboard({ summary, lastUpdated, refreshing, onRefresh }: RoleDashboardProps) {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
 
   return (

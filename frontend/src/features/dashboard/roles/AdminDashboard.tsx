@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { useQuery } from '@/hooks/useQuery';
 import { useAuth } from '@/features/auth/useAuth';
@@ -17,11 +16,12 @@ import { TurnaroundPanel } from '../components/TurnaroundPanel';
 import { CriticalResultsPanel } from '../components/CriticalResultsPanel';
 import { InventoryHealthPanel } from '../components/InventoryHealthPanel';
 import { RecentActivity } from '../components/RecentActivity';
+import { useNavigateFrom } from '@/lib/navigation';
 import type { RoleDashboardProps } from './types';
 
 /** Enterprise-wide overview for SUPER_ADMIN / LAB_ADMINISTRATOR — the whole laboratory, end to end. */
 export function AdminDashboard({ summary, lastUpdated, refreshing, onRefresh }: RoleDashboardProps) {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
   const [range, setRange] = useState<DashboardRange>(7);
 

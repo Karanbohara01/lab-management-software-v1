@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, Info } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
@@ -7,10 +6,12 @@ import { Button } from '@/components/ui/Button';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { useToast } from '@/components/ui/toast';
+import { useBackTarget, useNavigateFrom } from '@/lib/navigation';
 import { notificationsApi } from './api';
 
 export function NotificationsPage() {
-  const navigate = useNavigate();
+  const { back } = useBackTarget();
+  const navigate = useNavigateFrom();
   const toast = useToast();
   const [unreadOnly, setUnreadOnly] = useState(false);
   const { data, loading, error, refetch } = useQuery(() => notificationsApi.list(unreadOnly, 100), [unreadOnly]);
@@ -18,6 +19,7 @@ export function NotificationsPage() {
   return (
     <>
       <PageHeader
+        back={back}
         title="Notifications"
         description="Operational alerts — critical results, failed submissions, stock and backlog."
         actions={

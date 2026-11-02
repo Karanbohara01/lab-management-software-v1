@@ -13,6 +13,11 @@ module.exports = {
   ignorePatterns: ['dist', 'node_modules', '*.cjs'],
   rules: {
     'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
-    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    // Spelling out the options drops the plugin's own `ignoreRestSiblings` default, which is what
+    // makes `const { code: _code, ...rest } = payload` — omitting a field by destructuring — legal.
+    '@typescript-eslint/no-unused-vars': [
+      'error',
+      { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true },
+    ],
   },
 };

@@ -1,14 +1,14 @@
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { useQuery } from '@/hooks/useQuery';
 import { ordersApi } from '@/features/orders/api';
 import { formatMoney } from '@/lib/money';
 import { formatDateTime } from '@/features/patients/format';
+import { useNavigateFrom } from '@/lib/navigation';
 import { QueueShell } from './QueueShell';
 
 /** Front-desk worklist: orders started but not yet confirmed (and so not yet sent to the lab). */
 export function DraftOrders() {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { data, loading, error, refetch } = useQuery(() => ordersApi.list({ status: 'DRAFT', size: 8 }), []);
 
   return (

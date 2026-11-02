@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Download } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
+import { useBackTarget } from '@/lib/navigation';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -11,14 +12,19 @@ import { Modal } from '@/components/ui/Modal';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
 import { LoadingState, TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
+import { useListParams, useSearchInput } from '@/hooks/useListParams';
 import { useQuery } from '@/hooks/useQuery';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/types/api';
 import { exportCsv, exportExcel, exportXml } from '@/lib/exportData';
 import { adminApi, type AuditListItem } from './api';
 
 const PAGE_SIZE = 30;
+/**
+ * Lives in the URL, so the filters and page survive leaving the page, and `entry` makes a single
+ * audit entry linkable — it opens the detail modal on load.
+ */
+const PARAMS = { q: '', module: '', actor: '', from: '', to: '', page: 1, entry: 0 };
 
 const EXPORT_COLUMNS: { key: keyof AuditListItem; header: string }[] = [
   { key: 'createdAt', header: 'When' },
@@ -41,48 +47,45 @@ function pretty(json: string | null): string {
 }
 
 export function AuditPage() {
+  const { back } = useBackTarget();
   const toast = useToast();
-  const [module, setModule] = useState('');
-  const [actor, setActor] = useState('');
-  const [search, setSearch] = useState('');
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
-  const [page, setPage] = useState(0);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [exporting, setExporting] = useState(false);
 
+  const { params, set } = useListParams(PARAMS);
+  const [search, setSearch] = useSearchInput(params.q, (q) => set({ q }, { replace: true }));
+  const [actor, setActor] = useSearchInput(params.actor, (a) => set({ actor: a }, { replace: true }));
+
   const modules = useQuery(() => adminApi.auditModules(), []);
-  const debouncedSearch = useDebouncedValue(search, 300);
-  const debouncedActor = useDebouncedValue(actor, 300);
 
   const { data, loading, error, refetch } = useQuery(
     () =>
       adminApi.audit({
-        module: module || undefined,
-        actor: debouncedActor || undefined,
-        query: debouncedSearch || undefined,
-        from: from ? new Date(from).toISOString() : undefined,
-        to: to ? new Date(to).toISOString() : undefined,
-        page,
+        module: params.module || undefined,
+        actor: params.actor || undefined,
+        query: params.q || undefined,
+        from: params.from ? new Date(params.from).toISOString() : undefined,
+        to: params.to ? new Date(params.to).toISOString() : undefined,
+        page: params.page - 1,
         size: PAGE_SIZE,
       }),
-    [module, debouncedActor, debouncedSearch, from, to, page],
+    [params.module, params.actor, params.q, params.from, params.to, params.page],
+    { cacheKey: `audit:${params.module}:${params.actor}:${params.q}:${params.from}:${params.to}:${params.page}` },
   );
 
   const detail = useQuery(
-    () => (selectedId ? adminApi.auditDetail(selectedId) : Promise.resolve(null)),
-    [selectedId],
+    () => (params.entry ? adminApi.auditDetail(params.entry) : Promise.resolve(null)),
+    [params.entry],
   );
 
   const exportAll = async (format: 'csv' | 'xls' | 'xml') => {
     setExporting(true);
     try {
       const rows = await adminApi.exportAudit({
-        module: module || undefined,
-        actor: debouncedActor || undefined,
-        query: debouncedSearch || undefined,
-        from: from ? new Date(from).toISOString() : undefined,
-        to: to ? new Date(to).toISOString() : undefined,
+        module: params.module || undefined,
+        actor: params.actor || undefined,
+        query: params.q || undefined,
+        from: params.from ? new Date(params.from).toISOString() : undefined,
+        to: params.to ? new Date(params.to).toISOString() : undefined,
       });
       if (format === 'csv') {
         exportCsv(rows as unknown as Record<string, unknown>[], EXPORT_COLUMNS as { key: string; header: string }[], 'audit-log.csv');
@@ -115,6 +118,7 @@ export function AuditPage() {
   return (
     <>
       <PageHeader
+        back={back}
         title="Audit log"
         description="Every sensitive operation, who performed it and what changed."
         actions={
@@ -137,26 +141,16 @@ export function AuditPage() {
 
       <Card>
         <div className="grid gap-3 border-b border-border p-4 sm:grid-cols-2 lg:grid-cols-4">
-          <SearchInput
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(0);
-            }}
-            placeholder="Search summary"
-          />
+          <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search summary" />
           <Select
             options={[{ value: '', label: 'All modules' }, ...(modules.data ?? []).map((m) => ({ value: m, label: m }))]}
-            value={module}
-            onChange={(e) => {
-              setModule(e.target.value);
-              setPage(0);
-            }}
+            value={params.module}
+            onChange={(e) => set({ module: e.target.value })}
           />
-          <Input placeholder="Actor" value={actor} onChange={(e) => { setActor(e.target.value); setPage(0); }} />
+          <Input placeholder="Actor" value={actor} onChange={(e) => setActor(e.target.value)} />
           <div className="grid grid-cols-2 gap-2">
-            <Input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPage(0); }} aria-label="From date" />
-            <Input type="date" value={to} onChange={(e) => { setTo(e.target.value); setPage(0); }} aria-label="To date" />
+            <Input type="date" value={params.from} onChange={(e) => set({ from: e.target.value })} aria-label="From date" />
+            <Input type="date" value={params.to} onChange={(e) => set({ to: e.target.value })} aria-label="To date" />
           </div>
         </div>
 
@@ -169,14 +163,24 @@ export function AuditPage() {
         ) : (
           data && (
             <>
-              <DataTable columns={columns} rows={data.content} rowKey={(a) => a.id} onRowClick={(a) => setSelectedId(a.id)} />
-              <Pagination page={data.page} totalPages={data.totalPages} totalElements={data.totalElements} onPageChange={setPage} />
+              <DataTable
+                columns={columns}
+                rows={data.content}
+                rowKey={(a) => a.id}
+                onRowClick={(a) => set({ entry: a.id }, { resetPage: false })}
+              />
+              <Pagination
+                page={data.page}
+                totalPages={data.totalPages}
+                totalElements={data.totalElements}
+                onPageChange={(p) => set({ page: p + 1 })}
+              />
             </>
           )
         )}
       </Card>
 
-      <Modal open={selectedId != null} onClose={() => setSelectedId(null)} title="Audit entry" size="lg">
+      <Modal open={params.entry !== 0} onClose={() => set({ entry: 0 }, { resetPage: false })} title="Audit entry" size="lg">
         {detail.loading || !detail.data ? (
           <LoadingState />
         ) : (

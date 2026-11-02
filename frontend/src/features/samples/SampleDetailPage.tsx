@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Ban, CheckCircle2, PackageCheck, Printer, RefreshCw } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Ban, CheckCircle2, PackageCheck, Printer, RefreshCw } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -9,6 +9,7 @@ import { Alert } from '@/components/ui/Alert';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
+import { LinkFrom, useBackTarget } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
@@ -24,6 +25,7 @@ import { SampleResultsCard } from './SampleResultsCard';
 
 export function SampleDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { back } = useBackTarget();
   const toast = useToast();
   const { hasPermission } = useAuth();
 
@@ -69,15 +71,8 @@ export function SampleDetailPage() {
 
   return (
     <>
-      <Link
-        to={`/app/orders/${sample.orderId}`}
-        className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        Order {sample.orderNumber}
-      </Link>
-
       <PageHeader
+        back={back}
         title={sample.accessionNumber}
         description={`${sample.patientName} · ${sample.patientMrn} · ${SPECIMEN_LABELS[sample.specimenType]}`}
         actions={
@@ -179,6 +174,15 @@ export function SampleDetailPage() {
           <Card>
             <CardHeader title="Collection" />
             <CardBody className="space-y-2 text-sm">
+              <div className="flex justify-between gap-3">
+                <span className="text-muted">Order</span>
+                <LinkFrom
+                  to={`/app/orders/${sample.orderId}`}
+                  className="text-right text-foreground hover:underline"
+                >
+                  {sample.orderNumber}
+                </LinkFrom>
+              </div>
               <Row label="Container" value={sample.container} />
               <Row label="Collection site" value={sample.collectionSite} />
               <Row label="Collected" value={fmt(sample.collectedAt, sample.collectedBy)} />

@@ -8,7 +8,7 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
 import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useListParams, useSearchInput } from '@/hooks/useListParams';
 import { useQuery } from '@/hooks/useQuery';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
@@ -17,20 +17,22 @@ import type { Doctor } from './types';
 import { DoctorFormModal } from './DoctorFormModal';
 
 const PAGE_SIZE = 20;
+/** Lives in the URL, so returning to the list lands on the same search and page. */
+const PARAMS = { q: '', page: 1 };
 
 export function DoctorsPage() {
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.DOCTOR_WRITE);
 
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(0);
+  const { params, set } = useListParams(PARAMS);
+  const [search, setSearch] = useSearchInput(params.q, (q) => set({ q }, { replace: true }));
   const [editing, setEditing] = useState<Doctor | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const debouncedSearch = useDebouncedValue(search, 300);
   const { data, loading, error, refetch } = useQuery(
-    () => doctorsApi.list({ query: debouncedSearch || undefined, activeOnly: false, page, size: PAGE_SIZE }),
-    [debouncedSearch, page],
+    () => doctorsApi.list({ query: params.q || undefined, activeOnly: false, page: params.page - 1, size: PAGE_SIZE }),
+    [params.q, params.page],
+    { cacheKey: `doctors:${params.q}:${params.page}` },
   );
 
   const columns: Column<Doctor>[] = [
@@ -74,10 +76,7 @@ export function DoctorsPage() {
           <div className="max-w-sm">
             <SearchInput
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(0);
-              }}
+              onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name or specialization"
             />
           </div>
@@ -90,8 +89,8 @@ export function DoctorsPage() {
         ) : data && data.content.length === 0 ? (
           <EmptyState
             title="No doctors found"
-            message={debouncedSearch ? 'Try a different search.' : 'Add the first referring doctor.'}
-            action={canWrite && !debouncedSearch ? <Button onClick={openCreate}>Add doctor</Button> : undefined}
+            message={params.q ? 'Try a different search.' : 'Add the first referring doctor.'}
+            action={canWrite && !params.q ? <Button onClick={openCreate}>Add doctor</Button> : undefined}
           />
         ) : (
           data && (
@@ -106,7 +105,7 @@ export function DoctorsPage() {
                 page={data.page}
                 totalPages={data.totalPages}
                 totalElements={data.totalElements}
-                onPageChange={setPage}
+                onPageChange={(p) => set({ page: p + 1 })}
               />
             </>
           )

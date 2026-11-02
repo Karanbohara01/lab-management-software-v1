@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pencil } from 'lucide-react';
-import { BackLink } from '@/components/BackLink';
 import { PageHeader } from '@/components/PageHeader';
+import { useBackTarget } from '@/lib/navigation';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -22,6 +22,7 @@ import { platformApi, type PlatformRole } from './api';
  * every other clinic too.
  */
 export function PlatformRolesPage() {
+  const { back } = useBackTarget();
   const toast = useToast();
   const rolesQ = useQuery(() => platformApi.roles(), []);
   const permsQ = useQuery(() => platformApi.permissions(), []);
@@ -29,8 +30,8 @@ export function PlatformRolesPage() {
 
   return (
     <>
-      <BackLink to="/app/platform">Back to platform</BackLink>
       <PageHeader
+        back={back}
         title="Roles & permissions"
         description="Global permission set for each role — shared by every clinic on this platform."
       />

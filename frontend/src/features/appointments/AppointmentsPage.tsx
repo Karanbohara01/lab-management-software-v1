@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
@@ -10,8 +9,9 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
 import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useListParams, useSearchInput } from '@/hooks/useListParams';
 import { useQuery } from '@/hooks/useQuery';
+import { useNavigateFrom } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { formatDateTime } from '@/features/patients/format';
@@ -21,18 +21,17 @@ import { AppointmentFormModal } from './AppointmentFormModal';
 import { APPOINTMENT_STATUS_LABEL, APPOINTMENT_STATUS_TONE, type AppointmentListItem, type AppointmentStatus } from './types';
 
 const PAGE_SIZE = 20;
+/** Lives in the URL, so returning from an appointment lands on the same search, filters and page. */
+const PARAMS = { q: '', status: '', date: '', branchId: '', page: 1 };
 
 export function AppointmentsPage() {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { hasPermission, user } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.APPOINTMENT_WRITE);
   const isHq = !user?.homeBranchId;
 
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<'' | AppointmentStatus>('');
-  const [date, setDate] = useState('');
-  const [branchId, setBranchId] = useState('');
-  const [page, setPage] = useState(0);
+  const { params, set } = useListParams(PARAMS);
+  const [search, setSearch] = useSearchInput(params.q, (q) => set({ q }, { replace: true }));
   const [branches, setBranches] = useState<Branch[]>([]);
   const [formOpen, setFormOpen] = useState(false);
 
@@ -40,19 +39,19 @@ export function AppointmentsPage() {
     if (isHq) branchesApi.list(true).then(setBranches);
   }, [isHq]);
 
-  const debouncedSearch = useDebouncedValue(search, 300);
   const { data, loading, error, refetch } = useQuery(
     () =>
       appointmentsApi.list({
-        query: debouncedSearch || undefined,
-        status: status || undefined,
-        branchId: branchId ? Number(branchId) : undefined,
-        scheduledFrom: date ? `${date}T00:00:00` : undefined,
-        scheduledTo: date ? `${date}T23:59:59` : undefined,
-        page,
+        query: params.q || undefined,
+        status: (params.status as AppointmentStatus) || undefined,
+        branchId: params.branchId ? Number(params.branchId) : undefined,
+        scheduledFrom: params.date ? `${params.date}T00:00:00` : undefined,
+        scheduledTo: params.date ? `${params.date}T23:59:59` : undefined,
+        page: params.page - 1,
         size: PAGE_SIZE,
       }),
-    [debouncedSearch, status, date, branchId, page],
+    [params.q, params.status, params.date, params.branchId, params.page],
+    { cacheKey: `appointments:${params.q}:${params.status}:${params.date}:${params.branchId}:${params.page}` },
   );
 
   const columns: Column<AppointmentListItem>[] = [
@@ -99,21 +98,15 @@ export function AppointmentsPage() {
           <div className="sm:max-w-xs sm:flex-1">
             <SearchInput
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(0);
-              }}
+              onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by appointment no., patient or MRN"
             />
           </div>
           <div className="sm:w-44">
             <input
               type="date"
-              value={date}
-              onChange={(e) => {
-                setDate(e.target.value);
-                setPage(0);
-              }}
+              value={params.date}
+              onChange={(e) => set({ date: e.target.value })}
               className="h-full w-full rounded-md border border-input bg-surface px-3 py-2 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
@@ -127,22 +120,16 @@ export function AppointmentsPage() {
                 { value: 'CANCELLED', label: 'Cancelled' },
                 { value: 'NO_SHOW', label: 'No-show' },
               ]}
-              value={status}
-              onChange={(e) => {
-                setStatus(e.target.value as '' | AppointmentStatus);
-                setPage(0);
-              }}
+              value={params.status}
+              onChange={(e) => set({ status: e.target.value })}
             />
           </div>
           {isHq && (
             <div className="sm:w-48">
               <Select
                 options={[{ value: '', label: 'All branches' }, ...branches.map((b) => ({ value: String(b.id), label: b.name }))]}
-                value={branchId}
-                onChange={(e) => {
-                  setBranchId(e.target.value);
-                  setPage(0);
-                }}
+                value={params.branchId}
+                onChange={(e) => set({ branchId: e.target.value })}
               />
             </div>
           )}
@@ -155,8 +142,8 @@ export function AppointmentsPage() {
         ) : data && data.content.length === 0 ? (
           <EmptyState
             title="No appointments found"
-            message={debouncedSearch || status || date ? 'Adjust the filters.' : 'Book the first appointment.'}
-            action={canWrite && !debouncedSearch && !status && !date ? <Button onClick={() => setFormOpen(true)}>New appointment</Button> : undefined}
+            message={params.q || params.status || params.date ? 'Adjust the filters.' : 'Book the first appointment.'}
+            action={canWrite && !params.q && !params.status && !params.date ? <Button onClick={() => setFormOpen(true)}>New appointment</Button> : undefined}
           />
         ) : (
           data && (
@@ -165,13 +152,14 @@ export function AppointmentsPage() {
                 columns={columns}
                 rows={data.content}
                 rowKey={(a) => a.id}
+                rowHref={(a) => `/app/appointments/${a.id}`}
                 onRowClick={(a) => navigate(`/app/appointments/${a.id}`)}
               />
               <Pagination
                 page={data.page}
                 totalPages={data.totalPages}
                 totalElements={data.totalElements}
-                onPageChange={setPage}
+                onPageChange={(p) => set({ page: p + 1 })}
               />
             </>
           )

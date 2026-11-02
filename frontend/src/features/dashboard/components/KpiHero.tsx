@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
 import { Activity, ClipboardCheck, FileCheck2, FlaskConical, Wallet } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { formatMoney } from '@/lib/money';
 import { useAuth } from '@/features/auth/useAuth';
 import type { DashboardSummary } from '../api';
+import { useNavigateFrom } from '@/lib/navigation';
 
 /**
  * Illustrations for the headline cards — `frontend/public/dashboard-icons/` (160 x 160
@@ -61,7 +61,7 @@ function MetricIcon({ art, icon: Icon, warning }: { art?: string; icon: LucideIc
 
 /** The dominant "today at a glance" row — one primary metric, four supporting ones. */
 export function KpiHero({ summary }: { summary: DashboardSummary }) {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
 
   const secondary = ([

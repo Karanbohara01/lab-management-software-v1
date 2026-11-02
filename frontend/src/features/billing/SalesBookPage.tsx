@@ -1,10 +1,10 @@
-import { useState } from 'react';
 import { Download, Printer } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/PageState';
+import { useListParams } from '@/hooks/useListParams';
 import { useQuery } from '@/hooks/useQuery';
 import { formatMoney } from '@/lib/money';
 import { exportCsv, exportExcel } from '@/lib/exportData';
@@ -20,6 +20,11 @@ function dt(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' });
 }
 
+const NOW = new Date();
+/** The period lives in the URL, so a report can be bookmarked or shared and opens on its own month. */
+const PARAMS = { year: NOW.getFullYear(), month: NOW.getMonth() + 1 };
+const YEAR_OPTIONS = Array.from({ length: 6 }, (_, i) => NOW.getFullYear() - 4 + i);
+
 const CSV_COLUMNS: { key: keyof SalesBookRow; header: string }[] = [
   { key: 'date', header: 'Date' },
   { key: 'billNo', header: 'Bill No' },
@@ -34,11 +39,14 @@ const CSV_COLUMNS: { key: keyof SalesBookRow; header: string }[] = [
 ];
 
 export function SalesBookPage() {
-  const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  const { params, set } = useListParams(PARAMS);
+  const { year, month } = params;
 
-  const { data, loading, error, refetch } = useQuery(() => invoicesApi.salesBook({ year, month }), [year, month]);
+  const { data, loading, error, refetch } = useQuery(
+    () => invoicesApi.salesBook({ year, month }),
+    [year, month],
+    { cacheKey: `sales-book:${year}:${month}` },
+  );
 
   const totals = (data ?? []).reduce(
     (acc, r) => ({
@@ -49,8 +57,6 @@ export function SalesBookPage() {
     }),
     { totalSales: 0, discount: 0, taxableSales: 0, tax: 0 },
   );
-
-  const yearOptions = Array.from({ length: 6 }, (_, i) => now.getFullYear() - 4 + i);
 
   return (
     <>
@@ -105,7 +111,7 @@ export function SalesBookPage() {
               <Select
                 label="Month"
                 value={String(month)}
-                onChange={(e) => setMonth(Number(e.target.value))}
+                onChange={(e) => set({ month: Number(e.target.value) })}
                 options={MONTHS.map((m, i) => ({ value: String(i + 1), label: m }))}
               />
             </div>
@@ -113,8 +119,8 @@ export function SalesBookPage() {
               <Select
                 label="Year"
                 value={String(year)}
-                onChange={(e) => setYear(Number(e.target.value))}
-                options={yearOptions.map((y) => ({ value: String(y), label: String(y) }))}
+                onChange={(e) => set({ year: Number(e.target.value) })}
+                options={YEAR_OPTIONS.map((y) => ({ value: String(y), label: String(y) }))}
               />
             </div>
           </div>

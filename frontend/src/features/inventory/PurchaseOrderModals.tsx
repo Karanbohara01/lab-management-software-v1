@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Plus, Search, Trash2 } from 'lucide-react';
-import { Modal } from '@/components/ui/Modal';
+import { Modal, ModalCancelButton } from '@/components/ui/Modal';
+import { useIsDirty } from '@/hooks/useUnsavedChanges';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
@@ -46,31 +47,38 @@ export function PurchaseOrderBuilderModal({
   const debounced = useDebouncedValue(term, 300);
   const [results, setResults] = useState<{ id: number; code: string; name: string; unit: string }[]>([]);
 
+  /** What the form starts as — the prefill source and the yardstick for "has this been edited?". */
+  const initial = useMemo(
+    () =>
+      po
+        ? {
+            supplierId: String(po.supplierId),
+            expectedDate: po.expectedDate ?? '',
+            notes: po.notes ?? '',
+            lines: po.lines.map((l) => ({
+              itemId: l.itemId,
+              itemCode: l.itemCode,
+              itemName: l.itemName,
+              unit: l.unit,
+              quantity: String(l.quantityOrdered),
+              estimatedUnitCost: l.estimatedUnitCost != null ? String(l.estimatedUnitCost) : '',
+            })),
+          }
+        : { supplierId: '', expectedDate: '', notes: '', lines: [] as DraftLine[] },
+    [po],
+  );
+
   useEffect(() => {
     if (!open) return;
-    if (po) {
-      setSupplierId(String(po.supplierId));
-      setExpectedDate(po.expectedDate ?? '');
-      setNotes(po.notes ?? '');
-      setLines(
-        po.lines.map((l) => ({
-          itemId: l.itemId,
-          itemCode: l.itemCode,
-          itemName: l.itemName,
-          unit: l.unit,
-          quantity: String(l.quantityOrdered),
-          estimatedUnitCost: l.estimatedUnitCost != null ? String(l.estimatedUnitCost) : '',
-        })),
-      );
-    } else {
-      setSupplierId('');
-      setExpectedDate('');
-      setNotes('');
-      setLines([]);
-    }
+    setSupplierId(initial.supplierId);
+    setExpectedDate(initial.expectedDate);
+    setNotes(initial.notes);
+    setLines(initial.lines);
     setTerm('');
     setErr(null);
-  }, [open, po]);
+  }, [open, initial]);
+
+  const isDirty = useIsDirty({ supplierId, expectedDate, notes, lines }, initial);
 
   useEffect(() => {
     if (debounced.trim().length < 1) {
@@ -115,11 +123,10 @@ export function PurchaseOrderBuilderModal({
       onClose={onClose}
       title={po ? `Edit ${po.poNumber}` : 'New purchase order'}
       size="lg"
+      confirmClose={isDirty && !busy}
       footer={
         <>
-          <Button variant="secondary" type="button" onClick={onClose} disabled={busy}>
-            Cancel
-          </Button>
+          <ModalCancelButton />
           <Button onClick={submit} loading={busy}>
             {po ? 'Save' : 'Create draft'}
           </Button>

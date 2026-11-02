@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { KeyRound, Plus } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
+import { useBackTarget } from '@/lib/navigation';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -8,14 +9,15 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Combobox } from '@/components/ui/Combobox';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { Modal } from '@/components/ui/Modal';
+import { Modal, ModalCancelButton } from '@/components/ui/Modal';
+import { useIsDirty } from '@/hooks/useUnsavedChanges';
 import { Alert } from '@/components/ui/Alert';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
 import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
+import { useListParams, useSearchInput } from '@/hooks/useListParams';
 import { useQuery } from '@/hooks/useQuery';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
@@ -27,25 +29,29 @@ import type { Doctor } from '@/features/doctors/types';
 import { adminApi, type AppUserListItem } from './api';
 
 const PAGE_SIZE = 20;
+/** Lives in the URL, so the search and page survive leaving the page and coming back. */
+const PARAMS = { q: '', page: 1 };
 
 export function UsersPage() {
+  const { back } = useBackTarget();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.USER_WRITE);
   const toast = useToast();
 
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(0);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<AppUserListItem | null>(null);
   const [resetFor, setResetFor] = useState<AppUserListItem | null>(null);
 
-  const debouncedSearch = useDebouncedValue(search, 300);
+  const { params, set } = useListParams(PARAMS);
+  const [search, setSearch] = useSearchInput(params.q, (q) => set({ q }, { replace: true }));
+
   const roles = useQuery(() => adminApi.roles(), []);
   const branches = useQuery(() => branchesApi.list(true), []);
   const doctors = useQuery(() => doctorsApi.list({ activeOnly: true, size: 500 }), []);
   const { data, loading, error, refetch } = useQuery(
-    () => adminApi.users({ query: debouncedSearch || undefined, page, size: PAGE_SIZE }),
-    [debouncedSearch, page],
+    () => adminApi.users({ query: params.q || undefined, page: params.page - 1, size: PAGE_SIZE }),
+    [params.q, params.page],
+    { cacheKey: `users:${params.q}:${params.page}` },
   );
 
   const toggleEnabled = async (u: AppUserListItem) => {
@@ -104,6 +110,7 @@ export function UsersPage() {
   return (
     <>
       <PageHeader
+        back={back}
         title="Users"
         description="Staff accounts and role assignments."
         actions={canWrite ? <Button onClick={() => { setEditing(null); setFormOpen(true); }}><Plus className="h-4 w-4" aria-hidden /> New user</Button> : undefined}
@@ -112,7 +119,7 @@ export function UsersPage() {
       <Card>
         <div className="border-b border-border p-4">
           <div className="max-w-sm">
-            <SearchInput value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }} placeholder="Search name, username or email" />
+            <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, username or email" />
           </div>
         </div>
         {loading && !data ? (
@@ -130,7 +137,12 @@ export function UsersPage() {
                 rowKey={(u) => u.id}
                 onRowClick={canWrite ? (u) => { setEditing(u); setFormOpen(true); } : undefined}
               />
-              <Pagination page={data.page} totalPages={data.totalPages} totalElements={data.totalElements} onPageChange={setPage} />
+              <Pagination
+                page={data.page}
+                totalPages={data.totalPages}
+                totalElements={data.totalElements}
+                onPageChange={(p) => set({ page: p + 1 })}
+              />
             </>
           )
         )}
@@ -150,6 +162,28 @@ export function UsersPage() {
   );
 }
 
+interface UserFormValues {
+  username: string;
+  email: string;
+  fullName: string;
+  phone: string;
+  password: string;
+  roleNames: string[];
+  homeBranchId: string;
+  doctorId: string;
+}
+
+const EMPTY_USER_FORM: UserFormValues = {
+  username: '',
+  email: '',
+  fullName: '',
+  phone: '',
+  password: '',
+  roleNames: [],
+  homeBranchId: '',
+  doctorId: '',
+};
+
 function UserFormModal({
   open,
   onClose,
@@ -168,39 +202,41 @@ function UserFormModal({
   onSaved: () => void;
 }) {
   const toast = useToast();
-  const [f, setF] = useState({
-    username: '',
-    email: '',
-    fullName: '',
-    phone: '',
-    password: '',
-    roleNames: [] as string[],
-    homeBranchId: '' as string,
-    doctorId: '' as string,
-  });
+  const [f, setF] = useState<UserFormValues>(EMPTY_USER_FORM);
+  // The values the form was loaded with. Kept beside the live ones so "has this been edited?"
+  // survives the asynchronous prefill, which a snapshot taken on open would miss.
+  const [initial, setInitial] = useState<UserFormValues>(EMPTY_USER_FORM);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setErr(null);
-    if (userId) {
-      adminApi.user(userId).then((u) =>
-        setF({
-          username: u.username,
-          email: u.email,
-          fullName: u.fullName,
-          phone: u.phone ?? '',
-          password: '',
-          roleNames: u.roles,
-          homeBranchId: u.homeBranchId ? String(u.homeBranchId) : '',
-          doctorId: u.doctorId ? String(u.doctorId) : '',
-        }),
-      );
-    } else {
-      setF({ username: '', email: '', fullName: '', phone: '', password: '', roleNames: [], homeBranchId: '', doctorId: '' });
-    }
+    setF(EMPTY_USER_FORM);
+    setInitial(EMPTY_USER_FORM);
+    if (!userId) return;
+    let cancelled = false;
+    adminApi.user(userId).then((u) => {
+      if (cancelled) return;
+      const loaded: UserFormValues = {
+        username: u.username,
+        email: u.email,
+        fullName: u.fullName,
+        phone: u.phone ?? '',
+        password: '',
+        roleNames: u.roles,
+        homeBranchId: u.homeBranchId ? String(u.homeBranchId) : '',
+        doctorId: u.doctorId ? String(u.doctorId) : '',
+      };
+      setF(loaded);
+      setInitial(loaded);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [open, userId]);
+
+  const isDirty = useIsDirty(f, initial);
 
   const toggleRole = (r: string) =>
     setF((prev) => ({ ...prev, roleNames: prev.roleNames.includes(r) ? prev.roleNames.filter((x) => x !== r) : [...prev.roleNames, r] }));
@@ -257,9 +293,10 @@ function UserFormModal({
       onClose={onClose}
       title={userId ? 'Edit user' : 'New user'}
       size="lg"
+      confirmClose={isDirty && !busy}
       footer={
         <>
-          <Button variant="secondary" type="button" onClick={onClose} disabled={busy}>Cancel</Button>
+          <ModalCancelButton />
           <Button onClick={submit} loading={busy} disabled={f.roleNames.length === 0 || (isDoctorRole && !f.doctorId)}>{userId ? 'Save' : 'Create user'}</Button>
         </>
       }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Database, Download, RefreshCw } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
+import { useBackTarget } from '@/lib/navigation';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -8,6 +9,7 @@ import { Alert } from '@/components/ui/Alert';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
 import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
+import { useListParams } from '@/hooks/useListParams';
 import { useQuery } from '@/hooks/useQuery';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
@@ -17,19 +19,26 @@ import { backupsApi } from './api';
 import { BACKUP_STATUS_TONE, formatBytes, type BackupRun } from './types';
 
 const PAGE_SIZE = 20;
+/** Lives in the URL, so the page survives leaving the page and coming back. */
+const PARAMS = { page: 1 };
 
 function dt(iso: string | null): string {
   return iso ? new Date(iso).toLocaleString() : '—';
 }
 
 export function BackupsPage() {
+  const { back } = useBackTarget();
   const toast = useToast();
   const { hasPermission } = useAuth();
   const canManage = hasPermission(PERMISSIONS.BACKUP_MANAGE);
-  const [page, setPage] = useState(0);
   const [running, setRunning] = useState(false);
 
-  const { data, loading, error, refetch } = useQuery(() => backupsApi.list({ page, size: PAGE_SIZE }), [page]);
+  const { params, set } = useListParams(PARAMS);
+  const { data, loading, error, refetch } = useQuery(
+    () => backupsApi.list({ page: params.page - 1, size: PAGE_SIZE }),
+    [params.page],
+    { cacheKey: `backups:${params.page}` },
+  );
 
   const runBackup = async () => {
     setRunning(true);
@@ -91,6 +100,7 @@ export function BackupsPage() {
   return (
     <>
       <PageHeader
+        back={back}
         title="Backups"
         description="Database backup history — mandatory per the e-invoice procedure (every fiscal year's database and log must be backed up). Runs automatically overnight; old files are kept until you remove them from the server's disk. Each file holds data only, not the schema — restoring means letting the app recreate the schema (its migrations) on a fresh database first, then loading this file into it."
         actions={
@@ -126,7 +136,12 @@ export function BackupsPage() {
           data && (
             <>
               <DataTable columns={columns} rows={data.content} rowKey={(b) => b.id} />
-              <Pagination page={data.page} totalPages={data.totalPages} totalElements={data.totalElements} onPageChange={setPage} />
+              <Pagination
+                page={data.page}
+                totalPages={data.totalPages}
+                totalElements={data.totalElements}
+                onPageChange={(p) => set({ page: p + 1 })}
+              />
             </>
           )
         )}

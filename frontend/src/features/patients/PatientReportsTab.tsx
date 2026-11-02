@@ -1,16 +1,16 @@
-import { useNavigate } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
+import { useNavigateFrom } from '@/lib/navigation';
 import { formatDate } from './format';
 import { reportsApi } from '@/features/reports/api';
 import { REPORT_STATUS_TONE, type ReportListItem } from '@/features/reports/types';
 
 export function PatientReportsTab({ patientId }: { patientId: number }) {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { data, loading, error, refetch } = useQuery(
     () => reportsApi.list({ patientId, size: 50 }),
     [patientId],

@@ -1,4 +1,5 @@
 import { PageHeader } from '@/components/PageHeader';
+import { useBackTarget } from '@/lib/navigation';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
@@ -6,6 +7,7 @@ import { useQuery } from '@/hooks/useQuery';
 import { adminApi } from './api';
 
 export function RolesPage() {
+  const { back } = useBackTarget();
   const { data, loading, error, refetch } = useQuery(() => adminApi.roles(), []);
 
   if (loading && !data) return <LoadingState />;
@@ -14,6 +16,7 @@ export function RolesPage() {
   return (
     <>
       <PageHeader
+        back={back}
         title="Roles & permissions"
         description="The permission set for each role. Permissions are enforced on the backend for every request."
       />

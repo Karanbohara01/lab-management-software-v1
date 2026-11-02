@@ -60,8 +60,10 @@ export function useListParams<S extends Record<string, Primitive>>(schema: S, op
             const fallback = schema[key];
             if (value === undefined) continue;
             if (key !== pageKey) changedOtherThanPage = true;
-            const isDefault = value === fallback || (typeof fallback === 'boolean' && !value) || value === '';
-            if (isDefault) next.delete(key);
+            // Only the schema's own default drops out of the URL. A page whose default is a real
+            // value (refunds start on "Requested") must still be able to say "all" with an empty
+            // one, so emptiness alone can't mean "same as default".
+            if (value === fallback) next.delete(key);
             else next.set(key, typeof value === 'boolean' ? '1' : String(value));
           }
           if (pageKey && changedOtherThanPage && !(pageKey in patch) && opts.resetPage !== false) {

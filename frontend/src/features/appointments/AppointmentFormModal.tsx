@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Trash2, X } from 'lucide-react';
-import { Modal } from '@/components/ui/Modal';
+import { Modal, ModalCancelButton } from '@/components/ui/Modal';
+import { useIsDirty } from '@/hooks/useUnsavedChanges';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { Combobox } from '@/components/ui/Combobox';
@@ -60,41 +61,57 @@ export function AppointmentFormModal({
     if (isHq) branchesApi.list(true).then(setBranches);
   }, [isHq]);
 
+  /** What the form starts as — the prefill source and the yardstick for "has this been edited?". */
+  const initial = useMemo(
+    () =>
+      appointment
+        ? {
+            patientId: appointment.patientId as number | null,
+            doctorId: appointment.referringDoctorId ? String(appointment.referringDoctorId) : '',
+            branchId: appointment.branchId ? String(appointment.branchId) : '',
+            scheduledAt: toLocalInputValue(appointment.scheduledAt),
+            reason: appointment.reason ?? '',
+            tests: appointment.items,
+          }
+        : { patientId: null, doctorId: '', branchId: '', scheduledAt: '', reason: '', tests: [] },
+    [appointment],
+  );
+
   useEffect(() => {
     if (!open) return;
     setFormError(null);
-    if (appointment) {
-      setPatient({
-        id: appointment.patientId,
-        mrn: appointment.patientMrn,
-        salutation: null,
-        fullName: appointment.patientName,
-        gender: 'OTHER',
-        ageYears: null,
-        phone: null,
-        category: 'WALK_IN',
-        referringDoctorName: null,
-        vip: false,
-        confidential: false,
-        deceased: false,
-        active: true,
-        dataCompleteness: 100,
-        createdAt: appointment.scheduledAt,
-      });
-      setDoctorId(appointment.referringDoctorId ? String(appointment.referringDoctorId) : '');
-      setBranchId(appointment.branchId ? String(appointment.branchId) : '');
-      setScheduledAt(toLocalInputValue(appointment.scheduledAt));
-      setReason(appointment.reason ?? '');
-      setTests(appointment.items);
-    } else {
-      setPatient(null);
-      setDoctorId('');
-      setBranchId('');
-      setScheduledAt('');
-      setReason('');
-      setTests([]);
-    }
-  }, [open, appointment]);
+    setPatient(
+      appointment
+        ? {
+            id: appointment.patientId,
+            mrn: appointment.patientMrn,
+            salutation: null,
+            fullName: appointment.patientName,
+            gender: 'OTHER',
+            ageYears: null,
+            phone: null,
+            category: 'WALK_IN',
+            referringDoctorName: null,
+            vip: false,
+            confidential: false,
+            deceased: false,
+            active: true,
+            dataCompleteness: 100,
+            createdAt: appointment.scheduledAt,
+          }
+        : null,
+    );
+    setDoctorId(initial.doctorId);
+    setBranchId(initial.branchId);
+    setScheduledAt(initial.scheduledAt);
+    setReason(initial.reason);
+    setTests(initial.tests);
+  }, [open, appointment, initial]);
+
+  const isDirty = useIsDirty(
+    { patientId: patient?.id ?? null, doctorId, branchId, scheduledAt, reason, tests },
+    initial,
+  );
 
   const submit = async () => {
     if (!patient) {
@@ -138,11 +155,10 @@ export function AppointmentFormModal({
       onClose={onClose}
       size="lg"
       title={appointment ? 'Reschedule appointment' : 'New appointment'}
+      confirmClose={isDirty && !submitting}
       footer={
         <>
-          <Button variant="secondary" type="button" onClick={onClose} disabled={submitting}>
-            Cancel
-          </Button>
+          <ModalCancelButton />
           <Button onClick={submit} loading={submitting}>
             {appointment ? 'Save changes' : 'Book appointment'}
           </Button>

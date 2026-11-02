@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, Plus } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -10,8 +9,9 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
 import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
+import { useListParams, useSearchInput } from '@/hooks/useListParams';
 import { useQuery } from '@/hooks/useQuery';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useNavigateFrom } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { inventoryApi } from './api';
@@ -25,29 +25,31 @@ import {
 } from './types';
 
 const PAGE_SIZE = 20;
+/** Lives in the URL, so returning from an item lands on the same search, filter and page. */
+const PARAMS = { q: '', category: '', page: 1 };
 
 export function InventoryPage() {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.INVENTORY_WRITE);
 
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('');
-  const [page, setPage] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
 
+  const { params, set } = useListParams(PARAMS);
+  const [search, setSearch] = useSearchInput(params.q, (q) => set({ q }, { replace: true }));
+
   const summary = useQuery(() => inventoryApi.summary(), []);
-  const debouncedSearch = useDebouncedValue(search, 300);
   const { data, loading, error, refetch } = useQuery(
     () =>
       inventoryApi.list({
-        query: debouncedSearch || undefined,
-        category: (category || undefined) as ItemCategory | undefined,
+        query: params.q || undefined,
+        category: (params.category || undefined) as ItemCategory | undefined,
         activeOnly: true,
-        page,
+        page: params.page - 1,
         size: PAGE_SIZE,
       }),
-    [debouncedSearch, category, page],
+    [params.q, params.category, params.page],
+    { cacheKey: `inventory:${params.q}:${params.category}:${params.page}` },
   );
 
   const alertCount = (summary.data?.alerts ?? []).length;
@@ -117,10 +119,7 @@ export function InventoryPage() {
           <div className="sm:max-w-xs sm:flex-1">
             <SearchInput
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(0);
-              }}
+              onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name or code"
             />
           </div>
@@ -130,11 +129,8 @@ export function InventoryPage() {
                 { value: '', label: 'All categories' },
                 ...Object.entries(CATEGORY_LABEL).map(([value, label]) => ({ value, label })),
               ]}
-              value={category}
-              onChange={(e) => {
-                setCategory(e.target.value);
-                setPage(0);
-              }}
+              value={params.category}
+              onChange={(e) => set({ category: e.target.value })}
             />
           </div>
         </div>
@@ -146,14 +142,25 @@ export function InventoryPage() {
         ) : data && data.content.length === 0 ? (
           <EmptyState
             title="No items"
-            message={debouncedSearch || category ? 'Adjust the filters.' : 'Add your first inventory item.'}
-            action={canWrite && !debouncedSearch && !category ? <Button onClick={() => setModalOpen(true)}>New item</Button> : undefined}
+            message={params.q || params.category ? 'Adjust the filters.' : 'Add your first inventory item.'}
+            action={canWrite && !params.q && !params.category ? <Button onClick={() => setModalOpen(true)}>New item</Button> : undefined}
           />
         ) : (
           data && (
             <>
-              <DataTable columns={columns} rows={data.content} rowKey={(i) => i.id} onRowClick={(i) => navigate(`/app/inventory/${i.id}`)} />
-              <Pagination page={data.page} totalPages={data.totalPages} totalElements={data.totalElements} onPageChange={setPage} />
+              <DataTable
+                columns={columns}
+                rows={data.content}
+                rowKey={(i) => i.id}
+                rowHref={(i) => `/app/inventory/${i.id}`}
+                onRowClick={(i) => navigate(`/app/inventory/${i.id}`)}
+              />
+              <Pagination
+                page={data.page}
+                totalPages={data.totalPages}
+                totalElements={data.totalElements}
+                onPageChange={(p) => set({ page: p + 1 })}
+              />
             </>
           )
         )}

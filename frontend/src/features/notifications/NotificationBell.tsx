@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, Bell, Info } from 'lucide-react';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
+import { useNavigateFrom } from '@/lib/navigation';
 import { notificationsApi, type AppNotification } from './api';
 
 const POLL_MS = 45_000;
@@ -17,7 +17,7 @@ function timeAgo(iso: string): string {
 }
 
 export function NotificationBell() {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
   const enabled = hasPermission(PERMISSIONS.NOTIFICATION_READ);
 

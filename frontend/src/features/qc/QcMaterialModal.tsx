@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Modal } from '@/components/ui/Modal';
+import { useEffect, useMemo, useState } from 'react';
+import { Modal, ModalCancelButton } from '@/components/ui/Modal';
+import { useIsDirty } from '@/hooks/useUnsavedChanges';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -50,36 +51,52 @@ export function QcMaterialModal({
     [testId],
   );
 
+  /** What the form starts as — the prefill source and the yardstick for "has this been edited?". */
+  const initial = useMemo(
+    () =>
+      material
+        ? {
+            name: material.name,
+            manufacturer: material.manufacturer ?? '',
+            lot: material.lotNumber ?? '',
+            level: material.level as string,
+            testId: String(material.testId),
+            expiry: material.expiryDate ?? '',
+            active: material.active,
+            rows: material.targets.map((t) => ({
+              parameterId: t.parameterId,
+              parameterName: t.parameterName,
+              targetMean: String(t.targetMean),
+              targetSd: String(t.targetSd),
+            })),
+          }
+        : {
+            name: '',
+            manufacturer: '',
+            lot: '',
+            level: 'LEVEL_1',
+            testId: '',
+            expiry: '',
+            active: true,
+            rows: [] as TargetRow[],
+          },
+    [material],
+  );
+
   useEffect(() => {
     if (!open) return;
-    if (material) {
-      setName(material.name);
-      setManufacturer(material.manufacturer ?? '');
-      setLot(material.lotNumber ?? '');
-      setLevel(material.level);
-      setTestId(String(material.testId));
-      setExpiry(material.expiryDate ?? '');
-      setActive(material.active);
-      setRows(
-        material.targets.map((t) => ({
-          parameterId: t.parameterId,
-          parameterName: t.parameterName,
-          targetMean: String(t.targetMean),
-          targetSd: String(t.targetSd),
-        })),
-      );
-    } else {
-      setName('');
-      setManufacturer('');
-      setLot('');
-      setLevel('LEVEL_1');
-      setTestId('');
-      setExpiry('');
-      setActive(true);
-      setRows([]);
-    }
+    setName(initial.name);
+    setManufacturer(initial.manufacturer);
+    setLot(initial.lot);
+    setLevel(initial.level);
+    setTestId(initial.testId);
+    setExpiry(initial.expiry);
+    setActive(initial.active);
+    setRows(initial.rows);
     setError(null);
-  }, [open, material]);
+  }, [open, initial]);
+
+  const isDirty = useIsDirty({ name, manufacturer, lot, level, testId, expiry, active, rows }, initial);
 
   // when the test changes (new material), seed target rows from its numeric params
   useEffect(() => {
@@ -129,11 +146,10 @@ export function QcMaterialModal({
       onClose={onClose}
       title={material ? `Edit ${material.name}` : 'New QC material'}
       size="lg"
+      confirmClose={isDirty && !busy}
       footer={
         <>
-          <Button variant="secondary" type="button" onClick={onClose}>
-            Cancel
-          </Button>
+          <ModalCancelButton />
           <Button type="button" loading={busy} disabled={!name.trim() || !testId} onClick={save}>
             Save
           </Button>

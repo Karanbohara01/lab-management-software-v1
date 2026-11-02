@@ -1,13 +1,13 @@
-import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { useQuery } from '@/hooks/useQuery';
 import { resultsApi } from '@/features/results/api';
+import { useNavigateFrom } from '@/lib/navigation';
 import { QueueShell } from './QueueShell';
 
 /** Bench worklist: results whose values haven't been entered yet. */
 export function ResultsToEnter() {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { data, loading, error, refetch } = useQuery(() => resultsApi.list({ status: 'PENDING', size: 8 }), []);
 
   return (

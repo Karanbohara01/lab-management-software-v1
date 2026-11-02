@@ -1,6 +1,6 @@
-import { useNavigate } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { useNavigateFrom } from '@/lib/navigation';
 
 export interface StatTileData {
   label: string;
@@ -12,7 +12,7 @@ export interface StatTileData {
 
 /** A row of compact, click-through stat tiles — the lightweight KPI strip used on role dashboards. */
 export function StatTileRow({ stats }: { stats: StatTileData[] }) {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   if (stats.length === 0) return null;
   return (
     <div className="mb-5 flex flex-wrap gap-3">

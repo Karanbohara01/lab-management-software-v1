@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Ban, CalendarClock, CheckCircle2, UserX } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Ban, CalendarClock, CheckCircle2, UserX } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/Badge';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
+import { LinkFrom, useBackTarget, useNavigateFrom } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
@@ -20,7 +21,8 @@ import { APPOINTMENT_STATUS_LABEL, APPOINTMENT_STATUS_TONE } from './types';
 
 export function AppointmentDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
+  const { back } = useBackTarget();
   const toast = useToast();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.APPOINTMENT_WRITE);
@@ -50,11 +52,8 @@ export function AppointmentDetailPage() {
 
   return (
     <>
-      <Link to="/app/appointments" className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        Appointments
-      </Link>
       <PageHeader
+        back={back}
         title={appointment.appointmentNumber}
         description={formatDateTime(appointment.scheduledAt)}
         actions={<Badge tone={APPOINTMENT_STATUS_TONE[appointment.status]}>{APPOINTMENT_STATUS_LABEL[appointment.status]}</Badge>}
@@ -123,9 +122,9 @@ export function AppointmentDetailPage() {
             <Card>
               <CardHeader title="Converted order" />
               <CardBody>
-                <Link to={`/app/orders/${appointment.convertedOrderId}`} className="text-sm text-primary hover:underline">
+                <LinkFrom to={`/app/orders/${appointment.convertedOrderId}`} className="text-sm text-primary hover:underline">
                   {appointment.convertedOrderNumber}
-                </Link>
+                </LinkFrom>
                 <p className="mt-1 text-xs text-muted">{appointment.convertedAt && formatDateTime(appointment.convertedAt)}</p>
               </CardBody>
             </Card>

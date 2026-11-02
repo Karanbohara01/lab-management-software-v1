@@ -10,7 +10,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ChevronRight, Plus, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
-import { Modal } from '@/components/ui/Modal';
+import { Modal, ModalCancelButton } from '@/components/ui/Modal';
+import { useIsDirty } from '@/hooks/useUnsavedChanges';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Textarea } from '@/components/ui/Textarea';
@@ -465,7 +466,7 @@ export function TestFormModal({
     control,
     setValue,
     setError,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: EMPTY });
 
   const { fields, append, remove } = useFieldArray({ control, name: 'parameters' });
@@ -551,6 +552,10 @@ export function TestFormModal({
     }
   });
 
+  // The profile's member tests live outside react-hook-form, so they need their own comparison.
+  const memberBaseline = useMemo(() => (test ? test.members.map((m) => m.id) : []), [test]);
+  const membersChanged = useIsDirty(memberIds, memberBaseline);
+
   const deptOptions = departments.map((d) => ({ value: String(d.id), label: `${d.name} (${d.code})` }));
   const specimenOptions = Object.entries(SPECIMEN_LABELS).map(([value, label]) => ({ value, label }));
   const params = watch('parameters');
@@ -579,11 +584,10 @@ export function TestFormModal({
       onClose={onClose}
       title={test ? `Edit test · ${test.code}` : 'New test'}
       size="xl"
+      confirmClose={(isDirty || membersChanged) && !isSubmitting}
       footer={
         <>
-          <Button variant="secondary" type="button" onClick={onClose}>
-            Cancel
-          </Button>
+          <ModalCancelButton />
           <Button type="submit" form="test-form" loading={isSubmitting}>
             {test ? 'Save changes' : 'Add test'}
           </Button>

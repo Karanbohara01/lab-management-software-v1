@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { useQuery } from '@/hooks/useQuery';
 import { samplesApi } from '@/features/samples/api';
@@ -9,11 +8,12 @@ import { formatDateTime } from '@/features/patients/format';
 import { ReceiveSampleModal } from '@/features/samples/ReceiveSampleModal';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
+import { useNavigateFrom } from '@/lib/navigation';
 import { QueueShell } from './QueueShell';
 
 /** Bench worklist: samples collected in the field but not yet logged into the lab. */
 export function SamplesToReceive() {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
   const [receiving, setReceiving] = useState<SampleListItem | null>(null);
   const { data, loading, error, refetch } = useQuery(() => samplesApi.list({ status: 'COLLECTED', size: 8 }), []);

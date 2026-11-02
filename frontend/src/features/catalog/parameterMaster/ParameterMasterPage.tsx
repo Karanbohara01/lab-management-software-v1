@@ -8,7 +8,7 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useListParams, useSearchInput } from '@/hooks/useListParams';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { useToast } from '@/components/ui/toast';
@@ -16,6 +16,9 @@ import { ApiError } from '@/types/api';
 import { parameterMasterApi } from './api';
 import { ParameterMasterFormModal } from './ParameterMasterFormModal';
 import { PARAMETER_DATA_TYPE_LABEL, type ParameterMaster } from './types';
+
+/** Lives in the URL, so returning to the list lands on the same search. */
+const PARAMS = { q: '' };
 
 /**
  * This clinic's own reusable analyte dictionary — pick a parameter here once (unit, typical adult
@@ -27,14 +30,15 @@ export function ParameterMasterPage() {
   const toast = useToast();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.TEST_CATALOG_WRITE);
-  const [query, setQuery] = useState('');
-  const debouncedQuery = useDebouncedValue(query, 300);
+  const { params, set } = useListParams(PARAMS);
+  const [query, setQuery] = useSearchInput(params.q, (q) => set({ q }, { replace: true }));
   const [editing, setEditing] = useState<ParameterMaster | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
   const { data, loading, error, refetch } = useQuery(
-    () => parameterMasterApi.list({ query: debouncedQuery, activeOnly: false }),
-    [debouncedQuery],
+    () => parameterMasterApi.list({ query: params.q, activeOnly: false }),
+    [params.q],
+    { cacheKey: `parameter-master:${params.q}` },
   );
 
   const toggleActive = async (p: ParameterMaster) => {
