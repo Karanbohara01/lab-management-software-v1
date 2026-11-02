@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, FilePlus2, GitMerge, Link2, Pencil, Printer, ShieldAlert, Star } from 'lucide-react';
+import { useParams, Link } from 'react-router-dom';
+import { FilePlus2, GitMerge, Link2, Pencil, Printer, ShieldAlert, Star } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -8,6 +8,8 @@ import { Tabs } from '@/components/ui/Tabs';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
+import { useListParams } from '@/hooks/useListParams';
+import { useBackTarget, useNavigateFrom } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { useToast } from '@/components/ui/toast';
@@ -62,16 +64,21 @@ function CompletenessBar({ value }: { value: number }) {
   );
 }
 
+/** The open tab is in the URL, so it survives a refresh, a bookmark and the browser's Back button. */
+const PARAMS = { tab: 'overview' };
+
 export function PatientDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
+  const { back } = useBackTarget();
   const { hasPermission } = useAuth();
   const toast = useToast();
   const canWrite = hasPermission(PERMISSIONS.PATIENT_WRITE);
   const canOrder = hasPermission(PERMISSIONS.LAB_ORDER_WRITE);
   const canMerge = hasPermission(PERMISSIONS.PATIENT_MERGE);
 
-  const [tab, setTab] = useState<Tab>('overview');
+  const { params, set } = useListParams(PARAMS);
+  const tab = (TABS.some((t) => t.id === params.tab) ? params.tab : 'overview') as Tab;
   const [mergeOpen, setMergeOpen] = useState(false);
   const [linkBusy, setLinkBusy] = useState(false);
 
@@ -108,12 +115,8 @@ export function PatientDetailPage() {
 
   return (
     <>
-      <Link to="/app/patients" className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        Back to patients
-      </Link>
-
       <PageHeader
+        back={back}
         title={`${patient.salutation ? `${patient.salutation} ` : ''}${patient.fullName}`}
         description={`${patient.mrn} · ${formatGender(patient.gender)}${patient.ageYears != null ? ` · ${patient.ageYears}y` : ''} · ${categoryLabel(patient.category)}`}
         actions={
@@ -177,7 +180,7 @@ export function PatientDetailPage() {
         </div>
       )}
 
-      <Tabs tabs={TABS} value={tab} onChange={setTab} className="mb-4" />
+      <Tabs tabs={TABS} value={tab} onChange={(id) => set({ tab: id })} className="mb-4" />
 
       {tab === 'overview' && (
         <div className="grid gap-4 lg:grid-cols-2">

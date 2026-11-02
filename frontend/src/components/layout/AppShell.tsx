@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, ScrollRestoration, useLocation } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { SidebarContent } from './Sidebar';
 import { Topbar } from './Topbar';
+import { Breadcrumbs } from './Breadcrumbs';
+import { PageTitleProvider } from './PageTitleContext';
 import { KeyboardShortcutsModal } from './KeyboardShortcutsModal';
 import { useGlobalShortcuts } from './useGlobalShortcuts';
 
@@ -26,6 +28,14 @@ export function AppShell() {
   // Close the mobile drawer whenever the route changes.
   useEffect(() => setDrawerOpen(false), [location.pathname]);
 
+  // …and on Escape, like every other overlay in the app.
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setDrawerOpen(false);
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [drawerOpen]);
+
   const toggleCollapsed = () => {
     setCollapsed((v) => {
       const next = !v;
@@ -39,6 +49,7 @@ export function AppShell() {
   };
 
   return (
+    <PageTitleProvider>
     <div className="flex min-h-screen bg-background">
       <a
         href="#main-content"
@@ -67,7 +78,12 @@ export function AppShell() {
             onClick={() => setDrawerOpen(false)}
             aria-hidden
           />
-          <div className={cn('absolute inset-y-0 left-0 w-72 max-w-[80%] shadow-popover animate-slide-in-left')}>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation menu"
+            className={cn('absolute inset-y-0 left-0 w-72 max-w-[80%] shadow-popover animate-slide-in-left')}
+          >
             <button
               type="button"
               onClick={() => setDrawerOpen(false)}
@@ -84,11 +100,15 @@ export function AppShell() {
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onOpenMenu={() => setDrawerOpen(true)} onOpenShortcuts={openShortcutsHelp} />
         <main id="main-content" className="flex-1 px-4 py-6 lg:px-8">
+          <Breadcrumbs />
           <Outlet />
         </main>
       </div>
 
       <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      {/* Back returns to where the list was scrolled; a new page starts at the top. */}
+      <ScrollRestoration />
     </div>
+    </PageTitleProvider>
   );
 }

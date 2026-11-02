@@ -1,7 +1,8 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { Button } from './Button';
 
 export interface ModalProps {
   open: boolean;
@@ -11,6 +12,13 @@ export interface ModalProps {
   children: ReactNode;
   footer?: ReactNode;
   size?: 'md' | 'lg' | 'xl';
+  /**
+   * Set while the form inside has unsaved edits. Escape, the backdrop and the close button then
+   * ask before discarding (an inline strip in the footer — a second dialog would fight this one's
+   * focus trap). Call sites that have their own Cancel button should route it through
+   * `requestClose` from `useModalClose` so it asks too.
+   */
+  confirmClose?: boolean;
 }
 
 const SIZES: Record<NonNullable<ModalProps['size']>, string> = {
@@ -19,8 +27,41 @@ const SIZES: Record<NonNullable<ModalProps['size']>, string> = {
   xl: 'sm:max-w-4xl',
 };
 
-export function Modal({ open, onClose, title, description, children, footer, size = 'md' }: ModalProps) {
+/**
+ * Gives a modal's own Cancel button the same "are you sure" treatment as Escape and the backdrop.
+ * `requestClose` asks when `confirmClose` is set; `onClose` always closes outright (use after a save).
+ */
+export function useModalClose(confirmClose: boolean | undefined, onClose: () => void) {
+  const [asking, setAsking] = useState(false);
+  const requestClose = useCallback(() => {
+    if (confirmClose) setAsking(true);
+    else onClose();
+  }, [confirmClose, onClose]);
+  return { asking, setAsking, requestClose };
+}
+
+export function Modal({
+  open,
+  onClose,
+  title,
+  description,
+  children,
+  footer,
+  size = 'md',
+  confirmClose,
+}: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const [asking, setAsking] = useState(false);
+
+  const requestClose = useCallback(() => {
+    if (confirmClose) setAsking(true);
+    else onClose();
+  }, [confirmClose, onClose]);
+
+  // A modal that reopens shouldn't still be asking about the last time it closed.
+  useEffect(() => {
+    if (!open) setAsking(false);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -34,7 +75,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        requestClose();
         return;
       }
       if (e.key === 'Tab') {
@@ -61,13 +102,13 @@ export function Modal({ open, onClose, title, description, children, footer, siz
       document.body.style.overflow = '';
       previouslyFocused?.focus();
     };
-  }, [open, onClose]);
+  }, [open, requestClose]);
 
   if (!open) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <div className="absolute inset-0 bg-foreground/40 animate-fade-in" onClick={onClose} aria-hidden />
+      <div className="absolute inset-0 bg-foreground/40 animate-fade-in" onClick={requestClose} aria-hidden />
       <div
         ref={dialogRef}
         role="dialog"
@@ -88,7 +129,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             className="rounded-md p-1 text-muted hover:bg-surface-muted hover:text-foreground"
             aria-label="Close dialog"
           >
@@ -98,8 +139,20 @@ export function Modal({ open, onClose, title, description, children, footer, siz
 
         <div className="flex-1 overflow-y-auto px-5 py-4">{children}</div>
 
-        {footer && (
-          <div className="flex justify-end gap-2 border-t border-border px-5 py-4">{footer}</div>
+        {asking ? (
+          <div className="flex flex-col gap-3 border-t border-border bg-surface-muted/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-foreground">Discard your unsaved changes?</p>
+            <div className="flex shrink-0 justify-end gap-2">
+              <Button variant="secondary" type="button" onClick={() => setAsking(false)}>
+                Keep editing
+              </Button>
+              <Button variant="danger" type="button" onClick={onClose}>
+                Discard
+              </Button>
+            </div>
+          </div>
+        ) : (
+          footer && <div className="flex justify-end gap-2 border-t border-border px-5 py-4">{footer}</div>
         )}
       </div>
     </div>,

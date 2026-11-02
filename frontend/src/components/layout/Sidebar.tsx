@@ -3,6 +3,8 @@ import { NavLink } from 'react-router-dom';
 import { ChevronDown, ChevronsLeft, ChevronsRight, Search, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useAuth } from '@/features/auth/useAuth';
+import { useLeafHandle } from '@/lib/navigation';
+import { handleChain, resolvePattern } from '@/routes/appRoutes';
 import { NAV_SECTIONS } from './navigation';
 import { SidebarBrand } from './SidebarBrand';
 
@@ -34,6 +36,19 @@ export function SidebarContent({
   onToggleCollapse?: () => void;
 }) {
   const { hasAnyPermission } = useAuth();
+  const leaf = useLeafHandle();
+  /**
+   * The pages above the current one. Several pages live under a section they don't share a URL
+   * prefix with (Users sits under Control center), and NavLink only knows about prefixes — so the
+   * section stays lit by matching any ancestor too.
+   */
+  const ancestorHrefs = useMemo(
+    () =>
+      new Set(
+        leaf ? handleChain(leaf.handle.pattern).map((h) => resolvePattern(h.pattern, leaf.params)) : [],
+      ),
+    [leaf],
+  );
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(readCollapsedSections);
   const [query, setQuery] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
@@ -171,14 +186,16 @@ export function SidebarContent({
                             cn(
                               'group relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-100',
                               collapsed && 'justify-center px-0',
-                              isActive
+                              isActive || ancestorHrefs.has(item.to)
                                 ? 'bg-primary/10 text-primary'
                                 : 'text-muted-foreground hover:bg-surface-muted hover:text-foreground',
                               item.upcoming && 'pointer-events-none opacity-50',
                             )
                           }
                         >
-                          {({ isActive }) => (
+                          {({ isActive: routeActive }) => {
+                            const isActive = routeActive || ancestorHrefs.has(item.to);
+                            return (
                             <>
                               <span
                                 className={cn(
@@ -209,7 +226,8 @@ export function SidebarContent({
                                 </>
                               )}
                             </>
-                          )}
+                            );
+                          }}
                         </NavLink>
                       </li>
                     );

@@ -1,5 +1,3 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Plus, ShieldAlert, Star } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
@@ -10,8 +8,9 @@ import { Select } from '@/components/ui/Select';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
 import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useListParams, useSearchInput } from '@/hooks/useListParams';
 import { useQuery } from '@/hooks/useQuery';
+import { useNavigateFrom } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { patientsApi } from './api';
@@ -20,27 +19,28 @@ import { PATIENT_CATEGORIES, categoryLabel } from './constants';
 import { formatAge } from './format';
 
 const PAGE_SIZE = 20;
+/** Lives in the URL, so returning from a patient lands on the same search, filter and page. */
+const PARAMS = { q: '', category: '', page: 1 };
 
 export function PatientsPage() {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.PATIENT_WRITE);
 
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState<PatientCategory | ''>('');
-  const [page, setPage] = useState(0);
+  const { params, set } = useListParams(PARAMS);
+  const [search, setSearch] = useSearchInput(params.q, (q) => set({ q }, { replace: true }));
 
-  const debouncedSearch = useDebouncedValue(search, 300);
   const { data, loading, error, refetch } = useQuery(
     () =>
       patientsApi.list({
-        query: debouncedSearch || undefined,
-        category: category || undefined,
+        query: params.q || undefined,
+        category: (params.category as PatientCategory) || undefined,
         activeOnly: false,
-        page,
+        page: params.page - 1,
         size: PAGE_SIZE,
       }),
-    [debouncedSearch, category, page],
+    [params.q, params.category, params.page],
+    { cacheKey: `patients:${params.q}:${params.category}:${params.page}` },
   );
 
   const columns: Column<PatientListItem>[] = [
@@ -100,10 +100,7 @@ export function PatientsPage() {
           <div className="sm:max-w-sm sm:flex-1">
             <SearchInput
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(0);
-              }}
+              onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name, MRN, phone or email"
             />
           </div>
@@ -111,11 +108,8 @@ export function PatientsPage() {
             aria-label="Filter by category"
             className="sm:w-52"
             options={[{ value: '', label: 'All categories' }, ...PATIENT_CATEGORIES]}
-            value={category}
-            onChange={(e) => {
-              setCategory(e.target.value as PatientCategory | '');
-              setPage(0);
-            }}
+            value={params.category}
+            onChange={(e) => set({ category: e.target.value })}
           />
         </div>
 
@@ -127,10 +121,10 @@ export function PatientsPage() {
           <EmptyState
             title="No patients found"
             message={
-              debouncedSearch || category ? 'Try a different search or filter.' : 'Register the first patient to get started.'
+              params.q || params.category ? 'Try a different search or filter.' : 'Register the first patient to get started.'
             }
             action={
-              canWrite && !debouncedSearch && !category ? (
+              canWrite && !params.q && !params.category ? (
                 <Button onClick={() => navigate('/app/patients/new')}>Register patient</Button>
               ) : undefined
             }
@@ -142,13 +136,14 @@ export function PatientsPage() {
                 columns={columns}
                 rows={data.content}
                 rowKey={(p) => p.id}
+                rowHref={(p) => `/app/patients/${p.id}`}
                 onRowClick={(p) => navigate(`/app/patients/${p.id}`)}
               />
               <Pagination
                 page={data.page}
                 totalPages={data.totalPages}
                 totalElements={data.totalElements}
-                onPageChange={setPage}
+                onPageChange={(p) => set({ page: p + 1 })}
               />
             </>
           )
