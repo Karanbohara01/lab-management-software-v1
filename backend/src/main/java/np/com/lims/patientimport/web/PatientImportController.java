@@ -87,7 +87,7 @@ public class PatientImportController {
     @PostMapping("/{id}/start")
     @PreAuthorize("hasAuthority('PERM_PATIENT_IMPORT')")
     public JobDetail start(@PathVariable Long id, @RequestBody(required = false) ConfirmImportRequest request) {
-        return service.confirmImport(id, request == null ? new ConfirmImportRequest(null) : request);
+        return service.confirmImport(id, request == null ? new ConfirmImportRequest(null, null) : request);
     }
 
     @PostMapping("/{id}/cancel")

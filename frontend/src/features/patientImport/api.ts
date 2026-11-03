@@ -67,10 +67,10 @@ export const patientImportApi = {
       .post<ImportJobDetail>(`/patient-imports/${jobId}/mapping`, { mapping })
       .then((r) => r.data),
 
-  /** Confirms the import itself, after the preview. */
-  start: (jobId: number, duplicatePolicy: DuplicatePolicy) =>
+  /** Confirms the import itself, after the preview, with a policy for each kind of match. */
+  start: (jobId: number, duplicatePolicy: DuplicatePolicy, weakMatchPolicy: DuplicatePolicy) =>
     httpClient
-      .post<ImportJobDetail>(`/patient-imports/${jobId}/start`, { duplicatePolicy })
+      .post<ImportJobDetail>(`/patient-imports/${jobId}/start`, { duplicatePolicy, weakMatchPolicy })
       .then((r) => r.data),
 
   cancel: (jobId: number) =>

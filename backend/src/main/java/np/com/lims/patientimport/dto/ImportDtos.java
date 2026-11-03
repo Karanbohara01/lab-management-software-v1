@@ -41,7 +41,15 @@ public final class ImportDtos {
     ) {
     }
 
-    public record ConfirmImportRequest(DuplicatePolicy duplicatePolicy) {
+    public record ConfirmImportRequest(
+            /** What to do with rows that firmly match an existing patient. Defaults to skipping them. */
+            DuplicatePolicy duplicatePolicy,
+            /**
+             * What to do with rows that only share a name, gender and age with one. Defaults to
+             * importing them as new, since a shared common name is usually a different person.
+             */
+            DuplicatePolicy weakMatchPolicy
+    ) {
     }
 
     /** A job as it appears in the history list. */
@@ -56,6 +64,7 @@ public final class ImportDtos {
             int validRows,
             int invalidRows,
             int duplicateRows,
+            int possibleDuplicateRows,
             int importedRows,
             int updatedRows,
             int skippedRows,
@@ -74,7 +83,7 @@ public final class ImportDtos {
             return new JobSummary(
                     j.getId(), j.getOriginalFilename(), j.getFileFormat(), j.getFileSizeBytes(), j.getStatus(),
                     j.getTotalRows(), j.getProcessedRows(), j.getValidRows(), j.getInvalidRows(), j.getDuplicateRows(),
-                    j.getImportedRows(), j.getUpdatedRows(), j.getSkippedRows(), j.getFailedRows(),
+                    j.getPossibleDuplicateRows(), j.getImportedRows(), j.getUpdatedRows(), j.getSkippedRows(), j.getFailedRows(),
                     percent(j), j.getCreatedBy(), j.getCreatedAt(), j.getStartedAt(), j.getCompletedAt(),
                     j.getRetryOfJobId(), j.getFailureMessage(), j.isCancelRequested(), j.getFileDeletedAt() == null);
         }
@@ -93,7 +102,7 @@ public final class ImportDtos {
                 return 100;
             }
             int denominator = j.getStatus() == ImportJobStatus.IMPORTING
-                    ? j.getValidRows() + j.getDuplicateRows()
+                    ? j.getValidRows() + j.getDuplicateRows() + j.getPossibleDuplicateRows()
                     : j.getTotalRows();
             if (denominator <= 0) {
                 return 0;
@@ -107,22 +116,31 @@ public final class ImportDtos {
             JobSummary job,
             Map<String, String> mapping,
             Map<String, Long> rowCounts,
-            DuplicatePolicy duplicatePolicy
+            DuplicatePolicy duplicatePolicy,
+            DuplicatePolicy weakMatchPolicy
     ) {
-        public static JobDetail from(PatientImportJob j, Map<ImportRowStatus, Long> counts, Map<String, String> mapping) {
+        public static JobDetail from(PatientImportJob j, Map<ImportRowStatus, Long> counts, Map<String, String> mapping,
+                                     ImportOptions options) {
             Map<String, Long> byName = new java.util.LinkedHashMap<>();
             for (ImportRowStatus status : ImportRowStatus.values()) {
                 byName.put(status.name(), counts.getOrDefault(status, 0L));
             }
-            DuplicatePolicy policy = null;
-            if (j.getOptions() != null && j.getOptions().contains("IMPORT_AS_NEW")) {
-                policy = DuplicatePolicy.IMPORT_AS_NEW;
-            } else if (j.getOptions() != null && j.getOptions().contains("FILL_BLANKS")) {
-                policy = DuplicatePolicy.FILL_BLANKS;
-            } else if (j.getOptions() != null) {
-                policy = DuplicatePolicy.SKIP;
-            }
-            return new JobDetail(JobSummary.from(j), mapping, byName, policy);
+            return new JobDetail(JobSummary.from(j), mapping, byName,
+                    options == null ? null : options.duplicatePolicy(),
+                    options == null ? null : options.weakMatchPolicy());
+        }
+    }
+
+    /** The choices made at confirmation, as stored on the job. */
+    public record ImportOptions(DuplicatePolicy duplicatePolicy, DuplicatePolicy weakMatchPolicy) {
+        public static ImportOptions defaults() {
+            return new ImportOptions(DuplicatePolicy.SKIP, DuplicatePolicy.IMPORT_AS_NEW);
+        }
+
+        public ImportOptions withDefaults() {
+            return new ImportOptions(
+                    duplicatePolicy == null ? DuplicatePolicy.SKIP : duplicatePolicy,
+                    weakMatchPolicy == null ? DuplicatePolicy.IMPORT_AS_NEW : weakMatchPolicy);
         }
     }
 

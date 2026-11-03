@@ -18,6 +18,13 @@ public enum ImportRowStatus {
     /** Matches an earlier row of this same file rather than anything in the database. */
     DUPLICATE_IN_FILE,
 
+    /**
+     * Shares only a name, gender and age with an existing patient. Too weak to act on alone — two
+     * people with the same common name and age are ordinary — but too strong to pass in silence,
+     * so it is shown for review and given its own policy.
+     */
+    POSSIBLE_DUPLICATE,
+
     /** A patient was created from this row. Carries that patient's id, which is what makes a retry safe. */
     IMPORTED,
 

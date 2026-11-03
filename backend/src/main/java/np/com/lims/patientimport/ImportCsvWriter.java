@@ -129,6 +129,7 @@ public final class ImportCsvWriter {
             case FAILED -> "Not imported — could not be saved";
             case DUPLICATE -> "Matches an existing patient";
             case DUPLICATE_IN_FILE -> "Repeats an earlier row in this file";
+            case POSSIBLE_DUPLICATE -> "Possibly an existing patient (same name, gender and age)";
             case SKIPPED -> "Skipped";
             case VALID -> "Ready to import";
             case PENDING -> "Not yet checked";

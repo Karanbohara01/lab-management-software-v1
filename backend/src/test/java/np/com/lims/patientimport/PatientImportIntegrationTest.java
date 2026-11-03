@@ -96,9 +96,14 @@ class PatientImportIntegrationTest {
 
     /** Maps columns by position and runs the job to completion, the way the worker would. */
     private JobDetail runToCompletion(Long jobId, Map<String, String> mapping, DuplicatePolicy policy) {
+        return runToCompletion(jobId, mapping, policy, null);
+    }
+
+    private JobDetail runToCompletion(Long jobId, Map<String, String> mapping, DuplicatePolicy policy,
+                                      DuplicatePolicy weakPolicy) {
         service.confirmMapping(jobId, new MappingRequest(mapping));
         drain();
-        service.confirmImport(jobId, new ConfirmImportRequest(policy));
+        service.confirmImport(jobId, new ConfirmImportRequest(policy, weakPolicy));
         drain();
         return service.get(jobId);
     }
@@ -381,6 +386,214 @@ class PatientImportIntegrationTest {
         assertThat(after.getFullName()).isEqualTo("Sita Rai");
     }
 
+    // ----- possible matches ------------------------------------------------------------------
+
+    @Test
+    void flagsANameGenderAndAgeMatchForReviewInsteadOfPassingItSilently() {
+        service.upload(csv("a.csv", "Name,Gender,Age\nRam Thapa,M,40\n"));
+        Long first = jobRepository.history(orgId, org.springframework.data.domain.PageRequest.of(0, 1))
+                .getContent().get(0).getId();
+        runToCompletion(first, Map.of("0", "FULL_NAME", "1", "GENDER", "2", "AGE_YEARS"), DuplicatePolicy.SKIP);
+
+        // No phone, no ID, no date of birth: nothing firm, but the same name, gender and age.
+        UploadResult second = service.upload(csv("b.csv", "Name,Gender,Age\nRam Thapa,M,41\n"));
+        service.confirmMapping(second.job().id(),
+                new MappingRequest(Map.of("0", "FULL_NAME", "1", "GENDER", "2", "AGE_YEARS")));
+        drain();
+
+        JobDetail checked = service.get(second.job().id());
+        assertThat(checked.job().possibleDuplicateRows()).isEqualTo(1);
+        assertThat(checked.job().duplicateRows()).isZero();
+        RowView row = rows(second.job().id(), ImportRowStatus.POSSIBLE_DUPLICATE).get(0);
+        assertThat(row.duplicateOfMrn()).isEqualTo("P000001");
+        assertThat(row.duplicateReason()).contains("Same name, gender and age");
+    }
+
+    @Test
+    void importsAPossibleMatchAsNewByDefaultAndSkipsItOnRequest() {
+        service.upload(csv("a.csv", "Name,Gender,Age\nRam Thapa,M,40\n"));
+        Long first = jobRepository.history(orgId, org.springframework.data.domain.PageRequest.of(0, 1))
+                .getContent().get(0).getId();
+        runToCompletion(first, Map.of("0", "FULL_NAME", "1", "GENDER", "2", "AGE_YEARS"), DuplicatePolicy.SKIP);
+
+        // Default: a shared common name is probably someone else, so it goes in.
+        UploadResult asNew = service.upload(csv("b.csv", "Name,Gender,Age\nRam Thapa,M,40\n"));
+        JobDetail done = runToCompletion(asNew.job().id(),
+                Map.of("0", "FULL_NAME", "1", "GENDER", "2", "AGE_YEARS"), DuplicatePolicy.SKIP, null);
+        assertThat(done.job().importedRows()).isEqualTo(1);
+        assertThat(importedPatients()).hasSize(2);
+
+        // Asked to skip possible matches, it stays out.
+        UploadResult skipped = service.upload(csv("c.csv", "Name,Gender,Age\nRam Thapa,M,40\n"));
+        JobDetail done2 = runToCompletion(skipped.job().id(),
+                Map.of("0", "FULL_NAME", "1", "GENDER", "2", "AGE_YEARS"), DuplicatePolicy.SKIP,
+                DuplicatePolicy.SKIP);
+        assertThat(done2.job().importedRows()).isZero();
+        assertThat(done2.job().skippedRows()).isEqualTo(1);
+        assertThat(importedPatients()).hasSize(2);
+    }
+
+    @Test
+    void aDifferentGenderOrAgeIsNotAPossibleMatch() {
+        service.upload(csv("a.csv", "Name,Gender,Age\nRam Thapa,M,40\n"));
+        Long first = jobRepository.history(orgId, org.springframework.data.domain.PageRequest.of(0, 1))
+                .getContent().get(0).getId();
+        runToCompletion(first, Map.of("0", "FULL_NAME", "1", "GENDER", "2", "AGE_YEARS"), DuplicatePolicy.SKIP);
+
+        UploadResult second = service.upload(csv("b.csv", """
+                Name,Gender,Age
+                Ram Thapa,F,40
+                Ram Thapa,M,55
+                """));
+        service.confirmMapping(second.job().id(),
+                new MappingRequest(Map.of("0", "FULL_NAME", "1", "GENDER", "2", "AGE_YEARS")));
+        drain();
+        JobDetail checked = service.get(second.job().id());
+        assertThat(checked.job().possibleDuplicateRows()).isZero();
+        assertThat(checked.job().validRows()).isEqualTo(2);
+    }
+
+    @Test
+    void twoCopiesOfANameOnlyPersonInOneFileAreStillCaughtAsARepeat() {
+        service.upload(csv("a.csv", "Name,Gender,Age\nRam Thapa,M,40\n"));
+        Long first = jobRepository.history(orgId, org.springframework.data.domain.PageRequest.of(0, 1))
+                .getContent().get(0).getId();
+        runToCompletion(first, Map.of("0", "FULL_NAME", "1", "GENDER", "2", "AGE_YEARS"), DuplicatePolicy.SKIP);
+
+        // Both rows resemble the existing patient, AND the second repeats the first. Under the
+        // default policy the first may go in as new; the second must not go in as well.
+        UploadResult second = service.upload(csv("b.csv", """
+                Name,Gender,DOB
+                Ram Thapa,M,1986-05-05
+                Ram Thapa,M,1986-05-05
+                """));
+        JobDetail done = runToCompletion(second.job().id(),
+                Map.of("0", "FULL_NAME", "1", "GENDER", "2", "DATE_OF_BIRTH"), DuplicatePolicy.SKIP, null);
+        assertThat(done.job().importedRows()).isEqualTo(1);
+        assertThat(importedPatients()).hasSize(2);
+        assertThat(rows(second.job().id(), ImportRowStatus.SKIPPED).get(0).duplicateOfRow()).isEqualTo(2);
+    }
+
+    @Test
+    void aRowWithAPhoneThatMatchedNobodyIsNotAPossibleMatch() {
+        service.upload(csv("a.csv", "Name,Gender,Age,Phone\nRam Thapa,M,40,9800000001\n"));
+        Long first = jobRepository.history(orgId, org.springframework.data.domain.PageRequest.of(0, 1))
+                .getContent().get(0).getId();
+        runToCompletion(first, Map.of("0", "FULL_NAME", "1", "GENDER", "2", "AGE_YEARS", "3", "PHONE"),
+                DuplicatePolicy.SKIP);
+
+        // Same name, gender and age, but a different phone: evidence of a different person.
+        UploadResult second = service.upload(csv("b.csv", "Name,Gender,Age,Phone\nRam Thapa,M,40,9800000002\n"));
+        service.confirmMapping(second.job().id(),
+                new MappingRequest(Map.of("0", "FULL_NAME", "1", "GENDER", "2", "AGE_YEARS", "3", "PHONE")));
+        drain();
+        JobDetail checked = service.get(second.job().id());
+        assertThat(checked.job().possibleDuplicateRows()).isZero();
+        assertThat(checked.job().validRows()).isEqualTo(1);
+    }
+
+    @Test
+    void fillingBlanksFromAPossibleMatchCompletesTheMatchedPatient() {
+        service.upload(csv("a.csv", "Name,Gender,Age\nRam Thapa,M,40\n"));
+        Long first = jobRepository.history(orgId, org.springframework.data.domain.PageRequest.of(0, 1))
+                .getContent().get(0).getId();
+        runToCompletion(first, Map.of("0", "FULL_NAME", "1", "GENDER", "2", "AGE_YEARS"), DuplicatePolicy.SKIP);
+
+        UploadResult second = service.upload(csv("b.csv", "Name,Gender,Age,Email\nRam Thapa,M,40,ram@example.com\n"));
+        JobDetail done = runToCompletion(second.job().id(),
+                Map.of("0", "FULL_NAME", "1", "GENDER", "2", "AGE_YEARS", "3", "EMAIL"),
+                DuplicatePolicy.SKIP, DuplicatePolicy.FILL_BLANKS);
+        assertThat(done.job().updatedRows()).isEqualTo(1);
+        assertThat(done.job().importedRows()).isZero();
+        assertThat(importedPatients()).hasSize(1);
+        assertThat(importedPatients().get(0).getEmail()).isEqualTo("ram@example.com");
+    }
+
+    @Test
+    void fillBlanksDoesNotTouchARecordThatOnlySharesAPhoneWithADifferentName() {
+        service.upload(csv("a.csv", "Name,Gender,Age,Phone\nSita Rai,F,34,9801234567\n"));
+        Long first = jobRepository.history(orgId, org.springframework.data.domain.PageRequest.of(0, 1))
+                .getContent().get(0).getId();
+        runToCompletion(first, Map.of("0", "FULL_NAME", "1", "GENDER", "2", "AGE_YEARS", "3", "PHONE"),
+                DuplicatePolicy.SKIP);
+
+        // Her husband, on the household phone. Filling her record from his row would mix them up.
+        UploadResult second = service.upload(csv("b.csv",
+                "Name,Gender,Age,Phone,Email\nRam Rai,M,38,9801234567,ram@example.com\n"));
+        JobDetail done = runToCompletion(second.job().id(),
+                Map.of("0", "FULL_NAME", "1", "GENDER", "2", "AGE_YEARS", "3", "PHONE", "4", "EMAIL"),
+                DuplicatePolicy.FILL_BLANKS, null);
+        assertThat(done.job().updatedRows()).isZero();
+        assertThat(done.job().skippedRows()).isEqualTo(1);
+        assertThat(importedPatients().get(0).getEmail()).isNull();
+        assertThat(rows(second.job().id(), ImportRowStatus.SKIPPED).get(0).errorMessage()).contains("different name");
+    }
+
+    @Test
+    void aBatchMixingSkipsAndCreatesLeavesNoGapInThePatientNumbers() {
+        service.upload(csv("a.csv", "Name,Gender,Age,Phone\nKnown One,M,30,9800000001\n"));
+        Long first = jobRepository.history(orgId, org.springframework.data.domain.PageRequest.of(0, 1))
+                .getContent().get(0).getId();
+        runToCompletion(first, Map.of("0", "FULL_NAME", "1", "GENDER", "2", "AGE_YEARS", "3", "PHONE"),
+                DuplicatePolicy.SKIP);
+
+        // Batches of two: [new, known-skip] then [new, new] then [new]. Every reserved number
+        // that goes unused must come back, or P000003 would be missing.
+        UploadResult second = service.upload(csv("b.csv", """
+                Name,Gender,Age,Phone
+                New A,M,30,9800000011
+                Known One,M,30,9800000001
+                New B,F,31,9800000012
+                New C,M,32,9800000013
+                New D,F,33,9800000014
+                """));
+        runToCompletion(second.job().id(),
+                Map.of("0", "FULL_NAME", "1", "GENDER", "2", "AGE_YEARS", "3", "PHONE"), DuplicatePolicy.SKIP);
+        assertThat(importedPatients().stream().map(Patient::getMrn).sorted().toList())
+                .containsExactly("P000001", "P000002", "P000003", "P000004", "P000005");
+    }
+
+    @Test
+    void aRowThatFailsInsideTheDatabaseWriteIsReportedWithoutFailingTheJob() {
+        // A patient number the sequence does not know about, placed where the third create will
+        // land: the INSERT itself then fails on the unique constraint, which poisons the batch's
+        // transaction in a way no per-row catch can see.
+        patientRepository.save(np.com.lims.patient.entity.Patient.register("P000003", "Squatter", Gender.MALE));
+
+        UploadResult upload = service.upload(csv("poison.csv", """
+                Name,Gender,Age
+                Fine One,M,30
+                Fine Two,F,31
+                Unlucky Three,M,32
+                """));
+        JobDetail done = runToCompletion(upload.job().id(),
+                Map.of("0", "FULL_NAME", "1", "GENDER", "2", "AGE_YEARS"), DuplicatePolicy.SKIP);
+
+        assertThat(done.job().status()).isEqualTo(ImportJobStatus.COMPLETED);
+        assertThat(done.job().importedRows()).isEqualTo(2);
+        assertThat(done.job().failedRows()).isEqualTo(1);
+        RowView failedRow = rows(upload.job().id(), ImportRowStatus.FAILED).get(0);
+        assertThat(failedRow.rowNumber()).isEqualTo(4);
+        assertThat(failedRow.errorMessage()).contains("Could not be saved to the database");
+        // The two good rows exist exactly once; nothing was created twice by the retry.
+        assertThat(importedPatients().stream().filter(p -> !p.getFullName().equals("Squatter")))
+                .extracting(Patient::getFullName).containsExactlyInAnyOrder("Fine One", "Fine Two");
+    }
+
+    @Test
+    void theBatchDrawsItsPatientNumbersOnceAndTheyStayContiguous() {
+        StringBuilder many = new StringBuilder("Name,Gender,Age" + System.lineSeparator());
+        for (int i = 1; i <= 7; i++) {
+            many.append("Block ").append(i).append(",M,30").append(System.lineSeparator());
+        }
+        UploadResult upload = service.upload(csv("block.csv", many.toString()));
+        runToCompletion(upload.job().id(), Map.of("0", "FULL_NAME", "1", "GENDER", "2", "AGE_YEARS"),
+                DuplicatePolicy.SKIP);
+        // Batches of two: four blocks, no number skipped between them.
+        assertThat(importedPatients().stream().map(Patient::getMrn).sorted().toList())
+                .containsExactly("P000001", "P000002", "P000003", "P000004", "P000005", "P000006", "P000007");
+    }
+
     // ----- mapping ---------------------------------------------------------------------------
 
     @Test
@@ -476,7 +689,7 @@ class PatientImportIntegrationTest {
         service.confirmMapping(upload.job().id(),
                 new MappingRequest(Map.of("0", "FULL_NAME", "1", "GENDER", "2", "AGE_YEARS")));
         drain();
-        service.confirmImport(upload.job().id(), new ConfirmImportRequest(DuplicatePolicy.SKIP));
+        service.confirmImport(upload.job().id(), new ConfirmImportRequest(DuplicatePolicy.SKIP, null));
 
         // One tick of the worker, then stop as though the server were killed mid-import.
         worker.pump();
@@ -506,7 +719,7 @@ class PatientImportIntegrationTest {
         service.confirmMapping(upload.job().id(),
                 new MappingRequest(Map.of("0", "FULL_NAME", "1", "GENDER", "2", "AGE_YEARS")));
         drain();
-        service.confirmImport(upload.job().id(), new ConfirmImportRequest(DuplicatePolicy.SKIP));
+        service.confirmImport(upload.job().id(), new ConfirmImportRequest(DuplicatePolicy.SKIP, null));
 
         worker.pump();
         TenantContext.set(orgId);
@@ -561,6 +774,43 @@ class PatientImportIntegrationTest {
         assertThatThrownBy(() -> service.upload(csv("b.csv", "Name,Gender,Age\nB,F,31\n")))
                 .hasMessageContaining("already running");
         drain();
+    }
+
+    // ----- leases ----------------------------------------------------------------------------
+
+    @Test
+    void aJobAnotherWorkerIsActivelyRunningIsLeftAlone() {
+        UploadResult upload = service.upload(csv("held.csv",
+                "Name,Gender,Age" + System.lineSeparator() + "Held,M,30" + System.lineSeparator()));
+        service.confirmMapping(upload.job().id(),
+                new MappingRequest(Map.of("0", "FULL_NAME", "1", "GENDER", "2", "AGE_YEARS")));
+
+        // Another server took this job a moment ago and is still reporting in.
+        PatientImportJob job = jobRepository.findById(upload.job().id()).orElseThrow();
+        job.claim("other-server:999");
+        jobRepository.saveAndFlush(job);
+
+        worker.pump();
+        TenantContext.set(orgId);
+        PatientImportJob after = jobRepository.findById(upload.job().id()).orElseThrow();
+        assertThat(after.getStatus()).isEqualTo(ImportJobStatus.ANALYSING);
+        assertThat(after.getClaimedBy()).isEqualTo("other-server:999");
+        assertThat(after.getTotalRows()).isZero();
+
+        // Once that server stops reporting in, the job is fair game.
+        after.claim("other-server:999");
+        java.lang.reflect.Field field;
+        try {
+            field = PatientImportJob.class.getDeclaredField("heartbeatAt");
+            field.setAccessible(true);
+            field.set(after, java.time.Instant.now().minus(java.time.Duration.ofHours(1)));
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError(e);
+        }
+        jobRepository.saveAndFlush(after);
+        drain();
+        assertThat(jobRepository.findById(upload.job().id()).orElseThrow().getStatus())
+                .isEqualTo(ImportJobStatus.READY);
     }
 
     // ----- tenancy ---------------------------------------------------------------------------

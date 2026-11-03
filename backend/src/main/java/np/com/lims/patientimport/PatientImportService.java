@@ -11,6 +11,7 @@ import np.com.lims.common.web.CurrentUser;
 import np.com.lims.patientimport.dto.ImportDtos.ColumnSuggestion;
 import np.com.lims.patientimport.dto.ImportDtos.ConfirmImportRequest;
 import np.com.lims.patientimport.dto.ImportDtos.FieldDefinition;
+import np.com.lims.patientimport.dto.ImportDtos.ImportOptions;
 import np.com.lims.patientimport.dto.ImportDtos.JobDetail;
 import np.com.lims.patientimport.dto.ImportDtos.JobSummary;
 import np.com.lims.patientimport.dto.ImportDtos.MappingRequest;
@@ -232,12 +233,13 @@ public class PatientImportService {
     public JobDetail confirmImport(Long jobId, ConfirmImportRequest request) {
         PatientImportJob job = owned(jobId);
         requireNoRunningImport(job.getOrganizationId());
-        DuplicatePolicy policy = request.duplicatePolicy() == null ? DuplicatePolicy.SKIP : request.duplicatePolicy();
+        ImportOptions options = new ImportOptions(request.duplicatePolicy(), request.weakMatchPolicy()).withDefaults();
 
-        job.queueForImport(writeJson(Map.of("duplicatePolicy", policy.name())));
+        job.queueForImport(writeJson(options));
         auditService.record(MODULE, "START", "PatientImportJob", job.getId(),
                 truncate("Started importing " + job.getOriginalFilename() + ": " + job.getValidRows()
-                        + " valid rows, duplicates set to " + policy.name()), null, null);
+                        + " valid rows, matches set to " + options.duplicatePolicy().name()
+                        + ", possible matches set to " + options.weakMatchPolicy().name()), null, null);
         return detail(job);
     }
 
@@ -298,7 +300,19 @@ public class PatientImportService {
     // ----- helpers ------------------------------------------------------------------------
 
     private JobDetail detail(PatientImportJob job) {
-        return JobDetail.from(job, engine.countsByStatus(job.getId()), readMapping(job));
+        return JobDetail.from(job, engine.countsByStatus(job.getId()), readMapping(job), readOptions(job));
+    }
+
+    /** The confirmation-time choices, or null for a job not yet confirmed. */
+    public ImportOptions readOptions(PatientImportJob job) {
+        if (job.getOptions() == null) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(job.getOptions(), ImportOptions.class).withDefaults();
+        } catch (Exception e) {
+            return ImportOptions.defaults();
+        }
     }
 
     private Map<String, String> readMapping(PatientImportJob job) {

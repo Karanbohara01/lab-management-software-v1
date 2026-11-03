@@ -102,7 +102,7 @@ class PatientImportScaleTest {
         assertThat(analysed.job().duplicateRows()).isZero();
 
         long importStart = System.nanoTime();
-        service.confirmImport(upload.job().id(), new ConfirmImportRequest(DuplicatePolicy.SKIP));
+        service.confirmImport(upload.job().id(), new ConfirmImportRequest(DuplicatePolicy.SKIP, null));
         drain();
         long importMs = (System.nanoTime() - importStart) / 1_000_000;
         long growth = usedMemory() - baseline;

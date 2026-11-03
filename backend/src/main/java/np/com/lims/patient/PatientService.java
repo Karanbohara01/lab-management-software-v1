@@ -210,13 +210,28 @@ public class PatientService {
      * @param actor the user who uploaded the file, recorded by the import's own job and row records
      *              since the worker thread carries no security context of its own
      */
-    public Patient createFromImport(UpsertRequest request, String actor) {
+    /**
+     * Takes a patient number the caller has already reserved through {@link #reserveImportMrns}.
+     * The import reserves one block per batch instead of drawing a number per row — see the
+     * sequence service for why that is the difference between a batch costing its size and costing
+     * its square.
+     */
+    public Patient createFromImport(UpsertRequest request, String mrn, String actor) {
         validateAge(request);
-        String mrn = sequenceService.nextFormatted(MRN_SEQUENCE, "P", 6);
         Patient patient = Patient.register(mrn, request.fullName().trim(), request.gender());
         apply(patient, request);
         patient.markImported();
         return patientRepository.save(patient);
+    }
+
+    /** Reserves {@code count} patient numbers for an import batch, inside the caller's transaction. */
+    public List<String> reserveImportMrns(int count) {
+        return sequenceService.nextBlockFormatted(MRN_SEQUENCE, "P", 6, count);
+    }
+
+    /** Returns the numbers a batch reserved but did not use, so the sequence stays gap-free. */
+    public void releaseImportMrns(int unused) {
+        sequenceService.releaseUnused(MRN_SEQUENCE, unused);
     }
 
     /**

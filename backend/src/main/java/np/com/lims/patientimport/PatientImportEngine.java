@@ -18,13 +18,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.sql.Date;
+import java.sql.PreparedStatement;
 import java.time.LocalDate;
+import java.time.Period;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -61,6 +65,7 @@ public class PatientImportEngine {
     private final PatientService patientService;
     private final ImportFileStore fileStore;
     private final ObjectMapper objectMapper;
+    private final JdbcTemplate jdbc;
     private final int maxRows;
 
     /**
@@ -76,6 +81,7 @@ public class PatientImportEngine {
                                PatientService patientService,
                                ImportFileStore fileStore,
                                ObjectMapper objectMapper,
+                               JdbcTemplate jdbc,
                                PlatformTransactionManager transactionManager,
                                @Value("${lims.patient-import.max-rows:500000}") int maxRows) {
         this.rowRepository = rowRepository;
@@ -83,6 +89,7 @@ public class PatientImportEngine {
         this.patientService = patientService;
         this.fileStore = fileStore;
         this.objectMapper = objectMapper;
+        this.jdbc = jdbc;
         this.maxRows = maxRows;
         this.transaction = new TransactionTemplate(transactionManager);
         this.transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -90,7 +97,7 @@ public class PatientImportEngine {
 
     // ----- pass one: read, validate, stage ---------------------------------------------------
 
-    public record AnalysisResult(int total, int valid, int invalid, int duplicate) {
+    public record AnalysisResult(int total, int valid, int invalid, int duplicate, int possibleDuplicate) {
     }
 
     /**
@@ -99,8 +106,13 @@ public class PatientImportEngine {
      *
      * <p>Rows are written in batches, so the memory cost is one batch whether the file has a
      * thousand rows or half a million.
+     *
+     * @param heartbeat called after every batch of work, so the worker can keep renewing its lease
+     *                  on the job; a half-million-row check outlasts the lease many times over, and
+     *                  without this another worker would conclude the job was abandoned and start
+     *                  it again alongside.
      */
-    public AnalysisResult analyse(PatientImportJob job, Map<Integer, ImportField> mapping) {
+    public AnalysisResult analyse(PatientImportJob job, Map<Integer, ImportField> mapping, Runnable heartbeat) {
         Long orgId = job.getOrganizationId();
         // Re-analysing replaces whatever a previous attempt staged.
         transaction.executeWithoutResult(status -> rowRepository.deleteByJobId(job.getId()));
@@ -137,6 +149,7 @@ public class PatientImportEngine {
                 if (pending.size() >= STAGE_BATCH) {
                     saveStaged(pending);
                     pending.clear();
+                    heartbeat.run();
                 }
             }
             if (!pending.isEmpty()) {
@@ -155,21 +168,46 @@ public class PatientImportEngine {
                     "This file has a header but no patient rows beneath it.");
         }
 
-        int duplicates = detectDuplicates(job);
+        detectDuplicates(job, heartbeat);
         Map<ImportRowStatus, Long> counts = countsByStatus(job.getId());
         return new AnalysisResult(
                 total,
                 counts.getOrDefault(ImportRowStatus.VALID, 0L).intValue(),
                 counts.getOrDefault(ImportRowStatus.INVALID, 0L).intValue(),
-                duplicates);
+                counts.getOrDefault(ImportRowStatus.DUPLICATE, 0L).intValue()
+                        + counts.getOrDefault(ImportRowStatus.DUPLICATE_IN_FILE, 0L).intValue(),
+                counts.getOrDefault(ImportRowStatus.POSSIBLE_DUPLICATE, 0L).intValue());
     }
 
+    /**
+     * Writes a batch of staged rows with one JDBC batch, not one entity save each. Every entity in
+     * this system takes its id from the database on insert, which stops Hibernate batching inserts
+     * at all - each would be its own round trip. The staged row is this module's own scratch table
+     * and nothing reads it back as an entity during staging, so it is written directly; with the
+     * driver's batch rewriting on, 500 rows go as one statement.
+     */
     private void saveStaged(List<PatientImportRow> rows) {
         List<PatientImportRow> batch = List.copyOf(rows);
-        transaction.executeWithoutResult(status -> {
-            rowRepository.saveAll(batch);
-            rowRepository.flush();
-        });
+        transaction.executeWithoutResult(status -> jdbc.batchUpdate(
+                "INSERT INTO patient_import_row"
+                        + " (organization_id, job_id, source_row, raw_data, status, error_field, error_message,"
+                        + "  dedup_external_id, dedup_phone, dedup_name_key, dedup_dob)"
+                        + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                batch,
+                batch.size(),
+                (PreparedStatement ps, PatientImportRow r) -> {
+                    ps.setLong(1, r.getOrganizationId());
+                    ps.setLong(2, r.getJobId());
+                    ps.setInt(3, r.getRowNumber());
+                    ps.setString(4, r.getRawData());
+                    ps.setString(5, r.getStatus().name());
+                    ps.setString(6, r.getErrorField());
+                    ps.setString(7, r.getErrorMessage());
+                    ps.setString(8, r.getDedupExternalId());
+                    ps.setString(9, r.getDedupPhone());
+                    ps.setString(10, r.getDedupNameKey());
+                    ps.setDate(11, r.getDedupDob() == null ? null : Date.valueOf(r.getDedupDob()));
+                }));
     }
 
     private static boolean isBlankRow(List<String> cells) {
@@ -192,14 +230,16 @@ public class PatientImportEngine {
      *
      * @return how many rows were flagged
      */
-    private int detectDuplicates(PatientImportJob job) {
-        Integer flagged = transaction.execute(status -> againstDatabase(job) + withinFile(job));
-        return flagged == null ? 0 : flagged;
+    private void detectDuplicates(PatientImportJob job, Runnable heartbeat) {
+        transaction.executeWithoutResult(status -> {
+            againstDatabase(job, heartbeat);
+            heartbeat.run();
+            withinFile(job);
+        });
     }
 
-    private int againstDatabase(PatientImportJob job) {
+    private void againstDatabase(PatientImportJob job, Runnable heartbeat) {
         Long orgId = job.getOrganizationId();
-        int flagged = 0;
         int afterRow = 0;
 
         while (true) {
@@ -231,9 +271,17 @@ public class PatientImportEngine {
                                     : p.getExternalMrn().toLowerCase(Locale.ROOT));
             Map<String, Patient> byPhone = phones.isEmpty() ? Map.of()
                     : index(patientRepository.findForImportMatchByPhone(orgId, phones), Patient::getPhoneDigits);
-            Map<String, Patient> byNameDob = namesByKey.isEmpty() ? Map.of()
-                    : index(patientRepository.findForImportMatchByName(orgId, Set.copyOf(namesByKey.values())),
-                            p -> nameDobKey(ImportValueParser.nameKey(p.getFullName()), p.getDateOfBirth()));
+            List<Patient> sameNames = namesByKey.isEmpty() ? List.of()
+                    : patientRepository.findForImportMatchByName(orgId, Set.copyOf(namesByKey.values()));
+            Map<String, Patient> byNameDob = index(sameNames,
+                    p -> nameDobKey(ImportValueParser.nameKey(p.getFullName()), p.getDateOfBirth()));
+            Map<String, List<Patient>> byName = new HashMap<>();
+            for (Patient candidate : sameNames) {
+                String key = ImportValueParser.nameKey(candidate.getFullName());
+                if (key != null) {
+                    byName.computeIfAbsent(key, k -> new ArrayList<>()).add(candidate);
+                }
+            }
 
             for (PatientImportRow row : window) {
                 Patient match = null;
@@ -255,22 +303,64 @@ public class PatientImportEngine {
                     }
                 }
                 if (match == null && row.getDedupNameKey() != null && row.getDedupDob() != null) {
-                    Patient byName = byNameDob.get(nameDobKey(row.getDedupNameKey(), row.getDedupDob()));
-                    if (byName != null) {
-                        match = byName;
+                    Patient sameNameAndDob = byNameDob.get(nameDobKey(row.getDedupNameKey(), row.getDedupDob()));
+                    if (sameNameAndDob != null) {
+                        match = sameNameAndDob;
                         reason = "Same name and date of birth";
                     }
                 }
 
                 if (match != null) {
                     row.markDuplicateOfPatient(match.getId(), match.getMrn(), reason);
-                    flagged++;
+                    continue;
+                }
+
+                // Nothing firm. A row that only shares a name is still worth a look if the gender
+                // and age agree too - not enough to act on, but enough to show the administrator.
+                Patient similar = weakMatch(row, byName);
+                if (similar != null) {
+                    row.markPossibleDuplicate(similar.getId(), similar.getMrn(),
+                            "Same name, gender and age as " + similar.getMrn() + " - no phone or ID to confirm it");
                 }
             }
             rowRepository.saveAll(window);
             rowRepository.flush();
+            heartbeat.run();
         }
-        return flagged;
+    }
+
+    /**
+     * An existing patient with the same name, the same gender and an age within a year, for a row
+     * that carries nothing firmer to go on. Only such rows are considered: a row with a phone number
+     * or a clinic ID that matched nobody is evidence of a different person, not a possible match.
+     * Needs an age on both sides, too — a bare name is not a match.
+     */
+    private Patient weakMatch(PatientImportRow row, Map<String, List<Patient>> byName) {
+        if (row.getDedupNameKey() == null || row.getDedupPhone() != null || row.getDedupExternalId() != null) {
+            return null;
+        }
+        List<Patient> sameName = byName.get(row.getDedupNameKey());
+        if (sameName == null || sameName.isEmpty()) {
+            return null;
+        }
+        UpsertRequest request = rebuild(row);
+        if (request == null) {
+            return null;
+        }
+        Integer rowAge = request.dateOfBirth() != null
+                ? Period.between(request.dateOfBirth(), LocalDate.now()).getYears()
+                : request.approximateAgeYears();
+        if (rowAge == null) {
+            return null;
+        }
+        for (Patient candidate : sameName) {
+            Integer theirAge = candidate.ageYears();
+            if (candidate.getGender() == request.gender() && theirAge != null
+                    && Math.abs(theirAge - rowAge) <= 1) {
+                return candidate;
+            }
+        }
+        return null;
     }
 
     /** One field back out of a staged row, without rebuilding the whole request. */
@@ -296,7 +386,7 @@ public class PatientImportEngine {
     }
 
     /** Flags rows repeating a key an earlier row of the same file already used. */
-    private int withinFile(PatientImportJob job) {
+    private void withinFile(PatientImportJob job) {
         Map<Long, Integer> repeats = new LinkedHashMap<>();
         Map<Long, String> reasons = new HashMap<>();
         collect(rowRepository.findRepeatedExternalIds(job.getId()), repeats, reasons,
@@ -307,20 +397,19 @@ public class PatientImportEngine {
                 "Repeats the name and date of birth of row ");
 
         if (repeats.isEmpty()) {
-            return 0;
+            return;
         }
         List<PatientImportRow> rows = rowRepository.findAllById(repeats.keySet());
-        int flagged = 0;
         for (PatientImportRow row : rows) {
             Integer earlier = repeats.get(row.getId());
-            if (earlier != null && row.getStatus() == ImportRowStatus.VALID) {
+            boolean eligible = row.getStatus() == ImportRowStatus.VALID
+                    || row.getStatus() == ImportRowStatus.POSSIBLE_DUPLICATE;
+            if (earlier != null && eligible) {
                 row.markDuplicateOfRow(earlier, reasons.get(row.getId()) + earlier);
-                flagged++;
             }
         }
         rowRepository.saveAll(rows);
         rowRepository.flush();
-        return flagged;
     }
 
     private static void collect(List<Object[]> found, Map<Long, Integer> into, Map<Long, String> reasons,
@@ -357,51 +446,82 @@ public class PatientImportEngine {
      * <p>Public and called from the worker, a different bean, so the proxy does apply here.
      */
     @Transactional
-    public BatchResult importBatch(PatientImportJob job, DuplicatePolicy policy, String actor, int batchSize) {
-        List<ImportRowStatus> todo = policy == DuplicatePolicy.SKIP
-                ? List.of(ImportRowStatus.VALID)
-                : List.of(ImportRowStatus.VALID, ImportRowStatus.DUPLICATE);
+    public BatchResult importBatch(PatientImportJob job, DuplicatePolicy policy, DuplicatePolicy weakPolicy,
+                                   String actor, int batchSize) {
+        List<ImportRowStatus> todo = new ArrayList<>(List.of(ImportRowStatus.VALID, ImportRowStatus.POSSIBLE_DUPLICATE));
+        if (policy != DuplicatePolicy.SKIP) {
+            todo.add(ImportRowStatus.DUPLICATE);
+        }
 
         List<PatientImportRow> batch = rowRepository.findBatch(job.getId(), todo, PageRequest.of(0, batchSize));
         if (batch.isEmpty()) {
             // Nothing importable left. Anything still flagged is settled so no row is left looking
             // unfinished.
-            int skipped = rowRepository.markRemaining(job.getId(),
-                    List.of(ImportRowStatus.DUPLICATE, ImportRowStatus.DUPLICATE_IN_FILE),
-                    policy == DuplicatePolicy.SKIP ? "Skipped: matches an existing patient"
-                            : "Skipped: repeats an earlier row of this file");
+            int skipped = rowRepository.markRemaining(job.getId(), List.of(ImportRowStatus.DUPLICATE),
+                    "Skipped: matches an existing patient")
+                    + rowRepository.markRemaining(job.getId(), List.of(ImportRowStatus.DUPLICATE_IN_FILE),
+                    "Skipped: repeats an earlier row of this file");
             return new BatchResult(skipped, 0, 0, skipped, 0);
         }
+
+        // Decide every row's fate before touching the database, so the patient-number block can be
+        // reserved exactly once, for exactly the rows that will become patients.
+        List<Planned> plan = new ArrayList<>(batch.size());
+        int creates = 0;
+        for (PatientImportRow row : batch) {
+            UpsertRequest request = rebuild(row);
+            DuplicatePolicy applicable = row.getStatus() == ImportRowStatus.DUPLICATE ? policy
+                    : row.getStatus() == ImportRowStatus.POSSIBLE_DUPLICATE ? weakPolicy
+                    : DuplicatePolicy.IMPORT_AS_NEW;
+            Fate fate = request == null ? Fate.UNREADABLE
+                    : row.getStatus() == ImportRowStatus.VALID ? Fate.CREATE
+                    : applicable == DuplicatePolicy.SKIP ? Fate.SKIP
+                    : applicable == DuplicatePolicy.FILL_BLANKS ? Fate.FILL
+                    : Fate.CREATE_DESPITE_MATCH;
+            if (fate == Fate.CREATE || fate == Fate.CREATE_DESPITE_MATCH) {
+                creates++;
+            }
+            plan.add(new Planned(row, request, fate));
+        }
+        List<String> mrns = patientService.reserveImportMrns(creates);
+        int nextMrn = 0;
 
         int imported = 0;
         int updated = 0;
         int skipped = 0;
         int failed = 0;
 
-        for (PatientImportRow row : batch) {
+        for (Planned planned : plan) {
+            PatientImportRow row = planned.row();
             try {
-                UpsertRequest request = rebuild(row);
-                if (request == null) {
-                    row.markFailed(null, "This row could no longer be read from its staged copy.");
-                    failed++;
-                    continue;
-                }
-
-                if (row.getStatus() == ImportRowStatus.DUPLICATE) {
-                    if (policy == DuplicatePolicy.SKIP) {
-                        row.markSkipped("Matches existing patient " + row.getDuplicateOfMrn());
-                        skipped++;
-                        continue;
+                switch (planned.fate()) {
+                    case UNREADABLE -> {
+                        row.markFailed(null, "This row could no longer be read from its staged copy.");
+                        failed++;
                     }
-                    if (policy == DuplicatePolicy.FILL_BLANKS) {
+                    case SKIP -> {
+                        row.markSkipped((row.getStatus() == ImportRowStatus.POSSIBLE_DUPLICATE
+                                ? "Skipped: possibly existing patient " : "Skipped: matches existing patient ")
+                                + row.getDuplicateOfMrn());
+                        skipped++;
+                    }
+                    case FILL -> {
+                        if (row.getDuplicateReason() != null && row.getDuplicateReason().contains("different name")) {
+                            // A shared phone with a different name is as likely a household as a
+                            // person; filling that record from this row would mix two people up.
+                            row.markSkipped("Not filled: same phone number but a different name - "
+                                    + "may be another member of the household");
+                            skipped++;
+                            break;
+                        }
                         Patient existing = row.getDuplicateOfId() == null ? null
                                 : patientRepository.findById(row.getDuplicateOfId()).orElse(null);
                         if (existing == null || !job.getOrganizationId().equals(existing.getOrganizationId())) {
                             row.markFailed(null, "The patient this row matched no longer exists.");
                             failed++;
-                            continue;
+                            break;
                         }
-                        List<String> filled = patientService.fillBlanksFromImport(existing, request);
+                        List<String> filled = patientService.fillBlanksFromImport(existing, planned.request());
                         if (filled.isEmpty()) {
                             row.markSkipped("Existing patient " + existing.getMrn()
                                     + " already had everything in this row");
@@ -410,26 +530,73 @@ public class PatientImportEngine {
                             row.markUpdated(existing.getId(), "Filled in " + String.join(", ", filled));
                             updated++;
                         }
-                        continue;
                     }
-                    // IMPORT_AS_NEW: created deliberately, with the reason kept on the record.
-                    request = withOverrideReason(request, "Bulk import " + job.getId()
-                            + ": administrator chose to create this as a new patient");
+                    case CREATE, CREATE_DESPITE_MATCH -> {
+                        UpsertRequest request = planned.request();
+                        if (planned.fate() == Fate.CREATE_DESPITE_MATCH) {
+                            // Created deliberately, with the reason kept on the record.
+                            request = withOverrideReason(request, "Bulk import " + job.getId()
+                                    + ": administrator chose to create this as a new patient");
+                        }
+                        Patient created = patientService.createFromImport(request, mrns.get(nextMrn), actor);
+                        // The number is consumed only now; a row that fails above leaves it for the
+                        // next create in the batch instead of leaving a hole.
+                        nextMrn++;
+                        row.markImported(created.getId());
+                        imported++;
+                    }
                 }
-
-                Patient created = patientService.createFromImport(request, actor);
-                row.markImported(created.getId());
-                imported++;
+            } catch (org.springframework.dao.DataAccessException | jakarta.persistence.PersistenceException e) {
+                // The database write itself failed. That has already poisoned this transaction, and
+                // Hibernate refuses to flush a session after such a failure - so there is no
+                // carrying on. Stop the batch here; the worker re-runs its rows one at a time and
+                // settles the one that cannot be saved.
+                throw e;
             } catch (Exception e) {
-                // One bad row must not lose the batch. The reason is kept against the row so it can
-                // be corrected and retried; nothing about the patient is written to the log.
+                // A row that failed before any write - a value the record refuses - must not lose
+                // the batch. The reason is kept against the row so it can be corrected and retried;
+                // nothing about the patient is written to the log.
                 row.markFailed(null, readableCause(e));
                 failed++;
             }
         }
 
+        // Whatever the batch reserved and did not use goes back, under the same lock, so the
+        // sequence has no gap once this commits.
+        patientService.releaseImportMrns(mrns.size() - nextMrn);
         rowRepository.saveAll(batch);
         return new BatchResult(batch.size(), imported, updated, skipped, failed);
+    }
+
+    /**
+     * Settles the first row the import pass would take next as failed, in its own transaction.
+     *
+     * <p>Used when a batch's transaction was poisoned by a failure inside the database write itself
+     * — a failed INSERT marks the transaction rollback-only before the per-row catch above can see
+     * it, so the whole batch rolls back at commit. The worker then re-runs rows one at a time, and
+     * when a single-row batch fails too, this is the row that did it: same ordering as
+     * {@link #importBatch}, so the first row returned is the one that was just attempted.
+     */
+    @Transactional
+    public int failFirstPending(PatientImportJob job, DuplicatePolicy policy, String reason) {
+        List<ImportRowStatus> todo = new ArrayList<>(List.of(ImportRowStatus.VALID, ImportRowStatus.POSSIBLE_DUPLICATE));
+        if (policy != DuplicatePolicy.SKIP) {
+            todo.add(ImportRowStatus.DUPLICATE);
+        }
+        List<PatientImportRow> next = rowRepository.findBatch(job.getId(), todo, PageRequest.of(0, 1));
+        if (next.isEmpty()) {
+            return 0;
+        }
+        PatientImportRow row = next.get(0);
+        row.markFailed(null, reason);
+        rowRepository.save(row);
+        return 1;
+    }
+
+    /** What the import pass decided to do with one row, settled before any database write. */
+    private enum Fate { CREATE, CREATE_DESPITE_MATCH, FILL, SKIP, UNREADABLE }
+
+    private record Planned(PatientImportRow row, UpsertRequest request, Fate fate) {
     }
 
     private static String readableCause(Exception e) {

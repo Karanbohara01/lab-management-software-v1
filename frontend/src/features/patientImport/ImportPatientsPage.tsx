@@ -24,6 +24,7 @@ import {
   JOB_STATUS_TONE,
   type DuplicatePolicy,
   type ImportJobDetail,
+  type ImportRowStatus,
   type UploadResult,
 } from './types';
 
@@ -67,6 +68,8 @@ export function ImportPatientsPage() {
   const [jobId, setJobId] = useState<number | null>(null);
   const [job, setJob] = useState<ImportJobDetail | null>(null);
   const [policy, setPolicy] = useState<DuplicatePolicy>('SKIP');
+  // A shared common name is usually a different person, so possible matches default to new.
+  const [weakPolicy, setWeakPolicy] = useState<DuplicatePolicy>('IMPORT_AS_NEW');
   const [uploading, setUploading] = useState(false);
   const [uploadPercent, setUploadPercent] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -117,6 +120,7 @@ export function ImportPatientsPage() {
     setJobId(null);
     setJob(null);
     setPolicy('SKIP');
+    setWeakPolicy('IMPORT_AS_NEW');
     retryingRef.current = null;
     if (fileInput.current) fileInput.current.value = '';
   };
@@ -169,7 +173,7 @@ export function ImportPatientsPage() {
     if (jobId == null) return;
     setBusy(true);
     try {
-      setJob(await patientImportApi.start(jobId, policy));
+      setJob(await patientImportApi.start(jobId, policy, weakPolicy));
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'The import could not be started.');
     } finally {
@@ -337,8 +341,8 @@ export function ImportPatientsPage() {
                   )}
                   {job.job.status === 'READY' && (
                     <Button loading={busy} onClick={startImport}>
-                      Import {importableCount(job, policy).toLocaleString()}{' '}
-                      {importableCount(job, policy) === 1 ? 'patient' : 'patients'}
+                      Import {importableCount(job, policy, weakPolicy).toLocaleString()}{' '}
+                      {importableCount(job, policy, weakPolicy) === 1 ? 'patient' : 'patients'}
                     </Button>
                   )}
                   {isFinished(job.job.status) && (
@@ -413,7 +417,7 @@ export function ImportPatientsPage() {
                   <Button
                     variant="secondary"
                     onClick={() => patientImportApi.downloadReport(job.job.id, ['INVALID', 'FAILED'])}
-                    disabled={job.job.invalidRows + job.job.failedRows === 0}
+                    disabled={!hasRows(job, ['INVALID', 'FAILED'])}
                   >
                     <Download className="h-4 w-4" aria-hidden />
                     Rows with problems
@@ -424,10 +428,11 @@ export function ImportPatientsPage() {
                       patientImportApi.downloadReport(job.job.id, [
                         'DUPLICATE',
                         'DUPLICATE_IN_FILE',
+                        'POSSIBLE_DUPLICATE',
                         'SKIPPED',
                       ])
                     }
-                    disabled={job.job.skippedRows === 0}
+                    disabled={!hasRows(job, ['DUPLICATE', 'DUPLICATE_IN_FILE', 'POSSIBLE_DUPLICATE', 'SKIPPED'])}
                   >
                     <Download className="h-4 w-4" aria-hidden />
                     Skipped and matched
@@ -435,7 +440,7 @@ export function ImportPatientsPage() {
                   <Button
                     variant="secondary"
                     onClick={() => patientImportApi.downloadReport(job.job.id, ['IMPORTED', 'UPDATED'])}
-                    disabled={job.job.importedRows + job.job.updatedRows === 0}
+                    disabled={!hasRows(job, ['IMPORTED', 'UPDATED'])}
                   >
                     <Download className="h-4 w-4" aria-hidden />
                     Imported patients
@@ -452,8 +457,10 @@ export function ImportPatientsPage() {
                 title="Patients that already exist"
                 description={
                   job.job.duplicateRows === 0
-                    ? 'None of these rows matches a patient already in the system.'
-                    : `${job.job.duplicateRows} ${job.job.duplicateRows === 1 ? 'row matches' : 'rows match'} a patient already here. Choose what should happen to them.`
+                    ? job.job.possibleDuplicateRows > 0
+                      ? 'No row firmly matches a patient already here by phone, ID, or name and date of birth.'
+                      : 'None of these rows matches a patient already in the system.'
+                    : `${job.job.duplicateRows} ${job.job.duplicateRows === 1 ? 'row matches' : 'rows match'} a patient already here by phone, ID, or name and date of birth, or repeats an earlier row of this file. Choose what should happen to them.`
                 }
               />
               <CardBody className="space-y-4">
@@ -483,9 +490,44 @@ export function ImportPatientsPage() {
                   </>
                 ) : (
                   <p className="text-body-sm text-muted">
-                    Every row in this file looks like someone new.
+                    {job.job.possibleDuplicateRows > 0
+                      ? 'The possible matches below are the only resemblances found.'
+                      : 'Every row in this file looks like someone new.'}
                   </p>
                 )}
+              </CardBody>
+            </Card>
+          )}
+
+          {/* Step 4b — rows that only share a name, gender and age with someone */}
+          {job.job.status === 'READY' && job.job.possibleDuplicateRows > 0 && (
+            <Card>
+              <CardHeader
+                title="Possible matches"
+                description={`${job.job.possibleDuplicateRows} ${job.job.possibleDuplicateRows === 1 ? 'row shares' : 'rows share'} a name, gender and age with an existing patient but ${job.job.possibleDuplicateRows === 1 ? 'has' : 'have'} no phone number or patient ID to confirm it.`}
+              />
+              <CardBody className="space-y-4">
+                <div className="max-w-md">
+                  <Select
+                    label="When a row only shares a name, gender and age"
+                    options={DUPLICATE_CHOICES.map((c) => ({ value: c.value, label: c.label }))}
+                    value={weakPolicy}
+                    onChange={(e) => setWeakPolicy(e.target.value as DuplicatePolicy)}
+                  />
+                  <p className="mt-1.5 text-caption text-muted">
+                    {DUPLICATE_CHOICES.find((c) => c.value === weakPolicy)?.detail}
+                  </p>
+                </div>
+                <Alert tone="info" title="Treated as new unless you say otherwise">
+                  Two people with the same common name and age are ordinary, so these are imported
+                  as new patients by default. Open the matched record if you want to be sure.
+                </Alert>
+                <ImportRowsTable
+                  jobId={job.job.id}
+                  statuses={['POSSIBLE_DUPLICATE']}
+                  emptyTitle="No possible matches"
+                  emptyMessage="Nothing in this file resembles an existing patient."
+                />
               </CardBody>
             </Card>
           )}
@@ -615,9 +657,20 @@ export function ImportPatientsPage() {
   );
 }
 
-/** How many patients pressing the button will actually create. */
-function importableCount(job: ImportJobDetail, policy: DuplicatePolicy): number {
-  return policy === 'SKIP' ? job.job.validRows : job.job.validRows + job.job.duplicateRows;
+/**
+ * How many patients pressing the button will actually create. Read from the per-status counts:
+ * the job's duplicate total also includes repeats within the file, which are never created.
+ */
+function importableCount(job: ImportJobDetail, policy: DuplicatePolicy, weakPolicy: DuplicatePolicy): number {
+  let count = job.rowCounts.VALID ?? 0;
+  if (policy === 'IMPORT_AS_NEW') count += job.rowCounts.DUPLICATE ?? 0;
+  if (weakPolicy === 'IMPORT_AS_NEW') count += job.rowCounts.POSSIBLE_DUPLICATE ?? 0;
+  return count;
+}
+
+/** Whether a report of these outcomes would have any rows in it. */
+function hasRows(job: ImportJobDetail, statuses: ImportRowStatus[]): boolean {
+  return statuses.some((s) => (job.rowCounts[s] ?? 0) > 0);
 }
 
 /** The counters, as the requirements name them. */
@@ -627,13 +680,14 @@ function CountGrid({ job }: { job: ImportJobDetail }) {
     { label: 'Ready', value: job.job.validRows, tone: 'text-success' },
     { label: 'With errors', value: job.job.invalidRows, tone: 'text-danger' },
     { label: 'Already exist', value: job.job.duplicateRows, tone: 'text-warning' },
+    { label: 'Possible match', value: job.job.possibleDuplicateRows, tone: 'text-warning' },
     { label: 'Imported', value: job.job.importedRows, tone: 'text-success' },
     { label: 'Updated', value: job.job.updatedRows },
     { label: 'Skipped', value: job.job.skippedRows },
     { label: 'Failed', value: job.job.failedRows, tone: 'text-danger' },
   ];
   return (
-    <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
       {tiles.map((t) => (
         <div key={t.label} className="rounded-lg border border-border px-3 py-2.5">
           <dt className="text-label uppercase text-muted">{t.label}</dt>

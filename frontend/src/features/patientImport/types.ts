@@ -15,6 +15,7 @@ export type ImportRowStatus =
   | 'INVALID'
   | 'DUPLICATE'
   | 'DUPLICATE_IN_FILE'
+  | 'POSSIBLE_DUPLICATE'
   | 'IMPORTED'
   | 'UPDATED'
   | 'SKIPPED'
@@ -48,6 +49,7 @@ export interface ImportJobSummary {
   validRows: number;
   invalidRows: number;
   duplicateRows: number;
+  possibleDuplicateRows: number;
   importedRows: number;
   updatedRows: number;
   skippedRows: number;
@@ -68,6 +70,7 @@ export interface ImportJobDetail {
   mapping: Record<string, string>;
   rowCounts: Record<ImportRowStatus, number>;
   duplicatePolicy: DuplicatePolicy | null;
+  weakMatchPolicy: DuplicatePolicy | null;
 }
 
 export interface ImportRow {
@@ -118,6 +121,7 @@ export const ROW_STATUS_LABEL: Record<ImportRowStatus, string> = {
   INVALID: 'Has an error',
   DUPLICATE: 'Matches a patient',
   DUPLICATE_IN_FILE: 'Repeats a row',
+  POSSIBLE_DUPLICATE: 'Possible match',
   IMPORTED: 'Imported',
   UPDATED: 'Patient updated',
   SKIPPED: 'Skipped',
@@ -130,6 +134,7 @@ export const ROW_STATUS_TONE: Record<ImportRowStatus, 'neutral' | 'info' | 'succ
   INVALID: 'danger',
   DUPLICATE: 'warning',
   DUPLICATE_IN_FILE: 'warning',
+  POSSIBLE_DUPLICATE: 'warning',
   IMPORTED: 'success',
   UPDATED: 'info',
   SKIPPED: 'neutral',

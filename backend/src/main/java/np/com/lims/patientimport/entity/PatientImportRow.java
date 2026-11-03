@@ -121,6 +121,13 @@ public class PatientImportRow {
         this.duplicateReason = truncate255(reason);
     }
 
+    public void markPossibleDuplicate(Long patientId, String mrn, String reason) {
+        this.status = ImportRowStatus.POSSIBLE_DUPLICATE;
+        this.duplicateOfId = patientId;
+        this.duplicateOfMrn = mrn;
+        this.duplicateReason = truncate255(reason);
+    }
+
     public void markDuplicateOfRow(int earlierRow, String reason) {
         this.status = ImportRowStatus.DUPLICATE_IN_FILE;
         this.duplicateOfRow = earlierRow;

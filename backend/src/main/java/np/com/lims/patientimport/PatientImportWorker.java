@@ -10,6 +10,7 @@ import np.com.lims.patientimport.entity.PatientImportJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -164,9 +165,18 @@ public class PatientImportWorker {
      * Each attempt therefore gets a transaction it alone can spoil.
      */
     private PatientImportJob tryClaim(Long id) {
+        Instant staleBefore = Instant.now().minus(leaseTimeout);
         try {
             return transaction.execute(status -> jobRepository.findById(id)
                     .filter(j -> j.getStatus().isRunning())
+                    // Re-tested on the freshly loaded row: the search that found this job and this
+                    // write are separate transactions, and another worker may have claimed it in
+                    // between. Without this the optimistic lock cannot help, because the row loaded
+                    // here already carries that worker's version.
+                    .filter(j -> j.getClaimedBy() == null
+                            || workerId.equals(j.getClaimedBy())
+                            || j.getHeartbeatAt() == null
+                            || j.getHeartbeatAt().isBefore(staleBefore))
                     .map(j -> {
                         j.claim(workerId);
                         return jobRepository.saveAndFlush(j);
@@ -182,26 +192,33 @@ public class PatientImportWorker {
 
     private void runAnalysis(PatientImportJob job) {
         Map<Integer, ImportField> mapping = PatientImportService.parseMapping(readMapping(job));
-        PatientImportEngine.AnalysisResult result = engine.analyse(job, mapping);
+        PatientImportEngine.AnalysisResult result = engine.analyse(job, mapping, () -> heartbeat(job.getId()));
         finishAnalysis(job.getId(), result);
     }
 
     private void finishAnalysis(Long jobId, PatientImportEngine.AnalysisResult result) {
         transaction.executeWithoutResult(status -> jobRepository.findById(jobId).ifPresent(job -> {
-            job.recordAnalysisTotals(result.total(), result.valid(), result.invalid(), result.duplicate());
+            job.recordAnalysisTotals(result.total(), result.valid(), result.invalid(), result.duplicate(),
+                    result.possibleDuplicate());
             job.analysisFinished();
             jobRepository.save(job);
             auditService.record(MODULE, "ANALYSED", "PatientImportJob", jobId,
                     PatientImportService.truncate("Checked " + job.getOriginalFilename() + ": " + result.total()
                             + " rows, " + result.valid() + " ready to import, " + result.invalid()
-                            + " with errors, " + result.duplicate() + " matching existing patients"), null, null);
+                            + " with errors, " + result.duplicate() + " matching existing patients, "
+                            + result.possibleDuplicate() + " possible matches"), null, null);
         }));
     }
 
     // ----- the import pass ------------------------------------------------------------------
 
     private void runImport(PatientImportJob job) {
-        DuplicatePolicy policy = policyOf(job);
+        np.com.lims.patientimport.dto.ImportDtos.ImportOptions options = importService.readOptions(job);
+        if (options == null) {
+            options = np.com.lims.patientimport.dto.ImportDtos.ImportOptions.defaults();
+        }
+        DuplicatePolicy policy = options.duplicatePolicy();
+        DuplicatePolicy weakPolicy = options.weakMatchPolicy();
         String actor = job.getCreatedBy() == null ? "system" : job.getCreatedBy();
 
         for (int i = 0; i < BATCHES_PER_TICK; i++) {
@@ -209,7 +226,16 @@ public class PatientImportWorker {
                 finishImport(job.getId(), true);
                 return;
             }
-            PatientImportEngine.BatchResult result = engine.importBatch(job, policy, actor, batchSize);
+            PatientImportEngine.BatchResult result;
+            try {
+                result = engine.importBatch(job, policy, weakPolicy, actor, batchSize);
+            } catch (DataAccessException | TransactionException | jakarta.persistence.PersistenceException e) {
+                // A failure inside the database write itself poisons the batch's transaction, and
+                // the whole batch rolls back. Rather than fail the job for one row, find the row.
+                log.warn("Patient import job {}: a batch of {} failed at the database and will be retried one row at a time",
+                        job.getId(), batchSize);
+                result = isolateFailingRows(job, policy, weakPolicy, actor);
+            }
             recordProgress(job.getId(), result);
             if (result.didNothing()) {
                 finishImport(job.getId(), false);
@@ -218,6 +244,43 @@ public class PatientImportWorker {
         }
         // More to do: leave the job claimed and running, and let the next tick continue it.
         heartbeat(job.getId());
+    }
+
+    /**
+     * Re-runs one batch's worth of rows one at a time. A row that fails on its own is settled as
+     * failed, with a reason the administrator can act on, and the rest go through. The next tick
+     * returns to full batches.
+     */
+    private PatientImportEngine.BatchResult isolateFailingRows(PatientImportJob job, DuplicatePolicy policy,
+                                                               DuplicatePolicy weakPolicy, String actor) {
+        int processed = 0;
+        int imported = 0;
+        int updated = 0;
+        int skipped = 0;
+        int failed = 0;
+        for (int i = 0; i < batchSize; i++) {
+            try {
+                PatientImportEngine.BatchResult one = engine.importBatch(job, policy, weakPolicy, actor, 1);
+                if (one.didNothing()) {
+                    break;
+                }
+                processed += one.processed();
+                imported += one.imported();
+                updated += one.updated();
+                skipped += one.skipped();
+                failed += one.failed();
+            } catch (DataAccessException | TransactionException | jakarta.persistence.PersistenceException e) {
+                int settled = engine.failFirstPending(job, policy,
+                        "Could not be saved to the database. Check this row's values against the patient "
+                                + "record's limits, correct the file and import it again.");
+                processed += settled;
+                failed += settled;
+                if (settled == 0) {
+                    break;
+                }
+            }
+        }
+        return new PatientImportEngine.BatchResult(processed, imported, updated, skipped, failed);
     }
 
     private void recordProgress(Long jobId, PatientImportEngine.BatchResult r) {
@@ -247,7 +310,7 @@ public class PatientImportWorker {
                 // Patients already created stay: they are real records now.
                 int left = rowRepository.markRemaining(job.getId(),
                         List.of(ImportRowStatus.VALID, ImportRowStatus.DUPLICATE, ImportRowStatus.DUPLICATE_IN_FILE,
-                                ImportRowStatus.PENDING),
+                                ImportRowStatus.POSSIBLE_DUPLICATE, ImportRowStatus.PENDING),
                         "Not imported: the import was cancelled");
                 job.addImportProgress(left, 0, 0, left, 0);
             }
@@ -263,6 +326,11 @@ public class PatientImportWorker {
 
     private void failJob(Long jobId, String message) {
         transaction.executeWithoutResult(status -> jobRepository.findById(jobId).ifPresent(job -> {
+            if (job.getStatus() == ImportJobStatus.ANALYSING) {
+                // The check never finished, so what it staged is partial and nothing will read it:
+                // the failure message is about the file, and a retry is a fresh upload.
+                rowRepository.deleteByJobId(jobId);
+            }
             job.fail(message);
             jobRepository.save(job);
             auditService.record(MODULE, "FAILED", "PatientImportJob", jobId,
@@ -291,19 +359,6 @@ public class PatientImportWorker {
             jobRepository.saveAll(stale);
             log.info("Removed {} uploaded patient import file(s) past their retention window", stale.size());
         }
-    }
-
-    private DuplicatePolicy policyOf(PatientImportJob job) {
-        String options = job.getOptions();
-        if (options == null) {
-            return DuplicatePolicy.SKIP;
-        }
-        for (DuplicatePolicy policy : DuplicatePolicy.values()) {
-            if (options.contains(policy.name())) {
-                return policy;
-            }
-        }
-        return DuplicatePolicy.SKIP;
     }
 
     private Map<String, String> readMapping(PatientImportJob job) {

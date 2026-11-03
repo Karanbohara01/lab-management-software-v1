@@ -4,7 +4,11 @@ spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3307/lims?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    # rewriteBatchedStatements: without it MySQL's driver sends a JDBC batch one statement at a
+    # time, and Hibernate's batching (configured below) buys nothing. With it, a batch of updates
+    # or inserts goes as one multi-row statement. Set in the default here so it travels with the
+    # application; a DB_URL override should carry it too.
+    url: ${DB_URL:jdbc:mysql://localhost:3307/lims?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&rewriteBatchedStatements=true}
     username: ${DB_USERNAME:lims}
     password: ${DB_PASSWORD:lims}
   jpa:

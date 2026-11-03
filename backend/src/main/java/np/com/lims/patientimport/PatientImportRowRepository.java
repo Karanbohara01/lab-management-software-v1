@@ -38,7 +38,9 @@ public interface PatientImportRowRepository extends JpaRepository<PatientImportR
      * row's id with the row number it repeats, so the whole within-file duplicate pass is one query
      * per key rather than a lookup per row.
      *
-     * <p>The join is to the first row carrying each key: anything later is the duplicate.
+     * <p>The join is to the first row carrying each key: anything later is the duplicate. Rows the
+     * database pass marked as possible matches take part on both sides — a repeat within the file is
+     * a firmer fact than a resemblance to a record, and must still be caught.
      */
     @Query("""
             SELECT later.id, MIN(earlier.rowNumber)
@@ -46,9 +48,9 @@ public interface PatientImportRowRepository extends JpaRepository<PatientImportR
             JOIN PatientImportRow earlier
               ON earlier.jobId = later.jobId
              AND earlier.rowNumber < later.rowNumber
-             AND earlier.status = 'VALID'
+             AND earlier.status IN ('VALID', 'POSSIBLE_DUPLICATE')
             WHERE later.jobId = :jobId
-              AND later.status = 'VALID'
+              AND later.status IN ('VALID', 'POSSIBLE_DUPLICATE')
               AND later.dedupPhone IS NOT NULL
               AND earlier.dedupPhone = later.dedupPhone
             GROUP BY later.id
@@ -61,9 +63,9 @@ public interface PatientImportRowRepository extends JpaRepository<PatientImportR
             JOIN PatientImportRow earlier
               ON earlier.jobId = later.jobId
              AND earlier.rowNumber < later.rowNumber
-             AND earlier.status = 'VALID'
+             AND earlier.status IN ('VALID', 'POSSIBLE_DUPLICATE')
             WHERE later.jobId = :jobId
-              AND later.status = 'VALID'
+              AND later.status IN ('VALID', 'POSSIBLE_DUPLICATE')
               AND later.dedupExternalId IS NOT NULL
               AND earlier.dedupExternalId = later.dedupExternalId
             GROUP BY later.id
@@ -76,9 +78,9 @@ public interface PatientImportRowRepository extends JpaRepository<PatientImportR
             JOIN PatientImportRow earlier
               ON earlier.jobId = later.jobId
              AND earlier.rowNumber < later.rowNumber
-             AND earlier.status = 'VALID'
+             AND earlier.status IN ('VALID', 'POSSIBLE_DUPLICATE')
             WHERE later.jobId = :jobId
-              AND later.status = 'VALID'
+              AND later.status IN ('VALID', 'POSSIBLE_DUPLICATE')
               AND later.dedupNameKey IS NOT NULL
               AND later.dedupDob IS NOT NULL
               AND earlier.dedupNameKey = later.dedupNameKey

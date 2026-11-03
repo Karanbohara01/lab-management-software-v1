@@ -74,6 +74,8 @@ public class PatientImportJob extends BaseEntity {
     private int invalidRows;
     @Column(name = "duplicate_rows", nullable = false)
     private int duplicateRows;
+    @Column(name = "possible_duplicate_rows", nullable = false)
+    private int possibleDuplicateRows;
     @Column(name = "imported_rows", nullable = false)
     private int importedRows;
     @Column(name = "updated_rows", nullable = false)
@@ -217,16 +219,18 @@ public class PatientImportJob extends BaseEntity {
         this.validRows = 0;
         this.invalidRows = 0;
         this.duplicateRows = 0;
+        this.possibleDuplicateRows = 0;
     }
 
     // ----- counters ------------------------------------------------------------------------
 
-    public void recordAnalysisTotals(int total, int valid, int invalid, int duplicate) {
+    public void recordAnalysisTotals(int total, int valid, int invalid, int duplicate, int possibleDuplicate) {
         this.totalRows = total;
         this.processedRows = total;
         this.validRows = valid;
         this.invalidRows = invalid;
         this.duplicateRows = duplicate;
+        this.possibleDuplicateRows = possibleDuplicate;
     }
 
     public void addImportProgress(int processed, int imported, int updated, int skipped, int failed) {
@@ -320,6 +324,10 @@ public class PatientImportJob extends BaseEntity {
 
     public int getDuplicateRows() {
         return duplicateRows;
+    }
+
+    public int getPossibleDuplicateRows() {
+        return possibleDuplicateRows;
     }
 
     public int getImportedRows() {
