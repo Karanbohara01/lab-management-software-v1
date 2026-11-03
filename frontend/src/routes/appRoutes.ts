@@ -24,6 +24,7 @@ export const APP_ROUTE_HANDLES: Record<string, RouteHandle> = {
 
   '/app/patients': { title: 'Patients' },
   '/app/patients/new': { title: 'Register patient', parent: '/app/patients' },
+  '/app/patients/import': { title: 'Import patients', parent: '/app/patients' },
   '/app/patients/:id': { title: 'Patient', parent: '/app/patients' },
   '/app/patients/:id/edit': { title: 'Edit patient', parent: '/app/patients/:id' },
   '/app/doctors': { title: 'Referring doctors' },

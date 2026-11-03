@@ -1,0 +1,138 @@
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Badge } from '@/components/ui/Badge';
+import { Pagination } from '@/components/ui/Pagination';
+import { EmptyState, ErrorState, TableSkeleton } from '@/components/ui/PageState';
+import { useQuery } from '@/hooks/useQuery';
+import { patientImportApi } from './api';
+import { ROW_STATUS_LABEL, ROW_STATUS_TONE, type ImportRowStatus } from './types';
+
+const PAGE_SIZE = 25;
+
+/**
+ * The column names as the template spells them, for naming the field at fault. Only the fields a
+ * row can actually fail on need an entry; anything else falls back to the raw name.
+ */
+const FIELD_LABEL: Record<string, string> = {
+  FULL_NAME: 'Full Name',
+  GENDER: 'Gender',
+  DATE_OF_BIRTH: 'Date of Birth',
+  AGE_YEARS: 'Age',
+  EMAIL: 'Email',
+  BLOOD_GROUP: 'Blood Group',
+  MARITAL_STATUS: 'Marital Status',
+  CATEGORY: 'Patient Category',
+  EXTERNAL_ID: 'Existing Patient ID',
+};
+
+/**
+ * The rows of an import, narrowed to one outcome.
+ *
+ * <p>Paged from the server rather than held in the browser: a half-million-row import has no
+ * business being sent to a page that shows twenty-five lines at a time.
+ */
+export function ImportRowsTable({
+  jobId,
+  statuses,
+  emptyTitle,
+  emptyMessage,
+  showProblem = true,
+}: {
+  jobId: number;
+  statuses: ImportRowStatus[];
+  emptyTitle: string;
+  emptyMessage: string;
+  showProblem?: boolean;
+}) {
+  const [page, setPage] = useState(0);
+  const key = statuses.join(',');
+  const { data, loading, error, refetch } = useQuery(
+    () => patientImportApi.rows(jobId, statuses, page, PAGE_SIZE),
+    [jobId, key, page],
+    { cacheKey: `import-rows:${jobId}:${key}:${page}` },
+  );
+
+  if (loading && !data) return <TableSkeleton columns={showProblem ? 5 : 4} />;
+  if (error) return <ErrorState message={error} onRetry={refetch} />;
+  if (!data) return null;
+  if (data.content.length === 0) return <EmptyState title={emptyTitle} message={emptyMessage} />;
+
+  return (
+    <>
+      {/* Wide content scrolls inside itself so the page never scrolls sideways. */}
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[40rem] text-body-sm">
+          <thead className="border-b border-border text-left text-label uppercase text-muted">
+            <tr>
+              <th className="px-4 py-2.5 font-semibold">Row</th>
+              <th className="px-4 py-2.5 font-semibold">Patient</th>
+              <th className="px-4 py-2.5 font-semibold">Phone</th>
+              <th className="px-4 py-2.5 font-semibold">Outcome</th>
+              {showProblem && <th className="px-4 py-2.5 font-semibold">Detail</th>}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {data.content.map((row) => (
+              <tr key={row.id} className="align-top">
+                <td className="whitespace-nowrap px-4 py-2.5 font-mono text-caption text-muted">
+                  {row.rowNumber}
+                </td>
+                <td className="px-4 py-2.5">
+                  <span className="block font-medium text-foreground">
+                    {row.data.FULL_NAME ?? <span className="text-muted">(no name)</span>}
+                  </span>
+                  {row.data.EXTERNAL_ID && (
+                    <span className="block font-mono text-caption text-muted">{row.data.EXTERNAL_ID}</span>
+                  )}
+                </td>
+                <td className="whitespace-nowrap px-4 py-2.5 text-muted">{row.data.PHONE ?? '—'}</td>
+                <td className="px-4 py-2.5">
+                  <Badge tone={ROW_STATUS_TONE[row.status]}>{ROW_STATUS_LABEL[row.status]}</Badge>
+                </td>
+                {showProblem && (
+                  <td className="px-4 py-2.5 text-muted">
+                    {/* The field at fault is named, so the administrator knows which column to fix. */}
+                    {row.errorField && (
+                      <span className="mr-1.5 rounded bg-surface-muted px-1.5 py-0.5 text-caption font-medium text-foreground">
+                        {FIELD_LABEL[row.errorField] ?? row.errorField}
+                      </span>
+                    )}
+                    {row.errorMessage ?? row.duplicateReason ?? '—'}
+                    {row.duplicateOfPatientId && row.duplicateOfMrn && (
+                      <>
+                        {' '}
+                        <Link
+                          to={`/app/patients/${row.duplicateOfPatientId}`}
+                          className="font-mono text-caption text-primary hover:underline"
+                        >
+                          {row.duplicateOfMrn}
+                        </Link>
+                      </>
+                    )}
+                    {row.patientId && (
+                      <>
+                        {' '}
+                        <Link
+                          to={`/app/patients/${row.patientId}`}
+                          className="text-caption text-primary hover:underline"
+                        >
+                          View patient
+                        </Link>
+                      </>
+                    )}
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <Pagination
+        page={data.page}
+        totalPages={data.totalPages}
+        totalElements={data.totalElements}
+        onPageChange={setPage}
+      />
+    </>
+  );
+}

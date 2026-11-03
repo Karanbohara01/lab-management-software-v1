@@ -66,6 +66,7 @@ export const router = createBrowserRouter([
 
       route('patients', lazyPage(() => import('@/features/patients/PatientsPage'), 'PatientsPage'), [P.PATIENT_READ]),
       route('patients/new', lazyPage(() => import('@/features/patients/RegisterPatientPage'), 'RegisterPatientPage'), [P.PATIENT_WRITE]),
+      route('patients/import', lazyPage(() => import('@/features/patientImport/ImportPatientsPage'), 'ImportPatientsPage'), [P.PATIENT_IMPORT]),
       route('patients/:id', lazyPage(() => import('@/features/patients/PatientDetailPage'), 'PatientDetailPage'), [P.PATIENT_READ]),
       route('patients/:id/edit', lazyPage(() => import('@/features/patients/RegisterPatientPage'), 'RegisterPatientPage'), [P.PATIENT_WRITE]),
       route('doctors', lazyPage(() => import('@/features/doctors/DoctorsPage'), 'DoctorsPage'), [P.DOCTOR_READ]),

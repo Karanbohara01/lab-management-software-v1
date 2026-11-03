@@ -1,4 +1,4 @@
-import { Plus, ShieldAlert, Star } from 'lucide-react';
+import { Plus, ShieldAlert, Star, Upload } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -26,6 +26,7 @@ export function PatientsPage() {
   const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.PATIENT_WRITE);
+  const canImport = hasPermission(PERMISSIONS.PATIENT_IMPORT);
 
   const { params, set } = useListParams(PARAMS);
   const [search, setSearch] = useSearchInput(params.q, (q) => set({ q }, { replace: true }));
@@ -86,12 +87,20 @@ export function PatientsPage() {
         title="Patients"
         description="Register patients and open a longitudinal view of their orders, invoices and reports."
         actions={
-          canWrite ? (
-            <Button onClick={() => navigate('/app/patients/new')}>
-              <Plus className="h-4 w-4" aria-hidden />
-              Register patient
-            </Button>
-          ) : undefined
+          <div className="flex flex-wrap gap-2">
+            {canImport && (
+              <Button variant="secondary" onClick={() => navigate('/app/patients/import')}>
+                <Upload className="h-4 w-4" aria-hidden />
+                Import patients
+              </Button>
+            )}
+            {canWrite && (
+              <Button onClick={() => navigate('/app/patients/new')}>
+                <Plus className="h-4 w-4" aria-hidden />
+                Register patient
+              </Button>
+            )}
+          </div>
         }
       />
 

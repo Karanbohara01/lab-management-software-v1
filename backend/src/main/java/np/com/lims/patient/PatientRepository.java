@@ -62,4 +62,38 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
                                 @Param("nameToken") String nameToken,
                                 @Param("dob") LocalDate dob,
                                 Pageable limit);
+
+    /*
+     * Bulk duplicate lookups for the patient import. One query per key over a whole batch of
+     * spreadsheet rows, rather than the per-row scoring the registration desk uses — that does a
+     * leading-wildcard LIKE which cannot use an index and would dominate a large migration.
+     *
+     * Each names its organization explicitly: the import runs on a background thread where the
+     * request-scoped tenant filter is not enabled. Merged-away records are excluded, since pointing
+     * an administrator at a retired record would be no help.
+     */
+
+    @Query("""
+            SELECT p FROM Patient p
+            WHERE p.organizationId = :orgId AND p.mergedIntoId IS NULL
+              AND LOWER(p.externalMrn) IN :externalMrns
+            """)
+    List<Patient> findForImportMatchByExternalMrn(@Param("orgId") Long orgId,
+                                                  @Param("externalMrns") java.util.Collection<String> externalMrns);
+
+    @Query("""
+            SELECT p FROM Patient p
+            WHERE p.organizationId = :orgId AND p.mergedIntoId IS NULL
+              AND p.phoneDigits IN :phoneDigits
+            """)
+    List<Patient> findForImportMatchByPhone(@Param("orgId") Long orgId,
+                                            @Param("phoneDigits") java.util.Collection<String> phoneDigits);
+
+    @Query("""
+            SELECT p FROM Patient p
+            WHERE p.organizationId = :orgId AND p.mergedIntoId IS NULL
+              AND p.fullName IN :names
+            """)
+    List<Patient> findForImportMatchByName(@Param("orgId") Long orgId,
+                                           @Param("names") java.util.Collection<String> names);
 }

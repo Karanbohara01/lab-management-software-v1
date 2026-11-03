@@ -176,6 +176,93 @@ public class PatientService {
         return after;
     }
 
+    /**
+     * Creates a patient from one row of a bulk import, inside the caller's batch transaction.
+     *
+     * <p>Lives here, beside {@link #register}, rather than in the import module, so that patient
+     * creation keeps a single owner: the same MRN sequence, the same {@link Patient#register}
+     * factory, the same {@link #apply} mapping and the same age rule. If a future field is added to
+     * one it is obvious that it belongs in the other.
+     *
+     * <p>Four things {@link #register} does are deliberately left out, each for a reason that only
+     * applies at import scale:
+     * <ul>
+     *   <li>No duplicate guard. Its name lookup is a leading-wildcard LIKE that cannot use an index;
+     *       run once per row against a growing table it would dominate the import. The import does
+     *       its own duplicate pass in batches beforehand, and the administrator has already decided
+     *       what to do about what it found.</li>
+     *   <li>No audit row per patient. {@code AuditService} commits in its own transaction, so a row
+     *       apiece would double the transaction count for the whole import. The job writes one audit
+     *       entry, and the import's own staged rows are a per-patient record of what came from where.</li>
+     *   <li>No identifier rewrite. That path deletes and flushes even when there is nothing to
+     *       write, and a spreadsheet import supplies no identifiers.</li>
+     *   <li>No confidential flag. A background worker has no security context to check the
+     *       permission against, so the import does not offer the field at all.</li>
+     * </ul>
+     *
+     * <p>Deliberately NOT annotated transactional. It runs inside the import batch's transaction,
+     * and a transactional annotation here would make it a participant — so when the import catches
+     * a bad row and carries on with the rest of the batch, Spring would already have marked the
+     * whole transaction rollback-only and the batch would fail at commit having reported success.
+     * The guard against being called with no transaction at all remains: the patient-number
+     * sequence demands one.
+     *
+     * @param actor the user who uploaded the file, recorded by the import's own job and row records
+     *              since the worker thread carries no security context of its own
+     */
+    public Patient createFromImport(UpsertRequest request, String actor) {
+        validateAge(request);
+        String mrn = sequenceService.nextFormatted(MRN_SEQUENCE, "P", 6);
+        Patient patient = Patient.register(mrn, request.fullName().trim(), request.gender());
+        apply(patient, request);
+        patient.markImported();
+        return patientRepository.save(patient);
+    }
+
+    /**
+     * Fills in fields an existing patient does not have, from one row of an import. Never replaces a
+     * value the clinic already holds — an import can complete a record but not rewrite it.
+     *
+     * <p>Not annotated transactional, for the same reason as {@link #createFromImport}: it runs
+     * inside the import batch's transaction, and being a transactional participant would let one
+     * caught bad row mark the whole batch rollback-only.
+     *
+     * @return a human-readable list of what was filled, or empty when the row added nothing
+     */
+    public List<String> fillBlanksFromImport(Patient patient, UpsertRequest r) {
+        List<String> filled = new ArrayList<>();
+        if (!StringUtils.hasText(patient.getPhone()) && StringUtils.hasText(r.phone())) {
+            filled.add("phone");
+        }
+        if (!StringUtils.hasText(patient.getEmail()) && StringUtils.hasText(r.email())) {
+            filled.add("email");
+        }
+        if (patient.getDateOfBirth() == null && r.dateOfBirth() != null) {
+            filled.add("date of birth");
+        }
+        if (patient.getBloodGroup() == null && r.bloodGroup() != null) {
+            filled.add("blood group");
+        }
+        if (!StringUtils.hasText(patient.getExternalMrn()) && StringUtils.hasText(r.externalMrn())) {
+            filled.add("existing patient ID");
+        }
+        // Hibernate maps an embeddable whose every column is null to a null reference, so a patient
+        // registered without an address has no Address object at all — not an empty one.
+        boolean hasAddress = patient.getAddress() != null && !patient.getAddress().isEmpty();
+        if (!hasAddress && r.address() != null && StringUtils.hasText(r.address().line())) {
+            filled.add("address");
+        }
+        if (filled.isEmpty()) {
+            return List.of();
+        }
+        patient.fillBlanksFrom(
+                trimToNull(r.phone()), trimToNull(r.alternatePhone()), trimToNull(r.email()),
+                r.dateOfBirth(), r.approximateAgeYears(), r.bloodGroup(), r.maritalStatus(),
+                trimToNull(r.occupation()), trimToNull(r.nameLocal()), trimToNull(r.externalMrn()),
+                toAddress(r.address()), toEmergencyContact(r.emergencyContact()));
+        return filled;
+    }
+
     @Transactional
     public Detail update(Long id, UpsertRequest request) {
         validateAge(request);

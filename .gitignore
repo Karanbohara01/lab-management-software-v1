@@ -25,3 +25,6 @@ Thumbs.db
 .env.*
 !.env.example
 !.env.prod.example
+
+# Uploaded patient spreadsheets staged by the bulk import. Patient data: never commit.
+backend/patient-imports/
