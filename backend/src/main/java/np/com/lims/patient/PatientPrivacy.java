@@ -18,9 +18,17 @@ public final class PatientPrivacy {
         if (patient == null) {
             return null;
         }
-        if (patient.isConfidential() && !CurrentUser.hasAuthority("PERM_PATIENT_CONFIDENTIAL")) {
+        return displayName(patient.getFullName(), patient.isConfidential());
+    }
+
+    /**
+     * The same rule for code that only has the two columns in hand (aggregate queries that select
+     * {@code fullName} and {@code confidential} rather than loading the patient).
+     */
+    public static String displayName(String fullName, boolean confidential) {
+        if (confidential && !CurrentUser.hasAuthority("PERM_PATIENT_CONFIDENTIAL")) {
             return "Confidential patient";
         }
-        return patient.getFullName();
+        return fullName;
     }
 }

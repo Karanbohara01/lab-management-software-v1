@@ -102,6 +102,8 @@ export const router = createBrowserRouter([
       route('master-bill', lazyPage(() => import('@/features/billing/MasterBillPage'), 'MasterBillPage'), [P.INVOICE_READ]),
       route('corrections', lazyPage(() => import('@/features/billing/CorrectionsReportPage'), 'CorrectionsReportPage'), [P.INVOICE_READ]),
       route('commission', lazyPage(() => import('@/features/commission/CommissionPage'), 'CommissionPage'), [P.COMMISSION_READ]),
+      route('revenue', lazyPage(() => import('@/features/revenue/RevenueDashboardPage'), 'RevenueDashboardPage'), [P.REPORTING_READ]),
+      route('revenue/report', lazyPage(() => import('@/features/revenue/RevenueReportPage'), 'RevenueReportPage'), [P.REPORTING_READ]),
 
       route('ird', lazyPage(() => import('@/features/ird/IrdSubmissionsPage'), 'IrdSubmissionsPage'), [P.IRD_SUBMISSION_READ]),
       route('ird/:id', lazyPage(() => import('@/features/ird/IrdSubmissionDetailPage'), 'IrdSubmissionDetailPage'), [P.IRD_SUBMISSION_READ]),

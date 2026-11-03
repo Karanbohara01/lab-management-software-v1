@@ -55,6 +55,8 @@ export const APP_ROUTE_HANDLES: Record<string, RouteHandle> = {
   '/app/ird': { title: 'IRD submissions' },
   '/app/ird/:id': { title: 'IRD submission', parent: '/app/ird' },
   '/app/commission': { title: 'Commission' },
+  '/app/revenue': { title: 'Revenue' },
+  '/app/revenue/report': { title: 'Revenue report', parent: '/app/revenue' },
 
   '/app/inventory': { title: 'Inventory' },
   '/app/inventory/:id': { title: 'Inventory item', parent: '/app/inventory' },
