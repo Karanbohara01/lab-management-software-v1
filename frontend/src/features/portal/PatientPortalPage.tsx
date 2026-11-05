@@ -57,9 +57,9 @@ export function PatientPortalPage() {
             <BrandMark className="h-14" />
           </Link>
           <div>
-            <h1 className="text-xl font-semibold text-foreground">{t('Your lab records')}</h1>
+            <h1 className="text-heading-3 text-foreground">{t('Your lab records')}</h1>
             {data && (
-              <p className="mt-1 text-sm text-muted">
+              <p className="mt-1 text-caption text-muted">
                 {data.patientName} · <span className="font-mono">{data.patientMrn}</span>
               </p>
             )}

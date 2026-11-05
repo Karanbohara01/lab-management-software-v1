@@ -145,7 +145,7 @@ export function MasterBillPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+                  <tr className="border-b border-border text-left text-label uppercase text-muted">
                     <th className="px-4 py-2">{t('Bill No')}</th>
                     <th className="px-4 py-2">{t('Date')}</th>
                     <th className="px-4 py-2">{t('Customer')}</th>

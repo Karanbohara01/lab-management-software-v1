@@ -29,7 +29,7 @@ export function KeyboardShortcutsModal({ open, onClose }: { open: boolean; onClo
     <Modal open={open} onClose={onClose} title={t('Keyboard shortcuts')} size="md">
       <div className="space-y-5">
         <section>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">{t('General')}</h3>
+          <h3 className="mb-2 text-label uppercase text-muted">{t('General')}</h3>
           <ul className="space-y-2">
             {GENERAL_SHORTCUTS.map((s) => (
               <li key={s.description} className="flex items-center justify-between text-sm">
@@ -45,7 +45,7 @@ export function KeyboardShortcutsModal({ open, onClose }: { open: boolean; onClo
         </section>
 
         <section>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">{t('Go to')}</h3>
+          <h3 className="mb-2 text-label uppercase text-muted">{t('Go to')}</h3>
           <p className="mb-2 text-xs text-muted">{t('Press "g", then the letter below.')}</p>
           <ul className="grid grid-cols-2 gap-x-4 gap-y-2">
             {goTo.map((s) => (

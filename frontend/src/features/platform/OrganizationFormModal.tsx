@@ -141,7 +141,7 @@ export function OrganizationFormModal({
         <Textarea label={t('Notes')} {...register('notes')} error={errors.notes?.message} />
 
         <div className="border-t border-border pt-4">
-          <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted">{t('First admin login')}</p>
+          <p className="mb-3 text-label uppercase text-muted">{t('First admin login')}</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <Input label={t('Username')} {...register('adminUsername')} error={errors.adminUsername?.message} />
             <Input label={t('Admin email')} {...register('adminEmail')} error={errors.adminEmail?.message} />

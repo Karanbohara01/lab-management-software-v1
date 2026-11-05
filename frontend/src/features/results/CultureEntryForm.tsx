@@ -276,7 +276,7 @@ export function CultureEntryForm({
             {isolates.map((iso, idx) => (
               <div key={idx} className="rounded-lg border border-border p-3">
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-muted">{t('Isolate {n}', { n: idx + 1 })}</span>
+                  <span className="text-label uppercase text-muted">{t('Isolate {n}', { n: idx + 1 })}</span>
                   <button
                     type="button"
                     onClick={() => setIsolates((p) => p.filter((_, i) => i !== idx))}
@@ -310,7 +310,7 @@ export function CultureEntryForm({
                   />
                 </div>
 
-                <p className="mb-1.5 mt-3 text-xs font-semibold uppercase tracking-wide text-muted">
+                <p className="mb-1.5 mt-3 text-label uppercase text-muted">
                   {t('Antibiotic susceptibility')}
                 </p>
                 {/* S / I / R are the fixed susceptibility result codes and MIC is a standard lab abbreviation —

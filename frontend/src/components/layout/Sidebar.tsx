@@ -168,7 +168,7 @@ export function SidebarContent({
                 <button
                   type="button"
                   onClick={() => toggleSection(section.heading)}
-                  className="group flex w-full items-center justify-between rounded-md px-3 pb-1.5 pt-1 text-xs font-semibold uppercase tracking-wider text-muted hover:text-muted-foreground"
+                  className="group flex w-full items-center justify-between rounded-md px-3 pb-1.5 pt-1 text-label uppercase text-muted hover:text-muted-foreground"
                 >
                   <span>{section.heading}</span>
                   {!isSearching && (

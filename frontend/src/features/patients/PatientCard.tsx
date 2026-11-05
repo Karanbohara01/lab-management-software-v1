@@ -65,12 +65,12 @@ export function PatientCard({ patient, labName }: { patient: PatientDetail; labN
     <div id="patient-print" className="hidden print:block">
       <div className="mx-auto max-w-lg p-6 font-sans text-black">
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-          {/* Zone 1 — identity strip. A literal Tailwind shade, never the app's theme-variable
-              `primary` token, so the printed card looks identical regardless of the viewer's
+          {/* Zone 1 — identity strip. The fixed `--brand-*` ramp, never the theme-reactive
+              `--primary` token, so the printed card looks identical regardless of the viewer's
               light/dark mode setting. */}
-          <div className="flex items-center justify-between bg-sky-700 px-5 py-2.5">
+          <div className="flex items-center justify-between bg-[hsl(var(--brand-700))] px-5 py-2.5">
             <p className="text-sm font-bold uppercase tracking-wide text-white">{labName || t('Laboratory')}</p>
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-sky-100">{t('Patient card')}</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-[hsl(var(--brand-100))]">{t('Patient card')}</span>
           </div>
 
           <div className="p-5">
@@ -85,14 +85,14 @@ export function PatientCard({ patient, labName }: { patient: PatientDetail; labN
               {[age, patient.gender, bloodGroupLabel(patient.bloodGroup)].filter(Boolean).join('   ·   ')}
             </p>
 
-            <div className="mt-4 flex items-center justify-between gap-4 rounded-lg bg-sky-50 px-4 py-3">
+            <div className="mt-4 flex items-center justify-between gap-4 rounded-lg bg-[hsl(var(--brand-50))] px-4 py-3">
               <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-sky-700">{t('Medical record no.')}</p>
-                <p className="truncate font-mono text-2xl font-bold tracking-wider text-sky-900">{patient.mrn}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-[hsl(var(--brand-700))]">{t('Medical record no.')}</p>
+                <p className="truncate font-mono text-2xl font-bold tracking-wider text-[hsl(var(--brand-900))]">{patient.mrn}</p>
               </div>
               {/* QR stays isolated in its own white box with clear padding on every side — a
                   colored fill touching the code's edge is a documented real scan-failure risk
-                  (barcode/QR quiet-zone guidance), so it never sits directly on the sky-50 fill. */}
+                  (barcode/QR quiet-zone guidance), so it never sits directly on the brand-tint fill. */}
               <div className="shrink-0 rounded-md border border-gray-200 bg-white p-1.5">
                 {qrDataUri && (
                   <img

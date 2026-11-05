@@ -72,14 +72,14 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
             regardless of the viewer's light/dark mode. This only renders once, on page 1 (it isn't
             in a @page margin box), which matches how a real letterhead masthead works — the
             per-test patient-identification row further down is what actually repeats per page. */}
-        <div className="h-2 bg-sky-600" aria-hidden />
+        <div className="h-2 bg-[hsl(var(--brand-600))]" aria-hidden />
         <div className="p-6">
-        <header className={`flex items-start border-b-2 border-sky-700 pb-3 ${lab.printLetterhead ? 'justify-between' : 'justify-end'}`}>
+        <header className={`flex items-start border-b-2 border-[hsl(var(--brand-700))] pb-3 ${lab.printLetterhead ? 'justify-between' : 'justify-end'}`}>
         {lab.printLetterhead && (
           <div className="flex items-center gap-3">
             {lab.logoDataUri && <img src={lab.logoDataUri} alt="" className="h-12 w-12 object-contain" />}
             <div>
-              <h1 className="text-base font-bold uppercase tracking-wide text-sky-900">{lab.name}</h1>
+              <h1 className="text-base font-bold uppercase tracking-wide text-[hsl(var(--brand-900))]">{lab.name}</h1>
               <p className="text-xs text-gray-600">
                 {[lab.addressLine, lab.city].filter(Boolean).join(', ')}
               </p>
@@ -95,7 +95,7 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
           </div>
         )}
         <div className="text-right">
-          <p className="inline-block rounded bg-sky-700 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-white">
+          <p className="inline-block rounded bg-[hsl(var(--brand-700))] px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-white">
             {report.reportType === 'PRELIMINARY' ? 'PRELIMINARY REPORT' : 'LABORATORY REPORT'}
           </p>
           <p className="mt-1 text-xs text-gray-600">{report.reportNumber}</p>
@@ -129,8 +129,8 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
 
       {report.tests.map((test) => (
         <section key={test.testCode} className="mt-4">
-          <div className="flex items-baseline justify-between border-b-2 border-sky-700 break-after-avoid">
-            <h2 className="text-sm font-bold uppercase text-sky-900">{test.testName}</h2>
+          <div className="flex items-baseline justify-between border-b-2 border-[hsl(var(--brand-700))] break-after-avoid">
+            <h2 className="text-sm font-bold uppercase text-[hsl(var(--brand-900))]">{test.testName}</h2>
             <span className="text-[11px] text-gray-600">{test.departmentName}</span>
           </div>
           <p className="break-after-avoid text-[11px] text-gray-600">
@@ -166,11 +166,11 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
                   {report.patientName} · MRN {report.patientMrn} · {report.reportNumber}
                 </td>
               </tr>
-              <tr className="border-b-2 border-sky-700 bg-sky-50 text-left">
-                <th className="py-1 pl-1 text-sky-900">Investigation</th>
-                <th className="py-1 text-sky-900">Result</th>
-                <th className="py-1 text-sky-900">Unit</th>
-                <th className="py-1 text-sky-900">Reference range</th>
+              <tr className="border-b-2 border-[hsl(var(--brand-700))] bg-[hsl(var(--brand-50))] text-left">
+                <th className="py-1 pl-1 text-[hsl(var(--brand-900))]">Investigation</th>
+                <th className="py-1 text-[hsl(var(--brand-900))]">Result</th>
+                <th className="py-1 text-[hsl(var(--brand-900))]">Unit</th>
+                <th className="py-1 text-[hsl(var(--brand-900))]">Reference range</th>
               </tr>
             </thead>
             <tbody>
@@ -184,7 +184,7 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
                       <tr className="break-inside-avoid break-after-avoid">
                         <td
                           colSpan={4}
-                          className="border-l-2 border-sky-300 bg-gray-50 py-1 pl-1.5 pt-2 text-[11px] font-bold uppercase tracking-wide text-gray-700"
+                          className="border-l-2 border-[hsl(var(--brand-300))] bg-gray-50 py-1 pl-1.5 pt-2 text-[11px] font-bold uppercase tracking-wide text-gray-700"
                         >
                           {p.groupHeading}
                         </td>
@@ -220,7 +220,7 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
         </section>
       ))}
 
-      <footer className="mt-6 break-inside-avoid border-t border-sky-700 pt-3 text-[11px] text-gray-700">
+      <footer className="mt-6 break-inside-avoid border-t border-[hsl(var(--brand-700))] pt-3 text-[11px] text-gray-700">
         <div className="mb-6 flex justify-end gap-16">
           <div className="text-center">
             <div className="h-8 w-40 border-b border-gray-500" />

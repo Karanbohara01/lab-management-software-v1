@@ -162,7 +162,7 @@ export function ParameterMasterFormModal({
 
         {isNumeric && (
           <fieldset className="rounded-md border border-border p-3">
-            <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted">
+            <legend className="px-1 text-label uppercase text-muted">
               {t('Typical adult reference range')}
             </legend>
             <div className="grid gap-3 sm:grid-cols-4">

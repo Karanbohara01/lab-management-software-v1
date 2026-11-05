@@ -32,8 +32,8 @@ export function PageHeader({
       )}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
-          {description && <p className="mt-1 text-sm text-muted">{description}</p>}
+          <h1 className="text-heading-2 text-foreground">{title}</h1>
+          {description && <p className="mt-1 text-caption text-muted">{description}</p>}
         </div>
         {actions && <div className="flex shrink-0 gap-2">{actions}</div>}
       </div>

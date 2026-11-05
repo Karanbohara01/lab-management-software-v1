@@ -170,7 +170,7 @@ export function OrganizationDetailModal({
           )}
 
           <div className="flex flex-wrap gap-2 border-t border-border pt-4">
-            <span className="w-full text-xs font-medium uppercase tracking-wide text-muted">{t('Clinic status')}</span>
+            <span className="w-full text-label uppercase text-muted">{t('Clinic status')}</span>
             {ORG_STATUSES.map((s) => (
               <Button
                 key={s}
@@ -185,7 +185,7 @@ export function OrganizationDetailModal({
           </div>
 
           <div className="space-y-3 border-t border-border pt-4">
-            <span className="text-xs font-medium uppercase tracking-wide text-muted">{t('Change subscription')}</span>
+            <span className="text-label uppercase text-muted">{t('Change subscription')}</span>
             <div className="grid gap-3 sm:grid-cols-2">
               <Select
                 label={t('Plan')}
@@ -228,7 +228,7 @@ export function OrganizationDetailModal({
 
           {org.subscriptionHistory.length > 0 && (
             <div className="border-t border-border pt-4">
-              <span className="text-xs font-medium uppercase tracking-wide text-muted">{t('History')}</span>
+              <span className="text-label uppercase text-muted">{t('History')}</span>
               <ul className="mt-2 divide-y divide-border text-sm">
                 {org.subscriptionHistory.map((s) => (
                   <li key={s.id} className="flex items-center justify-between py-2">

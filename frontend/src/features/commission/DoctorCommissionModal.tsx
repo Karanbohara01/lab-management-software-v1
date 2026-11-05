@@ -135,7 +135,7 @@ export function DoctorCommissionModal({
             <div className="max-h-64 overflow-y-auto rounded-md border border-border">
               <table className="w-full text-xs">
                 <thead className="sticky top-0 bg-surface">
-                  <tr className="border-b border-border text-left uppercase tracking-wide text-muted">
+                  <tr className="border-b border-border text-left text-label uppercase text-muted">
                     <th className="px-3 py-1.5">{t('Invoice')}</th>
                     <th className="px-3 py-1.5">{t('Order')}</th>
                     <th className="px-3 py-1.5 text-right">{t('Base')}</th>

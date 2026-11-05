@@ -112,7 +112,7 @@ export function PurchaseOrderDetailPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+              <tr className="border-b border-border text-left text-label uppercase text-muted">
                 <th className="px-5 py-2">{t('Item')}</th>
                 <th className="px-5 py-2 text-right">{t('Ordered')}</th>
                 <th className="px-5 py-2 text-right">{t('Received')}</th>

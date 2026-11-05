@@ -54,7 +54,7 @@ export function PaymentMethodPanel({ collections }: { collections: CollectionSum
       {collections.byCashier.length > 0 && (
         <div>
           <div className="flex items-center gap-1.5 px-3 pb-1 pt-3">
-            <h3 className="text-label uppercase tracking-wide text-muted">{t('By who received it')}</h3>
+            <h3 className="text-label uppercase text-muted">{t('By who received it')}</h3>
             <Tooltip content={t('Grouped by the username recorded on each payment. Gateway payments are attributed to the provider that verified them.')}>
               <Info className="h-3 w-3 cursor-help text-muted" aria-hidden />
             </Tooltip>

@@ -172,7 +172,7 @@ export function ReflexRulesPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+                  <tr className="border-b border-border text-left text-label uppercase text-muted">
                     <th className="px-4 py-2">{t('If this test')}</th>
                     <th className="px-4 py-2">{t('Comes back')}</th>
                     <th className="px-4 py-2">{t('Suggest')}</th>

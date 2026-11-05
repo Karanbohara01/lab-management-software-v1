@@ -19,8 +19,8 @@ export function CardHeader({
   return (
     <div className={cn('flex items-start justify-between gap-4 border-b border-border px-5 py-4', className)}>
       <div>
-        <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-        {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}
+        <h3 className="text-heading-4 text-foreground">{title}</h3>
+        {description && <p className="mt-0.5 text-caption text-muted">{description}</p>}
       </div>
       {action}
     </div>

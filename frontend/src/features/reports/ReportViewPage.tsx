@@ -59,7 +59,7 @@ export function ReportViewPage() {
         </BackLink>
 
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          <h1 className="mr-2 text-xl font-semibold text-foreground">{report.reportNumber}</h1>
+          <h1 className="mr-2 text-heading-3 text-foreground">{report.reportNumber}</h1>
           <Badge tone={REPORT_STATUS_TONE[report.status]}>{report.status}</Badge>
           {report.reportType === 'PRELIMINARY' && <Badge tone="warning">{t('Preliminary')}</Badge>}
           {report.reportVersion > 1 && <Badge tone="warning">v{report.reportVersion}</Badge>}

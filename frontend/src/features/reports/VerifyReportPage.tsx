@@ -47,8 +47,8 @@ export function VerifyReportPage() {
             <BrandMark className="h-14" />
           </Link>
           <div>
-            <h1 className="text-xl font-semibold text-foreground">{t('Report verification')}</h1>
-            <p className="mt-1 text-sm text-muted">{t("Confirm this report's authenticity.")}</p>
+            <h1 className="text-heading-3 text-foreground">{t('Report verification')}</h1>
+            <p className="mt-1 text-caption text-muted">{t("Confirm this report's authenticity.")}</p>
           </div>
         </div>
 

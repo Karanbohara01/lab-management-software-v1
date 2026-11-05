@@ -197,7 +197,7 @@ export function CommandSearch() {
               if (items.length === 0) return null;
               return (
                 <div key={g} className="py-1.5">
-                  <p className="px-4 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
+                  <p className="px-4 pb-1 text-label uppercase text-muted">
                     {t(g)}
                   </p>
                   {items.map((h) => (

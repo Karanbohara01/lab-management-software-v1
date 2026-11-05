@@ -350,7 +350,7 @@ export function ResultEntryPage() {
             <div className="overflow-x-auto">
               <table ref={valuesTableRef} className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+                  <tr className="border-b border-border text-left text-label uppercase text-muted">
                     <th className="px-5 py-2">{t('Parameter')}</th>
                     <th className="px-5 py-2">{t('Result')}</th>
                     <th className="px-5 py-2">{t('Reference')}</th>
@@ -367,7 +367,7 @@ export function ResultEntryPage() {
                       <Fragment key={v.parameterId}>
                         {heading && (
                           <tr className="bg-surface-muted/50">
-                            <td colSpan={4} className="px-5 py-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
+                            <td colSpan={4} className="px-5 py-1.5 text-label uppercase text-muted">
                               {heading}
                             </td>
                           </tr>

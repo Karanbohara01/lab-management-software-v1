@@ -54,8 +54,9 @@ export function InvoicePrintDocument({ invoice }: { invoice: InvoiceDetail }) {
     <div className="relative bg-white text-black">
       {/* A fixed brand-colored top bar, not the app's theme-variable `primary` token — this prints
           on paper and must look identical regardless of the viewer's light/dark mode setting, so
-          every accent color below is a literal Tailwind shade (sky-*), never a CSS-variable color. */}
-      <div className="h-2 bg-sky-600" aria-hidden />
+          every accent color below reads the fixed `--brand-*` ramp (defined only in :root, never
+          in .dark — see index.css), never the theme-reactive `--primary`/`--ring`. */}
+      <div className="h-2 bg-[hsl(var(--brand-600))]" aria-hidden />
       <div className="p-6">
       {isCancelled ? (
         <div
@@ -80,12 +81,12 @@ export function InvoicePrintDocument({ invoice }: { invoice: InvoiceDetail }) {
       )}
 
       <div
-        className={`mb-3 flex items-start gap-4 border-b-2 border-sky-700 pb-3 ${invoice.printLetterhead ? 'justify-between' : 'justify-end'}`}
+        className={`mb-3 flex items-start gap-4 border-b-2 border-[hsl(var(--brand-700))] pb-3 ${invoice.printLetterhead ? 'justify-between' : 'justify-end'}`}
       >
         {invoice.printLetterhead && (
           <div>
             {invoice.labLogoDataUri && <img src={invoice.labLogoDataUri} alt="" className="mb-1.5 h-11" />}
-            <p className="text-lg font-bold leading-tight tracking-tight text-sky-900">{invoice.labName ?? 'Laboratory'}</p>
+            <p className="text-lg font-bold leading-tight tracking-tight text-[hsl(var(--brand-900))]">{invoice.labName ?? 'Laboratory'}</p>
             {invoice.labAddress && <p className="text-xs leading-snug text-gray-600">{invoice.labAddress}</p>}
             <p className="text-xs leading-snug text-gray-600">
               {invoice.labPhone ?? ''}
@@ -96,7 +97,7 @@ export function InvoicePrintDocument({ invoice }: { invoice: InvoiceDetail }) {
           </div>
         )}
         <div className="text-right">
-          <p className="inline-block rounded bg-sky-700 px-2.5 py-1 text-base font-bold uppercase tracking-wide text-white">
+          <p className="inline-block rounded bg-[hsl(var(--brand-700))] px-2.5 py-1 text-base font-bold uppercase tracking-wide text-white">
             {title}
           </p>
           {isCancelled && <p className="mt-1 text-sm font-bold text-red-600">CANCELLED</p>}
@@ -162,7 +163,7 @@ export function InvoicePrintDocument({ invoice }: { invoice: InvoiceDetail }) {
 
         <div className="grid grid-cols-2 gap-x-6 gap-y-0.5">
           <div>
-            <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-700">Seller</p>
+            <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wide text-[hsl(var(--brand-700))]">Seller</p>
             <div>
               <span className="font-semibold text-gray-700">Seller's Name: </span>
               {invoice.labName ?? '—'}
@@ -177,7 +178,7 @@ export function InvoicePrintDocument({ invoice }: { invoice: InvoiceDetail }) {
             </div>
           </div>
           <div>
-            <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-700">Purchaser</p>
+            <p className="mb-0.5 text-[10px] font-bold uppercase tracking-wide text-[hsl(var(--brand-700))]">Purchaser</p>
             <div>
               <span className="font-semibold text-gray-700">Purchaser's Name: </span>
               {invoice.patientName}
@@ -209,7 +210,7 @@ export function InvoicePrintDocument({ invoice }: { invoice: InvoiceDetail }) {
 
       <table className="mb-3 w-full border-collapse text-sm">
         <thead>
-          <tr className="bg-sky-700 text-white">
+          <tr className="bg-[hsl(var(--brand-700))] text-white">
             <th className="rounded-l py-1.5 pl-2 text-left">S.No.</th>
             {/* Anusuchi-5's table always carries an H.S. Code column — filled in only when the
                 line item is an imported good per its customs declaration. A lab test is a
@@ -262,11 +263,11 @@ export function InvoicePrintDocument({ invoice }: { invoice: InvoiceDetail }) {
               <td className="py-1 pr-2 text-right">{formatMoney(invoice.taxAmount)}</td>
             </tr>
           )}
-          <tr className="border-t-2 border-sky-700 bg-sky-50">
-            <td colSpan={5} className="py-1.5 text-right text-base font-bold text-sky-900">
+          <tr className="border-t-2 border-[hsl(var(--brand-700))] bg-[hsl(var(--brand-50))]">
+            <td colSpan={5} className="py-1.5 text-right text-base font-bold text-[hsl(var(--brand-900))]">
               Total
             </td>
-            <td className="py-1.5 pr-2 text-right text-base font-bold text-sky-900">{formatMoney(invoice.totalAmount)}</td>
+            <td className="py-1.5 pr-2 text-right text-base font-bold text-[hsl(var(--brand-900))]">{formatMoney(invoice.totalAmount)}</td>
           </tr>
           {!isCancelled && (
             <>

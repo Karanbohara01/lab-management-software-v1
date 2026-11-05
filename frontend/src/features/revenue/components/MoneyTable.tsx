@@ -114,7 +114,7 @@ export function MoneyTable<T>({
         scope="col"
         aria-sort={active ? (sort!.descending ? 'descending' : 'ascending') : canSort ? 'none' : undefined}
         className={cn(
-          'px-3 py-2 text-label uppercase tracking-wide text-muted',
+          'px-3 py-2 text-label uppercase text-muted',
           right ? 'text-right' : 'text-left',
           col.hideOnMobile && 'hidden lg:table-cell',
           col.className,

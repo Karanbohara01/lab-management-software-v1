@@ -40,7 +40,7 @@ export function StatTileRow({ stats }: { stats: StatTileData[] }) {
               <s.icon className={cn('h-4 w-4', s.tone === 'warning' ? 'text-warning' : 'text-primary')} aria-hidden />
             </span>
           </div>
-          <p className="mt-2 text-2xl font-semibold tabular-nums text-foreground">{s.value}</p>
+          <p className="mt-2 text-price tabular-nums text-foreground">{s.value}</p>
         </button>
       ))}
     </div>

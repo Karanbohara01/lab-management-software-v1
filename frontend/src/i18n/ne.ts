@@ -2365,4 +2365,6 @@ export const ne: Readonly<Record<string, string>> = {
   'Yes ({name})': 'भयो ({name})',
   'Total ({count} bills)': 'जम्मा ({count} बिल)',
   'Sales Book — {month} {year}': 'बिक्री खाता — {month} {year}',
+  'Duplicate (retired)': 'डुप्लिकेट (निष्क्रिय हुने)',
+  Survivor: 'बाँकी रहने',
 };

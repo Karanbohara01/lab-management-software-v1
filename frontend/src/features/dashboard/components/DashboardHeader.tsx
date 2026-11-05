@@ -56,11 +56,11 @@ export function DashboardHeader({
   return (
     <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div>
-        <h1 className="text-2xl font-semibold text-foreground">
+        <h1 className="text-heading-2 text-foreground">
           {greeting()}
           {user?.fullName ? `, ${user.fullName.split(' ')[0]}` : ''}.
         </h1>
-        <p className="mt-1 text-sm text-muted">
+        <p className="mt-1 text-caption text-muted">
           {today} · {t(subtitle)}
         </p>
       </div>

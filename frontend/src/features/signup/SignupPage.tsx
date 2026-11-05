@@ -135,8 +135,8 @@ export function SignupPage() {
             <BrandMark className="h-12" />
           </Link>
           <div>
-            <h1 className="text-xl font-semibold text-foreground">{t('Start your free trial')}</h1>
-            <p className="mt-1 text-sm text-muted">{t('Your own isolated LIMS workspace, ready in seconds.')}</p>
+            <h1 className="text-heading-3 text-foreground">{t('Start your free trial')}</h1>
+            <p className="mt-1 text-caption text-muted">{t('Your own isolated LIMS workspace, ready in seconds.')}</p>
           </div>
         </div>
 
@@ -144,7 +144,7 @@ export function SignupPage() {
           {serverError && <Alert tone="danger">{serverError}</Alert>}
 
           <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t('Your laboratory')}</p>
+            <p className="text-label uppercase text-muted">{t('Your laboratory')}</p>
             <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
               <Input label={t('Laboratory name')} autoFocus error={errors.name?.message} {...register('name')} />
               <Input
@@ -162,7 +162,7 @@ export function SignupPage() {
 
           <div className="space-y-2">
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t('Plan')}</p>
+              <p className="text-label uppercase text-muted">{t('Plan')}</p>
               <p className="text-xs text-muted">{t('14-day free trial. No card required to start.')}</p>
             </div>
             {plansLoading ? (
@@ -200,7 +200,7 @@ export function SignupPage() {
           </div>
 
           <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t('Your admin login')}</p>
+            <p className="text-label uppercase text-muted">{t('Your admin login')}</p>
             <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
               <Input label={t('Your full name')} error={errors.adminFullName?.message} {...register('adminFullName')} />
               <Input label={t('Username')} autoComplete="username" error={errors.adminUsername?.message} {...register('adminUsername')} />

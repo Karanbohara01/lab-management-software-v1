@@ -106,7 +106,7 @@ export function InventoryItemDetailPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+                <tr className="border-b border-border text-left text-label uppercase text-muted">
                   <th className="px-5 py-2">{t('Batch')}</th>
                   <th className="px-5 py-2">{t('Expiry')}</th>
                   <th className="px-5 py-2 text-right">{t('Remaining')}</th>

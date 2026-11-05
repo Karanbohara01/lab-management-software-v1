@@ -44,7 +44,7 @@ const TABS: { id: Tab; label: string }[] = [
 function Field({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-muted">{label}</dt>
+      <dt className="text-label uppercase text-muted">{label}</dt>
       <dd className="mt-0.5 text-sm text-foreground">{value || '—'}</dd>
     </div>
   );
@@ -55,7 +55,7 @@ function CompletenessBar({ value }: { value: number }) {
   return (
     <div>
       <div className="flex items-center justify-between text-xs">
-        <span className="font-medium uppercase tracking-wide text-muted">{translate(getLocale(), 'Record completeness')}</span>
+        <span className="text-label uppercase text-muted">{translate(getLocale(), 'Record completeness')}</span>
         <span className="font-semibold text-foreground">{value}%</span>
       </div>
       <div className="mt-1.5 h-2 rounded-full bg-surface-muted">

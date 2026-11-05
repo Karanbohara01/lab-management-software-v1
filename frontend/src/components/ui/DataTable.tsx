@@ -86,7 +86,7 @@ export function DataTable<T>({ columns, rows, rowKey, onRowClick, rowHref, mobil
       <div className="hidden overflow-x-auto sm:block">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border text-left text-xs font-semibold uppercase tracking-wide text-muted">
+            <tr className="border-b border-border text-left text-label uppercase text-muted">
               {columns.map((col) => (
                 <th
                   key={col.key}

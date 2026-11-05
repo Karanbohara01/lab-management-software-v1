@@ -353,7 +353,7 @@ export function OrderBuilderPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
+                      <tr className="border-b border-border text-left text-label uppercase text-muted">
                         <th className="py-2 pr-3">{t('Test')}</th>
                         <th className="px-2 py-2 text-right">{t('Rate')}</th>
                         <th className="px-2 py-2 text-center">{t('Qty')}</th>

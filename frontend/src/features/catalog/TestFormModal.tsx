@@ -273,7 +273,7 @@ function ParameterRow({
 
           {isNumeric && !isCalc && (
             <fieldset className="rounded-md border border-border p-3">
-              <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted">
+              <legend className="px-1 text-label uppercase text-muted">
                 {t('Reference range')}
               </legend>
               <div className="grid gap-3 sm:grid-cols-4">
@@ -319,7 +319,7 @@ function ParameterRow({
           )}
 
           <details className="group rounded-md border border-border px-3 py-2">
-            <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-wide text-muted">
+            <summary className="cursor-pointer list-none text-label uppercase text-muted">
               <ChevronRight className="mr-1 inline h-3 w-3 transition-transform group-open:rotate-90" aria-hidden />
               {t('Advanced — grouping, formula, plausibility, delta')}
             </summary>
@@ -611,7 +611,7 @@ export function TestFormModal({
         </datalist>
         {errors.root && <Alert tone="danger">{errors.root.message}</Alert>}
 
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">{t('Test details')}</h3>
+        <h3 className="text-label uppercase text-muted">{t('Test details')}</h3>
         <div className="grid gap-4 sm:grid-cols-2">
           <Input label={t('Code')} disabled={!!test} error={errors.code?.message} {...register('code')} />
           <Input label={t('Test name')} data-autofocus error={errors.name?.message} {...register('name')} />
@@ -664,7 +664,7 @@ export function TestFormModal({
 
         {type === 'PROFILE' ? (
           <div>
-            <h3 className="mb-2 text-sm font-semibold text-foreground">{t('Member tests')}</h3>
+            <h3 className="mb-2 text-label uppercase text-muted">{t('Member tests')}</h3>
             <div className="mb-2 flex flex-wrap gap-1.5">
               {selectedMembers.map((m) => (
                 <Badge key={m.id} tone="info">
@@ -713,7 +713,7 @@ export function TestFormModal({
           <div>
             <div className="mb-2 flex items-center justify-between">
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">{t('Parameters')}</h3>
+                <h3 className="text-label uppercase text-muted">{t('Parameters')}</h3>
                 <p className="text-xs text-muted">
                   {fields.length === 0
                     ? t('A test can report a single value or several parameters.')

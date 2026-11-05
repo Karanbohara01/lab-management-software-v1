@@ -93,8 +93,13 @@ export function WorkflowPipeline({
                   s.tone === 'warning' ? 'border-warning/30' : 'border-border',
                 )}
               >
-                <span className="text-[11px] font-medium uppercase tracking-wide text-muted">{t(s.label)}</span>
-                <span className={cn('mt-1.5 text-xl font-semibold', s.tone === 'warning' ? 'text-warning' : 'text-foreground')}>
+                <span className="text-label uppercase text-muted">{t(s.label)}</span>
+                <span
+                  className={cn(
+                    'mt-1.5 text-xl font-semibold tracking-tight',
+                    s.tone === 'warning' ? 'text-warning' : 'text-foreground',
+                  )}
+                >
                   {s.value}
                 </span>
               </button>

@@ -130,7 +130,7 @@ export function KpiHero({ summary }: { summary: DashboardSummary }) {
               rendered at full strength like every other value here. */}
           <p
             className={cn(
-              'my-0.5 text-3xl font-semibold leading-none tracking-tight',
+              'my-0.5 text-price',
               summary.todayPatients > 0 ? 'text-foreground' : 'text-muted-foreground/50',
             )}
           >
@@ -155,7 +155,12 @@ export function KpiHero({ summary }: { summary: DashboardSummary }) {
           <MetricIcon art={m.art} icon={m.icon} warning={m.tone === 'warning'} />
           <div className="min-w-0">
             <span className="block text-xs font-medium text-muted">{m.label}</span>
-            <p className={cn('my-0.5 text-2xl font-semibold leading-none', m.isZero ? 'text-muted-foreground/50' : 'text-foreground')}>
+            <p
+              className={cn(
+                'my-0.5 text-2xl font-semibold leading-none tracking-tight',
+                m.isZero ? 'text-muted-foreground/50' : 'text-foreground',
+              )}
+            >
               {m.value}
             </p>
             {m.caption && (

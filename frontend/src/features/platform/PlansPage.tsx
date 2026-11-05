@@ -98,13 +98,13 @@ export function PlansPage() {
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="font-mono text-xs text-muted">{p.code}</p>
-                  <h3 className="mt-0.5 text-lg font-semibold text-foreground">{p.name}</h3>
+                  <h3 className="mt-0.5 text-heading-4 text-foreground">{p.name}</h3>
                 </div>
                 <Badge tone={p.active ? 'success' : 'neutral'}>{p.active ? t('Active') : t('Inactive')}</Badge>
               </div>
 
               <p className="mt-4 flex items-baseline gap-1">
-                <span className="text-3xl font-bold text-foreground">NPR {p.priceMonthly.toLocaleString()}</span>
+                <span className="text-price text-foreground">NPR {p.priceMonthly.toLocaleString()}</span>
                 <span className="text-sm text-muted">{t('/ mo')}</span>
               </p>
 

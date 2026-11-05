@@ -29,8 +29,8 @@ export function ErrorState({
     <div className="flex min-h-48 flex-col items-center justify-center gap-3 py-12 text-center">
       <ServerCrash className="h-8 w-8 text-danger" aria-hidden />
       <div>
-        <p className="font-medium text-foreground">{resolvedTitle}</p>
-        {message && <p className="mt-1 text-sm text-muted">{message}</p>}
+        <p className="text-heading-4 text-foreground">{resolvedTitle}</p>
+        {message && <p className="mt-1 text-caption text-muted">{message}</p>}
       </div>
       {onRetry && (
         <Button variant="secondary" size="sm" onClick={onRetry}>
@@ -93,8 +93,8 @@ export function EmptyState({
     <div className="flex min-h-48 flex-col items-center justify-center gap-3 py-12 text-center">
       <Inbox className="h-8 w-8 text-muted" aria-hidden />
       <div>
-        <p className="font-medium text-foreground">{title}</p>
-        {message && <p className="mt-1 text-sm text-muted">{message}</p>}
+        <p className="text-heading-4 text-foreground">{title}</p>
+        {message && <p className="mt-1 text-caption text-muted">{message}</p>}
       </div>
       {action}
     </div>
