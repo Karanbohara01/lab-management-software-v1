@@ -146,14 +146,14 @@ export function MasterBillPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
-                    <th className="px-4 py-2">Bill no</th>
-                    <th className="px-4 py-2">Date</th>
-                    <th className="px-4 py-2">Customer</th>
-                    <th className="px-4 py-2 text-right">Total</th>
-                    <th className="px-4 py-2">Status</th>
-                    <th className="px-4 py-2">IRD sync</th>
-                    <th className="px-4 py-2">Printed</th>
-                    <th className="px-4 py-2">Entered by</th>
+                    <th className="px-4 py-2">{t('Bill No')}</th>
+                    <th className="px-4 py-2">{t('Date')}</th>
+                    <th className="px-4 py-2">{t('Customer')}</th>
+                    <th className="px-4 py-2 text-right">{t('Total')}</th>
+                    <th className="px-4 py-2">{t('Status')}</th>
+                    <th className="px-4 py-2">{t('IRD sync')}</th>
+                    <th className="px-4 py-2">{t('Printed')}</th>
+                    <th className="px-4 py-2">{t('Entered by')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -164,7 +164,7 @@ export function MasterBillPage() {
                       <td className="px-4 py-2">{r.customerName}</td>
                       <td className="px-4 py-2 text-right">{formatMoney(r.totalAmount)}</td>
                       <td className="px-4 py-2">
-                        <Badge tone={r.isBillActive ? 'success' : 'neutral'}>{r.isBillActive ? 'Active' : 'Cancelled'}</Badge>
+                        <Badge tone={r.isBillActive ? 'success' : 'neutral'}>{t(r.isBillActive ? 'Active' : 'Cancelled')}</Badge>
                       </td>
                       <td className="px-4 py-2">
                         <Badge tone={r.syncWithIrd === 'ACCEPTED' || r.syncWithIrd === 'DUPLICATE' ? 'success' : 'neutral'}>
@@ -173,7 +173,9 @@ export function MasterBillPage() {
                       </td>
                       <td className="px-4 py-2">
                         {r.isBillPrinted ? (
-                          <span title={r.printedBy ?? undefined}>Yes{r.printedBy ? ` (${r.printedBy})` : ''}</span>
+                          <span title={r.printedBy ?? undefined}>
+                            {r.printedBy ? t('Yes ({name})', { name: r.printedBy }) : t('Yes')}
+                          </span>
                         ) : (
                           '—'
                         )}

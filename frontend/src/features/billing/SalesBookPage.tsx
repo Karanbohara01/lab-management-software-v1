@@ -132,7 +132,7 @@ export function SalesBookPage() {
       <Card id="report-print">
         <div className="hidden p-4 print:block">
           <p className="text-lg font-bold">
-            Sales Book — {MONTHS[month - 1]} {year}
+            {t('Sales Book — {month} {year}', { month: t(MONTHS[month - 1] ?? ''), year })}
           </p>
         </div>
         {loading && !data ? (
@@ -147,13 +147,13 @@ export function SalesBookPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
-                    <th className="px-4 py-2">Date</th>
-                    <th className="px-4 py-2">Bill No</th>
-                    <th className="px-4 py-2">Buyer</th>
-                    <th className="px-4 py-2 text-right">Total sales</th>
-                    <th className="px-4 py-2 text-right">Discount</th>
-                    <th className="px-4 py-2 text-right">Taxable sales</th>
-                    <th className="px-4 py-2 text-right">Tax</th>
+                    <th className="px-4 py-2">{t('Date')}</th>
+                    <th className="px-4 py-2">{t('Bill No')}</th>
+                    <th className="px-4 py-2">{t('Buyer')}</th>
+                    <th className="px-4 py-2 text-right">{t('Total sales')}</th>
+                    <th className="px-4 py-2 text-right">{t('Discount')}</th>
+                    <th className="px-4 py-2 text-right">{t('Taxable sales')}</th>
+                    <th className="px-4 py-2 text-right">{t('Tax')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -172,7 +172,7 @@ export function SalesBookPage() {
                 <tfoot>
                   <tr className="border-t-2 border-border font-semibold">
                     <td className="px-4 py-2" colSpan={3}>
-                      Total ({data.length} bills)
+                      {t('Total ({count} bills)', { count: data.length })}
                     </td>
                     <td className="px-4 py-2 text-right">{formatMoney(totals.totalSales)}</td>
                     <td className="px-4 py-2 text-right">{formatMoney(totals.discount)}</td>

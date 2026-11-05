@@ -133,12 +133,12 @@ export function CorrectionsReportPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
-                    <th className="px-4 py-2">Bill no</th>
-                    <th className="px-4 py-2">Customer</th>
-                    <th className="px-4 py-2 text-right">Amount</th>
-                    <th className="px-4 py-2">Cancelled</th>
-                    <th className="px-4 py-2">Reason</th>
-                    <th className="px-4 py-2">Credit note</th>
+                    <th className="px-4 py-2">{t('Bill No')}</th>
+                    <th className="px-4 py-2">{t('Customer')}</th>
+                    <th className="px-4 py-2 text-right">{t('Amount')}</th>
+                    <th className="px-4 py-2">{t('Cancelled')}</th>
+                    <th className="px-4 py-2">{t('Reason')}</th>
+                    <th className="px-4 py-2">{t('Credit note')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -149,7 +149,9 @@ export function CorrectionsReportPage() {
                       <td className="px-4 py-2 text-right">{formatMoney(r.totalAmount)}</td>
                       <td className="px-4 py-2">
                         {dt(r.cancelledAt)}
-                        {r.cancelledBy ? <span className="block text-xs text-muted">by {r.cancelledBy}</span> : null}
+                        {r.cancelledBy ? (
+                          <span className="block text-xs text-muted">{t('by {name}', { name: r.cancelledBy })}</span>
+                        ) : null}
                       </td>
                       <td className="px-4 py-2">{r.cancelReason ?? '—'}</td>
                       <td className="px-4 py-2">
@@ -157,7 +159,7 @@ export function CorrectionsReportPage() {
                           '—'
                         ) : (
                           <Badge tone={r.creditNoteStatus === 'FILED' ? 'success' : r.creditNoteStatus === 'FAILED' ? 'danger' : 'warning'}>
-                            {r.creditNoteStatus === 'FILED' ? r.creditNoteNumber ?? 'Filed' : r.creditNoteStatus}
+                            {r.creditNoteStatus === 'FILED' ? r.creditNoteNumber ?? t('Filed') : r.creditNoteStatus}
                           </Badge>
                         )}
                       </td>
