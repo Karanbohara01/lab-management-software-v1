@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { useT, translate, getLocale } from '@/i18n';
 import { cn } from '@/lib/cn';
 import { Button } from './Button';
 
@@ -45,11 +46,12 @@ export function useModalRequestClose(): () => void {
  * form with unsaved edits (`confirmClose`) asks before throwing them away — instead of every form
  * modal repeating that logic. Render it inside `footer`, not around the `Modal`.
  */
-export function ModalCancelButton({ children = 'Cancel' }: { children?: ReactNode }) {
+export function ModalCancelButton({ children }: { children?: ReactNode }) {
+  const t = useT();
   const requestClose = useModalRequestClose();
   return (
     <Button variant="secondary" type="button" onClick={requestClose}>
-      {children}
+      {children ?? t('Cancel')}
     </Button>
   );
 }
@@ -146,7 +148,7 @@ export function Modal({
               type="button"
               onClick={requestClose}
               className="rounded-md p-1 text-muted hover:bg-surface-muted hover:text-foreground"
-              aria-label="Close dialog"
+              aria-label={translate(getLocale(), 'Close dialog')}
             >
               <X className="h-5 w-5" aria-hidden />
             </button>
@@ -156,13 +158,13 @@ export function Modal({
 
           {asking ? (
             <div className="flex flex-col gap-3 border-t border-border bg-surface-muted/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-foreground">Discard your unsaved changes?</p>
+              <p className="text-sm text-foreground">{translate(getLocale(), 'Discard your unsaved changes?')}</p>
               <div className="flex shrink-0 justify-end gap-2">
                 <Button variant="secondary" type="button" onClick={() => setAsking(false)}>
-                  Keep editing
+                  {translate(getLocale(), 'Keep editing')}
                 </Button>
                 <Button variant="danger" type="button" onClick={onClose}>
-                  Discard
+                  {translate(getLocale(), 'Discard')}
                 </Button>
               </div>
             </div>

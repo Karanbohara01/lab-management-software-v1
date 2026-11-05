@@ -12,6 +12,7 @@ import { ApiError } from '@/types/api';
 import { testCatalogApi } from '@/features/catalog/api';
 import { qcApi } from './api';
 import type { QcMaterial } from './types';
+import { useT } from '@/i18n';
 
 const LEVELS = ['LEVEL_1', 'LEVEL_2', 'LEVEL_3', 'LOW', 'NORMAL', 'HIGH'];
 
@@ -33,6 +34,7 @@ export function QcMaterialModal({
   material: QcMaterial | null;
   onSaved: () => void;
 }) {
+  const t = useT();
   const toast = useToast();
   const tests = useQuery(() => testCatalogApi.list({ activeOnly: true, size: 500 }), [open]);
   const [name, setName] = useState('');
@@ -130,11 +132,11 @@ export function QcMaterialModal({
       };
       if (material) await qcApi.updateMaterial(material.id, body);
       else await qcApi.createMaterial(body);
-      toast.success('QC material saved');
+      toast.success(t('QC material saved'));
       onSaved();
       onClose();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Unable to save');
+      setError(e instanceof ApiError ? e.message : t('Unable to save'));
     } finally {
       setBusy(false);
     }
@@ -144,14 +146,14 @@ export function QcMaterialModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={material ? `Edit ${material.name}` : 'New QC material'}
+      title={material ? t('Edit {name}', { name: material.name }) : t('New QC material')}
       size="lg"
       confirmClose={isDirty && !busy}
       footer={
         <>
           <ModalCancelButton />
           <Button type="button" loading={busy} disabled={!name.trim() || !testId} onClick={save}>
-            Save
+            {t('Save')}
           </Button>
         </>
       }
@@ -159,11 +161,11 @@ export function QcMaterialModal({
       <div className="space-y-3">
         {error && <Alert tone="danger">{error}</Alert>}
         <div className="grid gap-3 sm:grid-cols-2">
-          <Input label="Material name" value={name} onChange={(e) => setName(e.target.value)} />
+          <Input label={t('Material name')} value={name} onChange={(e) => setName(e.target.value)} />
           <Select
-            label="Test"
+            label={t('Test')}
             options={[
-              { value: '', label: 'Select…' },
+              { value: '', label: t('Select…') },
               ...(tests.data?.content ?? [])
                 .filter((t) => t.type === 'ANALYTE')
                 .map((t) => ({ value: String(t.id), label: `${t.code} · ${t.name}` })),
@@ -172,24 +174,24 @@ export function QcMaterialModal({
             disabled={!!material}
             onChange={(e) => setTestId(e.target.value)}
           />
-          <Input label="Manufacturer" value={manufacturer} onChange={(e) => setManufacturer(e.target.value)} />
-          <Input label="Lot number" value={lot} onChange={(e) => setLot(e.target.value)} />
-          <Select label="Level" options={LEVELS.map((l) => ({ value: l, label: l.replace('_', ' ') }))} value={level} onChange={(e) => setLevel(e.target.value)} />
-          <Input label="Expiry" type="date" value={expiry} onChange={(e) => setExpiry(e.target.value)} />
+          <Input label={t('Manufacturer')} value={manufacturer} onChange={(e) => setManufacturer(e.target.value)} />
+          <Input label={t('Lot number')} value={lot} onChange={(e) => setLot(e.target.value)} />
+          <Select label={t('Level')} options={LEVELS.map((l) => ({ value: l, label: l.replace('_', ' ') }))} value={level} onChange={(e) => setLevel(e.target.value)} />
+          <Input label={t('Expiry')} type="date" value={expiry} onChange={(e) => setExpiry(e.target.value)} />
         </div>
-        <Checkbox label="Active" checked={active} onChange={(e) => setActive(e.target.checked)} />
+        <Checkbox label={t('Active')} checked={active} onChange={(e) => setActive(e.target.checked)} />
 
         <div>
-          <p className="mb-1 text-sm font-semibold text-foreground">Assigned targets</p>
+          <p className="mb-1 text-sm font-semibold text-foreground">{t('Assigned targets')}</p>
           {rows.length === 0 ? (
-            <p className="text-sm text-muted">Select a test to load its numeric parameters.</p>
+            <p className="text-sm text-muted">{t('Select a test to load its numeric parameters.')}</p>
           ) : (
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase text-muted">
                 <tr>
-                  <th className="py-1">Parameter</th>
-                  <th className="py-1">Mean</th>
-                  <th className="py-1">SD</th>
+                  <th className="py-1">{t('Parameter')}</th>
+                  <th className="py-1">{t('Mean')}</th>
+                  <th className="py-1">{t('SD')}</th>
                 </tr>
               </thead>
               <tbody>

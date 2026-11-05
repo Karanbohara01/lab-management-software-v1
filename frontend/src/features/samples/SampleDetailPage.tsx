@@ -22,8 +22,10 @@ import { BarcodeLabel } from './BarcodeLabel';
 import { SampleTimeline } from './SampleTimeline';
 import { CollectSampleModal } from './CollectSampleModal';
 import { SampleResultsCard } from './SampleResultsCard';
+import { useT, getLocale, LOCALE_TAG } from '@/i18n';
 
 export function SampleDetailPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const { back } = useBackTarget();
   const toast = useToast();
@@ -36,7 +38,7 @@ export function SampleDetailPage() {
 
   const { data: sample, loading, error, refetch } = useQuery(() => samplesApi.get(Number(id)), [id]);
 
-  if (loading && !sample) return <LoadingState label="Loading sample…" />;
+  if (loading && !sample) return <LoadingState label={t('Loading sample…')} />;
   if (error) return <ErrorState message={error} onRetry={refetch} />;
   if (!sample) return null;
 
@@ -48,10 +50,10 @@ export function SampleDetailPage() {
   const doReject = async (reason: string) => {
     try {
       await samplesApi.reject(sample.id, reason);
-      toast.success('Sample rejected');
+      toast.success(t('Sample rejected'));
       refetch();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to reject sample');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to reject sample'));
       throw err;
     }
   };
@@ -59,10 +61,10 @@ export function SampleDetailPage() {
   const doRecollect = async (note: string) => {
     try {
       await samplesApi.recollect(sample.id, note || undefined);
-      toast.success('Recollection requested');
+      toast.success(t('Recollection requested'));
       refetch();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to request recollection');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to request recollection'));
       throw err;
     }
   };
@@ -74,36 +76,36 @@ export function SampleDetailPage() {
       <PageHeader
         back={back}
         title={sample.accessionNumber}
-        description={`${sample.patientName} · ${sample.patientMrn} · ${SPECIMEN_LABELS[sample.specimenType]}`}
+        description={`${sample.patientName} · ${sample.patientMrn} · ${t(SPECIMEN_LABELS[sample.specimenType])}`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Badge tone={SAMPLE_STATUS_TONE[sample.status]}>{SAMPLE_STATUS_LABEL[sample.status]}</Badge>
+            <Badge tone={SAMPLE_STATUS_TONE[sample.status]}>{t(SAMPLE_STATUS_LABEL[sample.status])}</Badge>
             <Button variant="secondary" onClick={printLabel}>
               <Printer className="h-4 w-4" aria-hidden />
-              Print label
+              {t('Print label')}
             </Button>
             {canCollect && sample.status === 'AWAITING_COLLECTION' && (
               <Button onClick={() => setCollectOpen(true)}>
                 <PackageCheck className="h-4 w-4" aria-hidden />
-                Collect
+                {t('Collect')}
               </Button>
             )}
             {canReceive && sample.status === 'COLLECTED' && (
               <Button onClick={() => setReceiveOpen(true)}>
                 <CheckCircle2 className="h-4 w-4" aria-hidden />
-                Receive
+                {t('Receive')}
               </Button>
             )}
             {canReject && (sample.status === 'COLLECTED' || sample.status === 'RECEIVED') && (
               <Button variant="danger" onClick={() => setRejectOpen(true)}>
                 <Ban className="h-4 w-4" aria-hidden />
-                Reject
+                {t('Reject')}
               </Button>
             )}
             {canReject && sample.status === 'REJECTED' && (
               <Button onClick={() => setRecollectOpen(true)}>
                 <RefreshCw className="h-4 w-4" aria-hidden />
-                Request recollection
+                {t('Request recollection')}
               </Button>
             )}
           </div>
@@ -112,8 +114,8 @@ export function SampleDetailPage() {
 
       {sample.status === 'REJECTED' && (
         <div className="mb-4">
-          <Alert tone="danger" title="Sample rejected">
-            {sample.rejectionReason} · by {sample.rejectedBy}
+          <Alert tone="danger" title={t('Sample rejected')}>
+            {sample.rejectionReason} · {t('by {name}', { name: sample.rejectedBy ?? '' })}
           </Alert>
         </div>
       )}
@@ -121,13 +123,16 @@ export function SampleDetailPage() {
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="min-w-0 space-y-4 lg:col-span-2">
           <Card>
-            <CardHeader title="Tests on this sample" description={`${sample.items.length} test(s)`} />
+            <CardHeader
+              title={t('Tests on this sample')}
+              description={t('{count} test(s)', { count: sample.items.length })}
+            />
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
-                    <th className="px-5 py-2">Test</th>
-                    <th className="px-5 py-2">Department</th>
+                    <th className="px-5 py-2">{t('Test')}</th>
+                    <th className="px-5 py-2">{t('Department')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -150,7 +155,7 @@ export function SampleDetailPage() {
           )}
 
           <Card>
-            <CardHeader title="Tracking timeline" />
+            <CardHeader title={t('Tracking timeline')} />
             <CardBody>
               <SampleTimeline events={sample.events} />
             </CardBody>
@@ -159,23 +164,23 @@ export function SampleDetailPage() {
 
         <div className="space-y-4">
           <Card>
-            <CardHeader title="Label" />
+            <CardHeader title={t('Label')} />
             <CardBody>
               <BarcodeLabel
                 value={sample.barcodeValue}
                 patientName={sample.patientName}
                 patientMrn={sample.patientMrn}
-                specimen={SPECIMEN_LABELS[sample.specimenType]}
+                specimen={t(SPECIMEN_LABELS[sample.specimenType])}
                 container={sample.container}
               />
             </CardBody>
           </Card>
 
           <Card>
-            <CardHeader title="Collection" />
+            <CardHeader title={t('Collection')} />
             <CardBody className="space-y-2 text-sm">
               <div className="flex justify-between gap-3">
-                <span className="text-muted">Order</span>
+                <span className="text-muted">{t('Order')}</span>
                 <LinkFrom
                   to={`/app/orders/${sample.orderId}`}
                   className="text-right text-foreground hover:underline"
@@ -183,10 +188,10 @@ export function SampleDetailPage() {
                   {sample.orderNumber}
                 </LinkFrom>
               </div>
-              <Row label="Container" value={sample.container} />
-              <Row label="Collection site" value={sample.collectionSite} />
-              <Row label="Collected" value={fmt(sample.collectedAt, sample.collectedBy)} />
-              <Row label="Received" value={fmt(sample.receivedAt, sample.receivedBy)} />
+              <Row label={t('Container')} value={sample.container} />
+              <Row label={t('Collection site')} value={sample.collectionSite} />
+              <Row label={t('Collected')} value={fmt(sample.collectedAt, sample.collectedBy)} />
+              <Row label={t('Received')} value={fmt(sample.receivedAt, sample.receivedBy)} />
             </CardBody>
           </Card>
         </div>
@@ -204,9 +209,9 @@ export function SampleDetailPage() {
         open={rejectOpen}
         onClose={() => setRejectOpen(false)}
         onConfirm={doReject}
-        title="Reject this sample?"
-        message="The sample will be marked rejected. A recollection can be requested afterwards."
-        confirmLabel="Reject sample"
+        title={t('Reject this sample?')}
+        message={t('The sample will be marked rejected. A recollection can be requested afterwards.')}
+        confirmLabel={t('Reject sample')}
         tone="danger"
         reason="required"
       />
@@ -214,9 +219,9 @@ export function SampleDetailPage() {
         open={recollectOpen}
         onClose={() => setRecollectOpen(false)}
         onConfirm={doRecollect}
-        title="Request recollection?"
-        message="This reopens the sample for collection with the same accession number."
-        confirmLabel="Request recollection"
+        title={t('Request recollection?')}
+        message={t('This reopens the sample for collection with the same accession number.')}
+        confirmLabel={t('Request recollection')}
         reason="optional"
       />
     </>
@@ -234,5 +239,11 @@ function Row({ label, value }: { label: string; value: string | null | undefined
 
 function fmt(iso: string | null, by: string | null): string | null {
   if (!iso) return null;
-  return `${new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}${by ? ` · ${by}` : ''}`;
+  const when = new Date(iso).toLocaleString(LOCALE_TAG[getLocale()], {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  return `${when}${by ? ` · ${by}` : ''}`;
 }

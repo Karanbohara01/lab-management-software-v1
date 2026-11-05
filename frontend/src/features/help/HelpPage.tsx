@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { cn } from '@/lib/cn';
+import { useT, useTRich, type Translate, type TranslateRich } from '@/i18n';
 
 interface Section {
   id: string;
@@ -9,306 +10,322 @@ interface Section {
   body: React.ReactNode;
 }
 
-const SECTIONS: Section[] = [
-  {
-    id: 'getting-started',
-    title: 'Getting started',
-    body: (
-      <>
-        <p>
-          LIMS organizes work around the lab's real pipeline: a patient is registered, a doctor or the patient
-          orders tests, a sample is collected and received, results are entered and verified, a report is generated
-          and released, and the visit is billed. Each stage has its own screen, and an order's detail page ties every
-          stage together with a single status stepper and a "Next step" button that advances it.
-        </p>
-        <p>
-          What you can see and do is controlled by your <b>role</b> (Receptionist, Sample Collection Staff, Lab
-          Technician, Pathologist, Accountant, Doctor, Lab Administrator, or Super Admin). Your dashboard after
-          signing in is tailored to your role — a receptionist sees draft orders and outstanding invoices; a
-          pathologist sees results awaiting authorization and critical results. If a button or page you expect isn't
-          visible, you likely need a different permission — ask your lab administrator.
-        </p>
-        <p>
-          Two more roles sit above all of this: <b>Super Admin</b> has full access to everything, including a
-          clinic's own patient data, and has historically doubled as this deployment's own "primary" clinic admin.{' '}
-          <b>Platform Admin</b> is narrower and deliberately has <i>no</i> access to any clinic's patients, orders,
-          results, or billing — it can only onboard/manage clinics, plans, the master test catalogue, and this
-          deployment's own subscription billing (see <b>Platform administration</b>). Give the Platform Admin role to
-          someone who should never see clinical data at all.
-        </p>
-      </>
-    ),
-  },
-  {
-    id: 'patients',
-    title: 'Patient registration',
-    body: (
-      <>
-        <p>
-          <b>Patients → New patient</b> registers a patient with demographics, address, and an optional referring
-          doctor. Each patient gets a sequential MRN (e.g. P000123). Marking a patient <b>Confidential</b> restricts
-          who can view their record; marking a patient <b>VIP</b> is a visual flag only.
-        </p>
-        <p>Patients are shared across branches — a patient registered at one branch is visible at all of them.</p>
-      </>
-    ),
-  },
-  {
-    id: 'orders',
-    title: 'Lab orders',
-    body: (
-      <>
-        <p>
-          <b>Orders → New order</b> lets you search for the patient, add tests from the catalog, and set a
-          discount/tax if applicable. Saving as a <b>Draft</b> lets you keep editing; <b>Save &amp; confirm</b> locks
-          in pricing and generates the samples the order needs for collection.
-        </p>
-        <p>
-          If your account belongs to a specific branch, new orders are created there automatically. Administrators
-          and other HQ-level staff (no home branch assigned) get a branch selector and can see every branch's orders;
-          branch-scoped staff only ever see their own branch's data, enforced by the server — not just hidden in the
-          screen.
-        </p>
-        <p>
-          The order detail page is the hub for everything that happens to that order: a status stepper across the
-          top shows where it is, and the highlighted "Next step" button does the next action for you (collect →
-          receive → enter results → verify → authorize → generate report → release → deliver) without you needing to
-          jump between separate screens.
-        </p>
-      </>
-    ),
-  },
-  {
-    id: 'samples',
-    title: 'Sample collection & receiving',
-    body: (
-      <>
-        <p>
-          <b>Samples</b> lists every specimen by status: awaiting collection, collected, received, or rejected. Scan
-          or type a barcode/accession number in the lookup bar to jump straight to a sample.
-        </p>
-        <p>
-          If your lab requires payment before collection (Settings → Operations), a self-pay patient's sample can't
-          be collected until the invoice is paid — third-party-billed patients (insurance, corporate, government,
-          etc.) are always exempt. A supervisor can override the block with a documented reason if genuinely needed;
-          every override is recorded in the audit log.
-        </p>
-        <p>
-          A sample can be <b>rejected</b> at collection or receiving with a reason (hemolyzed, insufficient volume,
-          wrong container, etc.) — this stops it moving forward and flags the order for a redraw.
-        </p>
-      </>
-    ),
-  },
-  {
-    id: 'results',
-    title: 'Results — entry, verification, authorization',
-    body: (
-      <>
-        <p>
-          <b>Results queue</b> shows tests waiting for entry. Reference ranges (age/sex-adjusted where configured)
-          are shown alongside the entry field, and out-of-range or critical values are flagged automatically.
-        </p>
-        <p>
-          Culture &amp; sensitivity tests use a dedicated entry form: growth outcome, isolated organisms, and an
-          antibiotic susceptibility panel (S/I/R) per isolate, which becomes a structured narrative in the report.
-        </p>
-        <p>
-          <b>Maker-checker verification</b>: the person who entered a result cannot verify their own entry — that
-          attempt is blocked with a 409 unless a documented override reason is supplied, and the override is
-          audited separately from a normal verification. A different person verifying someone else's entry needs no
-          special step. After verification, a pathologist authorizes the result before it can appear on a released
-          report.
-        </p>
-        <p>
-          If internal quality control (QC) is configured for a test and a control run is out of range (Westgard
-          rules), the corresponding patient result is locked from approval until the QC issue is resolved or a
-          documented override is given.
-        </p>
-      </>
-    ),
-  },
-  {
-    id: 'reports',
-    title: 'Reports',
-    body: (
-      <>
-        <p>
-          Once every test on an order is authorized, generate the report from the order's detail page. A pathologist
-          signs and releases it; a released report becomes a real PDF-style document with the lab's letterhead, and
-          gets a verification link/QR the patient (or anyone with the link) can use to confirm authenticity without
-          logging in.
-        </p>
-        <p>
-          <b>Delivery</b>: Print, or send via SMS/WhatsApp if your lab has a messaging gateway configured (Settings).
-          If no gateway is configured, choosing SMS or WhatsApp fails with a clear error rather than silently doing
-          nothing — the report stays "released" and can be retried or delivered manually instead.
-        </p>
-        <p>
-          A test's parameters print grouped under bold sub-headings when its catalog entry has them set (e.g. CBC's
-          "Differential Leukocyte Count", LFT's "Liver Enzymes") — set per-parameter on the test in <b>Test catalog</b>,
-          or automatically when a parameter name is picked from the built-in preset list. A printed report also shows
-          each test's specimen Collected/Received time, and repeats "Page X of Y" plus the patient's name/MRN on every
-          page so a longer, multi-page report never loses its identity if a page gets separated.
-        </p>
-      </>
-    ),
-  },
-  {
-    id: 'billing',
-    title: 'Billing & invoices',
-    body: (
-      <>
-        <p>
-          A <b>Draft</b> invoice is raised from a confirmed order; <b>Issue</b> locks in the invoice number and
-          makes it payable. Payments can be recorded manually (cash, card, bank transfer, cheque, digital wallet) or
-          collected online — see Online payment below. <b>Refunds</b> go through a request-then-approve workflow;
-          a fully-refunded invoice can then be cancelled.
-        </p>
-        <p>
-          <b>Printing</b>: the printed invoice follows the IRD-mandated Tax Invoice layout (or a plain Invoice if the
-          lab has no PAN on file), with an amount-in-words line and a signature line. A bill prints as the original
-          once; any further print of the same invoice is watermarked "Copy of Original" and the reprint is logged
-          (who, when, how many times).
-        </p>
-        <p>
-          <b>Online payment (eSewa / Khalti)</b>: on an issued invoice with a balance, click "Pay online" and choose
-          a configured gateway. Only gateways your administrator has actually configured with real credentials are
-          offered. After the patient completes checkout on the gateway's own page, the app always re-confirms the
-          payment with the gateway itself before recording it — a payment is never accepted just because the browser
-          redirected back looking successful.
-        </p>
-        <p>
-          <b>Sales Book</b> and <b>Master bill report</b> (under Finance/Operations) give monthly and lifetime views
-          of every bill for accounting and IRD compliance, exportable as CSV/XML and printable.
-        </p>
-      </>
-    ),
-  },
-  {
-    id: 'ird',
-    title: 'IRD e-billing (CBMS)',
-    body: (
-      <>
-        <p>
-          If your lab is registered with IRD for electronic billing and a CBMS gateway is configured, an issued
-          invoice can be submitted from its <b>IRD submission</b> card (or the IRD screen). Submission is always a
-          deliberate action, never automatic — a slow or unavailable IRD service can never hold up billing.
-        </p>
-        <p>
-          If an invoice that was already successfully filed with IRD is later cancelled, the submission is flagged
-          "Credit note needed" — filing that credit note (reversing the original bill with IRD) is, again, a
-          separate explicit action from the submission's detail page.
-        </p>
-        <p>
-          Being able to submit to IRD from this software does <b>not</b> by itself mean your lab is officially
-          registered with IRD for e-billing — that registration is a separate administrative process with IRD.
-        </p>
-      </>
-    ),
-  },
-  {
-    id: 'platform',
-    title: 'Platform administration',
-    body: (
-      <>
-        <p>
-          Everything under the <b>Platform</b> section of the sidebar is about running this deployment itself, not
-          any one clinic's day-to-day work — visible only to Super Admin / Platform Admin.
-        </p>
-        <p>
-          <b>Clinics</b> is the clinic registry: onboard a new clinic (creates its subscription and its first Lab
-          Administrator login), change its status or plan, and see its patient/user counts. A clinic onboarded from
-          here starts with an <i>open-ended</i> billing period on purpose (for a negotiated/sales-assisted signup) —
-          it will never be auto-invoiced until someone sets a real billing-period end date on its subscription (or
-          clicks "Start billing today" on the warning banner shown when one is missing). <b>Plans</b> are the pricing
-          tiers offered to clinics.
-        </p>
-        <p>
-          <b>Master catalogue</b> is a shared library of common lab tests (curated here, with proper reference ranges
-          and printed-report sub-groupings already set) that any clinic can import into its own Test catalog with one
-          click, instead of building every test by hand — importing copies the values onto a new, independently-owned
-          test; editing the master later never retroactively changes what a clinic already imported.
-        </p>
-        <p>
-          <b>Billing</b> is what <i>this deployment</i> charges each clinic for its subscription (SUBINV-xxxxxx
-          invoices) — a completely different thing from the "IRD e-billing" section above, which is a clinic filing
-          its own patient bills with IRD. Here, an invoice can be filed with IRD too (this deployment's own CBMS
-          credentials, configurable from "IRD settings" on this page, or recorded as filed manually), and if a
-          filed invoice is later cancelled, filing a credit note works the same deliberate, explicit-action way as
-          the clinic-billing credit-note flow.
-        </p>
-      </>
-    ),
-  },
-  {
-    id: 'inventory',
-    title: 'Inventory & purchasing',
-    body: (
-      <>
-        <p>
-          <b>Inventory</b> tracks reagents, kits, consumables and controls with stock levels, expiry tracking, and
-          low-stock/expiring/expired alerts. <b>Suppliers</b> and <b>Purchase orders</b> manage restocking; receiving
-          a purchase order's items increases stock on hand automatically.
-        </p>
-      </>
-    ),
-  },
-  {
-    id: 'branches',
-    title: 'Multi-branch',
-    body: (
-      <>
-        <p>
-          If your lab operates more than one location, each branch is set up under <b>Branches</b>. Staff assigned a
-          home branch only ever see that branch's orders, samples, and invoices — this is enforced by the server on
-          every request, not just hidden in the screen. Staff with no home branch (typically administrators) see and
-          can filter across every branch.
-        </p>
-      </>
-    ),
-  },
-  {
-    id: 'backups',
-    title: 'Backups',
-    body: (
-      <>
-        <p>
-          The database is backed up automatically every night, and any Backup-permitted user can trigger one on
-          demand from <b>Backups</b>. Each backup file holds the data only — restoring it means letting the software
-          recreate its schema on a fresh database first, then loading the backup file into it. Old backup files are
-          kept until someone removes them from the server's disk; the software does not delete them on its own.
-        </p>
-      </>
-    ),
-  },
-  {
-    id: 'roles',
-    title: 'Roles, permissions & audit',
-    body: (
-      <>
-        <p>
-          <b>Users</b> and <b>Roles</b> (under Operations) manage who can do what — every screen and button in this
-          software is gated by a specific permission, visible under Roles for each role.
-        </p>
-        <p>
-          <b>Audit log</b> records every sensitive action across the system — who did what, when, and (for most
-          actions) a before/after snapshot of what changed. Nothing in this software is ever silently deleted;
-          cancelling, reversing, or correcting something always leaves the original record and the correction both
-          visible in the audit trail. The audit log is exportable as CSV/XML for external review.
-        </p>
-      </>
-    ),
-  },
-];
+/**
+ * Built inside the component (not as a module-level constant) so each section can call the
+ * translation hooks' output — most of this page is a long user manual, translated in full for its
+ * navigation/headings and for the "Getting started" and "Patient registration" sections; the
+ * remaining sections' prose stays in English for now (see HelpPage in the i18n work log).
+ */
+function buildSections(t: Translate, tRich: TranslateRich): Section[] {
+  return [
+    {
+      id: 'getting-started',
+      title: t('Getting started'),
+      body: (
+        <>
+          <p>
+            {t(
+              "LIMS organizes work around the lab's real pipeline: a patient is registered, a doctor or the patient orders tests, a sample is collected and received, results are entered and verified, a report is generated and released, and the visit is billed. Each stage has its own screen, and an order's detail page ties every stage together with a single status stepper and a \"Next step\" button that advances it.",
+            )}
+          </p>
+          <p>
+            {tRich(
+              "What you can see and do is controlled by your {role} (Receptionist, Sample Collection Staff, Lab Technician, Pathologist, Accountant, Doctor, Lab Administrator, or Super Admin). Your dashboard after signing in is tailored to your role — a receptionist sees draft orders and outstanding invoices; a pathologist sees results awaiting authorization and critical results. If a button or page you expect isn't visible, you likely need a different permission — ask your lab administrator.",
+              { role: <b>{t('role')}</b> },
+            )}
+          </p>
+          <p>
+            {tRich(
+              'Two more roles sit above all of this: {superAdmin} has full access to everything, including a clinic\'s own patient data, and has historically doubled as this deployment\'s own "primary" clinic admin. {platformAdmin} is narrower and deliberately has no access to any clinic\'s patients, orders, results, or billing — it can only onboard/manage clinics, plans, the master test catalogue, and this deployment\'s own subscription billing (see {platformAdministration}). Give the Platform Admin role to someone who should never see clinical data at all.',
+              {
+                superAdmin: <b>Super Admin</b>,
+                platformAdmin: <b>Platform Admin</b>,
+                platformAdministration: <b>Platform administration</b>,
+              },
+            )}
+          </p>
+        </>
+      ),
+    },
+    {
+      id: 'patients',
+      title: t('Patient registration'),
+      body: (
+        <>
+          <p>
+            {tRich(
+              '{patientsNewPatient} registers a patient with demographics, address, and an optional referring doctor. Each patient gets a sequential MRN (e.g. P000123). Marking a patient {confidential} restricts who can view their record; marking a patient {vip} is a visual flag only.',
+              {
+                patientsNewPatient: <b>Patients → New patient</b>,
+                confidential: <b>{t('Confidential')}</b>,
+                vip: <b>VIP</b>,
+              },
+            )}
+          </p>
+          <p>{t('Patients are shared across branches — a patient registered at one branch is visible at all of them.')}</p>
+        </>
+      ),
+    },
+    {
+      id: 'orders',
+      title: t('Lab orders'),
+      body: (
+        <>
+          <p>
+            <b>Orders → New order</b> lets you search for the patient, add tests from the catalog, and set a
+            discount/tax if applicable. Saving as a <b>Draft</b> lets you keep editing; <b>Save &amp; confirm</b> locks
+            in pricing and generates the samples the order needs for collection.
+          </p>
+          <p>
+            If your account belongs to a specific branch, new orders are created there automatically. Administrators
+            and other HQ-level staff (no home branch assigned) get a branch selector and can see every branch's orders;
+            branch-scoped staff only ever see their own branch's data, enforced by the server — not just hidden in the
+            screen.
+          </p>
+          <p>
+            The order detail page is the hub for everything that happens to that order: a status stepper across the
+            top shows where it is, and the highlighted "Next step" button does the next action for you (collect →
+            receive → enter results → verify → authorize → generate report → release → deliver) without you needing to
+            jump between separate screens.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: 'samples',
+      title: t('Sample collection & receiving'),
+      body: (
+        <>
+          <p>
+            <b>Samples</b> lists every specimen by status: awaiting collection, collected, received, or rejected. Scan
+            or type a barcode/accession number in the lookup bar to jump straight to a sample.
+          </p>
+          <p>
+            If your lab requires payment before collection (Settings → Operations), a self-pay patient's sample can't
+            be collected until the invoice is paid — third-party-billed patients (insurance, corporate, government,
+            etc.) are always exempt. A supervisor can override the block with a documented reason if genuinely needed;
+            every override is recorded in the audit log.
+          </p>
+          <p>
+            A sample can be <b>rejected</b> at collection or receiving with a reason (hemolyzed, insufficient volume,
+            wrong container, etc.) — this stops it moving forward and flags the order for a redraw.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: 'results',
+      title: t('Results — entry, verification, authorization'),
+      body: (
+        <>
+          <p>
+            <b>Results queue</b> shows tests waiting for entry. Reference ranges (age/sex-adjusted where configured)
+            are shown alongside the entry field, and out-of-range or critical values are flagged automatically.
+          </p>
+          <p>
+            Culture &amp; sensitivity tests use a dedicated entry form: growth outcome, isolated organisms, and an
+            antibiotic susceptibility panel (S/I/R) per isolate, which becomes a structured narrative in the report.
+          </p>
+          <p>
+            <b>Maker-checker verification</b>: the person who entered a result cannot verify their own entry — that
+            attempt is blocked with a 409 unless a documented override reason is supplied, and the override is
+            audited separately from a normal verification. A different person verifying someone else's entry needs no
+            special step. After verification, a pathologist authorizes the result before it can appear on a released
+            report.
+          </p>
+          <p>
+            If internal quality control (QC) is configured for a test and a control run is out of range (Westgard
+            rules), the corresponding patient result is locked from approval until the QC issue is resolved or a
+            documented override is given.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: 'reports',
+      title: t('Reports'),
+      body: (
+        <>
+          <p>
+            Once every test on an order is authorized, generate the report from the order's detail page. A pathologist
+            signs and releases it; a released report becomes a real PDF-style document with the lab's letterhead, and
+            gets a verification link/QR the patient (or anyone with the link) can use to confirm authenticity without
+            logging in.
+          </p>
+          <p>
+            <b>Delivery</b>: Print, or send via SMS/WhatsApp if your lab has a messaging gateway configured (Settings).
+            If no gateway is configured, choosing SMS or WhatsApp fails with a clear error rather than silently doing
+            nothing — the report stays "released" and can be retried or delivered manually instead.
+          </p>
+          <p>
+            A test's parameters print grouped under bold sub-headings when its catalog entry has them set (e.g. CBC's
+            "Differential Leukocyte Count", LFT's "Liver Enzymes") — set per-parameter on the test in <b>Test catalog</b>,
+            or automatically when a parameter name is picked from the built-in preset list. A printed report also shows
+            each test's specimen Collected/Received time, and repeats "Page X of Y" plus the patient's name/MRN on every
+            page so a longer, multi-page report never loses its identity if a page gets separated.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: 'billing',
+      title: t('Billing & invoices'),
+      body: (
+        <>
+          <p>
+            A <b>Draft</b> invoice is raised from a confirmed order; <b>Issue</b> locks in the invoice number and
+            makes it payable. Payments can be recorded manually (cash, card, bank transfer, cheque, digital wallet) or
+            collected online — see Online payment below. <b>Refunds</b> go through a request-then-approve workflow;
+            a fully-refunded invoice can then be cancelled.
+          </p>
+          <p>
+            <b>Printing</b>: the printed invoice follows the IRD-mandated Tax Invoice layout (or a plain Invoice if the
+            lab has no PAN on file), with an amount-in-words line and a signature line. A bill prints as the original
+            once; any further print of the same invoice is watermarked "Copy of Original" and the reprint is logged
+            (who, when, how many times).
+          </p>
+          <p>
+            <b>Online payment (eSewa / Khalti)</b>: on an issued invoice with a balance, click "Pay online" and choose
+            a configured gateway. Only gateways your administrator has actually configured with real credentials are
+            offered. After the patient completes checkout on the gateway's own page, the app always re-confirms the
+            payment with the gateway itself before recording it — a payment is never accepted just because the browser
+            redirected back looking successful.
+          </p>
+          <p>
+            <b>Sales Book</b> and <b>Master bill report</b> (under Finance/Operations) give monthly and lifetime views
+            of every bill for accounting and IRD compliance, exportable as CSV/XML and printable.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: 'ird',
+      title: t('IRD e-billing (CBMS)'),
+      body: (
+        <>
+          <p>
+            If your lab is registered with IRD for electronic billing and a CBMS gateway is configured, an issued
+            invoice can be submitted from its <b>IRD submission</b> card (or the IRD screen). Submission is always a
+            deliberate action, never automatic — a slow or unavailable IRD service can never hold up billing.
+          </p>
+          <p>
+            If an invoice that was already successfully filed with IRD is later cancelled, the submission is flagged
+            "Credit note needed" — filing that credit note (reversing the original bill with IRD) is, again, a
+            separate explicit action from the submission's detail page.
+          </p>
+          <p>
+            Being able to submit to IRD from this software does <b>not</b> by itself mean your lab is officially
+            registered with IRD for e-billing — that registration is a separate administrative process with IRD.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: 'platform',
+      title: t('Platform administration'),
+      body: (
+        <>
+          <p>
+            Everything under the <b>Platform</b> section of the sidebar is about running this deployment itself, not
+            any one clinic's day-to-day work — visible only to Super Admin / Platform Admin.
+          </p>
+          <p>
+            <b>Clinics</b> is the clinic registry: onboard a new clinic (creates its subscription and its first Lab
+            Administrator login), change its status or plan, and see its patient/user counts. A clinic onboarded from
+            here starts with an <i>open-ended</i> billing period on purpose (for a negotiated/sales-assisted signup) —
+            it will never be auto-invoiced until someone sets a real billing-period end date on its subscription (or
+            clicks "Start billing today" on the warning banner shown when one is missing). <b>Plans</b> are the pricing
+            tiers offered to clinics.
+          </p>
+          <p>
+            <b>Master catalogue</b> is a shared library of common lab tests (curated here, with proper reference ranges
+            and printed-report sub-groupings already set) that any clinic can import into its own Test catalog with one
+            click, instead of building every test by hand — importing copies the values onto a new, independently-owned
+            test; editing the master later never retroactively changes what a clinic already imported.
+          </p>
+          <p>
+            <b>Billing</b> is what <i>this deployment</i> charges each clinic for its subscription (SUBINV-xxxxxx
+            invoices) — a completely different thing from the "IRD e-billing" section above, which is a clinic filing
+            its own patient bills with IRD. Here, an invoice can be filed with IRD too (this deployment's own CBMS
+            credentials, configurable from "IRD settings" on this page, or recorded as filed manually), and if a
+            filed invoice is later cancelled, filing a credit note works the same deliberate, explicit-action way as
+            the clinic-billing credit-note flow.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: 'inventory',
+      title: t('Inventory & purchasing'),
+      body: (
+        <>
+          <p>
+            <b>Inventory</b> tracks reagents, kits, consumables and controls with stock levels, expiry tracking, and
+            low-stock/expiring/expired alerts. <b>Suppliers</b> and <b>Purchase orders</b> manage restocking; receiving
+            a purchase order's items increases stock on hand automatically.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: 'branches',
+      title: t('Multi-branch'),
+      body: (
+        <>
+          <p>
+            If your lab operates more than one location, each branch is set up under <b>Branches</b>. Staff assigned a
+            home branch only ever see that branch's orders, samples, and invoices — this is enforced by the server on
+            every request, not just hidden in the screen. Staff with no home branch (typically administrators) see and
+            can filter across every branch.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: 'backups',
+      title: t('Backups'),
+      body: (
+        <>
+          <p>
+            The database is backed up automatically every night, and any Backup-permitted user can trigger one on
+            demand from <b>Backups</b>. Each backup file holds the data only — restoring it means letting the software
+            recreate its schema on a fresh database first, then loading the backup file into it. Old backup files are
+            kept until someone removes them from the server's disk; the software does not delete them on its own.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: 'roles',
+      title: t('Roles, permissions & audit'),
+      body: (
+        <>
+          <p>
+            <b>Users</b> and <b>Roles</b> (under Operations) manage who can do what — every screen and button in this
+            software is gated by a specific permission, visible under Roles for each role.
+          </p>
+          <p>
+            <b>Audit log</b> records every sensitive action across the system — who did what, when, and (for most
+            actions) a before/after snapshot of what changed. Nothing in this software is ever silently deleted;
+            cancelling, reversing, or correcting something always leaves the original record and the correction both
+            visible in the audit trail. The audit log is exportable as CSV/XML for external review.
+          </p>
+        </>
+      ),
+    },
+  ];
+}
 
 export function HelpPage() {
+  const t = useT();
+  const tRich = useTRich();
+  const SECTIONS = buildSections(t, tRich);
   const [activeId, setActiveId] = useState(SECTIONS[0]!.id);
   const active = SECTIONS.find((s) => s.id === activeId) ?? SECTIONS[0]!;
 
   return (
     <>
-      <PageHeader title="Help" description="A guide to how LIMS's workflow fits together, screen by screen." />
+      <PageHeader title={t('Help')} description={t("A guide to how LIMS's workflow fits together, screen by screen.")} />
       <div className="grid gap-4 lg:grid-cols-4">
         <Card className="lg:col-span-1">
           <nav className="p-2">

@@ -20,6 +20,7 @@ import { PaymentMethodPanel } from './components/PaymentMethodPanel';
 import { BreakdownPanels } from './components/BreakdownPanels';
 import { TransactionRegisters } from './components/TransactionRegisters';
 import { formatDateRange } from '@/components/ui/DateRangePicker';
+import { useT } from '@/i18n';
 
 /** "4 Nov 2026" or "1 Nov – 30 Nov 2026", from the window the server actually resolved. */
 function periodLabel(from: string, to: string): string {
@@ -32,6 +33,7 @@ function periodLabel(from: string, to: string): string {
  * and refunds.
  */
 export function RevenueDashboardPage() {
+  const t = useT();
   const { hasPermission } = useAuth();
   const canReadPatients = hasPermission(PERMISSIONS.PATIENT_READ);
   const window = useRevenueWindow();
@@ -48,13 +50,13 @@ export function RevenueDashboardPage() {
   return (
     <>
       <PageHeader
-        title="Revenue"
-        description="Billed, collected and outstanding — aggregated from invoices, payments and refunds."
+        title={t('Revenue')}
+        description={t('Billed, collected and outstanding — aggregated from invoices, payments and refunds.')}
         actions={
           <LinkFrom to={`/app/revenue/report${window.search}`} target="_blank" rel="noopener">
             <Button>
               <Printer className="h-4 w-4" aria-hidden />
-              Print revenue report
+              {t('Print revenue report')}
             </Button>
           </LinkFrom>
         }
@@ -68,11 +70,11 @@ export function RevenueDashboardPage() {
         />
         {label && (
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-4 py-2.5 text-body-sm">
-            <span className="text-muted">Showing</span>
+            <span className="text-muted">{t('Showing')}</span>
             <span className="font-semibold text-foreground">{label}</span>
             <span className="text-muted">
-              · {period!.days} day{period!.days === 1 ? '' : 's'}
-              {window.preset ? ` · ${REVENUE_PRESET_LABEL[window.preset]}` : ''} · days as they fall in{' '}
+              · {t(period!.days === 1 ? '{count} day' : '{count} days', { count: period!.days })}
+              {window.preset ? ` · ${t(REVENUE_PRESET_LABEL[window.preset])}` : ''} · {t('days as they fall in')}{' '}
               {period!.zone.replace('_', ' ')}
             </span>
           </div>
@@ -80,7 +82,7 @@ export function RevenueDashboardPage() {
       </Card>
 
       {summary.loading && !summary.data ? (
-        <LoadingState label="Totalling the period…" />
+        <LoadingState label={t('Totalling the period…')} />
       ) : summary.error ? (
         <ErrorState message={summary.error} onRetry={summary.refetch} />
       ) : summary.data ? (
@@ -89,20 +91,24 @@ export function RevenueDashboardPage() {
 
           {summary.data.cancelled.issuedThenCancelledCount > 0 && (
             <Alert tone="info">
-              {summary.data.cancelled.issuedThenCancelledCount} invoice
-              {summary.data.cancelled.issuedThenCancelledCount === 1 ? '' : 's'} issued in this period{' '}
-              {summary.data.cancelled.issuedThenCancelledCount === 1 ? 'has' : 'have'} since been cancelled, for{' '}
-              {formatMoney(summary.data.cancelled.issuedThenCancelledAmount)}. Billed at the time was{' '}
-              {formatMoney(summary.data.cancelled.billedAsIssued)}; the figures above exclude the cancelled
-              {summary.data.cancelled.issuedThenCancelledCount === 1 ? ' invoice' : ' invoices'}.
+              {t(
+                summary.data.cancelled.issuedThenCancelledCount === 1
+                  ? '{count} invoice issued in this period has since been cancelled, for {amount}. Billed at the time was {billedAmount}; the figures above exclude the cancelled invoice.'
+                  : '{count} invoices issued in this period have since been cancelled, for {amount}. Billed at the time was {billedAmount}; the figures above exclude the cancelled invoices.',
+                {
+                  count: summary.data.cancelled.issuedThenCancelledCount,
+                  amount: formatMoney(summary.data.cancelled.issuedThenCancelledAmount),
+                  billedAmount: formatMoney(summary.data.cancelled.billedAsIssued),
+                },
+              )}
             </Alert>
           )}
 
           <div className="grid min-w-0 gap-4 xl:grid-cols-[2fr_1fr]">
             <Card className="min-w-0">
               <CardHeader
-                title="Billed against collected"
-                description="Bars are what was invoiced; the line is cash received. They are not meant to match."
+                title={t('Billed against collected')}
+                description={t('Bars are what was invoiced; the line is cash received. They are not meant to match.')}
               />
               {trend.loading && !trend.data ? (
                 <LoadingState />
@@ -114,15 +120,15 @@ export function RevenueDashboardPage() {
             </Card>
 
             <Card className="min-w-0">
-              <CardHeader title="Cash reconciliation" description="What came in, by tender and by who took it." />
+              <CardHeader title={t('Cash reconciliation')} description={t('What came in, by tender and by who took it.')} />
               <PaymentMethodPanel collections={summary.data.collections} />
             </Card>
           </div>
 
           <Card className="min-w-0">
             <CardHeader
-              title="How the period adds up"
-              description="Each line is a separate measurement, not a step in one calculation."
+              title={t('How the period adds up')}
+              description={t('Each line is a separate measurement, not a step in one calculation.')}
             />
             <dl className="grid gap-x-8 gap-y-2 px-5 py-4 text-body-sm sm:grid-cols-2">
               {[
@@ -139,8 +145,8 @@ export function RevenueDashboardPage() {
               ].map(([name, value, hint]) => (
                 <div key={name as string} className="flex items-baseline justify-between gap-4 border-b border-border/60 pb-1.5">
                   <dt className="min-w-0">
-                    <span className="text-foreground">{name as string}</span>
-                    <span className="block text-caption text-muted">{hint as string}</span>
+                    <span className="text-foreground">{t(name as string)}</span>
+                    <span className="block text-caption text-muted">{t(hint as string)}</span>
                   </dt>
                   <dd className="shrink-0 font-medium tabular-nums text-foreground">{formatMoney(value as number)}</dd>
                 </div>
@@ -149,11 +155,15 @@ export function RevenueDashboardPage() {
             <p className="flex items-start gap-2 border-t border-border bg-surface-muted/50 px-5 py-3 text-caption text-muted">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
               <span>
-                Billed figures count invoices by the date they were issued. Collections count payments by the date
-                the money arrived, and refunds by the date they were approved — so an invoice billed in one period
-                can be collected in another. All-time outstanding across every unpaid invoice is{' '}
-                {formatMoney(summary.data.outstanding.amount)} over {summary.data.outstanding.invoiceCount} invoice
-                {summary.data.outstanding.invoiceCount === 1 ? '' : 's'}.
+                {t(
+                  'Billed figures count invoices by the date they were issued. Collections count payments by the date the money arrived, and refunds by the date they were approved — so an invoice billed in one period can be collected in another.',
+                )}{' '}
+                {t(
+                  summary.data.outstanding.invoiceCount === 1
+                    ? 'All-time outstanding across every unpaid invoice is {amount} over {count} invoice.'
+                    : 'All-time outstanding across every unpaid invoice is {amount} over {count} invoices.',
+                  { amount: formatMoney(summary.data.outstanding.amount), count: summary.data.outstanding.invoiceCount },
+                )}
               </span>
             </p>
           </Card>

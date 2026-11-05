@@ -6,6 +6,7 @@ import { formatMoney } from '@/lib/money';
 import { useAuth } from '@/features/auth/useAuth';
 import type { DashboardSummary } from '../api';
 import { useNavigateFrom } from '@/lib/navigation';
+import { useT } from '@/i18n';
 
 /**
  * Illustrations for the headline cards — `frontend/public/dashboard-icons/` (160 x 160
@@ -63,10 +64,11 @@ function MetricIcon({ art, icon: Icon, warning }: { art?: string; icon: LucideIc
 export function KpiHero({ summary }: { summary: DashboardSummary }) {
   const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
+  const t = useT();
 
   const secondary = ([
     {
-      label: "Today's orders",
+      label: t("Today's orders"),
       value: String(summary.todayOrders),
       isZero: summary.todayOrders === 0,
       icon: ClipboardCheck,
@@ -75,10 +77,13 @@ export function KpiHero({ summary }: { summary: DashboardSummary }) {
       permission: 'LAB_ORDER_READ',
     },
     {
-      label: 'Samples in lab',
+      label: t('Samples in lab'),
       value: String(summary.samplesInLab),
       isZero: summary.samplesInLab === 0,
-      caption: summary.pendingCollection > 0 ? `${summary.pendingCollection} awaiting collection` : 'All collected',
+      caption:
+        summary.pendingCollection > 0
+          ? t('{count} awaiting collection', { count: summary.pendingCollection })
+          : t('All collected'),
       icon: FlaskConical,
       art: ART.samples,
       to: '/app/samples',
@@ -86,7 +91,7 @@ export function KpiHero({ summary }: { summary: DashboardSummary }) {
       tone: summary.pendingCollection > 0 ? 'warning' : 'neutral',
     },
     {
-      label: 'Reports issued',
+      label: t('Reports issued'),
       value: String(summary.reportsToday),
       isZero: summary.reportsToday === 0,
       icon: FileCheck2,
@@ -95,10 +100,13 @@ export function KpiHero({ summary }: { summary: DashboardSummary }) {
       permission: 'REPORT_READ',
     },
     {
-      label: "Today's revenue",
+      label: t("Today's revenue"),
       value: formatMoney(summary.todayRevenue),
       isZero: summary.todayRevenue === 0,
-      caption: summary.outstandingBalance > 0 ? `${formatMoney(summary.outstandingBalance)} outstanding` : 'Fully collected',
+      caption:
+        summary.outstandingBalance > 0
+          ? t('{amount} outstanding', { amount: formatMoney(summary.outstandingBalance) })
+          : t('Fully collected'),
       icon: Wallet,
       art: ART.revenue,
       to: '/app/invoices',
@@ -116,7 +124,7 @@ export function KpiHero({ summary }: { summary: DashboardSummary }) {
       >
         <MetricIcon art={ART.patients} icon={Activity} />
         <div className="min-w-0">
-          <span className="block text-sm font-medium text-muted">Patients registered today</span>
+          <span className="block text-sm font-medium text-muted">{t('Patients registered today')}</span>
           {/* A real zero shouldn't carry the same visual weight as a real count — it's the
               least-actionable number on the dashboard, not the most, so it's dimmed rather than
               rendered at full strength like every other value here. */}
@@ -129,7 +137,7 @@ export function KpiHero({ summary }: { summary: DashboardSummary }) {
             {summary.todayPatients}
           </p>
           <p className="text-xs text-muted">
-            {summary.todayOrders} order{summary.todayOrders === 1 ? '' : 's'} placed so far today
+            {t('{count} order(s) placed so far today', { count: summary.todayOrders })}
           </p>
         </div>
       </button>

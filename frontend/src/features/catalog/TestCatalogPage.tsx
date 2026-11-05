@@ -18,6 +18,7 @@ import { testCatalogApi } from './api';
 import { SPECIMEN_LABELS, type TestDetail, type TestListItem } from './types';
 import { TestFormModal } from './TestFormModal';
 import { ImportMasterTestsModal } from './masterCatalog/ImportMasterTestsModal';
+import { useT } from '@/i18n';
 
 const PAGE_SIZE = 20;
 const npr = new Intl.NumberFormat('en-NP', { style: 'currency', currency: 'NPR', maximumFractionDigits: 0 });
@@ -25,6 +26,7 @@ const npr = new Intl.NumberFormat('en-NP', { style: 'currency', currency: 'NPR',
 const PARAMS = { q: '', departmentId: '', page: 1 };
 
 export function TestCatalogPage() {
+  const t = useT();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.TEST_CATALOG_WRITE);
 
@@ -66,34 +68,34 @@ export function TestCatalogPage() {
   };
 
   const columns: Column<TestListItem>[] = [
-    { key: 'code', header: 'Code', cell: (t) => <span className="font-mono text-xs">{t.code}</span> },
-    { key: 'name', header: 'Test', cell: (t) => <span className="font-medium">{t.name}</span> },
-    { key: 'dept', header: 'Department', cell: (t) => t.departmentName, hideOnMobile: true },
-    { key: 'specimen', header: 'Specimen', cell: (t) => SPECIMEN_LABELS[t.specimenType], hideOnMobile: true },
-    { key: 'params', header: 'Params', cell: (t) => t.parameterCount, hideOnMobile: true },
-    { key: 'price', header: 'Price', cell: (t) => npr.format(t.price), className: 'text-right' },
+    { key: 'code', header: t('Code'), cell: (row) => <span className="font-mono text-xs">{row.code}</span> },
+    { key: 'name', header: t('Test'), cell: (row) => <span className="font-medium">{row.name}</span> },
+    { key: 'dept', header: t('Department'), cell: (row) => row.departmentName, hideOnMobile: true },
+    { key: 'specimen', header: t('Specimen'), cell: (row) => t(SPECIMEN_LABELS[row.specimenType]), hideOnMobile: true },
+    { key: 'params', header: t('Params'), cell: (row) => row.parameterCount, hideOnMobile: true },
+    { key: 'price', header: t('Price'), cell: (row) => npr.format(row.price), className: 'text-right' },
     {
       key: 'status',
-      header: 'Status',
-      cell: (t) => <Badge tone={t.active ? 'success' : 'neutral'}>{t.active ? 'Active' : 'Inactive'}</Badge>,
+      header: t('Status'),
+      cell: (row) => <Badge tone={row.active ? 'success' : 'neutral'}>{t(row.active ? 'Active' : 'Inactive')}</Badge>,
     },
   ];
 
   return (
     <>
       <PageHeader
-        title="Test catalog"
-        description="Configure tests, their specimen requirements, pricing and result parameters."
+        title={t('Test catalog')}
+        description={t('Configure tests, their specimen requirements, pricing and result parameters.')}
         actions={
           canWrite ? (
             <div className="flex gap-2">
               <Button variant="secondary" onClick={() => setImportOpen(true)}>
                 <Library className="h-4 w-4" aria-hidden />
-                Import from master catalogue
+                {t('Import from master catalogue')}
               </Button>
               <Button onClick={openCreate} loading={loadingEdit}>
                 <Plus className="h-4 w-4" aria-hidden />
-                New test
+                {t('New test')}
               </Button>
             </div>
           ) : undefined
@@ -106,13 +108,13 @@ export function TestCatalogPage() {
             <SearchInput
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name or code"
+              placeholder={t('Search by name or code')}
             />
           </div>
           <div className="sm:w-56">
             <Select
               options={[
-                { value: '', label: 'All departments' },
+                { value: '', label: t('All departments') },
                 ...(departments.data ?? []).map((d) => ({ value: String(d.id), label: d.name })),
               ]}
               value={params.departmentId}
@@ -127,9 +129,9 @@ export function TestCatalogPage() {
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.content.length === 0 ? (
           <EmptyState
-            title="No tests found"
-            message={params.q || params.departmentId ? 'Adjust the filters.' : 'Add the first test to the catalog.'}
-            action={canWrite && !params.q && !params.departmentId ? <Button onClick={openCreate}>New test</Button> : undefined}
+            title={t('No tests found')}
+            message={params.q || params.departmentId ? t('Adjust the filters.') : t('Add the first test to the catalog.')}
+            action={canWrite && !params.q && !params.departmentId ? <Button onClick={openCreate}>{t('New test')}</Button> : undefined}
           />
         ) : (
           data && (
@@ -137,7 +139,7 @@ export function TestCatalogPage() {
               <DataTable
                 columns={columns}
                 rows={data.content}
-                rowKey={(t) => t.id}
+                rowKey={(row) => row.id}
                 onRowClick={canWrite ? openEdit : undefined}
               />
               <Pagination

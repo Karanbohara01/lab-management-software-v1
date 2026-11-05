@@ -6,6 +6,7 @@ import { PERMISSIONS } from '@/features/auth/permissions';
 import { SectionHeader } from './SectionHeader';
 import type { DashboardSummary } from '../api';
 import { useNavigateFrom } from '@/lib/navigation';
+import { useT } from '@/i18n';
 
 interface Stage {
   key: string;
@@ -28,9 +29,10 @@ export function WorkflowPipeline({
 }) {
   const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
+  const t = useT();
 
   const stages = ([
-    { key: 'patients', label: 'Registered', value: summary.todayPatients, to: '/app/patients', permission: PERMISSIONS.PATIENT_READ },
+    { key: 'patients', label: 'Patients registered', value: summary.todayPatients, to: '/app/patients', permission: PERMISSIONS.PATIENT_READ },
     { key: 'orders', label: 'Ordered', value: summary.todayOrders, to: '/app/orders', permission: PERMISSIONS.LAB_ORDER_READ },
     {
       key: 'collection',
@@ -64,7 +66,7 @@ export function WorkflowPipeline({
     },
     {
       key: 'approve',
-      label: 'Authorization',
+      label: 'Result authorization',
       value: resultCounts.VERIFIED ?? summary.resultsPendingApproval,
       to: '/app/results?status=VERIFIED',
       permission: PERMISSIONS.RESULT_READ,
@@ -91,7 +93,7 @@ export function WorkflowPipeline({
                   s.tone === 'warning' ? 'border-warning/30' : 'border-border',
                 )}
               >
-                <span className="text-[11px] font-medium uppercase tracking-wide text-muted">{s.label}</span>
+                <span className="text-[11px] font-medium uppercase tracking-wide text-muted">{t(s.label)}</span>
                 <span className={cn('mt-1.5 text-xl font-semibold', s.tone === 'warning' ? 'text-warning' : 'text-foreground')}>
                   {s.value}
                 </span>

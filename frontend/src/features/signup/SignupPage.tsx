@@ -17,6 +17,7 @@ import { ApiError } from '@/types/api';
 import { signupApi } from './api';
 import { BackLink } from '@/components/BackLink';
 import { BrandMark } from '@/components/brand/BrandMark';
+import { useT } from '@/i18n';
 
 const schema = z.object({
   name: z.string().min(2, 'Enter your laboratory’s name'),
@@ -50,6 +51,7 @@ function slugify(value: string): string {
  * product self-serve rather than sales-assisted-only.
  */
 export function SignupPage() {
+  const t = useT();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -112,7 +114,7 @@ export function SignupPage() {
         navigate('/login', { replace: true });
       }
     } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : 'Unable to create your clinic. Please try again.');
+      setServerError(err instanceof ApiError ? err.message : t('Unable to create your clinic. Please try again.'));
     } finally {
       setSubmitting(false);
     }
@@ -121,20 +123,20 @@ export function SignupPage() {
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-surface-muted px-4 py-6">
       <BackLink to="/" className="absolute left-4 top-4 mb-0 sm:left-6 sm:top-6">
-        Back to home
+        {t('Back to home')}
       </BackLink>
       <div className="w-full max-w-3xl">
         <div className="mb-4 flex flex-col items-center gap-2 text-center">
           <Link
             to="/"
-            aria-label="LIMS home"
+            aria-label={t('LIMS home')}
             className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             <BrandMark className="h-12" />
           </Link>
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Start your free trial</h1>
-            <p className="mt-1 text-sm text-muted">Your own isolated LIMS workspace, ready in seconds.</p>
+            <h1 className="text-xl font-semibold text-foreground">{t('Start your free trial')}</h1>
+            <p className="mt-1 text-sm text-muted">{t('Your own isolated LIMS workspace, ready in seconds.')}</p>
           </div>
         </div>
 
@@ -142,31 +144,31 @@ export function SignupPage() {
           {serverError && <Alert tone="danger">{serverError}</Alert>}
 
           <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">Your laboratory</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t('Your laboratory')}</p>
             <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
-              <Input label="Laboratory name" autoFocus error={errors.name?.message} {...register('name')} />
+              <Input label={t('Laboratory name')} autoFocus error={errors.name?.message} {...register('name')} />
               <Input
-                label="Workspace URL"
-                hint="Used only as your account's internal identifier."
+                label={t('Workspace URL')}
+                hint={t("Used only as your account's internal identifier.")}
                 error={errors.slug?.message}
                 {...register('slug', {
                   onChange: () => setSlugEdited(true),
                 })}
               />
-              <Input label="City" error={errors.city?.message} {...register('city')} />
-              <Input label="Phone" error={errors.contactPhone?.message} {...register('contactPhone')} />
+              <Input label={t('City')} error={errors.city?.message} {...register('city')} />
+              <Input label={t('Phone')} error={errors.contactPhone?.message} {...register('contactPhone')} />
             </div>
           </div>
 
           <div className="space-y-2">
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Plan</p>
-              <p className="text-xs text-muted">14-day free trial. No card required to start.</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t('Plan')}</p>
+              <p className="text-xs text-muted">{t('14-day free trial. No card required to start.')}</p>
             </div>
             {plansLoading ? (
-              <p className="text-sm text-muted">Loading plans…</p>
+              <p className="text-sm text-muted">{t('Loading plans…')}</p>
             ) : plansError ? (
-              <Alert tone="danger">Unable to load plans right now.</Alert>
+              <Alert tone="danger">{t('Unable to load plans right now.')}</Alert>
             ) : (
               <div className="grid gap-2 sm:grid-cols-3">
                 {(plans ?? []).map((plan) => {
@@ -184,7 +186,10 @@ export function SignupPage() {
                         {selected && <Check className="h-4 w-4 text-primary" aria-hidden />}
                       </div>
                       <p className="mt-1 text-xs text-muted">
-                        NPR {plan.priceMonthly.toLocaleString()}/mo · up to {plan.maxUsers} users
+                        {t('NPR {price}/mo · up to {count} users', {
+                          price: plan.priceMonthly.toLocaleString(),
+                          count: plan.maxUsers,
+                        })}
                       </p>
                     </label>
                   );
@@ -195,16 +200,16 @@ export function SignupPage() {
           </div>
 
           <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">Your admin login</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t('Your admin login')}</p>
             <div className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
-              <Input label="Your full name" error={errors.adminFullName?.message} {...register('adminFullName')} />
-              <Input label="Username" autoComplete="username" error={errors.adminUsername?.message} {...register('adminUsername')} />
-              <Input label="Email" type="email" autoComplete="email" error={errors.adminEmail?.message} {...register('adminEmail')} />
+              <Input label={t('Your full name')} error={errors.adminFullName?.message} {...register('adminFullName')} />
+              <Input label={t('Username')} autoComplete="username" error={errors.adminUsername?.message} {...register('adminUsername')} />
+              <Input label={t('Email')} type="email" autoComplete="email" error={errors.adminEmail?.message} {...register('adminEmail')} />
               <Input
-                label="Password"
+                label={t('Password')}
                 type="password"
                 autoComplete="new-password"
-                placeholder="At least 8 characters"
+                placeholder={t('At least 8 characters')}
                 error={errors.adminPassword?.message}
                 {...register('adminPassword')}
               />
@@ -212,14 +217,14 @@ export function SignupPage() {
           </div>
 
           <Button type="submit" className="w-full" loading={submitting}>
-            Create my clinic
+            {t('Create my clinic')}
           </Button>
         </form>
 
         <p className="mt-4 text-center text-xs text-muted">
-          Already have an account?{' '}
+          {t('Already have an account?')}{' '}
           <Link to="/login" className="font-medium text-primary hover:underline">
-            Sign in
+            {t('Sign in')}
           </Link>
         </p>
       </div>

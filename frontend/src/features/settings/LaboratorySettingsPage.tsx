@@ -22,10 +22,13 @@ import { PaymentCredentialsCard } from './PaymentCredentialsCard';
 import { IrdCredentialsCard } from './IrdCredentialsCard';
 import { SmsCredentialsCard } from './SmsCredentialsCard';
 import { WhatsAppCredentialsCard } from './WhatsAppCredentialsCard';
+import { useT, useTRich } from '@/i18n';
 
 const MAX_LOGO_BYTES = 400_000;
 
 export function LaboratorySettingsPage() {
+  const t = useT();
+  const tRich = useTRich();
   const toast = useToast();
   const { user, hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.SETTINGS_WRITE);
@@ -55,7 +58,7 @@ export function LaboratorySettingsPage() {
 
   const onLogo = (file: File) => {
     if (file.size > MAX_LOGO_BYTES) {
-      setFormError('Logo must be under 400 KB.');
+      setFormError(t('Logo must be under 400 KB.'));
       return;
     }
     const reader = new FileReader();
@@ -69,10 +72,10 @@ export function LaboratorySettingsPage() {
     try {
       const saved = await settingsApi.updateLaboratory({ ...form, name: form.name.trim() });
       if (user) publishBranding(user.id, { name: saved.name, logoDataUri: saved.logoDataUri }); // the sidebar follows at once
-      toast.success('Laboratory profile saved');
+      toast.success(t('Laboratory profile saved'));
       refetch();
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : 'Unable to save');
+      setFormError(err instanceof ApiError ? err.message : t('Unable to save'));
     } finally {
       setSaving(false);
     }
@@ -83,12 +86,12 @@ export function LaboratorySettingsPage() {
       {unsavedDialog}
       <PageHeader
         back={back}
-        title="Laboratory profile"
-        description="Identity and letterhead used on generated reports."
+        title={t('Laboratory profile')}
+        description={t('Identity and letterhead used on generated reports.')}
         actions={
           canWrite ? (
             <Button onClick={save} loading={saving}>
-              Save profile
+              {t('Save profile')}
             </Button>
           ) : undefined
         }
@@ -101,32 +104,32 @@ export function LaboratorySettingsPage() {
       )}
       {!canWrite && (
         <div className="mb-4">
-          <Alert tone="info">You have read-only access to settings.</Alert>
+          <Alert tone="info">{t('You have read-only access to settings.')}</Alert>
         </div>
       )}
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           <Card>
-            <CardHeader title="Report letterhead" />
+            <CardHeader title={t('Report letterhead')} />
             <CardBody className="space-y-4">
-              <Input label="Laboratory name" value={form.name} disabled={!canWrite} onChange={(e) => set('name', e.target.value)} />
+              <Input label={t('Laboratory name')} value={form.name} disabled={!canWrite} onChange={(e) => set('name', e.target.value)} />
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                <Input label="Address" value={form.addressLine ?? ''} disabled={!canWrite} onChange={(e) => set('addressLine', e.target.value)} />
-                <Input label="City" value={form.city ?? ''} disabled={!canWrite} onChange={(e) => set('city', e.target.value)} />
-                <Input label="PAN / VAT number" value={form.panNumber ?? ''} disabled={!canWrite} onChange={(e) => set('panNumber', e.target.value)} />
+                <Input label={t('Address')} value={form.addressLine ?? ''} disabled={!canWrite} onChange={(e) => set('addressLine', e.target.value)} />
+                <Input label={t('City')} value={form.city ?? ''} disabled={!canWrite} onChange={(e) => set('city', e.target.value)} />
+                <Input label={t('PAN / VAT number')} value={form.panNumber ?? ''} disabled={!canWrite} onChange={(e) => set('panNumber', e.target.value)} />
                 <Input
-                  label="Accreditation number"
-                  placeholder="e.g. NABL / ISO 15189 certificate no."
+                  label={t('Accreditation number')}
+                  placeholder={t('e.g. NABL / ISO 15189 certificate no.')}
                   value={form.accreditationNumber ?? ''}
                   disabled={!canWrite}
                   onChange={(e) => set('accreditationNumber', e.target.value)}
                 />
-                <Input label="Phone" value={form.phone ?? ''} disabled={!canWrite} onChange={(e) => set('phone', e.target.value)} />
-                <Input label="Email" type="email" value={form.email ?? ''} disabled={!canWrite} onChange={(e) => set('email', e.target.value)} />
+                <Input label={t('Phone')} value={form.phone ?? ''} disabled={!canWrite} onChange={(e) => set('phone', e.target.value)} />
+                <Input label={t('Email')} type="email" value={form.email ?? ''} disabled={!canWrite} onChange={(e) => set('email', e.target.value)} />
               </div>
               <Textarea
-                label="Report footer / disclaimer"
+                label={t('Report footer / disclaimer')}
                 value={form.reportFooter ?? ''}
                 disabled={!canWrite}
                 onChange={(e) => set('reportFooter', e.target.value)}
@@ -135,24 +138,24 @@ export function LaboratorySettingsPage() {
           </Card>
 
           <Card>
-            <CardHeader title="Billing" />
+            <CardHeader title={t('Billing')} />
             <CardBody className="space-y-3">
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <Input
-                  label="Fiscal year"
-                  hint="Computed automatically from today's Bikram Sambat date"
+                  label={t('Fiscal year')}
+                  hint={t("Computed automatically from today's Bikram Sambat date")}
                   value={form.fiscalYear}
                   disabled
                   readOnly
                 />
                 <Input
-                  label="Invoice prefix"
+                  label={t('Invoice prefix')}
                   value={form.invoicePrefix}
                   disabled={!canWrite}
                   onChange={(e) => set('invoicePrefix', e.target.value)}
                 />
                 <Input
-                  label="Default tax rate %"
+                  label={t('Default tax rate %')}
                   type="number"
                   step="any"
                   min={0}
@@ -161,31 +164,33 @@ export function LaboratorySettingsPage() {
                   onChange={(e) => set('defaultTaxRate', Number(e.target.value) || 0)}
                 />
                 <Input
-                  label="Expiry alert (days)"
+                  label={t('Expiry alert (days)')}
                   type="number"
                   min={1}
-                  hint="Flag stock expiring within this many days"
+                  hint={t('Flag stock expiring within this many days')}
                   value={form.inventoryExpiryAlertDays}
                   disabled={!canWrite}
                   onChange={(e) => set('inventoryExpiryAlertDays', Number(e.target.value) || 30)}
                 />
               </div>
               <p className="text-xs text-muted">
-                Invoice numbers are issued per fiscal year as{' '}
-                <code className="font-mono">
-                  {form.invoicePrefix}-{form.fiscalYear}-000001
-                </code>
-                . The fiscal year rolls over automatically at the Shrawan 1 boundary — nothing to change by hand.
+                {tRich('Invoice numbers are issued per fiscal year as {code}. The fiscal year rolls over automatically at the Shrawan 1 boundary — nothing to change by hand.', {
+                  code: (
+                    <code className="font-mono">
+                      {form.invoicePrefix}-{form.fiscalYear}-000001
+                    </code>
+                  ),
+                })}
               </p>
             </CardBody>
           </Card>
 
           <Card>
-            <CardHeader title="Operations" />
+            <CardHeader title={t('Operations')} />
             <CardBody>
               <Checkbox
-                label="Require payment before sample collection"
-                hint="Self-pay patients must have their order paid in full before a sample can be collected — collectors can still override with a documented reason. Insurance / SSF / corporate patients are always exempt (billed on account)."
+                label={t('Require payment before sample collection')}
+                hint={t('Self-pay patients must have their order paid in full before a sample can be collected — collectors can still override with a documented reason. Insurance / SSF / corporate patients are always exempt (billed on account).')}
                 checked={form.requirePaymentBeforeCollection}
                 disabled={!canWrite}
                 onChange={(e) => set('requirePaymentBeforeCollection', e.target.checked)}
@@ -195,18 +200,18 @@ export function LaboratorySettingsPage() {
 
           <Card>
             <CardHeader
-              title="Print & letterhead"
-              description="Turn off if you print on pre-printed letterhead stationery — the logo/name/address block above won't repeat digitally, but everything below it (bill number, patient details, line items) still prints."
+              title={t('Print & letterhead')}
+              description={t("Turn off if you print on pre-printed letterhead stationery — the logo/name/address block above won't repeat digitally, but everything below it (bill number, patient details, line items) still prints.")}
             />
             <CardBody className="space-y-3">
               <Checkbox
-                label="Print letterhead on reports"
+                label={t('Print letterhead on reports')}
                 checked={form.printReportLetterhead}
                 disabled={!canWrite}
                 onChange={(e) => set('printReportLetterhead', e.target.checked)}
               />
               <Checkbox
-                label="Print letterhead on invoices"
+                label={t('Print letterhead on invoices')}
                 checked={form.printInvoiceLetterhead}
                 disabled={!canWrite}
                 onChange={(e) => set('printInvoiceLetterhead', e.target.checked)}
@@ -222,24 +227,24 @@ export function LaboratorySettingsPage() {
 
         <div className="space-y-4">
           <Card>
-            <CardHeader title="Subscription & billing" description="View invoices and pay online." />
+            <CardHeader title={t('Subscription & billing')} description={t('View invoices and pay online.')} />
             <CardBody>
               <Link to="/app/settings/billing">
                 <Button variant="secondary" size="sm" className="w-full">
-                  View subscription & billing
+                  {t('View subscription & billing')}
                 </Button>
               </Link>
             </CardBody>
           </Card>
 
           <Card>
-            <CardHeader title="Logo" />
+            <CardHeader title={t('Logo')} />
             <CardBody className="space-y-3">
               <div className="flex h-28 items-center justify-center rounded-md border border-dashed border-border bg-surface-muted">
                 {form.logoDataUri ? (
-                  <img src={form.logoDataUri} alt="Current logo" className="max-h-24 max-w-[80%] object-contain" />
+                  <img src={form.logoDataUri} alt={t('Current logo')} className="max-h-24 max-w-[80%] object-contain" />
                 ) : (
-                  <span className="text-sm text-muted">No logo</span>
+                  <span className="text-sm text-muted">{t('No logo')}</span>
                 )}
               </div>
               {canWrite && (
@@ -252,30 +257,30 @@ export function LaboratorySettingsPage() {
                     onChange={(e) => e.target.files?.[0] && onLogo(e.target.files[0])}
                   />
                   <Button variant="secondary" size="sm" className="flex-1" onClick={() => fileRef.current?.click()}>
-                    Upload
+                    {t('Upload')}
                   </Button>
                   {form.logoDataUri && (
                     <Button variant="ghost" size="sm" onClick={() => set('logoDataUri', null)}>
-                      Remove
+                      {t('Remove')}
                     </Button>
                   )}
                 </div>
               )}
-              <p className="text-xs text-muted">PNG, JPEG or SVG, under 400 KB. Shown on generated report letterheads.</p>
+              <p className="text-xs text-muted">{t('PNG, JPEG or SVG, under 400 KB. Shown on generated report letterheads.')}</p>
             </CardBody>
           </Card>
 
           <Card>
-            <CardHeader title="Letterhead preview" />
+            <CardHeader title={t('Letterhead preview')} />
             <CardBody className="space-y-1 text-sm">
               {form.logoDataUri && (
                 <img src={form.logoDataUri} alt="" className="mb-2 h-10 max-w-[60%] object-contain" />
               )}
-              <p className="font-semibold text-foreground">{form.name || 'Laboratory name'}</p>
+              <p className="font-semibold text-foreground">{form.name || t('Laboratory name')}</p>
               <p className="text-muted">{[form.addressLine, form.city].filter(Boolean).join(', ') || '—'}</p>
               <p className="text-muted">{[form.phone, form.email].filter(Boolean).join(' · ') || '—'}</p>
-              {form.panNumber && <p className="text-muted">PAN: {form.panNumber}</p>}
-              {form.accreditationNumber && <p className="text-muted">Accreditation: {form.accreditationNumber}</p>}
+              {form.panNumber && <p className="text-muted">{t('PAN: {pan}', { pan: form.panNumber })}</p>}
+              {form.accreditationNumber && <p className="text-muted">{t('Accreditation: {value}', { value: form.accreditationNumber })}</p>}
             </CardBody>
           </Card>
         </div>

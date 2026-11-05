@@ -12,6 +12,7 @@ import { useToast } from '@/components/ui/toast';
 import { useQuery } from '@/hooks/useQuery';
 import { useBackTarget } from '@/lib/navigation';
 import { ApiError } from '@/types/api';
+import { useT, useLocale, LOCALE_TAG, tOpts } from '@/i18n';
 import { patientImportApi } from './api';
 import { ImportMappingStep, UNMAPPED } from './ImportMappingStep';
 import { ImportRowsTable } from './ImportRowsTable';
@@ -60,6 +61,9 @@ const DUPLICATE_CHOICES: { value: DuplicatePolicy; label: string; detail: string
  * from the server's own counters, so leaving this page and coming back loses nothing.
  */
 export function ImportPatientsPage() {
+  const t = useT();
+  const { locale } = useLocale();
+  const localeTag = LOCALE_TAG[locale];
   const toast = useToast();
   const { back } = useBackTarget();
 
@@ -145,7 +149,7 @@ export function ImportPatientsPage() {
         });
         setMapping(initial);
       } catch (err) {
-        toast.error(err instanceof ApiError ? err.message : 'That file could not be uploaded.');
+        toast.error(err instanceof ApiError ? err.message : t('That file could not be uploaded.'));
       } finally {
         setUploading(false);
         retryingRef.current = null;
@@ -163,7 +167,7 @@ export function ImportPatientsPage() {
       setJob(detail);
       setJobId(upload.job.id);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'That mapping could not be used.');
+      toast.error(err instanceof ApiError ? err.message : t('That mapping could not be used.'));
     } finally {
       setBusy(false);
     }
@@ -175,7 +179,7 @@ export function ImportPatientsPage() {
     try {
       setJob(await patientImportApi.start(jobId, policy, weakPolicy));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'The import could not be started.');
+      toast.error(err instanceof ApiError ? err.message : t('The import could not be started.'));
     } finally {
       setBusy(false);
     }
@@ -185,9 +189,9 @@ export function ImportPatientsPage() {
     if (jobId == null) return;
     try {
       setJob(await patientImportApi.cancel(jobId));
-      toast.success('The import will stop after the batch it is on.');
+      toast.success(t('The import will stop after the batch it is on.'));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'The import could not be cancelled.');
+      toast.error(err instanceof ApiError ? err.message : t('The import could not be cancelled.'));
     }
   };
 
@@ -208,17 +212,19 @@ export function ImportPatientsPage() {
     <>
       <PageHeader
         back={back}
-        title="Import patients"
-        description="Bring an existing patient list in from a spreadsheet, without registering each person by hand."
+        title={t('Import patients')}
+        description={t(
+          'Bring an existing patient list in from a spreadsheet, without registering each person by hand.',
+        )}
         actions={
           <div className="flex flex-wrap gap-2">
             <Button variant="secondary" onClick={() => patientImportApi.downloadTemplate()}>
               <Download className="h-4 w-4" aria-hidden />
-              Download template
+              {t('Download template')}
             </Button>
             {(upload || job) && (
               <Button variant="secondary" onClick={reset}>
-                Start again
+                {t('Start again')}
               </Button>
             )}
           </div>
@@ -240,8 +246,10 @@ export function ImportPatientsPage() {
       {!upload && !job && (
         <Card>
           <CardHeader
-            title="Upload the patient list"
-            description="Excel (.xlsx) or CSV. Your own column layout is fine — you match the columns up next."
+            title={t('Upload the patient list')}
+            description={t(
+              'Excel (.xlsx) or CSV. Your own column layout is fine — you match the columns up next.',
+            )}
           />
           <CardBody className="space-y-4">
             <div
@@ -254,11 +262,12 @@ export function ImportPatientsPage() {
             >
               <FileSpreadsheet className="h-8 w-8 text-muted" aria-hidden />
               <p className="text-body font-medium text-foreground">
-                Choose a file, or drag one here
+                {t('Choose a file, or drag one here')}
               </p>
               <p className="max-w-sm text-caption text-muted">
-                Nepali text is supported. Phone numbers and existing patient IDs are kept exactly as
-                written.
+                {t(
+                  'Nepali text is supported. Phone numbers and existing patient IDs are kept exactly as written.',
+                )}
               </p>
               <Button
                 type="button"
@@ -267,14 +276,14 @@ export function ImportPatientsPage() {
                 onClick={() => fileInput.current?.click()}
               >
                 <Upload className="h-4 w-4" aria-hidden />
-                {uploading ? `Uploading ${uploadPercent}%` : 'Choose file'}
+                {uploading ? t('Uploading {percent}%', { percent: uploadPercent }) : t('Choose file')}
               </Button>
             </div>
 
-            <Alert tone="info" title="What happens next">
-              The file is checked row by row before anything is created. You will see how many rows
-              are ready, which have errors and which match patients already in the system — and you
-              decide what to do about each before the import starts.
+            <Alert tone="info" title={t('What happens next')}>
+              {t(
+                'The file is checked row by row before anything is created. You will see how many rows are ready, which have errors and which match patients already in the system — and you decide what to do about each before the import starts.',
+              )}
             </Alert>
           </CardBody>
         </Card>
@@ -284,21 +293,24 @@ export function ImportPatientsPage() {
       {upload && !job && (
         <Card>
           <CardHeader
-            title="Match the columns to patient fields"
-            description={`${upload.job.filename} · ${formatFileSize(upload.job.fileSizeBytes)} · ${upload.headers.length} columns`}
+            title={t('Match the columns to patient fields')}
+            description={`${upload.job.filename} · ${formatFileSize(upload.job.fileSizeBytes)} · ${t('{count} columns', { count: upload.headers.length })}`}
             action={
               <Button loading={busy} onClick={confirmMapping}>
-                Check the file
+                {t('Check the file')}
               </Button>
             }
           />
           <CardBody className="space-y-4">
             {upload.sameFileAs && (
-              <Alert tone="warning" title="This looks like a file imported before">
-                The same file was uploaded on{' '}
-                {new Date(upload.sameFileAs.createdAt).toLocaleString()} and imported{' '}
-                {upload.sameFileAs.importedRows} patients. Carrying on is safe — anything already
-                here is flagged as a match rather than duplicated — but check this is what you meant.
+              <Alert tone="warning" title={t('This looks like a file imported before')}>
+                {t(
+                  'The same file was uploaded on {date} and imported {count} patients. Carrying on is safe — anything already here is flagged as a match rather than duplicated — but check this is what you meant.',
+                  {
+                    date: new Date(upload.sameFileAs.createdAt).toLocaleString(localeTag),
+                    count: upload.sameFileAs.importedRows,
+                  },
+                )}
               </Alert>
             )}
             {fields.data && (
@@ -323,11 +335,13 @@ export function ImportPatientsPage() {
               description={
                 <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <Badge tone={JOB_STATUS_TONE[job.job.status]}>
-                    {JOB_STATUS_LABEL[job.job.status]}
+                    {t(JOB_STATUS_LABEL[job.job.status])}
                   </Badge>
                   <span className="text-muted">
-                    Import #{job.job.id} · {formatFileSize(job.job.fileSizeBytes)}
-                    {job.job.importedBy ? ` · started by ${job.job.importedBy}` : ''}
+                    {t('Import #{id}', { id: job.job.id })} · {formatFileSize(job.job.fileSizeBytes)}
+                    {job.job.importedBy
+                      ? ` · ${t('started by {name}', { name: job.job.importedBy })}`
+                      : ''}
                   </span>
                 </span>
               }
@@ -336,19 +350,23 @@ export function ImportPatientsPage() {
                   {isRunning(job.job.status) && !job.job.cancelRequested && (
                     <Button variant="secondary" onClick={() => setConfirmCancel(true)}>
                       <X className="h-4 w-4" aria-hidden />
-                      Stop
+                      {t('Stop')}
                     </Button>
                   )}
                   {job.job.status === 'READY' && (
                     <Button loading={busy} onClick={startImport}>
-                      Import {importableCount(job, policy, weakPolicy).toLocaleString()}{' '}
-                      {importableCount(job, policy, weakPolicy) === 1 ? 'patient' : 'patients'}
+                      {t(
+                        importableCount(job, policy, weakPolicy) === 1
+                          ? 'Import {count} patient'
+                          : 'Import {count} patients',
+                        { count: importableCount(job, policy, weakPolicy).toLocaleString(localeTag) },
+                      )}
                     </Button>
                   )}
                   {isFinished(job.job.status) && (
                     <Button variant="secondary" onClick={() => beginRetry(job.job.id)}>
                       <RefreshCw className="h-4 w-4" aria-hidden />
-                      Import a corrected file
+                      {t('Import a corrected file')}
                     </Button>
                   )}
                 </div>
@@ -356,20 +374,21 @@ export function ImportPatientsPage() {
             />
             <CardBody className="space-y-4">
               {job.job.failureMessage && (
-                <Alert tone="danger" title="This import stopped">
+                <Alert tone="danger" title={t('This import stopped')}>
+                  {/* Server-generated failure text for this specific job; no fixed phrase to key against. */}
                   {job.job.failureMessage}
                 </Alert>
               )}
               {job.job.cancelRequested && isRunning(job.job.status) && (
-                <Alert tone="warning" title="Stopping">
-                  The import will stop after the batch it is working on. Patients already created are
-                  kept.
+                <Alert tone="warning" title={t('Stopping')}>
+                  {t('The import will stop after the batch it is working on. Patients already created are kept.')}
                 </Alert>
               )}
               {job.job.status === 'ANALYSING' && (
-                <Alert tone="info" title="Checking every row">
-                  Nothing has been created yet. You can leave this page and come back — the check
-                  carries on.
+                <Alert tone="info" title={t('Checking every row')}>
+                  {t(
+                    'Nothing has been created yet. You can leave this page and come back — the check carries on.',
+                  )}
                 </Alert>
               )}
 
@@ -378,7 +397,7 @@ export function ImportPatientsPage() {
                 <div>
                   <div className="mb-1.5 flex items-baseline justify-between">
                     <span className="text-label uppercase text-muted">
-                      {job.job.status === 'ANALYSING' ? 'Checking rows' : 'Progress'}
+                      {t(job.job.status === 'ANALYSING' ? 'Checking rows' : 'Progress')}
                     </span>
                     <span className="text-body-sm font-semibold tabular-nums text-foreground">
                       {job.job.percentComplete}%
@@ -390,7 +409,7 @@ export function ImportPatientsPage() {
                     aria-valuenow={job.job.percentComplete}
                     aria-valuemin={0}
                     aria-valuemax={100}
-                    aria-label="Import progress"
+                    aria-label={t('Import progress')}
                   >
                     <div
                       className="h-full rounded-full bg-primary transition-[width] duration-500"
@@ -398,13 +417,15 @@ export function ImportPatientsPage() {
                     />
                   </div>
                   <p className="mt-1.5 text-caption text-muted">
-                    {job.job.processedRows.toLocaleString()} of {job.job.totalRows.toLocaleString()}{' '}
-                    rows processed
+                    {t('{processed} of {total} rows processed', {
+                      processed: job.job.processedRows.toLocaleString(localeTag),
+                      total: job.job.totalRows.toLocaleString(localeTag),
+                    })}
                     {job.job.startedAt
-                      ? ` · started ${new Date(job.job.startedAt).toLocaleTimeString()}`
+                      ? ` · ${t('started {time}', { time: new Date(job.job.startedAt).toLocaleTimeString(localeTag) })}`
                       : ''}
                     {job.job.completedAt
-                      ? ` · finished ${new Date(job.job.completedAt).toLocaleTimeString()}`
+                      ? ` · ${t('finished {time}', { time: new Date(job.job.completedAt).toLocaleTimeString(localeTag) })}`
                       : ''}
                   </p>
                 </div>
@@ -420,7 +441,7 @@ export function ImportPatientsPage() {
                     disabled={!hasRows(job, ['INVALID', 'FAILED'])}
                   >
                     <Download className="h-4 w-4" aria-hidden />
-                    Rows with problems
+                    {t('Rows with problems')}
                   </Button>
                   <Button
                     variant="secondary"
@@ -435,7 +456,7 @@ export function ImportPatientsPage() {
                     disabled={!hasRows(job, ['DUPLICATE', 'DUPLICATE_IN_FILE', 'POSSIBLE_DUPLICATE', 'SKIPPED'])}
                   >
                     <Download className="h-4 w-4" aria-hidden />
-                    Skipped and matched
+                    {t('Skipped and matched')}
                   </Button>
                   <Button
                     variant="secondary"
@@ -443,7 +464,7 @@ export function ImportPatientsPage() {
                     disabled={!hasRows(job, ['IMPORTED', 'UPDATED'])}
                   >
                     <Download className="h-4 w-4" aria-hidden />
-                    Imported patients
+                    {t('Imported patients')}
                   </Button>
                 </div>
               )}
@@ -454,13 +475,18 @@ export function ImportPatientsPage() {
           {job.job.status === 'READY' && (
             <Card>
               <CardHeader
-                title="Patients that already exist"
+                title={t('Patients that already exist')}
                 description={
                   job.job.duplicateRows === 0
                     ? job.job.possibleDuplicateRows > 0
-                      ? 'No row firmly matches a patient already here by phone, ID, or name and date of birth.'
-                      : 'None of these rows matches a patient already in the system.'
-                    : `${job.job.duplicateRows} ${job.job.duplicateRows === 1 ? 'row matches' : 'rows match'} a patient already here by phone, ID, or name and date of birth, or repeats an earlier row of this file. Choose what should happen to them.`
+                      ? t('No row firmly matches a patient already here by phone, ID, or name and date of birth.')
+                      : t('None of these rows matches a patient already in the system.')
+                    : t(
+                        job.job.duplicateRows === 1
+                          ? '{count} row matches a patient already here by phone, ID, or name and date of birth, or repeats an earlier row of this file. Choose what should happen to them.'
+                          : '{count} rows match a patient already here by phone, ID, or name and date of birth, or repeats an earlier row of this file. Choose what should happen to them.',
+                        { count: job.job.duplicateRows },
+                      )
                 }
               />
               <CardBody className="space-y-4">
@@ -468,31 +494,32 @@ export function ImportPatientsPage() {
                   <>
                     <div className="max-w-md">
                       <Select
-                        label="When a row matches an existing patient"
-                        options={DUPLICATE_CHOICES.map((c) => ({ value: c.value, label: c.label }))}
+                        label={t('When a row matches an existing patient')}
+                        options={tOpts(DUPLICATE_CHOICES.map((c) => ({ value: c.value, label: c.label })))}
                         value={policy}
                         onChange={(e) => setPolicy(e.target.value as DuplicatePolicy)}
                       />
                       <p className="mt-1.5 text-caption text-muted">
-                        {DUPLICATE_CHOICES.find((c) => c.value === policy)?.detail}
+                        {t(DUPLICATE_CHOICES.find((c) => c.value === policy)?.detail ?? '')}
                       </p>
                     </div>
-                    <Alert tone="info" title="Records are never merged automatically">
-                      No existing patient is overwritten or merged by an import. To combine two
-                      records, use the merge tool on the patient itself.
+                    <Alert tone="info" title={t('Records are never merged automatically')}>
+                      {t(
+                        'No existing patient is overwritten or merged by an import. To combine two records, use the merge tool on the patient itself.',
+                      )}
                     </Alert>
                     <ImportRowsTable
                       jobId={job.job.id}
                       statuses={['DUPLICATE', 'DUPLICATE_IN_FILE']}
-                      emptyTitle="No matches"
-                      emptyMessage="Nothing in this file matches a patient already in the system."
+                      emptyTitle={t('No matches')}
+                      emptyMessage={t('Nothing in this file matches a patient already in the system.')}
                     />
                   </>
                 ) : (
                   <p className="text-body-sm text-muted">
                     {job.job.possibleDuplicateRows > 0
-                      ? 'The possible matches below are the only resemblances found.'
-                      : 'Every row in this file looks like someone new.'}
+                      ? t('The possible matches below are the only resemblances found.')
+                      : t('Every row in this file looks like someone new.')}
                   </p>
                 )}
               </CardBody>
@@ -503,30 +530,36 @@ export function ImportPatientsPage() {
           {job.job.status === 'READY' && job.job.possibleDuplicateRows > 0 && (
             <Card>
               <CardHeader
-                title="Possible matches"
-                description={`${job.job.possibleDuplicateRows} ${job.job.possibleDuplicateRows === 1 ? 'row shares' : 'rows share'} a name, gender and age with an existing patient but ${job.job.possibleDuplicateRows === 1 ? 'has' : 'have'} no phone number or patient ID to confirm it.`}
+                title={t('Possible matches')}
+                description={t(
+                  job.job.possibleDuplicateRows === 1
+                    ? '{count} row shares a name, gender and age with an existing patient but has no phone number or patient ID to confirm it.'
+                    : '{count} rows share a name, gender and age with an existing patient but have no phone number or patient ID to confirm it.',
+                  { count: job.job.possibleDuplicateRows },
+                )}
               />
               <CardBody className="space-y-4">
                 <div className="max-w-md">
                   <Select
-                    label="When a row only shares a name, gender and age"
-                    options={DUPLICATE_CHOICES.map((c) => ({ value: c.value, label: c.label }))}
+                    label={t('When a row only shares a name, gender and age')}
+                    options={tOpts(DUPLICATE_CHOICES.map((c) => ({ value: c.value, label: c.label })))}
                     value={weakPolicy}
                     onChange={(e) => setWeakPolicy(e.target.value as DuplicatePolicy)}
                   />
                   <p className="mt-1.5 text-caption text-muted">
-                    {DUPLICATE_CHOICES.find((c) => c.value === weakPolicy)?.detail}
+                    {t(DUPLICATE_CHOICES.find((c) => c.value === weakPolicy)?.detail ?? '')}
                   </p>
                 </div>
-                <Alert tone="info" title="Treated as new unless you say otherwise">
-                  Two people with the same common name and age are ordinary, so these are imported
-                  as new patients by default. Open the matched record if you want to be sure.
+                <Alert tone="info" title={t('Treated as new unless you say otherwise')}>
+                  {t(
+                    'Two people with the same common name and age are ordinary, so these are imported as new patients by default. Open the matched record if you want to be sure.',
+                  )}
                 </Alert>
                 <ImportRowsTable
                   jobId={job.job.id}
                   statuses={['POSSIBLE_DUPLICATE']}
-                  emptyTitle="No possible matches"
-                  emptyMessage="Nothing in this file resembles an existing patient."
+                  emptyTitle={t('No possible matches')}
+                  emptyMessage={t('Nothing in this file resembles an existing patient.')}
                 />
               </CardBody>
             </Card>
@@ -536,15 +569,17 @@ export function ImportPatientsPage() {
           {job.job.invalidRows + job.job.failedRows > 0 && (
             <Card>
               <CardHeader
-                title="Rows that could not be imported"
-                description="Each one names the problem and the column it came from, so the file can be corrected and imported again."
+                title={t('Rows that could not be imported')}
+                description={t(
+                  'Each one names the problem and the column it came from, so the file can be corrected and imported again.',
+                )}
               />
               <CardBody className="p-0">
                 <ImportRowsTable
                   jobId={job.job.id}
                   statuses={['INVALID', 'FAILED']}
-                  emptyTitle="Nothing wrong"
-                  emptyMessage="Every row in this file could be read."
+                  emptyTitle={t('Nothing wrong')}
+                  emptyMessage={t('Every row in this file could be read.')}
                 />
               </CardBody>
             </Card>
@@ -554,19 +589,22 @@ export function ImportPatientsPage() {
           {isFinished(job.job.status) && job.job.importedRows + job.job.updatedRows > 0 && (
             <Card>
               <CardHeader
-                title="Patients imported"
-                description={`${job.job.importedRows.toLocaleString()} created${
+                title={t('Patients imported')}
+                description={
                   job.job.updatedRows > 0
-                    ? `, ${job.job.updatedRows.toLocaleString()} existing records completed`
-                    : ''
-                }.`}
+                    ? t('{count} created, {count2} existing records completed.', {
+                        count: job.job.importedRows.toLocaleString(localeTag),
+                        count2: job.job.updatedRows.toLocaleString(localeTag),
+                      })
+                    : t('{count} created.', { count: job.job.importedRows.toLocaleString(localeTag) })
+                }
               />
               <CardBody className="p-0">
                 <ImportRowsTable
                   jobId={job.job.id}
                   statuses={['IMPORTED', 'UPDATED']}
-                  emptyTitle="Nothing imported"
-                  emptyMessage="No patients were created by this import."
+                  emptyTitle={t('Nothing imported')}
+                  emptyMessage={t('No patients were created by this import.')}
                   showProblem={false}
                 />
               </CardBody>
@@ -578,30 +616,30 @@ export function ImportPatientsPage() {
       {/* Previous imports, always available */}
       <Card className="mt-5">
         <CardHeader
-          title="Previous imports"
-          description="Every import this clinic has run, and what came of it."
+          title={t('Previous imports')}
+          description={t('Every import this clinic has run, and what came of it.')}
         />
         <CardBody className="p-0">
           {history.loading && !history.data ? (
-            <LoadingState label="Loading history…" />
+            <LoadingState label={t('Loading history…')} />
           ) : history.error ? (
             <ErrorState message={history.error} onRetry={history.refetch} />
           ) : history.data && history.data.content.length === 0 ? (
             <p className="px-4 py-6 text-center text-body-sm text-muted">
-              No patient list has been imported yet.
+              {t('No patient list has been imported yet.')}
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[42rem] text-body-sm">
                 <thead className="border-b border-border text-left text-label uppercase text-muted">
                   <tr>
-                    <th className="px-4 py-2.5 font-semibold">File</th>
-                    <th className="px-4 py-2.5 font-semibold">Started</th>
-                    <th className="px-4 py-2.5 font-semibold">By</th>
-                    <th className="px-4 py-2.5 text-right font-semibold">Rows</th>
-                    <th className="px-4 py-2.5 text-right font-semibold">Imported</th>
-                    <th className="px-4 py-2.5 text-right font-semibold">Problems</th>
-                    <th className="px-4 py-2.5 font-semibold">Status</th>
+                    <th className="px-4 py-2.5 font-semibold">{t('File')}</th>
+                    <th className="px-4 py-2.5 font-semibold">{t('Started')}</th>
+                    <th className="px-4 py-2.5 font-semibold">{t('By')}</th>
+                    <th className="px-4 py-2.5 text-right font-semibold">{t('Rows')}</th>
+                    <th className="px-4 py-2.5 text-right font-semibold">{t('Imported')}</th>
+                    <th className="px-4 py-2.5 text-right font-semibold">{t('Problems')}</th>
+                    <th className="px-4 py-2.5 font-semibold">{t('Status')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -615,25 +653,25 @@ export function ImportPatientsPage() {
                         <span className="block font-medium text-foreground">{h.filename}</span>
                         {h.retryOfJobId && (
                           <span className="block text-caption text-muted">
-                            retry of import #{h.retryOfJobId}
+                            {t('retry of import #{id}', { id: h.retryOfJobId })}
                           </span>
                         )}
                       </td>
                       <td className="whitespace-nowrap px-4 py-2.5 text-muted">
-                        {new Date(h.createdAt).toLocaleString()}
+                        {new Date(h.createdAt).toLocaleString(localeTag)}
                       </td>
                       <td className="px-4 py-2.5 text-muted">{h.importedBy ?? '—'}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums text-muted">
-                        {h.totalRows.toLocaleString()}
+                        {h.totalRows.toLocaleString(localeTag)}
                       </td>
                       <td className="px-4 py-2.5 text-right tabular-nums font-medium text-foreground">
-                        {h.importedRows.toLocaleString()}
+                        {h.importedRows.toLocaleString(localeTag)}
                       </td>
                       <td className="px-4 py-2.5 text-right tabular-nums text-muted">
-                        {(h.invalidRows + h.failedRows).toLocaleString()}
+                        {(h.invalidRows + h.failedRows).toLocaleString(localeTag)}
                       </td>
                       <td className="px-4 py-2.5">
-                        <Badge tone={JOB_STATUS_TONE[h.status]}>{JOB_STATUS_LABEL[h.status]}</Badge>
+                        <Badge tone={JOB_STATUS_TONE[h.status]}>{t(JOB_STATUS_LABEL[h.status])}</Badge>
                       </td>
                     </tr>
                   ))}
@@ -648,9 +686,11 @@ export function ImportPatientsPage() {
         open={confirmCancel}
         onClose={() => setConfirmCancel(false)}
         onConfirm={cancelImport}
-        title="Stop this import?"
-        message="It will stop after the batch it is working on. Patients already created are kept — they are real records now — and the rest of the file is left untouched."
-        confirmLabel="Stop the import"
+        title={t('Stop this import?')}
+        message={t(
+          'It will stop after the batch it is working on. Patients already created are kept — they are real records now — and the rest of the file is left untouched.',
+        )}
+        confirmLabel={t('Stop the import')}
         tone="danger"
       />
     </>
@@ -675,6 +715,9 @@ function hasRows(job: ImportJobDetail, statuses: ImportRowStatus[]): boolean {
 
 /** The counters, as the requirements name them. */
 function CountGrid({ job }: { job: ImportJobDetail }) {
+  const t = useT();
+  const { locale } = useLocale();
+  const localeTag = LOCALE_TAG[locale];
   const tiles: { label: string; value: number; tone?: string }[] = [
     { label: 'Total rows', value: job.job.totalRows },
     { label: 'Ready', value: job.job.validRows, tone: 'text-success' },
@@ -688,15 +731,15 @@ function CountGrid({ job }: { job: ImportJobDetail }) {
   ];
   return (
     <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-      {tiles.map((t) => (
-        <div key={t.label} className="rounded-lg border border-border px-3 py-2.5">
-          <dt className="text-label uppercase text-muted">{t.label}</dt>
+      {tiles.map((tile) => (
+        <div key={tile.label} className="rounded-lg border border-border px-3 py-2.5">
+          <dt className="text-label uppercase text-muted">{t(tile.label)}</dt>
           <dd
             className={`mt-0.5 text-heading-4 tabular-nums ${
-              t.value > 0 ? (t.tone ?? 'text-foreground') : 'text-muted'
+              tile.value > 0 ? (tile.tone ?? 'text-foreground') : 'text-muted'
             }`}
           >
-            {t.value.toLocaleString()}
+            {tile.value.toLocaleString(localeTag)}
           </dd>
         </div>
       ))}

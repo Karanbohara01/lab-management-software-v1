@@ -11,6 +11,7 @@ import { APPOINTMENT_STATUS_LABEL } from '@/features/appointments/types';
 import { samplesApi } from '@/features/samples/api';
 import { ApiError } from '@/types/api';
 import { useNavigateFrom } from '@/lib/navigation';
+import { useT } from '@/i18n';
 
 interface Hit {
   key: string;
@@ -23,6 +24,7 @@ interface Hit {
 
 /** Global "jump to" search: patients, orders and samples in one box — the laboratory's command bar. */
 export function CommandSearch() {
+  const t = useT();
   const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
   const [query, setQuery] = useState('');
@@ -160,8 +162,8 @@ export function CommandSearch() {
               (e.target as HTMLInputElement).blur();
             }
           }}
-          placeholder="Search patients, orders, samples…"
-          aria-label="Global search"
+          placeholder={t('Search patients, orders, samples…')}
+          aria-label={t('Global search')}
           className="h-9 w-full rounded-md border border-input bg-surface-muted/60 pl-9 pr-8 text-sm text-foreground placeholder:text-muted focus-visible:bg-surface focus-visible:ring-2 focus-visible:ring-ring"
         />
         {query ? (
@@ -172,7 +174,7 @@ export function CommandSearch() {
               setHits([]);
             }}
             className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted hover:text-foreground"
-            aria-label="Clear search"
+            aria-label={t('Clear search')}
           >
             <X className="h-3.5 w-3.5" aria-hidden />
           </button>
@@ -186,16 +188,18 @@ export function CommandSearch() {
       {open && query.trim().length >= 2 && (
         <div className="absolute left-0 right-0 top-full z-30 mt-1.5 max-h-96 overflow-y-auto rounded-lg border border-border bg-surface shadow-popover">
           {loading && hits.length === 0 ? (
-            <p className="px-4 py-3 text-sm text-muted">Searching…</p>
+            <p className="px-4 py-3 text-sm text-muted">{t('Searching…')}</p>
           ) : hits.length === 0 ? (
-            <p className="px-4 py-3 text-sm text-muted">No matches for "{query}".</p>
+            <p className="px-4 py-3 text-sm text-muted">{t('No matches for "{query}".', { query })}</p>
           ) : (
             groups.map((g) => {
               const items = hits.filter((h) => h.group === g);
               if (items.length === 0) return null;
               return (
                 <div key={g} className="py-1.5">
-                  <p className="px-4 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">{g}</p>
+                  <p className="px-4 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
+                    {t(g)}
+                  </p>
                   {items.map((h) => (
                     <button
                       key={h.key}

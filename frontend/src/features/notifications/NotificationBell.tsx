@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Bell, Info } from 'lucide-react';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { useT, translate, getLocale } from '@/i18n';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { useNavigateFrom } from '@/lib/navigation';
@@ -10,13 +11,15 @@ const POLL_MS = 45_000;
 
 function timeAgo(iso: string): string {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (s < 60) return 'just now';
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-  return `${Math.floor(s / 86400)}d ago`;
+  const t = (key: string, vars?: Record<string, number>) => translate(getLocale(), key, vars);
+  if (s < 60) return t('just now');
+  if (s < 3600) return t('{n}m ago', { n: Math.floor(s / 60) });
+  if (s < 86400) return t('{n}h ago', { n: Math.floor(s / 3600) });
+  return t('{n}d ago', { n: Math.floor(s / 86400) });
 }
 
 export function NotificationBell() {
+  const t = useT();
   const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
   const enabled = hasPermission(PERMISSIONS.NOTIFICATION_READ);
@@ -54,12 +57,18 @@ export function NotificationBell() {
 
   return (
     <div className="relative">
-      <Tooltip content={count > 0 ? `${count} unread notification${count === 1 ? '' : 's'}` : 'Notifications'}>
+      <Tooltip
+        content={
+          count > 0
+            ? t(count === 1 ? '{count} unread notification' : '{count} unread notifications', { count })
+            : t('Notifications')
+        }
+      >
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           className="relative rounded-md p-2 text-muted-foreground hover:bg-surface-muted"
-          aria-label={`Notifications${count > 0 ? `, ${count} unread` : ''}`}
+          aria-label={`${t('Notifications')}${count > 0 ? `, ${count} unread` : ''}`}
         >
           <Bell className="h-5 w-5" aria-hidden />
           {count > 0 && (
@@ -78,7 +87,7 @@ export function NotificationBell() {
             className="absolute right-0 z-20 mt-2 w-80 rounded-md border border-border bg-surface shadow-popover"
           >
             <div className="flex items-center justify-between border-b border-border px-3 py-2">
-              <span className="text-sm font-semibold text-foreground">Notifications</span>
+              <span className="text-sm font-semibold text-foreground">{t('Notifications')}</span>
               <button
                 className="text-xs text-primary hover:underline"
                 onClick={async () => {
@@ -87,12 +96,12 @@ export function NotificationBell() {
                   setItems((prev) => prev.map((i) => ({ ...i, read: true })));
                 }}
               >
-                Mark all read
+                {t('Mark all read')}
               </button>
             </div>
             <ul className="max-h-96 overflow-y-auto">
               {items.length === 0 ? (
-                <li className="px-3 py-6 text-center text-sm text-muted">Nothing here</li>
+                <li className="px-3 py-6 text-center text-sm text-muted">{t('Nothing here')}</li>
               ) : (
                 items.map((n) => {
                   const Icon = n.severity === 'CRITICAL' ? AlertTriangle : n.severity === 'WARNING' ? AlertTriangle : Info;
@@ -119,7 +128,7 @@ export function NotificationBell() {
             </ul>
             <div className="border-t border-border px-3 py-2 text-center">
               <button className="text-xs text-primary hover:underline" onClick={() => { setOpen(false); navigate('/app/notifications'); }}>
-                View all
+                {t('View all')}
               </button>
             </div>
           </div>

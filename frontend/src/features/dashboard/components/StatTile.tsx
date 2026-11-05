@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useNavigateFrom } from '@/lib/navigation';
+import { useT } from '@/i18n';
 
 export interface StatTileData {
   label: string;
@@ -13,6 +14,7 @@ export interface StatTileData {
 /** A row of compact, click-through stat tiles — the lightweight KPI strip used on role dashboards. */
 export function StatTileRow({ stats }: { stats: StatTileData[] }) {
   const navigate = useNavigateFrom();
+  const t = useT();
   if (stats.length === 0) return null;
   return (
     <div className="mb-5 flex flex-wrap gap-3">
@@ -28,7 +30,7 @@ export function StatTileRow({ stats }: { stats: StatTileData[] }) {
           )}
         >
           <div className="flex items-start justify-between">
-            <span className="text-xs font-medium text-muted">{s.label}</span>
+            <span className="text-xs font-medium text-muted">{t(s.label)}</span>
             <span
               className={cn(
                 'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',

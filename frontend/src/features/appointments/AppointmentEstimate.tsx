@@ -5,6 +5,7 @@ import { PERMISSIONS } from '@/features/auth/permissions';
 import { ordersApi } from '@/features/orders/api';
 import type { OrderPricing } from '@/features/orders/types';
 import { PricingSummary } from '@/features/orders/PricingSummary';
+import { useT } from '@/i18n';
 
 const ZERO: OrderPricing = {
   subtotal: 0,
@@ -24,6 +25,7 @@ const ZERO: OrderPricing = {
  * those are decisions for the lab order, which is where billing actually starts.
  */
 export function AppointmentEstimate({ items }: { items: { testId: number; quantity: number }[] }) {
+  const t = useT();
   const { hasPermission } = useAuth();
   // The preview endpoint is gated on LAB_ORDER_READ; a hand-built custom role could hold
   // APPOINTMENT_WRITE without it, and should just see no estimate rather than a 403.
@@ -73,7 +75,7 @@ export function AppointmentEstimate({ items }: { items: { testId: number; quanti
     <div className="space-y-1.5">
       <PricingSummary pricing={pricing} />
       <p className="text-xs text-muted">
-        Indicative estimate from current catalog prices — final pricing, discounts and tax are set on the lab order.
+        {t('Indicative estimate from current catalog prices — final pricing, discounts and tax are set on the lab order.')}
       </p>
     </div>
   );

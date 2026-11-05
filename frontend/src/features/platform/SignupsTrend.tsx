@@ -1,17 +1,19 @@
 import { TrendingUp } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/features/dashboard/components/SectionHeader';
+import { useT, getLocale, LOCALE_TAG } from '@/i18n';
 import type { SignupPoint } from './types';
 
 function monthLabel(ym: string): string {
   const parts = ym.split('-').map(Number);
   const y = parts[0] ?? 0;
   const m = parts[1] ?? 1;
-  return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: 'short' });
+  return new Date(y, m - 1, 1).toLocaleDateString(LOCALE_TAG[getLocale()], { month: 'short' });
 }
 
 /** Real clinics onboarded per month — no fabricated trend, a young deployment will just look sparse. */
 export function SignupsTrend({ points }: { points: SignupPoint[] }) {
+  const t = useT();
   const max = Math.max(1, ...points.map((p) => p.count));
   const total = points.reduce((s, p) => s + p.count, 0);
   const W = 360;
@@ -23,11 +25,11 @@ export function SignupsTrend({ points }: { points: SignupPoint[] }) {
 
   return (
     <Card className="p-5">
-      <SectionHeader icon={TrendingUp} title="Clinics onboarded" description={`Last 6 months · ${total} total`} />
+      <SectionHeader icon={TrendingUp} title={t('Clinics onboarded')} description={t('Last 6 months · {total} total', { total })} />
       {total === 0 ? (
-        <p className="text-sm text-muted">No clinics onboarded in this period yet.</p>
+        <p className="text-sm text-muted">{t('No clinics onboarded in this period yet.')}</p>
       ) : (
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Clinics onboarded per month">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={t('Clinics onboarded per month')}>
           {points.map((p, i) => {
             const h = Math.max(2, ((H - padBottom) * p.count) / max);
             const x = padX + i * (barW + barGap);

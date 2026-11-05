@@ -23,6 +23,7 @@ import { SPECIMEN_LABELS } from '@/features/catalog/types';
 import { formatDate } from '@/features/patients/format';
 import { samplesApi } from './api';
 import { SAMPLE_STATUS_LABEL, SAMPLE_STATUS_TONE, type SampleListItem, type SampleStatus } from './types';
+import { useT, tOpts } from '@/i18n';
 
 const PAGE_SIZE = 20;
 const TABS: { value: '' | SampleStatus; label: string }[] = [
@@ -36,10 +37,12 @@ const TABS: { value: '' | SampleStatus; label: string }[] = [
 const PARAMS = { status: '', departmentId: '', branchId: '', q: '', page: 1 };
 
 export function SamplesPage() {
+  const t = useT();
   const navigate = useNavigateFrom();
   const toast = useToast();
   const { user } = useAuth();
   const isHq = !user?.homeBranchId;
+  const tabs = tOpts(TABS);
 
   const { params, set } = useListParams(PARAMS);
   const [search, setSearch] = useSearchInput(params.q, (q) => set({ q }, { replace: true }));
@@ -76,15 +79,19 @@ export function SamplesPage() {
       setScan('');
       navigate(`/app/samples/${found.id}`);
     } catch (err) {
-      toast.error(err instanceof ApiError && err.status === 404 ? `No sample with barcode ${code}` : 'Lookup failed');
+      toast.error(
+        err instanceof ApiError && err.status === 404
+          ? t('No sample with barcode {code}', { code })
+          : t('Lookup failed'),
+      );
     }
   };
 
   const columns: Column<SampleListItem>[] = [
-    { key: 'acc', header: 'Accession', cell: (s) => <span className="font-mono text-xs">{s.accessionNumber}</span> },
+    { key: 'acc', header: t('Accession'), cell: (s) => <span className="font-mono text-xs">{s.accessionNumber}</span> },
     {
       key: 'patient',
-      header: 'Patient',
+      header: t('Patient'),
       cell: (s) => (
         <span>
           <span className="font-medium">{s.patientName}</span>
@@ -92,38 +99,38 @@ export function SamplesPage() {
         </span>
       ),
     },
-    { key: 'specimen', header: 'Specimen', cell: (s) => SPECIMEN_LABELS[s.specimenType], hideOnMobile: true },
-    { key: 'dept', header: 'Departments', cell: (s) => s.departments.join(', '), hideOnMobile: true },
-    { key: 'date', header: 'Created', cell: (s) => formatDate(s.createdAt), hideOnMobile: true },
+    { key: 'specimen', header: t('Specimen'), cell: (s) => t(SPECIMEN_LABELS[s.specimenType]), hideOnMobile: true },
+    { key: 'dept', header: t('Departments'), cell: (s) => s.departments.join(', '), hideOnMobile: true },
+    { key: 'date', header: t('Created (date)'), cell: (s) => formatDate(s.createdAt), hideOnMobile: true },
     {
       key: 'status',
-      header: 'Status',
-      cell: (s) => <Badge tone={SAMPLE_STATUS_TONE[s.status]}>{SAMPLE_STATUS_LABEL[s.status]}</Badge>,
+      header: t('Status'),
+      cell: (s) => <Badge tone={SAMPLE_STATUS_TONE[s.status]}>{t(SAMPLE_STATUS_LABEL[s.status])}</Badge>,
     },
   ];
 
   return (
     <>
-      <PageHeader title="Samples" description="Track specimens from collection through receipt into the laboratory." />
+      <PageHeader title={t('Samples')} description={t('Track specimens from collection through receipt into the laboratory.')} />
 
       <Card className="mb-4">
         <form onSubmit={onScan} className="flex items-center gap-2 p-4">
           <div className="flex-1">
             <Input
               leadingIcon={<ScanLine className="h-4 w-4" aria-hidden />}
-              placeholder="Scan or type a barcode / accession number"
+              placeholder={t('Scan or type a barcode / accession number')}
               value={scan}
               onChange={(e) => setScan(e.target.value)}
               autoFocus
             />
           </div>
-          <Button type="submit">Look up</Button>
+          <Button type="submit">{t('Look up')}</Button>
         </form>
       </Card>
 
       <Card>
         <div className="flex flex-wrap gap-1 border-b border-border p-2">
-          {TABS.map((tab) => {
+          {tabs.map((tab) => {
             const count = tab.value ? summary.data?.[tab.value] : undefined;
             return (
               <button
@@ -148,13 +155,13 @@ export function SamplesPage() {
             <SearchInput
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search accession, patient or MRN"
+              placeholder={t('Search accession, patient or MRN')}
             />
           </div>
           <div className="sm:w-56">
             <Select
               options={[
-                { value: '', label: 'All departments' },
+                { value: '', label: t('All departments') },
                 ...(departments.data ?? []).map((d) => ({ value: String(d.id), label: d.name })),
               ]}
               value={params.departmentId}
@@ -164,7 +171,7 @@ export function SamplesPage() {
           {isHq && (
             <div className="sm:w-56">
               <Select
-                options={[{ value: '', label: 'All branches' }, ...branches.map((b) => ({ value: String(b.id), label: b.name }))]}
+                options={[{ value: '', label: t('All branches') }, ...branches.map((b) => ({ value: String(b.id), label: b.name }))]}
                 value={params.branchId}
                 onChange={(e) => set({ branchId: e.target.value })}
               />
@@ -178,8 +185,8 @@ export function SamplesPage() {
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.content.length === 0 ? (
           <EmptyState
-            title="No samples"
-            message="Samples are generated automatically when a lab order is confirmed."
+            title={t('No samples')}
+            message={t('Samples are generated automatically when a lab order is confirmed.')}
           />
         ) : (
           data && (

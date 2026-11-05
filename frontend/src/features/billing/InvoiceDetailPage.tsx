@@ -29,12 +29,14 @@ import { InvoiceCommissionCard } from './InvoiceCommissionCard';
 import { InvoicePrintDocument } from './InvoicePrintDocument';
 import { PayOnlineModal } from '@/features/payments/PayOnlineModal';
 import { paymentGatewaysApi } from '@/features/payments/api';
+import { useT, translate, getLocale, LOCALE_TAG } from '@/i18n';
 
 function dt(iso: string | null): string {
-  return iso ? new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+  return iso ? new Date(iso).toLocaleString(LOCALE_TAG[getLocale()], { dateStyle: 'medium', timeStyle: 'short' }) : '—';
 }
 
 export function InvoiceDetailPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
@@ -64,13 +66,13 @@ export function InvoiceDetailPage() {
       .verify(Number(onlinePaymentId))
       .then((result) => {
         if (result.status === 'VERIFIED') {
-          toast.success(`Payment confirmed via ${result.provider}`);
+          toast.success(t('Payment confirmed via {provider}', { provider: result.provider }));
         } else {
-          toast.error(`Payment not confirmed: ${result.failureReason ?? 'unknown reason'}`);
+          toast.error(t('Payment not confirmed: {reason}', { reason: result.failureReason ?? t('unknown reason') }));
         }
         refetch();
       })
-      .catch((err) => toast.error(err instanceof ApiError ? err.message : 'Unable to verify payment'))
+      .catch((err) => toast.error(err instanceof ApiError ? err.message : t('Unable to verify payment')))
       .finally(() => {
         setVerifyingGateway(false);
         setSearchParams(
@@ -88,7 +90,7 @@ export function InvoiceDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (loading && !inv) return <LoadingState label="Loading invoice…" />;
+  if (loading && !inv) return <LoadingState label={t('Loading invoice…')} />;
   if (error) return <ErrorState message={error} onRetry={refetch} />;
   if (!inv) return null;
 
@@ -101,10 +103,10 @@ export function InvoiceDetailPage() {
     setBusy(true);
     try {
       const updated = await invoicesApi.issue(inv.id);
-      toast.success(`Invoice ${updated.invoiceNumber} issued`);
+      toast.success(t('Invoice {number} issued', { number: updated.invoiceNumber ?? '' }));
       refetch();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to issue invoice');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to issue invoice'));
     } finally {
       setBusy(false);
     }
@@ -119,7 +121,7 @@ export function InvoiceDetailPage() {
       // let the new printCount (and its "Copy of Original" watermark, if a reprint) render first.
       requestAnimationFrame(() => window.print());
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to print');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to print'));
     } finally {
       setPrinting(false);
     }
@@ -128,10 +130,10 @@ export function InvoiceDetailPage() {
   const cancel = async (reason: string) => {
     try {
       await invoicesApi.cancel(inv.id, reason);
-      toast.success('Invoice cancelled');
+      toast.success(t('Invoice cancelled'));
       refetch();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to cancel');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to cancel'));
       throw err;
     }
   };
@@ -141,7 +143,7 @@ export function InvoiceDetailPage() {
       <div data-print-hide>
         <PageHeader
           back={back}
-          title={inv.invoiceNumber ?? 'Draft invoice'}
+          title={inv.invoiceNumber ?? t('Draft invoice')}
           description={`${inv.patientName} · ${inv.patientMrn}`}
           actions={
             <div className="flex flex-wrap items-center gap-2">
@@ -150,18 +152,18 @@ export function InvoiceDetailPage() {
               {inv.status !== 'DRAFT' && (
                 <Button variant="secondary" loading={printing} onClick={print}>
                   <Printer className="h-4 w-4" aria-hidden />
-                  {inv.printCount > 0 ? 'Reprint' : 'Print'}
+                  {inv.printCount > 0 ? t('Reprint') : t('Print')}
                 </Button>
               )}
               {canWrite && inv.status === 'DRAFT' && (
                 <>
                   <Button variant="secondary" onClick={() => setAdjustOpen(true)}>
                     <Pencil className="h-4 w-4" aria-hidden />
-                    Adjust
+                    {t('Adjust')}
                   </Button>
                   <Button loading={busy} onClick={issue}>
                     <Send className="h-4 w-4" aria-hidden />
-                    Issue
+                    {t('Issue')}
                   </Button>
                 </>
               )}
@@ -169,24 +171,24 @@ export function InvoiceDetailPage() {
                 <>
                   <Button variant="secondary" onClick={() => setPayOnlineOpen(true)} loading={verifyingGateway}>
                     <CreditCard className="h-4 w-4" aria-hidden />
-                    Pay online
+                    {t('Pay online')}
                   </Button>
                   <Button onClick={() => setPayOpen(true)}>
                     <Banknote className="h-4 w-4" aria-hidden />
-                    Record payment
+                    {t('Record payment')}
                   </Button>
                 </>
               )}
               {canRefund && inv.amountPaid - inv.amountRefunded > 0 && (
                 <Button variant="secondary" onClick={() => setRefundOpen(true)}>
                   <RotateCcw className="h-4 w-4" aria-hidden />
-                  Refund
+                  {t('Refund')}
                 </Button>
               )}
               {canCancel && inv.status !== 'CANCELLED' && inv.amountPaid === 0 && (
                 <Button variant="danger" onClick={() => setCancelOpen(true)}>
                   <Ban className="h-4 w-4" aria-hidden />
-                  Cancel
+                  {t('Cancel')}
                 </Button>
               )}
             </div>
@@ -196,7 +198,7 @@ export function InvoiceDetailPage() {
 
       {inv.status === 'CANCELLED' && (
         <div className="mb-4" data-print-hide>
-          <Alert tone="danger" title="Invoice cancelled">
+          <Alert tone="danger" title={t('Invoice cancelled')}>
             {inv.cancelReason}
           </Alert>
         </div>
@@ -211,10 +213,10 @@ export function InvoiceDetailPage() {
       <div className="grid gap-4 lg:grid-cols-3" data-print-hide>
         <Card className="min-w-0 lg:col-span-2">
           <CardHeader
-            title="Line items"
+            title={t('Line items')}
             description={
               <LinkFrom to={`/app/orders/${inv.orderId}`} className="hover:underline">
-                Order {inv.orderNumber}
+                {t('Order {number}', { number: inv.orderNumber })}
               </LinkFrom>
             }
           />
@@ -222,11 +224,11 @@ export function InvoiceDetailPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
-                  <th className="px-5 py-2">Test</th>
-                  <th className="px-5 py-2 text-right">Rate</th>
-                  <th className="px-5 py-2 text-center">Qty</th>
-                  <th className="px-5 py-2 text-right">Disc.</th>
-                  <th className="px-5 py-2 text-right">Amount</th>
+                  <th className="px-5 py-2">{t('Test')}</th>
+                  <th className="px-5 py-2 text-right">{t('Rate')}</th>
+                  <th className="px-5 py-2 text-center">{t('Qty')}</th>
+                  <th className="px-5 py-2 text-right">{t('Disc.')}</th>
+                  <th className="px-5 py-2 text-right">{t('Amount')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -247,26 +249,26 @@ export function InvoiceDetailPage() {
           </div>
           <CardBody>
             <div className="ml-auto max-w-xs space-y-1 text-sm">
-              <Row label="Subtotal" value={formatMoney(inv.subtotal)} />
-              {inv.discountAmount > 0 && <Row label="Discount" value={`− ${formatMoney(inv.discountAmount)}`} />}
-              {inv.taxRate > 0 && <Row label={`Tax (${inv.taxRate}%)`} value={formatMoney(inv.taxAmount)} />}
+              <Row label={t('Subtotal')} value={formatMoney(inv.subtotal)} />
+              {inv.discountAmount > 0 && <Row label={t('Discount')} value={`− ${formatMoney(inv.discountAmount)}`} />}
+              {inv.taxRate > 0 && <Row label={t('Tax ({rate}%)', { rate: inv.taxRate })} value={formatMoney(inv.taxAmount)} />}
               <div className="border-t border-border pt-1">
-                <Row label="Total" value={formatMoney(inv.totalAmount)} strong />
+                <Row label={t('Total')} value={formatMoney(inv.totalAmount)} strong />
               </div>
-              <Row label="Paid" value={formatMoney(inv.amountPaid)} />
-              {inv.amountRefunded > 0 && <Row label="Refunded" value={`− ${formatMoney(inv.amountRefunded)}`} />}
-              <Row label="Balance" value={formatMoney(inv.balance)} strong />
+              <Row label={t('Paid')} value={formatMoney(inv.amountPaid)} />
+              {inv.amountRefunded > 0 && <Row label={t('Refunded')} value={`− ${formatMoney(inv.amountRefunded)}`} />}
+              <Row label={t('Balance')} value={formatMoney(inv.balance)} strong />
             </div>
           </CardBody>
         </Card>
 
         <div className="space-y-4">
           <Card data-print-hide>
-            <CardHeader title="Payments" />
+            <CardHeader title={t('Payments')} />
             {inv.payments.length === 0 ? (
               <div className="px-5 py-4 text-sm text-muted">
-                <p>No payments recorded.</p>
-                {inv.status === 'DRAFT' && <p className="mt-1">Issue this invoice to enable recording a payment.</p>}
+                <p>{t('No payments recorded.')}</p>
+                {inv.status === 'DRAFT' && <p className="mt-1">{t('Issue this invoice to enable recording a payment.')}</p>}
               </div>
             ) : (
               <ul className="divide-y divide-border text-sm">
@@ -276,7 +278,7 @@ export function InvoiceDetailPage() {
                       <span className={p.reversed ? 'text-muted line-through' : 'font-medium text-foreground'}>
                         {formatMoney(p.amount)}
                       </span>
-                      <span className="text-muted">{PAYMENT_METHOD_LABEL[p.method]}</span>
+                      <span className="text-muted">{translate(getLocale(), PAYMENT_METHOD_LABEL[p.method])}</span>
                     </div>
                     <p className="text-xs text-muted">
                       {dt(p.receivedAt)} · {p.receivedBy}
@@ -296,7 +298,7 @@ export function InvoiceDetailPage() {
 
           {inv.refunds.length > 0 && (
             <Card data-print-hide>
-              <CardHeader title="Refunds" />
+              <CardHeader title={t('Refunds')} />
               <ul className="divide-y divide-border text-sm">
                 {inv.refunds.map((r) => (
                   <li key={r.id} className="px-5 py-3">
@@ -306,8 +308,8 @@ export function InvoiceDetailPage() {
                     </div>
                     <p className="text-xs text-muted">{r.reason}</p>
                     <p className="text-xs text-muted">
-                      Requested {dt(r.requestedAt)} · {r.requestedBy}
-                      {r.decidedBy ? ` · decided by ${r.decidedBy}` : ''}
+                      {t('Requested {date}', { date: dt(r.requestedAt) })} · {r.requestedBy}
+                      {r.decidedBy ? ` · ${t('decided by {name}', { name: r.decidedBy })}` : ''}
                     </p>
                   </li>
                 ))}
@@ -325,9 +327,9 @@ export function InvoiceDetailPage() {
         open={cancelOpen}
         onClose={() => setCancelOpen(false)}
         onConfirm={cancel}
-        title="Cancel this invoice?"
-        message="The invoice will be voided. This is only possible before any payment is recorded."
-        confirmLabel="Cancel invoice"
+        title={t('Cancel this invoice?')}
+        message={t('The invoice will be voided. This is only possible before any payment is recorded.')}
+        confirmLabel={t('Cancel invoice')}
         tone="danger"
         reason="required"
       />

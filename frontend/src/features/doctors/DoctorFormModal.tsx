@@ -10,6 +10,7 @@ import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
 import { doctorsApi } from './api';
 import type { Doctor, DoctorUpsertPayload } from './types';
+import { useT } from '@/i18n';
 
 const schema = z.object({
   fullName: z.string().min(1, 'Name is required').max(160),
@@ -48,6 +49,7 @@ export function DoctorFormModal({
   doctor: Doctor | null;
   onSaved: () => void;
 }) {
+  const t = useT();
   const toast = useToast();
   const {
     register,
@@ -89,10 +91,10 @@ export function DoctorFormModal({
     try {
       if (doctor) {
         await doctorsApi.update(doctor.id, payload);
-        toast.success('Doctor updated');
+        toast.success(t('Doctor updated'));
       } else {
         await doctorsApi.create(payload);
-        toast.success('Doctor added');
+        toast.success(t('Doctor added'));
       }
       onSaved();
       onClose();
@@ -101,7 +103,7 @@ export function DoctorFormModal({
         err.fieldErrors.forEach((fe) => setError(fe.field as keyof FormValues, { message: fe.message }));
         if (err.fieldErrors.length === 0) setError('root', { message: err.message });
       } else {
-        setError('root', { message: 'Unable to save doctor' });
+        setError('root', { message: t('Unable to save doctor') });
       }
     }
   });
@@ -110,39 +112,39 @@ export function DoctorFormModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={doctor ? 'Edit referring doctor' : 'Add referring doctor'}
+      title={doctor ? t('Edit referring doctor') : t('Add referring doctor')}
       size="lg"
       confirmClose={isDirty && !isSubmitting}
       footer={
         <>
           <ModalCancelButton />
           <Button type="submit" form="doctor-form" loading={isSubmitting}>
-            {doctor ? 'Save changes' : 'Add doctor'}
+            {doctor ? t('Save changes') : t('Add doctor')}
           </Button>
         </>
       }
     >
       <form id="doctor-form" onSubmit={onSubmit} className="space-y-4" noValidate>
         {errors.root && <Alert tone="danger">{errors.root.message}</Alert>}
-        <Input label="Full name" error={errors.fullName?.message} {...register('fullName')} />
+        <Input label={t('Full name')} error={errors.fullName?.message} {...register('fullName')} />
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Specialization" error={errors.specialization?.message} {...register('specialization')} />
-          <Input label="Qualification" error={errors.qualification?.message} {...register('qualification')} />
-          <Input label="NMC number" error={errors.nmcNumber?.message} {...register('nmcNumber')} />
-          <Input label="Phone" error={errors.phone?.message} {...register('phone')} />
-          <Input label="Email" type="email" error={errors.email?.message} {...register('email')} />
+          <Input label={t('Specialization')} error={errors.specialization?.message} {...register('specialization')} />
+          <Input label={t('Qualification')} error={errors.qualification?.message} {...register('qualification')} />
+          <Input label={t('NMC number')} error={errors.nmcNumber?.message} {...register('nmcNumber')} />
+          <Input label={t('Phone')} error={errors.phone?.message} {...register('phone')} />
+          <Input label={t('Email')} type="email" error={errors.email?.message} {...register('email')} />
           <Input
-            label="Affiliated organization"
+            label={t('Affiliated organization')}
             error={errors.affiliatedOrganization?.message}
             {...register('affiliatedOrganization')}
           />
           <Input
-            label="Commission rate %"
+            label={t('Commission rate %')}
             type="number"
             step="any"
             min={0}
             max={100}
-            hint="% of taxable invoice value earned on orders this doctor refers. Leave blank for no commission."
+            hint={t('% of taxable invoice value earned on orders this doctor refers. Leave blank for no commission.')}
             error={errors.commissionRate?.message}
             {...register('commissionRate')}
           />

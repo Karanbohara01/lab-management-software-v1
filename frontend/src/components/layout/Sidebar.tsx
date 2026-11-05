@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronDown, ChevronsLeft, ChevronsRight, Search, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { useT } from '@/i18n';
 import { useAuth } from '@/features/auth/useAuth';
 import { useLeafHandle } from '@/lib/navigation';
 import { handleChain, resolvePattern } from '@/routes/appRoutes';
@@ -36,6 +37,7 @@ export function SidebarContent({
   onToggleCollapse?: () => void;
 }) {
   const { hasAnyPermission } = useAuth();
+  const t = useT();
   const leaf = useLeafHandle();
   /**
    * The current page and everything above it. Several pages live under a section they don't share
@@ -82,13 +84,13 @@ export function SidebarContent({
     () =>
       NAV_SECTIONS.map((section) => ({
         ...section,
-        items: section.items.filter(
-          (item) =>
-            (item.anyPermission.length === 0 || hasAnyPermission(item.anyPermission)) &&
-            (!isSearching || item.label.toLowerCase().includes(trimmedQuery.toLowerCase())),
-        ),
+        heading: t(section.heading),
+        items: section.items
+          .filter((item) => item.anyPermission.length === 0 || hasAnyPermission(item.anyPermission))
+          .map((item) => ({ ...item, label: t(item.label) }))
+          .filter((item) => !isSearching || item.label.toLowerCase().includes(trimmedQuery.toLowerCase())),
       })).filter((section) => section.items.length > 0),
-    [hasAnyPermission, isSearching, trimmedQuery],
+    [hasAnyPermission, isSearching, trimmedQuery, t],
   );
 
   // "/" focuses the sidebar search, unless the user is already typing somewhere else.
@@ -126,8 +128,8 @@ export function SidebarContent({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search menu…"
-              aria-label="Search navigation menu"
+              placeholder={t('Search menu…')}
+              aria-label={t('Search navigation menu')}
               className="h-8 w-full rounded-md border border-input bg-surface-muted/60 pl-8 pr-7 text-xs text-foreground placeholder:text-muted focus-visible:bg-surface focus-visible:ring-2 focus-visible:ring-ring"
             />
             {query ? (
@@ -135,7 +137,7 @@ export function SidebarContent({
                 type="button"
                 onClick={() => setQuery('')}
                 className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted hover:text-foreground"
-                aria-label="Clear menu search"
+                aria-label={t('Clear menu search')}
               >
                 <X className="h-3.5 w-3.5" aria-hidden />
               </button>
@@ -153,7 +155,9 @@ export function SidebarContent({
         aria-label="Primary"
       >
         {isSearching && visibleSections.length === 0 && (
-          <p className="px-3 py-4 text-center text-sm text-muted">No menu items match "{trimmedQuery}".</p>
+          <p className="px-3 py-4 text-center text-sm text-muted">
+            {t('No menu items match "{query}".', { query: trimmedQuery })}
+          </p>
         )}
         {visibleSections.map((section) => {
           const items = section.items;
@@ -226,7 +230,7 @@ export function SidebarContent({
                               </span>
                               {item.upcoming && (
                                 <span className="rounded bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted">
-                                  Soon
+                                  {t('Soon')}
                                 </span>
                               )}
                             </>
@@ -250,10 +254,10 @@ export function SidebarContent({
             'flex shrink-0 items-center gap-2 border-t border-border px-3 py-3 text-xs font-medium text-muted transition-colors hover:bg-surface-muted hover:text-foreground',
             collapsed && 'justify-center',
           )}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? t('Expand sidebar') : t('Collapse sidebar')}
         >
           {collapsed ? <ChevronsRight className="h-4 w-4" aria-hidden /> : <ChevronsLeft className="h-4 w-4" aria-hidden />}
-          {!collapsed && 'Collapse'}
+          {!collapsed && t('Collapse')}
         </button>
       )}
     </div>

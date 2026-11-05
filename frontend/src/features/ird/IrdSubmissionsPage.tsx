@@ -16,6 +16,7 @@ import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
+import { useT } from '@/i18n';
 import { formatDate } from '@/features/patients/format';
 import { irdApi } from './api';
 import { IrdConfigBanner } from './IrdConfigBanner';
@@ -40,6 +41,7 @@ const TABS: { value: '' | IrdStatus; label: string }[] = [
 const PARAMS = { q: '', status: '', page: 1 };
 
 export function IrdSubmissionsPage() {
+  const t = useT();
   const navigate = useNavigateFrom();
   const toast = useToast();
   const { hasPermission } = useAuth();
@@ -68,32 +70,32 @@ export function IrdSubmissionsPage() {
       const { retried } = await irdApi.runAutoRetrySweep();
       toast.success(
         retried === 0
-          ? 'No failed submissions were eligible for retry right now.'
-          : `Retried ${retried} failed submission${retried === 1 ? '' : 's'}.`,
+          ? t('No failed submissions were eligible for retry right now.')
+          : t(retried === 1 ? 'Retried {retried} failed submission.' : 'Retried {retried} failed submissions.', { retried }),
       );
       refetch();
       summary.refetch();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to run the retry sweep');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to run the retry sweep'));
     } finally {
       setSweeping(false);
     }
   };
 
   const columns: Column<IrdSubmissionListItem>[] = [
-    { key: 'inv', header: 'Invoice', cell: (s) => <span className="font-mono text-xs">{s.invoiceNumber ?? '—'}</span> },
-    { key: 'patient', header: 'Patient', cell: (s) => s.patientName },
-    { key: 'attempts', header: 'Attempts', cell: (s) => s.attemptCount, hideOnMobile: true },
-    { key: 'updated', header: 'Updated', cell: (s) => formatDate(s.updatedAt), hideOnMobile: true },
+    { key: 'inv', header: t('Invoice'), cell: (s) => <span className="font-mono text-xs">{s.invoiceNumber ?? '—'}</span> },
+    { key: 'patient', header: t('Patient'), cell: (s) => s.patientName },
+    { key: 'attempts', header: t('Attempts'), cell: (s) => s.attemptCount, hideOnMobile: true },
+    { key: 'updated', header: t('Updated'), cell: (s) => formatDate(s.updatedAt), hideOnMobile: true },
     {
       key: 'status',
-      header: 'Status',
+      header: t('Status'),
       cell: (s) => (
         <span className="flex items-center gap-1.5">
-          <Badge tone={IRD_STATUS_TONE[s.status]}>{IRD_STATUS_LABEL[s.status]}</Badge>
-          {s.manual && <Badge tone="neutral">Manual</Badge>}
+          <Badge tone={IRD_STATUS_TONE[s.status]}>{t(IRD_STATUS_LABEL[s.status])}</Badge>
+          {s.manual && <Badge tone="neutral">{t('Manual')}</Badge>}
           {s.creditNoteStatus !== 'NOT_NEEDED' && (
-            <Badge tone={CREDIT_NOTE_STATUS_TONE[s.creditNoteStatus]}>{CREDIT_NOTE_STATUS_LABEL[s.creditNoteStatus]}</Badge>
+            <Badge tone={CREDIT_NOTE_STATUS_TONE[s.creditNoteStatus]}>{t(CREDIT_NOTE_STATUS_LABEL[s.creditNoteStatus])}</Badge>
           )}
         </span>
       ),
@@ -103,13 +105,13 @@ export function IrdSubmissionsPage() {
   return (
     <>
       <PageHeader
-        title="IRD / e-Billing"
-        description="Track electronic submission of issued invoices to IRD / CBMS."
+        title={t('IRD / e-Billing')}
+        description={t('Track electronic submission of issued invoices to IRD / CBMS.')}
         actions={
           canManage ? (
             <Button variant="secondary" size="sm" loading={sweeping} onClick={runSweepNow}>
               <RefreshCw className="h-4 w-4" aria-hidden />
-              Retry failed now
+              {t('Retry failed now')}
             </Button>
           ) : undefined
         }
@@ -129,7 +131,7 @@ export function IrdSubmissionsPage() {
                   params.status === tab.value ? 'bg-primary/10 text-primary' : 'text-muted hover:bg-surface-muted',
                 )}
               >
-                {tab.label}
+                {t(tab.label)}
                 {count != null && count > 0 && (
                   <span className="ml-1.5 rounded-full bg-surface-muted px-1.5 text-xs">{count}</span>
                 )}
@@ -143,7 +145,7 @@ export function IrdSubmissionsPage() {
             <SearchInput
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search invoice no. or patient"
+              placeholder={t('Search invoice no. or patient')}
             />
           </div>
         </div>
@@ -153,7 +155,7 @@ export function IrdSubmissionsPage() {
         ) : error ? (
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.content.length === 0 ? (
-          <EmptyState title="Nothing here" message="A tracking record is created when an invoice is issued." />
+          <EmptyState title={t('Nothing here')} message={t('A tracking record is created when an invoice is issued.')} />
         ) : (
           data && (
             <>

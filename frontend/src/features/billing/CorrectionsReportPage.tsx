@@ -11,6 +11,7 @@ import { formatMoney } from '@/lib/money';
 import { exportCsv, exportExcel, exportXml } from '@/lib/exportData';
 import { invoicesApi } from './api';
 import type { CorrectionRow } from './types';
+import { useT, getLocale, LOCALE_TAG } from '@/i18n';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -34,10 +35,11 @@ const EXPORT_COLUMNS: { key: keyof CorrectionRow; header: string }[] = [
 ];
 
 function dt(iso: string): string {
-  return new Date(iso).toLocaleString();
+  return new Date(iso).toLocaleString(LOCALE_TAG[getLocale()]);
 }
 
 export function CorrectionsReportPage() {
+  const t = useT();
   const { params, set } = useListParams(PARAMS);
   const { year, month } = params;
 
@@ -51,8 +53,8 @@ export function CorrectionsReportPage() {
   return (
     <>
       <PageHeader
-        title="Corrections report"
-        description="Every bill cancelled this month — its validity ended and, if it had already been filed with IRD, whether it's been reversed with a credit note (दफा ६(ठ) of the e-invoice procedure). Distinct from the general audit log, which mixes every kind of action together."
+        title={t('Corrections report')}
+        description={t("Every bill cancelled this month — its validity ended and, if it had already been filed with IRD, whether it's been reversed with a credit note (दफा ६(ठ) of the e-invoice procedure). Distinct from the general audit log, which mixes every kind of action together.")}
         actions={
           <div className="flex items-center gap-2">
             <Button
@@ -63,7 +65,7 @@ export function CorrectionsReportPage() {
               }
             >
               <Download className="h-4 w-4" aria-hidden />
-              Export CSV
+              {t('Export CSV')}
             </Button>
             <Button
               variant="secondary"
@@ -74,7 +76,7 @@ export function CorrectionsReportPage() {
               }
             >
               <Download className="h-4 w-4" aria-hidden />
-              Export Excel
+              {t('Export Excel')}
             </Button>
             <Button
               variant="secondary"
@@ -91,7 +93,7 @@ export function CorrectionsReportPage() {
               }
             >
               <Download className="h-4 w-4" aria-hidden />
-              Export XML
+              {t('Export XML')}
             </Button>
           </div>
         }
@@ -101,15 +103,15 @@ export function CorrectionsReportPage() {
         <div className="flex flex-wrap items-center gap-3 p-4">
           <div className="w-40">
             <Select
-              label="Month"
+              label={t('Month')}
               value={String(month)}
               onChange={(e) => set({ month: Number(e.target.value) })}
-              options={MONTHS.map((m, i) => ({ value: String(i + 1), label: m }))}
+              options={MONTHS.map((m, i) => ({ value: String(i + 1), label: t(m) }))}
             />
           </div>
           <div className="w-32">
             <Select
-              label="Year"
+              label={t('Year')}
               value={String(year)}
               onChange={(e) => set({ year: Number(e.target.value) })}
               options={YEAR_OPTIONS.map((y) => ({ value: String(y), label: String(y) }))}
@@ -124,7 +126,7 @@ export function CorrectionsReportPage() {
         ) : error ? (
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.length === 0 ? (
-          <EmptyState title="No corrections" message="No invoices were cancelled in this period." />
+          <EmptyState title={t('No corrections')} message={t('No invoices were cancelled in this period.')} />
         ) : (
           data && (
             <div className="overflow-x-auto">

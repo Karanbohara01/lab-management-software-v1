@@ -10,6 +10,7 @@ import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState
 import { StatTileRow, type StatTileData } from '@/features/dashboard/components/StatTile';
 import { useQuery } from '@/hooks/useQuery';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useT } from '@/i18n';
 import { platformApi } from './api';
 import { OrganizationFormModal } from './OrganizationFormModal';
 import { OrganizationDetailModal } from './OrganizationDetailModal';
@@ -28,6 +29,7 @@ import { ORG_STATUS_LABEL, ORG_STATUS_TONE, SUBSCRIPTION_STATUS_LABEL, SUBSCRIPT
  * just a registry row.
  */
 export function PlatformPage() {
+  const t = useT();
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebouncedValue(query, 300);
   const [createOpen, setCreateOpen] = useState(false);
@@ -47,60 +49,60 @@ export function PlatformPage() {
   const summary = summaryQ.data;
   const stats: StatTileData[] = summary
     ? [
-        { label: 'Clinics', value: summary.totalOrganizations, icon: Building2 },
-        { label: 'Active', value: summary.activeOrganizations, icon: TrendingUp },
-        { label: 'Trial', value: summary.trialOrganizations, icon: Building2 },
+        { label: t('Clinics'), value: summary.totalOrganizations, icon: Building2 },
+        { label: t('Active'), value: summary.activeOrganizations, icon: TrendingUp },
+        { label: t('Trial'), value: summary.trialOrganizations, icon: Building2 },
         {
-          label: 'Past due',
+          label: t('Past due'),
           value: summary.pastDueSubscriptions,
           icon: AlertTriangle,
           tone: summary.pastDueSubscriptions > 0 ? 'warning' : 'neutral',
         },
-        { label: 'MRR (NPR)', value: summary.monthlyRecurringRevenue.toLocaleString(), icon: CreditCard },
+        { label: t('MRR (NPR)'), value: summary.monthlyRecurringRevenue.toLocaleString(), icon: CreditCard },
       ]
     : [];
 
   const columns: Column<OrganizationListItem>[] = [
-    { key: 'name', header: 'Clinic', cell: (o) => <span className="font-medium">{o.name}</span> },
-    { key: 'slug', header: 'Slug', cell: (o) => <span className="font-mono text-xs">{o.slug}</span>, hideOnMobile: true },
-    { key: 'city', header: 'City', cell: (o) => o.city ?? '—', hideOnMobile: true },
-    { key: 'plan', header: 'Plan', cell: (o) => o.planName ?? '—' },
+    { key: 'name', header: t('Clinic'), cell: (o) => <span className="font-medium">{o.name}</span> },
+    { key: 'slug', header: t('Slug'), cell: (o) => <span className="font-mono text-xs">{o.slug}</span>, hideOnMobile: true },
+    { key: 'city', header: t('City'), cell: (o) => o.city ?? '—', hideOnMobile: true },
+    { key: 'plan', header: t('Plan'), cell: (o) => o.planName ?? '—' },
     {
       key: 'usage',
-      header: 'Usage',
+      header: t('Usage'),
       cell: (o) => (
         <span className="text-xs text-muted">
-          {o.patientCount.toLocaleString()} patients · {o.userCount.toLocaleString()} users
+          {t('{count} patients · {users} users', { count: o.patientCount.toLocaleString(), users: o.userCount.toLocaleString() })}
         </span>
       ),
       hideOnMobile: true,
     },
     {
       key: 'subStatus',
-      header: 'Subscription',
+      header: t('Subscription'),
       cell: (o) =>
         o.subscriptionStatus ? (
-          <Badge tone={SUBSCRIPTION_STATUS_TONE[o.subscriptionStatus]}>{SUBSCRIPTION_STATUS_LABEL[o.subscriptionStatus]}</Badge>
+          <Badge tone={SUBSCRIPTION_STATUS_TONE[o.subscriptionStatus]}>{t(SUBSCRIPTION_STATUS_LABEL[o.subscriptionStatus])}</Badge>
         ) : (
           '—'
         ),
     },
     {
       key: 'status',
-      header: 'Clinic status',
-      cell: (o) => <Badge tone={ORG_STATUS_TONE[o.status]}>{ORG_STATUS_LABEL[o.status]}</Badge>,
+      header: t('Clinic status'),
+      cell: (o) => <Badge tone={ORG_STATUS_TONE[o.status]}>{t(ORG_STATUS_LABEL[o.status])}</Badge>,
     },
   ];
 
   return (
     <>
       <PageHeader
-        title="Platform"
-        description="Onboard clinics and manage their subscriptions."
+        title={t('Platform')}
+        description={t('Onboard clinics and manage their subscriptions.')}
         actions={
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="h-4 w-4" aria-hidden />
-            Onboard clinic
+            {t('Onboard clinic')}
           </Button>
         }
       />
@@ -128,12 +130,12 @@ export function PlatformPage() {
               <Users2 className="h-3.5 w-3.5 text-primary" aria-hidden />
             </span>
             <div>
-              <h2 className="text-sm font-semibold text-foreground">All clinics</h2>
-              {orgsQ.data && <p className="text-xs text-muted">{orgsQ.data.totalElements.toLocaleString()} total</p>}
+              <h2 className="text-sm font-semibold text-foreground">{t('All clinics')}</h2>
+              {orgsQ.data && <p className="text-xs text-muted">{t('{total} total', { total: orgsQ.data.totalElements.toLocaleString() })}</p>}
             </div>
           </div>
           <div className="sm:w-72">
-            <SearchInput value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search clinics…" />
+            <SearchInput value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Search clinics…')} />
           </div>
         </div>
         {orgsQ.loading && !orgsQ.data ? (
@@ -141,7 +143,7 @@ export function PlatformPage() {
         ) : orgsQ.error ? (
           <ErrorState message={orgsQ.error} onRetry={orgsQ.refetch} />
         ) : orgsQ.data && orgsQ.data.content.length === 0 ? (
-          <EmptyState title="No clinics yet" message="Onboard the first clinic to start tracking their subscription." />
+          <EmptyState title={t('No clinics yet')} message={t('Onboard the first clinic to start tracking their subscription.')} />
         ) : (
           orgsQ.data && (
             <DataTable

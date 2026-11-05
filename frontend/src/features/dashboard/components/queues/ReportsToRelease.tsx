@@ -9,25 +9,27 @@ import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { useNavigateFrom } from '@/lib/navigation';
 import { QueueShell } from './QueueShell';
+import { useT } from '@/i18n';
 
 /** Pathologist worklist: generated reports waiting on an electronic signature. */
 export function ReportsToRelease() {
   const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
   const toast = useToast();
+  const t = useT();
   const [busyId, setBusyId] = useState<number | null>(null);
   const { data, loading, error, refetch } = useQuery(() => reportsApi.list({ status: 'GENERATED', size: 8 }), []);
 
   const release = async (id: number) => {
-    const creds = window.prompt('Signing credentials (e.g. "MD Pathology, NMC-12345"):', '');
+    const creds = window.prompt(t('Signing credentials (e.g. "MD Pathology, NMC-12345"):'), '');
     if (creds === null) return;
     setBusyId(id);
     try {
       await reportsApi.release(id, creds.trim() || undefined);
-      toast.success('Report signed & released');
+      toast.success(t('Report signed & released'));
       refetch();
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : 'Unable to release report');
+      toast.error(e instanceof ApiError ? e.message : t('Unable to release report'));
     } finally {
       setBusyId(null);
     }
@@ -55,15 +57,15 @@ export function ReportsToRelease() {
             >
               <p className="flex items-center gap-1.5 truncate text-sm font-medium text-foreground">
                 {r.reportNumber}
-                {r.reportType === 'PRELIMINARY' && <Badge tone="warning">Preliminary</Badge>}
+                {r.reportType === 'PRELIMINARY' && <Badge tone="warning">{t('Preliminary')}</Badge>}
               </p>
               <p className="truncate text-xs text-muted">
-                {r.patientName} <span className="font-mono">{r.patientMrn}</span> · order {r.orderNumber}
+                {r.patientName} <span className="font-mono">{r.patientMrn}</span> · {t('Order')} {r.orderNumber}
               </p>
             </button>
             {hasPermission(PERMISSIONS.REPORT_GENERATE) && (
               <Button size="sm" loading={busyId === r.id} onClick={() => release(r.id)}>
-                Sign &amp; release
+                {t('Sign & release')}
               </Button>
             )}
           </li>

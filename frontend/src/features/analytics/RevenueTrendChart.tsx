@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { formatMoney } from '@/lib/money';
+import { useT, getLocale, LOCALE_TAG } from '@/i18n';
 import type { AnalyticsPoint as Point } from './api';
 
 const WIDTH = 640;
@@ -18,7 +19,7 @@ function compactMoney(value: number): string {
 function shortDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return d.toLocaleDateString(LOCALE_TAG[getLocale()], { month: 'short', day: 'numeric' });
 }
 
 /**
@@ -28,6 +29,7 @@ function shortDate(iso: string): string {
  * exact daily values from.
  */
 export function RevenueTrendChart({ points }: { points: Point[] }) {
+  const t = useT();
   const [hover, setHover] = useState<number | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -68,7 +70,7 @@ export function RevenueTrendChart({ points }: { points: Point[] }) {
   };
 
   if (points.length === 0) {
-    return <p className="px-5 py-4 text-sm text-muted">No data for this period.</p>;
+    return <p className="px-5 py-4 text-sm text-muted">{t('No data for this period.')}</p>;
   }
 
   const hovered = hover != null ? points[hover] : null;
@@ -77,14 +79,14 @@ export function RevenueTrendChart({ points }: { points: Point[] }) {
   return (
     <div className="px-5 py-4">
       <p className="mb-2 text-sm text-muted">
-        Total collected: <span className="font-medium text-foreground">{formatMoney(total)}</span>
+        {t('Total collected')}: <span className="font-medium text-foreground">{formatMoney(total)}</span>
       </p>
       <svg
         ref={svgRef}
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         className="w-full touch-none"
         role="img"
-        aria-label="Revenue collected per day"
+        aria-label={t('Revenue collected per day')}
         onMouseMove={onMove}
         onMouseLeave={() => setHover(null)}
       >

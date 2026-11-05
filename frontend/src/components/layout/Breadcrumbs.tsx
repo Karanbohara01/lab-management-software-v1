@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { handleChain, resolvePattern } from '@/routes/appRoutes';
 import { useLeafHandle } from '@/lib/navigation';
 import { useCurrentPageTitle } from './PageTitleContext';
+import { useT } from '@/i18n';
 
 /**
  * Where the current page sits in the admin area, from the route metadata in appRoutes.ts:
@@ -12,6 +13,7 @@ import { useCurrentPageTitle } from './PageTitleContext';
  * the immediate parent with a chevron, which is what you'd tap anyway.
  */
 export function Breadcrumbs() {
+  const t = useT();
   const leaf = useLeafHandle();
   const title = useCurrentPageTitle();
   if (!leaf?.handle.parent) return null;
@@ -20,8 +22,8 @@ export function Breadcrumbs() {
   const ancestors = chain
     .slice(1)
     .reverse()
-    .map((h) => ({ href: resolvePattern(h.pattern, leaf.params), label: h.title }));
-  const current = title ?? leaf.handle.title;
+    .map((h) => ({ href: resolvePattern(h.pattern, leaf.params), label: t(h.title) }));
+  const current = title ?? t(leaf.handle.title);
   const parent = ancestors[ancestors.length - 1]!;
 
   return (

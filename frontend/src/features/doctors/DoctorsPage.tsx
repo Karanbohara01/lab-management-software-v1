@@ -15,12 +15,14 @@ import { PERMISSIONS } from '@/features/auth/permissions';
 import { doctorsApi } from './api';
 import type { Doctor } from './types';
 import { DoctorFormModal } from './DoctorFormModal';
+import { useT } from '@/i18n';
 
 const PAGE_SIZE = 20;
 /** Lives in the URL, so returning to the list lands on the same search and page. */
 const PARAMS = { q: '', page: 1 };
 
 export function DoctorsPage() {
+  const t = useT();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.DOCTOR_WRITE);
 
@@ -36,14 +38,14 @@ export function DoctorsPage() {
   );
 
   const columns: Column<Doctor>[] = [
-    { key: 'name', header: 'Name', cell: (d) => <span className="font-medium">{d.fullName}</span> },
-    { key: 'spec', header: 'Specialization', cell: (d) => d.specialization ?? '—' },
-    { key: 'nmc', header: 'NMC no.', cell: (d) => d.nmcNumber ?? '—', hideOnMobile: true },
-    { key: 'phone', header: 'Phone', cell: (d) => d.phone ?? '—', hideOnMobile: true },
+    { key: 'name', header: t('Name'), cell: (d) => <span className="font-medium">{d.fullName}</span> },
+    { key: 'spec', header: t('Specialization'), cell: (d) => d.specialization ?? '—' },
+    { key: 'nmc', header: t('NMC no.'), cell: (d) => d.nmcNumber ?? '—', hideOnMobile: true },
+    { key: 'phone', header: t('Phone'), cell: (d) => d.phone ?? '—', hideOnMobile: true },
     {
       key: 'status',
-      header: 'Status',
-      cell: (d) => <Badge tone={d.active ? 'success' : 'neutral'}>{d.active ? 'Active' : 'Inactive'}</Badge>,
+      header: t('Status'),
+      cell: (d) => <Badge tone={d.active ? 'success' : 'neutral'}>{t(d.active ? 'Active' : 'Inactive')}</Badge>,
     },
   ];
 
@@ -59,13 +61,13 @@ export function DoctorsPage() {
   return (
     <>
       <PageHeader
-        title="Referring doctors"
-        description="Doctors who refer patients to the laboratory."
+        title={t('Referring doctors')}
+        description={t('Doctors who refer patients to the laboratory.')}
         actions={
           canWrite ? (
             <Button onClick={openCreate}>
               <Plus className="h-4 w-4" aria-hidden />
-              Add doctor
+              {t('Add doctor')}
             </Button>
           ) : undefined
         }
@@ -77,7 +79,7 @@ export function DoctorsPage() {
             <SearchInput
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name or specialization"
+              placeholder={t('Search by name or specialization')}
             />
           </div>
         </div>
@@ -88,9 +90,9 @@ export function DoctorsPage() {
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.content.length === 0 ? (
           <EmptyState
-            title="No doctors found"
-            message={params.q ? 'Try a different search.' : 'Add the first referring doctor.'}
-            action={canWrite && !params.q ? <Button onClick={openCreate}>Add doctor</Button> : undefined}
+            title={t('No doctors found')}
+            message={params.q ? t('Try a different search.') : t('Add the first referring doctor.')}
+            action={canWrite && !params.q ? <Button onClick={openCreate}>{t('Add doctor')}</Button> : undefined}
           />
         ) : (
           data && (

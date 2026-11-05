@@ -22,6 +22,7 @@ import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
+import { useT, LOCALE_TAG, getLocale } from '@/i18n';
 import { formatGender } from '@/features/patients/format';
 import { resultsApi } from './api';
 import {
@@ -37,6 +38,9 @@ import { AmendResultModal } from './AmendResultModal';
 import { CriticalCallbackModal } from './CriticalCallbackModal';
 import { CultureEntryForm } from './CultureEntryForm';
 
+// Deliberately not translated: these are the stored qualitative RESULT values themselves
+// (what gets saved as valueText), not UI chrome — like the S/I/R codes in a culture report,
+// mistranslating a diagnostic result (e.g. "Positive"/"Reactive") is a patient-safety risk.
 const CHOICE_OPTIONS: Partial<Record<ResultValue['dataType'], string[]>> = {
   POSITIVE_NEGATIVE: ['Positive', 'Negative'],
   REACTIVE_NONREACTIVE: ['Reactive', 'Non-reactive'],
@@ -46,6 +50,7 @@ export function ResultEntryPage() {
   const { id } = useParams<{ id: string }>();
   const { back } = useBackTarget();
   const toast = useToast();
+  const t = useT();
   const { hasPermission } = useAuth();
 
   const { data: result, loading, error, refetch } = useQuery(() => resultsApi.get(Number(id)), [id]);
@@ -131,7 +136,7 @@ export function ResultEntryPage() {
     }
   };
 
-  if (loading && !result) return <LoadingState label="Loading result…" />;
+  if (loading && !result) return <LoadingState label={t('Loading result…')} />;
   if (error) return <ErrorState message={error} onRetry={refetch} />;
   if (!result) return null;
 
@@ -150,10 +155,10 @@ export function ResultEntryPage() {
     setSaving(true);
     try {
       await resultsApi.saveValues(result.id, buildPayload(), comment || undefined);
-      toast.success('Results saved');
+      toast.success(t('Results saved'));
       refetch();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to save results');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to save results'));
     } finally {
       setSaving(false);
     }
@@ -163,24 +168,24 @@ export function ResultEntryPage() {
     setBusyAction(true);
     try {
       await resultsApi.verify(result.id);
-      toast.success('Result verified');
+      toast.success(t('Result verified'));
       refetch();
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         const reason = window.prompt(
-          `${err.message}\n\nEnter a documented reason to verify it yourself:`,
+          `${err.message}\n\n${t('Enter a documented reason to verify it yourself:')}`,
         );
         if (reason && reason.trim()) {
           try {
             await resultsApi.verify(result.id, reason.trim());
-            toast.success('Result verified with override');
+            toast.success(t('Result verified with override'));
             refetch();
           } catch (e2) {
-            toast.error(e2 instanceof ApiError ? e2.message : 'Action failed');
+            toast.error(e2 instanceof ApiError ? e2.message : t('Action failed'));
           }
         }
       } else {
-        toast.error(err instanceof ApiError ? err.message : 'Action failed');
+        toast.error(err instanceof ApiError ? err.message : t('Action failed'));
       }
     } finally {
       setBusyAction(false);
@@ -191,24 +196,24 @@ export function ResultEntryPage() {
     setBusyAction(true);
     try {
       await resultsApi.approve(result.id);
-      toast.success('Result approved');
+      toast.success(t('Result approved'));
       refetch();
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         const reason = window.prompt(
-          `${err.message}\n\nEnter a documented reason to approve despite the QC failure:`,
+          `${err.message}\n\n${t('Enter a documented reason to approve despite the QC failure:')}`,
         );
         if (reason && reason.trim()) {
           try {
             await resultsApi.approve(result.id, reason.trim());
-            toast.success('Result approved with QC override');
+            toast.success(t('Result approved with QC override'));
             refetch();
           } catch (e2) {
-            toast.error(e2 instanceof ApiError ? e2.message : 'Action failed');
+            toast.error(e2 instanceof ApiError ? e2.message : t('Action failed'));
           }
         }
       } else {
-        toast.error(err instanceof ApiError ? err.message : 'Action failed');
+        toast.error(err instanceof ApiError ? err.message : t('Action failed'));
       }
     } finally {
       setBusyAction(false);
@@ -218,27 +223,32 @@ export function ResultEntryPage() {
   const doReject = async (reason: string) => {
     try {
       await resultsApi.reject(result.id, reason);
-      toast.success('Sent back for correction');
+      toast.success(t('Sent back for correction'));
       refetch();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to send back');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to send back'));
       throw err;
     }
   };
 
   return (
     <>
+      {/* result.testName and result.priority are clinical catalog/order data — left untranslated. */}
       <PageHeader
         back={back}
         title={result.testName}
-        description={`${result.testCode} · ${result.departmentName} · Order ${result.orderNumber}`}
+        description={t('{code} · {department} · Order {order}', {
+          code: result.testCode,
+          department: result.departmentName,
+          order: result.orderNumber,
+        })}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             {result.priority !== 'ROUTINE' && (
               <Badge tone={result.priority === 'STAT' ? 'critical' : 'warning'}>{result.priority}</Badge>
             )}
-            {result.overdue && <Badge tone="danger">Overdue</Badge>}
-            <Badge tone={RESULT_STATUS_TONE[result.status]}>{RESULT_STATUS_LABEL[result.status]}</Badge>
+            {result.overdue && <Badge tone="danger">{t('Overdue')}</Badge>}
+            <Badge tone={RESULT_STATUS_TONE[result.status]}>{t(RESULT_STATUS_LABEL[result.status])}</Badge>
           </div>
         }
       />
@@ -249,8 +259,8 @@ export function ResultEntryPage() {
           <span className="font-semibold text-foreground">{result.patientName}</span>
           <span className="mx-2 font-mono text-xs text-muted">{result.patientMrn}</span>
           <span className="text-muted">
-            {formatGender(result.patientGender as never)}
-            {result.patientAgeYears != null ? ` · ${result.patientAgeYears}y` : ''}
+            {t(formatGender(result.patientGender as never))}
+            {result.patientAgeYears != null ? ` · ${t('{age}y', { age: result.patientAgeYears })}` : ''}
           </span>
           <span className="mx-2 text-muted">·</span>
           <LinkFrom to={`/app/samples/${result.sampleId}`} className="font-mono text-xs text-muted hover:underline">
@@ -261,51 +271,55 @@ export function ResultEntryPage() {
 
       {result.autoVerified && result.status !== 'PENDING' && (
         <div className="mb-4">
-          <Alert tone="success" title="Auto-verified">
-            All values were normal and in range with no delta breach, so this result was verified automatically.
-            A pathologist still approves it.
+          <Alert tone="success" title={t('Auto-verified')}>
+            {t('All values were normal and in range with no delta breach, so this result was verified automatically. A pathologist still approves it.')}
           </Alert>
         </div>
       )}
       {result.sampleCondition && (
         <div className="mb-4">
-          <Alert tone="warning" title="Specimen condition">
-            {result.sampleCondition}. This is recorded and printed on the report.
+          <Alert tone="warning" title={t('Specimen condition')}>
+            {result.sampleCondition}. {t('This is recorded and printed on the report.')}
           </Alert>
         </div>
       )}
       {result.values.some((v) => v.deltaBreach) && (
         <div className="mb-4">
-          <Alert tone="warning" title="Delta check flagged">
-            One or more values changed sharply from this patient's previous result. Review before verifying.
+          <Alert tone="warning" title={t('Delta check flagged')}>
+            {t("One or more values changed sharply from this patient's previous result. Review before verifying.")}
           </Alert>
         </div>
       )}
 
       {result.criticalAckRequired && (
         <div className="mb-4">
-          <Alert tone="danger" title="Critical-value callback required">
-            This approved result has a critical value that has not yet been communicated with read-back.
+          <Alert tone="danger" title={t('Critical-value callback required')}>
+            {t('This approved result has a critical value that has not yet been communicated with read-back.')}
             <button
               type="button"
               onClick={() => setCallbackOpen(true)}
               className="ml-2 font-semibold underline"
             >
-              Log the callback
+              {t('Log the callback')}
             </button>
           </Alert>
         </div>
       )}
       {result.criticalCallbacks.length > 0 && (
         <div className="mb-4 rounded-lg border border-border bg-surface p-3 text-sm">
-          <p className="font-semibold text-foreground">Critical-value callbacks</p>
+          <p className="font-semibold text-foreground">{t('Critical-value callbacks')}</p>
           <ul className="mt-1 space-y-1 text-muted">
             {result.criticalCallbacks.map((c) => (
               <li key={c.id}>
                 {c.waived
-                  ? `Waived � ${c.waivedReason}`
-                  : `Notified ${c.notifiedName}${c.notifiedRole ? ` (${c.notifiedRole})` : ''} via ${c.contactMethod}${c.readBackConfirmed ? ', read-back confirmed' : ''}`}
-                <span className="ml-1 text-xs">� {new Date(c.notifiedAt).toLocaleString()} � {c.loggedBy}</span>
+                  ? t('Waived — {reason}', { reason: c.waivedReason ?? '' })
+                  : t('Notified {name} via {method}', {
+                      name: c.notifiedRole ? `${c.notifiedName} (${c.notifiedRole})` : (c.notifiedName ?? ''),
+                      method: c.contactMethod,
+                    }) + (c.readBackConfirmed ? `, ${t('read-back confirmed')}` : '')}
+                <span className="ml-1 text-xs">
+                  · {new Date(c.notifiedAt).toLocaleString(LOCALE_TAG[getLocale()])} · {c.loggedBy}
+                </span>
               </li>
             ))}
           </ul>
@@ -313,15 +327,14 @@ export function ResultEntryPage() {
       )}
       {result.hasCritical && (
         <div className="mb-4">
-          <Alert tone="danger" title="Critical value present">
-            One or more parameters are outside the critical range. Follow your laboratory's critical-value
-            notification protocol.
+          <Alert tone="danger" title={t('Critical value present')}>
+            {t("One or more parameters are outside the critical range. Follow your laboratory's critical-value notification protocol.")}
           </Alert>
         </div>
       )}
       {result.rejectionReason && result.status !== 'APPROVED' && (
         <div className="mb-4">
-          <Alert tone="warning" title="Returned for correction">
+          <Alert tone="warning" title={t('Returned for correction')}>
             {result.rejectionReason}
           </Alert>
         </div>
@@ -333,15 +346,15 @@ export function ResultEntryPage() {
             <CultureEntryForm result={result} editable={editable} onSaved={refetch} />
           ) : (
           <Card>
-            <CardHeader title="Parameters" />
+            <CardHeader title={t('Parameters')} />
             <div className="overflow-x-auto">
               <table ref={valuesTableRef} className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
-                    <th className="px-5 py-2">Parameter</th>
-                    <th className="px-5 py-2">Result</th>
-                    <th className="px-5 py-2">Reference</th>
-                    <th className="px-5 py-2">Flag</th>
+                    <th className="px-5 py-2">{t('Parameter')}</th>
+                    <th className="px-5 py-2">{t('Result')}</th>
+                    <th className="px-5 py-2">{t('Reference')}</th>
+                    <th className="px-5 py-2">{t('Flag')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -365,7 +378,7 @@ export function ResultEntryPage() {
                           {v.unit && <span className="ml-1 text-muted">({v.unit})</span>}
                           {v.calculated && (
                             <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
-                              calculated
+                              {t('calculated')}
                             </span>
                           )}
                           {v.method && <span className="ml-2 text-[11px] text-muted">· {v.method}</span>}
@@ -412,7 +425,7 @@ export function ResultEntryPage() {
                                   noteInputRefs.current[v.parameterId] = el;
                                 }}
                                 type="text"
-                                placeholder="note (optional)"
+                                placeholder={t('note (optional)')}
                                 value={notes[v.parameterId] ?? ''}
                                 onChange={(e) => setNotes((p) => ({ ...p, [v.parameterId]: e.target.value }))}
                                 className="mt-1 block h-7 w-52 rounded border border-input bg-surface px-2 text-xs"
@@ -421,11 +434,11 @@ export function ResultEntryPage() {
                               <button
                                 type="button"
                                 onClick={() => revealNote(v.parameterId)}
-                                aria-label={`Add note for ${v.parameterName}`}
+                                aria-label={t('Add note for {name}', { name: v.parameterName })}
                                 className="mt-1 inline-flex items-center gap-1 text-xs text-muted hover:text-foreground"
                               >
                                 <MessageSquarePlus className="h-3 w-3" aria-hidden />
-                                Note
+                                {t('Note')}
                               </button>
                             )
                           ) : (
@@ -455,7 +468,7 @@ export function ResultEntryPage() {
                               }
                             >
                               {flagTone(v.flag) === 'critical' && <AlertTriangle className="h-3 w-3" aria-hidden />}
-                              {flagLabel(v.flag)}
+                              {t(flagLabel(v.flag))}
                             </span>
                           )}
                         </td>
@@ -471,22 +484,23 @@ export function ResultEntryPage() {
                 <select
                   value=""
                   onChange={(e) => {
-                    const t = templates.find((x) => String(x.id) === e.target.value);
-                    if (t) setComment((c) => (c ? `${c}\n${t.body}` : t.body));
+                    const tpl = templates.find((x) => String(x.id) === e.target.value);
+                    if (tpl) setComment((c) => (c ? `${c}\n${tpl.body}` : tpl.body));
                   }}
                   className="h-9 w-full rounded-md border border-input bg-surface px-2 text-sm"
                 >
-                  <option value="">Insert a standard comment…</option>
-                  {templates.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.category ? `${t.category} · ` : ''}
-                      {t.title}
+                  <option value="">{t('Insert a standard comment…')}</option>
+                  {/* Comment template category/title are lab-authored content, not UI copy — left as-is. */}
+                  {templates.map((tpl) => (
+                    <option key={tpl.id} value={tpl.id}>
+                      {tpl.category ? `${tpl.category} · ` : ''}
+                      {tpl.title}
                     </option>
                   ))}
                 </select>
               )}
               <Textarea
-                label="Comment / interpretation"
+                label={t('Comment / interpretation')}
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 disabled={!editable}
@@ -498,7 +512,7 @@ export function ResultEntryPage() {
 
           {result.history.length > 0 && (
             <Card>
-              <CardHeader title="Result history" />
+              <CardHeader title={t('Result history')} />
               <CardBody>
                 <ul className="space-y-2 text-sm">
                   {result.history.map((h) => (
@@ -511,7 +525,7 @@ export function ResultEntryPage() {
                       )}
                       {h.reason && <span className="text-muted">· {h.reason}</span>}
                       <span className="text-xs text-muted">
-                        · {new Date(h.changedAt).toLocaleString()} · {h.changedBy}
+                        · {new Date(h.changedAt).toLocaleString(LOCALE_TAG[getLocale()])} · {h.changedBy}
                       </span>
                     </li>
                   ))}
@@ -523,16 +537,16 @@ export function ResultEntryPage() {
 
         <div className="space-y-4">
           <Card>
-            <CardHeader title="Actions" />
+            <CardHeader title={t('Actions')} />
             <CardBody className="space-y-2">
               {editable && result.resultMode !== 'CULTURE' && (
                 <Button className="w-full" onClick={save} loading={saving}>
                   <Save className="h-4 w-4" aria-hidden />
-                  Save results
+                  {t('Save results')}
                 </Button>
               )}
               {result.resultMode === 'CULTURE' && (
-                <p className="text-xs text-muted">Enter culture findings in the panel on the left, then verify.</p>
+                <p className="text-xs text-muted">{t('Enter culture findings in the panel on the left, then verify.')}</p>
               )}
               {result.status === 'ENTERED' && hasPermission(PERMISSIONS.RESULT_VERIFY) && (
                 <Button
@@ -542,7 +556,7 @@ export function ResultEntryPage() {
                   onClick={verifyResult}
                 >
                   <CheckCircle2 className="h-4 w-4" aria-hidden />
-                  Verify
+                  {t('Verify')}
                 </Button>
               )}
               {result.status === 'VERIFIED' && hasPermission(PERMISSIONS.RESULT_APPROVE) && (
@@ -552,31 +566,31 @@ export function ResultEntryPage() {
                   onClick={approveResult}
                 >
                   <ShieldCheck className="h-4 w-4" aria-hidden />
-                  Approve
+                  {t('Approve')}
                 </Button>
               )}
               {(result.status === 'ENTERED' || result.status === 'VERIFIED') &&
                 hasPermission(PERMISSIONS.RESULT_VERIFY) && (
                   <Button className="w-full" variant="ghost" onClick={() => setRejectOpen(true)}>
                     <Undo2 className="h-4 w-4" aria-hidden />
-                    Send back for correction
+                    {t('Send back for correction')}
                   </Button>
                 )}
               {result.status === 'APPROVED' && hasPermission(PERMISSIONS.RESULT_AMEND) && (
                 <Button className="w-full" variant="secondary" onClick={() => setAmendOpen(true)}>
-                  Amend approved result
+                  {t('Amend approved result')}
                 </Button>
               )}
             </CardBody>
           </Card>
 
           <Card>
-            <CardHeader title="Workflow" />
+            <CardHeader title={t('Workflow')} />
             <CardBody className="space-y-2 text-sm">
-              <Row label="Entered" value={by(result.enteredAt, result.enteredBy)} />
-              <Row label="Verified" value={by(result.verifiedAt, result.verifiedBy)} />
-              <Row label="Approved" value={by(result.approvedAt, result.approvedBy)} />
-              {result.amendedAt && <Row label="Amended" value={by(result.amendedAt, result.amendedBy)} />}
+              <Row label={t('Entered')} value={by(result.enteredAt, result.enteredBy)} />
+              <Row label={t('Verified')} value={by(result.verifiedAt, result.verifiedBy)} />
+              <Row label={t('Approved')} value={by(result.approvedAt, result.approvedBy)} />
+              {result.amendedAt && <Row label={t('Amended')} value={by(result.amendedAt, result.amendedBy)} />}
             </CardBody>
           </Card>
         </div>
@@ -586,9 +600,9 @@ export function ResultEntryPage() {
         open={rejectOpen}
         onClose={() => setRejectOpen(false)}
         onConfirm={doReject}
-        title="Send back for correction?"
-        message="The result returns to the technician for re-entry."
-        confirmLabel="Send back"
+        title={t('Send back for correction?')}
+        message={t('The result returns to the technician for re-entry.')}
+        confirmLabel={t('Send back')}
         reason="required"
       />
       <CriticalCallbackModal
@@ -613,5 +627,5 @@ function Row({ label, value }: { label: string; value: string | null }) {
 
 function by(iso: string | null, who: string | null): string | null {
   if (!iso) return null;
-  return `${new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}${who ? ` · ${who}` : ''}`;
+  return `${new Date(iso).toLocaleString(LOCALE_TAG[getLocale()], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}${who ? ` · ${who}` : ''}`;
 }

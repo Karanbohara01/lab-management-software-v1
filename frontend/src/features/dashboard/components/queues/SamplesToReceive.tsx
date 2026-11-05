@@ -10,11 +10,13 @@ import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { useNavigateFrom } from '@/lib/navigation';
 import { QueueShell } from './QueueShell';
+import { useT } from '@/i18n';
 
 /** Bench worklist: samples collected in the field but not yet logged into the lab. */
 export function SamplesToReceive() {
   const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
+  const t = useT();
   const [receiving, setReceiving] = useState<SampleListItem | null>(null);
   const { data, loading, error, refetch } = useQuery(() => samplesApi.list({ status: 'COLLECTED', size: 8 }), []);
 
@@ -42,12 +44,16 @@ export function SamplesToReceive() {
                 {s.patientName} <span className="font-mono text-xs text-muted">{s.accessionNumber}</span>
               </p>
               <p className="truncate text-xs text-muted">
-                {SPECIMEN_LABELS[s.specimenType]} · {s.testCount} test(s) · collected {formatDateTime(s.createdAt)}
+                {t('{specimen} · {count} test(s) · collected {time}', {
+                  specimen: t(SPECIMEN_LABELS[s.specimenType]),
+                  count: s.testCount,
+                  time: formatDateTime(s.createdAt),
+                })}
               </p>
             </button>
             {hasPermission(PERMISSIONS.SAMPLE_RECEIVE) && (
               <Button size="sm" onClick={() => setReceiving(s)}>
-                Receive
+                {t('Receive')}
               </Button>
             )}
           </li>

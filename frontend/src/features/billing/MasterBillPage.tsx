@@ -11,6 +11,7 @@ import { formatMoney } from '@/lib/money';
 import { exportCsv, exportExcel, exportXml } from '@/lib/exportData';
 import { invoicesApi } from './api';
 import type { MasterBillRow } from './types';
+import { useT, getLocale, LOCALE_TAG } from '@/i18n';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -46,10 +47,11 @@ const EXPORT_COLUMNS: { key: keyof MasterBillRow; header: string }[] = [
 ];
 
 function dt(iso: string | null): string {
-  return iso ? new Date(iso).toLocaleString() : '—';
+  return iso ? new Date(iso).toLocaleString(LOCALE_TAG[getLocale()]) : '—';
 }
 
 export function MasterBillPage() {
+  const t = useT();
   const { params, set } = useListParams(PARAMS);
   const { year, month } = params;
 
@@ -64,8 +66,8 @@ export function MasterBillPage() {
   return (
     <>
       <PageHeader
-        title="Master bill report"
-        description="Every bill issued this month, including later-cancelled ones (Anusuchi-5 of the e-invoice procedure). Customer PAN is blank when the patient didn't supply one; VAT-refund amount is always blank — this system doesn't integrate a payment gateway to compute a refund."
+        title={t('Master bill report')}
+        description={t("Every bill issued this month, including later-cancelled ones (Anusuchi-5 of the e-invoice procedure). Customer PAN is blank when the patient didn't supply one; VAT-refund amount is always blank — this system doesn't integrate a payment gateway to compute a refund.")}
         actions={
           <div className="flex items-center gap-2">
             <Button
@@ -76,7 +78,7 @@ export function MasterBillPage() {
               }
             >
               <Download className="h-4 w-4" aria-hidden />
-              Export CSV
+              {t('Export CSV')}
             </Button>
             <Button
               variant="secondary"
@@ -87,7 +89,7 @@ export function MasterBillPage() {
               }
             >
               <Download className="h-4 w-4" aria-hidden />
-              Export Excel
+              {t('Export Excel')}
             </Button>
             <Button
               variant="secondary"
@@ -104,7 +106,7 @@ export function MasterBillPage() {
               }
             >
               <Download className="h-4 w-4" aria-hidden />
-              Export XML
+              {t('Export XML')}
             </Button>
           </div>
         }
@@ -114,15 +116,15 @@ export function MasterBillPage() {
         <div className="flex flex-wrap items-center gap-3 p-4">
           <div className="w-40">
             <Select
-              label="Month"
+              label={t('Month')}
               value={String(month)}
               onChange={(e) => set({ month: Number(e.target.value) })}
-              options={MONTHS.map((m, i) => ({ value: String(i + 1), label: m }))}
+              options={MONTHS.map((m, i) => ({ value: String(i + 1), label: t(m) }))}
             />
           </div>
           <div className="w-32">
             <Select
-              label="Year"
+              label={t('Year')}
               value={String(year)}
               onChange={(e) => set({ year: Number(e.target.value) })}
               options={YEAR_OPTIONS.map((y) => ({ value: String(y), label: String(y) }))}
@@ -137,7 +139,7 @@ export function MasterBillPage() {
         ) : error ? (
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.length === 0 ? (
-          <EmptyState title="No bills" message="No invoices were issued in this period." />
+          <EmptyState title={t('No bills')} message={t('No invoices were issued in this period.')} />
         ) : (
           data && (
             <div className="overflow-x-auto">

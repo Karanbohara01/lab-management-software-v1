@@ -8,11 +8,13 @@ import { inventoryApi } from '@/features/inventory/api';
 import { STOCK_STATUS_LABEL, STOCK_STATUS_TONE, type StockStatus } from '@/features/inventory/types';
 import { useNavigateFrom } from '@/lib/navigation';
 import { SectionHeader } from './SectionHeader';
+import { useT } from '@/i18n';
 
 const RISK_ORDER: StockStatus[] = ['EXPIRED', 'OUT_OF_STOCK', 'LOW_STOCK', 'EXPIRING_SOON'];
 
 export function InventoryHealthPanel() {
   const navigate = useNavigateFrom();
+  const t = useT();
   const { data, loading, error, refetch } = useQuery(() => inventoryApi.summary(), []);
 
   const atRisk = data ? RISK_ORDER.reduce((sum, s) => sum + (data.statusCounts[s] ?? 0), 0) : 0;
@@ -24,7 +26,7 @@ export function InventoryHealthPanel() {
         description="Reagents and consumables needing action."
         action={
           <Button size="sm" variant="ghost" onClick={() => navigate('/app/inventory')}>
-            View all
+            {t('View all')}
           </Button>
         }
       />
@@ -37,14 +39,14 @@ export function InventoryHealthPanel() {
           <div className="mb-3 flex flex-wrap gap-2">
             {RISK_ORDER.filter((s) => (data.statusCounts[s] ?? 0) > 0).map((s) => (
               <Badge key={s} tone={STOCK_STATUS_TONE[s]}>
-                {data.statusCounts[s]} {STOCK_STATUS_LABEL[s]}
+                {data.statusCounts[s]} {t(STOCK_STATUS_LABEL[s])}
               </Badge>
             ))}
           </div>
           {atRisk === 0 ? (
             <div className="flex items-center gap-2 text-sm text-success">
               <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
-              All stock levels are healthy.
+              {t('All stock levels are healthy.')}
             </div>
           ) : (
             <ul className="divide-y divide-border">
@@ -53,10 +55,14 @@ export function InventoryHealthPanel() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm text-foreground">{item.name}</p>
                     <p className="truncate text-xs text-muted">
-                      {item.quantityOnHand} {item.unit} on hand · min {item.minimumStock}
+                      {t('{qty} {unit} on hand · min {min}', {
+                        qty: item.quantityOnHand,
+                        unit: item.unit,
+                        min: item.minimumStock,
+                      })}
                     </p>
                   </div>
-                  <Badge tone={STOCK_STATUS_TONE[item.status]}>{STOCK_STATUS_LABEL[item.status]}</Badge>
+                  <Badge tone={STOCK_STATUS_TONE[item.status]}>{t(STOCK_STATUS_LABEL[item.status])}</Badge>
                 </li>
               ))}
             </ul>

@@ -27,12 +27,14 @@ import { branchesApi, type Branch } from '@/features/branches/api';
 import { doctorsApi } from '@/features/doctors/api';
 import type { Doctor } from '@/features/doctors/types';
 import { adminApi, type AppUserListItem } from './api';
+import { useT } from '@/i18n';
 
 const PAGE_SIZE = 20;
 /** Lives in the URL, so the search and page survive leaving the page and coming back. */
 const PARAMS = { q: '', page: 1 };
 
 export function UsersPage() {
+  const t = useT();
   const { back } = useBackTarget();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.USER_WRITE);
@@ -57,40 +59,40 @@ export function UsersPage() {
   const toggleEnabled = async (u: AppUserListItem) => {
     try {
       await adminApi.setEnabled(u.id, !u.enabled);
-      toast.success(u.enabled ? 'User disabled' : 'User enabled');
+      toast.success(u.enabled ? t('User disabled') : t('User enabled'));
       refetch();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Action failed');
+      toast.error(err instanceof ApiError ? err.message : t('Action failed'));
     }
   };
 
   const columns: Column<AppUserListItem>[] = [
-    { key: 'user', header: 'User', cell: (u) => (
+    { key: 'user', header: t('User'), cell: (u) => (
         <span>
           <span className="font-medium">{u.fullName}</span>
           <span className="ml-2 font-mono text-xs text-muted">{u.username}</span>
         </span>
       ) },
-    { key: 'roles', header: 'Roles', cell: (u) => (
+    { key: 'roles', header: t('Roles'), cell: (u) => (
         <span className="flex flex-wrap gap-1">
           {u.roles.map((r) => <Badge key={r} tone="neutral">{r.replace(/_/g, ' ')}</Badge>)}
         </span>
       ), hideOnMobile: true },
-    { key: 'branch', header: 'Home branch', cell: (u) => u.homeBranchName ?? <span className="text-muted">All branches</span>, hideOnMobile: true },
-    { key: 'doctor', header: 'Referring doctor', cell: (u) => u.doctorName ?? <span className="text-muted">—</span>, hideOnMobile: true },
-    { key: 'login', header: 'Last login', cell: (u) => (u.lastLoginAt ? formatDate(u.lastLoginAt) : 'Never'), hideOnMobile: true },
-    { key: 'status', header: 'Status', cell: (u) => <Badge tone={u.enabled ? 'success' : 'neutral'}>{u.enabled ? 'Active' : 'Disabled'}</Badge> },
+    { key: 'branch', header: t('Home branch'), cell: (u) => u.homeBranchName ?? <span className="text-muted">{t('All branches')}</span>, hideOnMobile: true },
+    { key: 'doctor', header: t('Referring doctor'), cell: (u) => u.doctorName ?? <span className="text-muted">—</span>, hideOnMobile: true },
+    { key: 'login', header: t('Last login'), cell: (u) => (u.lastLoginAt ? formatDate(u.lastLoginAt) : t('Never')), hideOnMobile: true },
+    { key: 'status', header: t('Status'), cell: (u) => <Badge tone={u.enabled ? 'success' : 'neutral'}>{u.enabled ? t('Active') : t('Disabled')}</Badge> },
     ...(canWrite
       ? [{
           key: 'actions',
           header: '',
           cell: (u: AppUserListItem) => (
             <div className="flex justify-end gap-1">
-              <Tooltip content="Reset password">
+              <Tooltip content={t('Reset password')}>
                 <button
                   onClick={(e) => { e.stopPropagation(); setResetFor(u); }}
                   className="rounded p-1 text-muted hover:bg-surface-muted"
-                  aria-label={`Reset password for ${u.username}`}
+                  aria-label={t('Reset password for {username}', { username: u.username })}
                 >
                   <KeyRound className="h-4 w-4" aria-hidden />
                 </button>
@@ -99,7 +101,7 @@ export function UsersPage() {
                 onClick={(e) => { e.stopPropagation(); toggleEnabled(u); }}
                 className="rounded px-2 py-0.5 text-xs text-muted hover:bg-surface-muted"
               >
-                {u.enabled ? 'Disable' : 'Enable'}
+                {u.enabled ? t('Disable') : t('Enable')}
               </button>
             </div>
           ),
@@ -111,15 +113,15 @@ export function UsersPage() {
     <>
       <PageHeader
         back={back}
-        title="Users"
-        description="Staff accounts and role assignments."
-        actions={canWrite ? <Button onClick={() => { setEditing(null); setFormOpen(true); }}><Plus className="h-4 w-4" aria-hidden /> New user</Button> : undefined}
+        title={t('Users')}
+        description={t('Staff accounts and role assignments.')}
+        actions={canWrite ? <Button onClick={() => { setEditing(null); setFormOpen(true); }}><Plus className="h-4 w-4" aria-hidden /> {t('New user')}</Button> : undefined}
       />
 
       <Card>
         <div className="border-b border-border p-4">
           <div className="max-w-sm">
-            <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, username or email" />
+            <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('Search name, username or email')} />
           </div>
         </div>
         {loading && !data ? (
@@ -127,7 +129,7 @@ export function UsersPage() {
         ) : error ? (
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.content.length === 0 ? (
-          <EmptyState title="No users" message="Adjust the search." />
+          <EmptyState title={t('No users')} message={t('Adjust the search.')} />
         ) : (
           data && (
             <>
@@ -201,6 +203,7 @@ function UserFormModal({
   doctors: Doctor[];
   onSaved: () => void;
 }) {
+  const t = useT();
   const toast = useToast();
   const [f, setF] = useState<UserFormValues>(EMPTY_USER_FORM);
   // The values the form was loaded with. Kept beside the live ones so "has this been edited?"
@@ -258,7 +261,7 @@ function UserFormModal({
           homeBranchId,
           doctorId,
         });
-        toast.success('User updated');
+        toast.success(t('User updated'));
       } else {
         await adminApi.createUser({
           username: f.username.trim(),
@@ -270,7 +273,7 @@ function UserFormModal({
           doctorId,
           password: f.password,
         });
-        toast.success('User created');
+        toast.success(t('User created'));
       }
       onSaved();
       onClose();
@@ -280,7 +283,7 @@ function UserFormModal({
       if (e instanceof ApiError && e.fieldErrors.length > 0) {
         setErr(e.fieldErrors.map((fe) => `${fe.field}: ${fe.message}`).join('; '));
       } else {
-        setErr(e instanceof ApiError ? e.message : 'Unable to save user');
+        setErr(e instanceof ApiError ? e.message : t('Unable to save user'));
       }
     } finally {
       setBusy(false);
@@ -291,45 +294,45 @@ function UserFormModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={userId ? 'Edit user' : 'New user'}
+      title={userId ? t('Edit user') : t('New user')}
       size="lg"
       confirmClose={isDirty && !busy}
       footer={
         <>
           <ModalCancelButton />
-          <Button onClick={submit} loading={busy} disabled={f.roleNames.length === 0 || (isDoctorRole && !f.doctorId)}>{userId ? 'Save' : 'Create user'}</Button>
+          <Button onClick={submit} loading={busy} disabled={f.roleNames.length === 0 || (isDoctorRole && !f.doctorId)}>{userId ? t('Save') : t('Create user')}</Button>
         </>
       }
     >
       <div className="space-y-4">
         {err && <Alert tone="danger">{err}</Alert>}
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Username" disabled={!!userId} value={f.username} onChange={(e) => setF({ ...f, username: e.target.value })} />
-          <Input label="Full name" value={f.fullName} onChange={(e) => setF({ ...f, fullName: e.target.value })} />
-          <Input label="Email" type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
-          <Input label="Phone" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} />
+          <Input label={t('Username')} disabled={!!userId} value={f.username} onChange={(e) => setF({ ...f, username: e.target.value })} />
+          <Input label={t('Full name')} value={f.fullName} onChange={(e) => setF({ ...f, fullName: e.target.value })} />
+          <Input label={t('Email')} type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
+          <Input label={t('Phone')} value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} />
           {!userId && (
             <Input
-              label="Initial password"
+              label={t('Initial password')}
               type="password"
-              hint="At least 8 characters"
+              hint={t('At least 8 characters')}
               value={f.password}
               onChange={(e) => setF({ ...f, password: e.target.value })}
             />
           )}
           <div>
             <Select
-              label="Home branch"
-              placeholder="All branches"
+              label={t('Home branch')}
+              placeholder={t('All branches')}
               value={f.homeBranchId}
               onChange={(e) => setF({ ...f, homeBranchId: e.target.value })}
               options={branches.map((b) => ({ value: String(b.id), label: b.name }))}
             />
-            <p className="mt-1 text-xs text-muted">Leave blank for access to every branch (HQ / roaming staff).</p>
+            <p className="mt-1 text-xs text-muted">{t('Leave blank for access to every branch (HQ / roaming staff).')}</p>
           </div>
         </div>
         <div>
-          <p className="mb-1.5 text-sm font-medium text-foreground">Roles</p>
+          <p className="mb-1.5 text-sm font-medium text-foreground">{t('Roles')}</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {roles.map((r) => (
               <label key={r} className="flex items-center gap-2 text-sm text-foreground">
@@ -342,14 +345,14 @@ function UserFormModal({
         {isDoctorRole && (
           <div>
             <Combobox
-              label="Referring doctor"
-              placeholder="Search doctors…"
+              label={t('Referring doctor')}
+              placeholder={t('Search doctors…')}
               value={f.doctorId}
               onChange={(doctorId) => setF({ ...f, doctorId })}
               options={doctors.map((d) => ({ value: String(d.id), label: d.fullName }))}
             />
             <p className="mt-1 text-xs text-muted">
-              Required for the DOCTOR role — this login will only ever see orders and reports this doctor referred.
+              {t('Required for the DOCTOR role — this login will only ever see orders and reports this doctor referred.')}
             </p>
           </div>
         )}
@@ -359,6 +362,7 @@ function UserFormModal({
 }
 
 function ResetPasswordModal({ user, onClose }: { user: AppUserListItem | null; onClose: () => void }) {
+  const t = useT();
   const toast = useToast();
   const [pw, setPw] = useState('');
   const [busy, setBusy] = useState(false);
@@ -375,13 +379,13 @@ function ResetPasswordModal({ user, onClose }: { user: AppUserListItem | null; o
     setErr(null);
     try {
       await adminApi.resetPassword(user.id, pw);
-      toast.success(`Password reset for ${user.username}`);
+      toast.success(t('Password reset for {username}', { username: user.username }));
       onClose();
     } catch (e) {
       if (e instanceof ApiError && e.fieldErrors.length > 0) {
         setErr(e.fieldErrors.map((fe) => `${fe.field}: ${fe.message}`).join('; '));
       } else {
-        setErr(e instanceof ApiError ? e.message : 'Unable to reset password');
+        setErr(e instanceof ApiError ? e.message : t('Unable to reset password'));
       }
     } finally {
       setBusy(false);
@@ -392,18 +396,18 @@ function ResetPasswordModal({ user, onClose }: { user: AppUserListItem | null; o
     <Modal
       open={!!user}
       onClose={onClose}
-      title={`Reset password · ${user?.username ?? ''}`}
+      title={t('Reset password · {username}', { username: user?.username ?? '' })}
       footer={
         <>
-          <Button variant="secondary" type="button" onClick={onClose} disabled={busy}>Cancel</Button>
-          <Button onClick={submit} loading={busy} disabled={pw.length < 8}>Reset password</Button>
+          <Button variant="secondary" type="button" onClick={onClose} disabled={busy}>{t('Cancel')}</Button>
+          <Button onClick={submit} loading={busy} disabled={pw.length < 8}>{t('Reset password')}</Button>
         </>
       }
     >
       <div className="space-y-3">
         {err && <Alert tone="danger">{err}</Alert>}
-        <Input label="New password" type="password" hint="At least 8 characters" value={pw} onChange={(e) => setPw(e.target.value)} />
-        <p className="text-xs text-muted">Share the new password with the user through a secure channel.</p>
+        <Input label={t('New password')} type="password" hint={t('At least 8 characters')} value={pw} onChange={(e) => setPw(e.target.value)} />
+        <p className="text-xs text-muted">{t('Share the new password with the user through a secure channel.')}</p>
       </div>
     </Modal>
   );

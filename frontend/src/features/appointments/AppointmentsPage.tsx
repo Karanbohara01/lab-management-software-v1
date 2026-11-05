@@ -19,12 +19,14 @@ import { branchesApi, type Branch } from '@/features/branches/api';
 import { appointmentsApi } from './api';
 import { AppointmentFormModal } from './AppointmentFormModal';
 import { APPOINTMENT_STATUS_LABEL, APPOINTMENT_STATUS_TONE, type AppointmentListItem, type AppointmentStatus } from './types';
+import { useT } from '@/i18n';
 
 const PAGE_SIZE = 20;
 /** Lives in the URL, so returning from an appointment lands on the same search, filters and page. */
 const PARAMS = { q: '', status: '', date: '', branchId: '', page: 1 };
 
 export function AppointmentsPage() {
+  const t = useT();
   const navigate = useNavigateFrom();
   const { hasPermission, user } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.APPOINTMENT_WRITE);
@@ -55,10 +57,10 @@ export function AppointmentsPage() {
   );
 
   const columns: Column<AppointmentListItem>[] = [
-    { key: 'no', header: 'Appointment', cell: (a) => <span className="font-mono text-xs">{a.appointmentNumber}</span> },
+    { key: 'no', header: t('Appointment'), cell: (a) => <span className="font-mono text-xs">{a.appointmentNumber}</span> },
     {
       key: 'patient',
-      header: 'Patient',
+      header: t('Patient'),
       cell: (a) => (
         <span>
           <span className="font-medium">{a.patientName}</span>
@@ -66,28 +68,28 @@ export function AppointmentsPage() {
         </span>
       ),
     },
-    { key: 'when', header: 'Scheduled', cell: (a) => formatDateTime(a.scheduledAt) },
-    { key: 'doctor', header: 'Doctor', cell: (a) => a.referringDoctorName ?? '—', hideOnMobile: true },
+    { key: 'when', header: t('Scheduled'), cell: (a) => formatDateTime(a.scheduledAt) },
+    { key: 'doctor', header: t('Doctor'), cell: (a) => a.referringDoctorName ?? '—', hideOnMobile: true },
     {
       key: 'status',
-      header: 'Status',
-      cell: (a) => <Badge tone={APPOINTMENT_STATUS_TONE[a.status]}>{APPOINTMENT_STATUS_LABEL[a.status]}</Badge>,
+      header: t('Status'),
+      cell: (a) => <Badge tone={APPOINTMENT_STATUS_TONE[a.status]}>{t(APPOINTMENT_STATUS_LABEL[a.status])}</Badge>,
     },
     ...(isHq
-      ? [{ key: 'branch', header: 'Branch', cell: (a: AppointmentListItem) => a.branchName ?? '—', hideOnMobile: true } as Column<AppointmentListItem>]
+      ? [{ key: 'branch', header: t('Branch'), cell: (a: AppointmentListItem) => a.branchName ?? '—', hideOnMobile: true } as Column<AppointmentListItem>]
       : []),
   ];
 
   return (
     <>
       <PageHeader
-        title="Appointments"
-        description="Booked time slots for a patient visit. Converting one into a lab order happens at arrival."
+        title={t('Appointments')}
+        description={t('Booked time slots for a patient visit. Converting one into a lab order happens at arrival.')}
         actions={
           canWrite ? (
             <Button onClick={() => setFormOpen(true)}>
               <Plus className="h-4 w-4" aria-hidden />
-              New appointment
+              {t('New appointment')}
             </Button>
           ) : undefined
         }
@@ -99,7 +101,7 @@ export function AppointmentsPage() {
             <SearchInput
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by appointment no., patient or MRN"
+              placeholder={t('Search by appointment no., patient or MRN')}
             />
           </div>
           <div className="sm:w-44">
@@ -113,12 +115,12 @@ export function AppointmentsPage() {
           <div className="sm:w-48">
             <Select
               options={[
-                { value: '', label: 'All statuses' },
-                { value: 'SCHEDULED', label: 'Scheduled' },
-                { value: 'CHECKED_IN', label: 'Checked in' },
-                { value: 'CONVERTED', label: 'Converted' },
-                { value: 'CANCELLED', label: 'Cancelled' },
-                { value: 'NO_SHOW', label: 'No-show' },
+                { value: '', label: t('All statuses') },
+                { value: 'SCHEDULED', label: t('Scheduled') },
+                { value: 'CHECKED_IN', label: t('Checked in') },
+                { value: 'CONVERTED', label: t('Converted') },
+                { value: 'CANCELLED', label: t('Cancelled') },
+                { value: 'NO_SHOW', label: t('No-show') },
               ]}
               value={params.status}
               onChange={(e) => set({ status: e.target.value })}
@@ -127,7 +129,7 @@ export function AppointmentsPage() {
           {isHq && (
             <div className="sm:w-48">
               <Select
-                options={[{ value: '', label: 'All branches' }, ...branches.map((b) => ({ value: String(b.id), label: b.name }))]}
+                options={[{ value: '', label: t('All branches') }, ...branches.map((b) => ({ value: String(b.id), label: b.name }))]}
                 value={params.branchId}
                 onChange={(e) => set({ branchId: e.target.value })}
               />
@@ -141,9 +143,9 @@ export function AppointmentsPage() {
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.content.length === 0 ? (
           <EmptyState
-            title="No appointments found"
-            message={params.q || params.status || params.date ? 'Adjust the filters.' : 'Book the first appointment.'}
-            action={canWrite && !params.q && !params.status && !params.date ? <Button onClick={() => setFormOpen(true)}>New appointment</Button> : undefined}
+            title={t('No appointments found')}
+            message={params.q || params.status || params.date ? t('Adjust the filters.') : t('Book the first appointment.')}
+            action={canWrite && !params.q && !params.status && !params.date ? <Button onClick={() => setFormOpen(true)}>{t('New appointment')}</Button> : undefined}
           />
         ) : (
           data && (

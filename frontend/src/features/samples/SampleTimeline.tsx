@@ -1,5 +1,7 @@
 import { CheckCircle2, Ban, FlaskConical, PackageCheck, RefreshCw, StickyNote } from 'lucide-react';
 import type { SampleEvent, SampleEventType } from './types';
+import { SAMPLE_STATUS_LABEL } from './types';
+import { useT, getLocale, LOCALE_TAG } from '@/i18n';
 
 const ICONS: Record<SampleEventType, typeof FlaskConical> = {
   CREATED: FlaskConical,
@@ -10,8 +12,18 @@ const ICONS: Record<SampleEventType, typeof FlaskConical> = {
   NOTE: StickyNote,
 };
 
+/** The display label for each event type — a stored enum VALUE stays as-is; only this label is translated. */
+const EVENT_LABEL: Record<SampleEventType, string> = {
+  CREATED: 'Created',
+  COLLECTED: 'Collected',
+  RECEIVED: 'Received',
+  REJECTED: 'Rejected',
+  RECOLLECTION_REQUESTED: 'Recollection requested',
+  NOTE: 'Note',
+};
+
 function when(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
+  return new Date(iso).toLocaleString(LOCALE_TAG[getLocale()], {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -20,6 +32,7 @@ function when(iso: string): string {
 }
 
 export function SampleTimeline({ events }: { events: SampleEvent[] }) {
+  const t = useT();
   return (
     <ol className="space-y-4">
       {events.map((event, index) => {
@@ -33,9 +46,9 @@ export function SampleTimeline({ events }: { events: SampleEvent[] }) {
             </span>
             <div className="pb-1">
               <p className="text-sm font-medium text-foreground">
-                {event.eventType.replace(/_/g, ' ').toLowerCase().replace(/^\w/, (c) => c.toUpperCase())}
+                {t(EVENT_LABEL[event.eventType])}
                 {event.toStatus && event.fromStatus && event.toStatus !== event.fromStatus && (
-                  <span className="text-muted"> · {event.toStatus.replace(/_/g, ' ').toLowerCase()}</span>
+                  <span className="text-muted"> · {t(SAMPLE_STATUS_LABEL[event.toStatus])}</span>
                 )}
               </p>
               {event.note && <p className="text-sm text-muted">{event.note}</p>}

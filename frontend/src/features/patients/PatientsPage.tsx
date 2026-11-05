@@ -15,14 +15,16 @@ import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { patientsApi } from './api';
 import type { PatientCategory, PatientListItem } from './types';
-import { PATIENT_CATEGORIES, categoryLabel } from './constants';
+import { PATIENT_CATEGORIES, categoryLabel, tOpts } from './constants';
 import { formatAge } from './format';
+import { useT } from '@/i18n';
 
 const PAGE_SIZE = 20;
 /** Lives in the URL, so returning from a patient lands on the same search, filter and page. */
 const PARAMS = { q: '', category: '', page: 1 };
 
 export function PatientsPage() {
+  const t = useT();
   const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.PATIENT_WRITE);
@@ -48,7 +50,7 @@ export function PatientsPage() {
     { key: 'mrn', header: 'MRN', cell: (p) => <span className="font-mono text-xs text-muted">{p.mrn}</span> },
     {
       key: 'name',
-      header: 'Name',
+      header: t('Name'),
       cell: (p) => (
         <span className="flex items-center gap-1.5">
           <span className="font-medium">
@@ -60,23 +62,23 @@ export function PatientsPage() {
         </span>
       ),
     },
-    { key: 'demo', header: 'Age / Sex', cell: (p) => `${formatAge(p.ageYears)} · ${p.gender[0]}` },
-    { key: 'phone', header: 'Phone', cell: (p) => p.phone ?? '—', hideOnMobile: true },
+    { key: 'demo', header: t('Age / Sex'), cell: (p) => `${formatAge(p.ageYears)} · ${p.gender[0]}` },
+    { key: 'phone', header: t('Phone'), cell: (p) => p.phone ?? '—', hideOnMobile: true },
     {
       key: 'category',
-      header: 'Category',
+      header: t('Category'),
       cell: (p) => <span className="text-sm text-muted">{categoryLabel(p.category)}</span>,
       hideOnMobile: true,
     },
-    { key: 'doctor', header: 'Referred by', cell: (p) => p.referringDoctorName ?? '—', hideOnMobile: true },
+    { key: 'doctor', header: t('Referred by'), cell: (p) => p.referringDoctorName ?? '—', hideOnMobile: true },
     {
       key: 'status',
-      header: 'Status',
+      header: t('Status'),
       cell: (p) =>
         p.deceased ? (
-          <Badge tone="neutral">Deceased</Badge>
+          <Badge tone="neutral">{t('Deceased')}</Badge>
         ) : (
-          <Badge tone={p.active ? 'success' : 'neutral'}>{p.active ? 'Active' : 'Inactive'}</Badge>
+          <Badge tone={p.active ? 'success' : 'neutral'}>{t(p.active ? 'Active' : 'Inactive')}</Badge>
         ),
     },
   ];
@@ -84,20 +86,20 @@ export function PatientsPage() {
   return (
     <>
       <PageHeader
-        title="Patients"
-        description="Register patients and open a longitudinal view of their orders, invoices and reports."
+        title={t('Patients')}
+        description={t('Register patients and open a longitudinal view of their orders, invoices and reports.')}
         actions={
           <div className="flex flex-wrap gap-2">
             {canImport && (
               <Button variant="secondary" onClick={() => navigate('/app/patients/import')}>
                 <Upload className="h-4 w-4" aria-hidden />
-                Import patients
+                {t('Import patients')}
               </Button>
             )}
             {canWrite && (
               <Button onClick={() => navigate('/app/patients/new')}>
                 <Plus className="h-4 w-4" aria-hidden />
-                Register patient
+                {t('Register patient')}
               </Button>
             )}
           </div>
@@ -110,13 +112,13 @@ export function PatientsPage() {
             <SearchInput
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, MRN, phone or email"
+              placeholder={t('Search by name, MRN, phone or email')}
             />
           </div>
           <Select
-            aria-label="Filter by category"
+            aria-label={t('Filter by category')}
             className="sm:w-52"
-            options={[{ value: '', label: 'All categories' }, ...PATIENT_CATEGORIES]}
+            options={[{ value: '', label: t('All categories') }, ...tOpts(PATIENT_CATEGORIES)]}
             value={params.category}
             onChange={(e) => set({ category: e.target.value })}
           />
@@ -128,13 +130,15 @@ export function PatientsPage() {
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.content.length === 0 ? (
           <EmptyState
-            title="No patients found"
+            title={t('No patients found')}
             message={
-              params.q || params.category ? 'Try a different search or filter.' : 'Register the first patient to get started.'
+              params.q || params.category
+                ? t('Try a different search or filter.')
+                : t('Register the first patient to get started.')
             }
             action={
               canWrite && !params.q && !params.category ? (
-                <Button onClick={() => navigate('/app/patients/new')}>Register patient</Button>
+                <Button onClick={() => navigate('/app/patients/new')}>{t('Register patient')}</Button>
               ) : undefined
             }
           />

@@ -3,6 +3,7 @@ import { RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/cn';
 import { useAuth } from '@/features/auth/useAuth';
+import { getLocale, LOCALE_TAG, translate, useT } from '@/i18n';
 
 export type DashboardRange = 1 | 7 | 30;
 const RANGES: { value: DashboardRange; label: string }[] = [
@@ -13,9 +14,10 @@ const RANGES: { value: DashboardRange; label: string }[] = [
 
 function greeting(): string {
   const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  return 'Good evening';
+  const t = (key: string) => translate(getLocale(), key);
+  if (h < 12) return t('Good morning');
+  if (h < 17) return t('Good afternoon');
+  return t('Good evening');
 }
 
 export interface PrimaryAction {
@@ -42,8 +44,9 @@ export function DashboardHeader({
   onRefresh: () => void;
   primaryAction?: PrimaryAction;
 }) {
+  const t = useT();
   const { user } = useAuth();
-  const today = new Date().toLocaleDateString(undefined, {
+  const today = new Date().toLocaleDateString(LOCALE_TAG[getLocale()], {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -58,7 +61,7 @@ export function DashboardHeader({
           {user?.fullName ? `, ${user.fullName.split(' ')[0]}` : ''}.
         </h1>
         <p className="mt-1 text-sm text-muted">
-          {today} · {subtitle}
+          {today} · {t(subtitle)}
         </p>
       </div>
 
@@ -78,7 +81,7 @@ export function DashboardHeader({
                     : 'text-muted hover:bg-surface-muted hover:text-foreground',
                 )}
               >
-                {r.label}
+                {t(r.label)}
               </button>
             ))}
           </div>
@@ -89,18 +92,20 @@ export function DashboardHeader({
           onClick={onRefresh}
           disabled={refreshing}
           className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted hover:bg-surface-muted hover:text-foreground disabled:opacity-50"
-          title="Refresh dashboard data"
+          title={t('Refresh dashboard data')}
         >
           <RotateCw className={cn('h-3.5 w-3.5', refreshing && 'animate-spin')} aria-hidden />
           {lastUpdated
-            ? `Updated ${lastUpdated.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`
-            : 'Refresh'}
+            ? t('Updated {time}', {
+                time: lastUpdated.toLocaleTimeString(LOCALE_TAG[getLocale()], { hour: '2-digit', minute: '2-digit' }),
+              })
+            : t('Refresh')}
         </button>
 
         {primaryAction && (
           <Button onClick={primaryAction.onClick}>
             <primaryAction.icon className="h-4 w-4" aria-hidden />
-            {primaryAction.label}
+            {t(primaryAction.label)}
           </Button>
         )}
       </div>

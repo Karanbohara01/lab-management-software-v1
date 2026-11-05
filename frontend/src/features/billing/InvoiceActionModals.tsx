@@ -11,8 +11,10 @@ import { formatMoney } from '@/lib/money';
 import type { DiscountType } from '@/features/orders/types';
 import { invoicesApi } from './api';
 import { PAYMENT_METHOD_LABEL, type InvoiceDetail, type PaymentMethod } from './types';
+import { useT, translate, getLocale } from '@/i18n';
 
 function useSubmit(onDone: () => void, onClose: () => void) {
+  const t = useT();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +27,7 @@ function useSubmit(onDone: () => void, onClose: () => void) {
       onDone();
       onClose();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Action failed');
+      setError(err instanceof ApiError ? err.message : t('Action failed'));
     } finally {
       setBusy(false);
     }
@@ -44,6 +46,7 @@ export function RecordPaymentModal({
   invoice: InvoiceDetail;
   onDone: () => void;
 }) {
+  const t = useT();
   const { busy, error, run } = useSubmit(onDone, onClose);
   const [amount, setAmount] = useState(String(invoice.balance));
   const [method, setMethod] = useState<PaymentMethod>('CASH');
@@ -58,12 +61,12 @@ export function RecordPaymentModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Record payment"
-      description={`Outstanding balance ${formatMoney(invoice.balance)}`}
+      title={t('Record payment')}
+      description={t('Outstanding balance {amount}', { amount: formatMoney(invoice.balance) })}
       footer={
         <>
           <Button variant="secondary" type="button" onClick={onClose} disabled={busy}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button
             loading={busy}
@@ -77,11 +80,11 @@ export function RecordPaymentModal({
                     reference: reference || undefined,
                     note: note || undefined,
                   }),
-                'Payment recorded',
+                t('Payment recorded'),
               )
             }
           >
-            Record payment
+            {t('Record payment')}
           </Button>
         </>
       }
@@ -93,19 +96,18 @@ export function RecordPaymentModal({
             out something this form already knows. */}
         {exceedsBalance && (
           <Alert tone="warning">
-            This exceeds the outstanding balance of {formatMoney(invoice.balance)}. Reduce the amount, or use a
-            refund/credit flow for anything genuinely owed back to the patient.
+            {t('This exceeds the outstanding balance of {amount}. Reduce the amount, or use a refund/credit flow for anything genuinely owed back to the patient.', { amount: formatMoney(invoice.balance) })}
           </Alert>
         )}
-        <Input label="Amount (NPR)" type="number" step="any" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />
+        <Input label={t('Amount (NPR)')} type="number" step="any" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />
         <Select
-          label="Method"
-          options={Object.entries(PAYMENT_METHOD_LABEL).map(([value, label]) => ({ value, label }))}
+          label={t('Method')}
+          options={Object.entries(PAYMENT_METHOD_LABEL).map(([value, label]) => ({ value, label: translate(getLocale(), label) }))}
           value={method}
           onChange={(e) => setMethod(e.target.value as PaymentMethod)}
         />
-        <Input label="Reference (optional)" value={reference} onChange={(e) => setReference(e.target.value)} />
-        <Textarea label="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} />
+        <Input label={t('Reference (optional)')} value={reference} onChange={(e) => setReference(e.target.value)} />
+        <Textarea label={t('Note (optional)')} value={note} onChange={(e) => setNote(e.target.value)} />
       </div>
     </Modal>
   );
@@ -122,6 +124,7 @@ export function AdjustInvoiceModal({
   invoice: InvoiceDetail;
   onDone: () => void;
 }) {
+  const t = useT();
   const { busy, error, run } = useSubmit(onDone, onClose);
   const [discountType, setDiscountType] = useState<DiscountType>(invoice.discountType);
   const [discountValue, setDiscountValue] = useState(String(invoice.discountValue));
@@ -133,11 +136,11 @@ export function AdjustInvoiceModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Adjust invoice"
+      title={t('Adjust invoice')}
       footer={
         <>
           <Button variant="secondary" type="button" onClick={onClose} disabled={busy}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button
             loading={busy}
@@ -151,11 +154,11 @@ export function AdjustInvoiceModal({
                     notes: notes || undefined,
                     buyerPan: buyerPan || undefined,
                   }),
-                'Invoice updated',
+                t('Invoice updated'),
               )
             }
           >
-            Save
+            {t('Save')}
           </Button>
         </>
       }
@@ -163,26 +166,26 @@ export function AdjustInvoiceModal({
       <div className="space-y-4">
         {error && <Alert tone="danger">{error}</Alert>}
         <Select
-          label="Discount type"
+          label={t('Discount type')}
           options={[
-            { value: 'NONE', label: 'No discount' },
-            { value: 'PERCENT', label: 'Percentage (%)' },
-            { value: 'AMOUNT', label: 'Flat amount (NPR)' },
+            { value: 'NONE', label: t('No discount') },
+            { value: 'PERCENT', label: t('Percentage (%)') },
+            { value: 'AMOUNT', label: t('Flat amount (NPR)') },
           ]}
           value={discountType}
           onChange={(e) => setDiscountType(e.target.value as DiscountType)}
         />
         {discountType !== 'NONE' && (
-          <Input label="Discount value" type="number" step="any" min={0} value={discountValue} onChange={(e) => setDiscountValue(e.target.value)} />
+          <Input label={t('Discount value')} type="number" step="any" min={0} value={discountValue} onChange={(e) => setDiscountValue(e.target.value)} />
         )}
-        <Input label="Tax rate %" type="number" step="any" min={0} value={taxRate} onChange={(e) => setTaxRate(e.target.value)} />
+        <Input label={t('Tax rate %')} type="number" step="any" min={0} value={taxRate} onChange={(e) => setTaxRate(e.target.value)} />
         <Input
-          label="Buyer's PAN (optional)"
-          hint="Shown on the printed bill and submitted to IRD when this buyer has their own PAN"
+          label={t("Buyer's PAN (optional)")}
+          hint={t('Shown on the printed bill and submitted to IRD when this buyer has their own PAN')}
           value={buyerPan}
           onChange={(e) => setBuyerPan(e.target.value)}
         />
-        <Textarea label="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+        <Textarea label={t('Notes')} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </div>
     </Modal>
   );
@@ -199,6 +202,7 @@ export function RequestRefundModal({
   invoice: InvoiceDetail;
   onDone: () => void;
 }) {
+  const t = useT();
   const { busy, error, run } = useSubmit(onDone, onClose);
   const refundable = invoice.amountPaid - invoice.amountRefunded;
   const [amount, setAmount] = useState(String(refundable));
@@ -208,12 +212,12 @@ export function RequestRefundModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Request refund"
-      description={`Refundable amount ${formatMoney(refundable)}`}
+      title={t('Request refund')}
+      description={t('Refundable amount {amount}', { amount: formatMoney(refundable) })}
       footer={
         <>
           <Button variant="secondary" type="button" onClick={onClose} disabled={busy}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button
             variant="danger"
@@ -221,20 +225,20 @@ export function RequestRefundModal({
             onClick={() =>
               run(
                 () => invoicesApi.requestRefund(invoice.id, { amount: Number(amount), reason: reason.trim() }),
-                'Refund requested — awaiting approval',
+                t('Refund requested — awaiting approval'),
               )
             }
           >
-            Submit request
+            {t('Submit request')}
           </Button>
         </>
       }
     >
       <div className="space-y-4">
         {error && <Alert tone="danger">{error}</Alert>}
-        <Input label="Amount (NPR)" type="number" step="any" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />
-        <Textarea label="Reason" value={reason} onChange={(e) => setReason(e.target.value)} />
-        <p className="text-xs text-muted">A refund must be approved by an authorised user before it takes effect.</p>
+        <Input label={t('Amount (NPR)')} type="number" step="any" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} />
+        <Textarea label={t('Reason')} value={reason} onChange={(e) => setReason(e.target.value)} />
+        <p className="text-xs text-muted">{t('A refund must be approved by an authorised user before it takes effect.')}</p>
       </div>
     </Modal>
   );

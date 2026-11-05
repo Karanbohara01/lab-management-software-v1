@@ -1,5 +1,6 @@
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { useT } from '@/i18n';
 
 /** "You have unsaved changes" — Stay keeps the page, Discard lets the navigation go ahead. */
 export function UnsavedChangesDialog({
@@ -11,24 +12,25 @@ export function UnsavedChangesDialog({
   onStay: () => void;
   onDiscard: () => void;
 }) {
+  const t = useT();
   return (
     <Modal
       open={open}
       onClose={onStay}
-      title="Discard unsaved changes?"
+      title={t('Discard unsaved changes?')}
       footer={
         <>
           <Button variant="secondary" type="button" onClick={onStay}>
-            Stay on this page
+            {t('Stay on this page')}
           </Button>
           <Button variant="danger" type="button" onClick={onDiscard}>
-            Discard changes
+            {t('Discard changes')}
           </Button>
         </>
       }
     >
       <p className="text-sm text-foreground">
-        You have changes that haven&apos;t been saved. If you leave now, they will be lost.
+        {t("You have changes that haven't been saved. If you leave now, they will be lost.")}
       </p>
     </Modal>
   );

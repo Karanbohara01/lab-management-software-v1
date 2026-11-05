@@ -12,8 +12,10 @@ import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { departmentsApi, type Department } from './api';
 import { DepartmentFormModal } from './DepartmentFormModal';
+import { useT } from '@/i18n';
 
 export function DepartmentsPage() {
+  const t = useT();
   const { back } = useBackTarget();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.DEPARTMENT_WRITE);
@@ -23,13 +25,13 @@ export function DepartmentsPage() {
   const { data, loading, error, refetch } = useQuery(() => departmentsApi.list(false), []);
 
   const columns: Column<Department>[] = [
-    { key: 'code', header: 'Code', cell: (d) => <span className="font-mono text-xs">{d.code}</span> },
-    { key: 'name', header: 'Name', cell: (d) => <span className="font-medium">{d.name}</span> },
-    { key: 'desc', header: 'Description', cell: (d) => d.description ?? '—', hideOnMobile: true },
+    { key: 'code', header: t('Code'), cell: (d) => <span className="font-mono text-xs">{d.code}</span> },
+    { key: 'name', header: t('Name'), cell: (d) => <span className="font-medium">{d.name}</span> },
+    { key: 'desc', header: t('Description'), cell: (d) => d.description ?? '—', hideOnMobile: true },
     {
       key: 'status',
-      header: 'Status',
-      cell: (d) => <Badge tone={d.active ? 'success' : 'neutral'}>{d.active ? 'Active' : 'Inactive'}</Badge>,
+      header: t('Status'),
+      cell: (d) => <Badge tone={d.active ? 'success' : 'neutral'}>{t(d.active ? 'Active' : 'Inactive')}</Badge>,
     },
   ];
 
@@ -37,8 +39,8 @@ export function DepartmentsPage() {
     <>
       <PageHeader
         back={back}
-        title="Departments"
-        description="Laboratory departments group tests, staff and work queues."
+        title={t('Departments')}
+        description={t('Laboratory departments group tests, staff and work queues.')}
         actions={
           canWrite ? (
             <Button
@@ -48,7 +50,7 @@ export function DepartmentsPage() {
               }}
             >
               <Plus className="h-4 w-4" aria-hidden />
-              New department
+              {t('New department')}
             </Button>
           ) : undefined
         }
@@ -60,7 +62,7 @@ export function DepartmentsPage() {
         ) : error ? (
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.length === 0 ? (
-          <EmptyState title="No departments yet" message="Create the first department to organise the catalog." />
+          <EmptyState title={t('No departments yet')} message={t('Create the first department to organise the catalog.')} />
         ) : (
           data && (
             <DataTable

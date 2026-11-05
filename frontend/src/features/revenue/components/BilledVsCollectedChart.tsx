@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import { formatMoney } from '@/lib/money';
+import { getLocale, LOCALE_TAG, useT } from '@/i18n';
 import type { RevenueTrend } from '../types';
 
 const COMPACT = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 });
@@ -7,8 +8,8 @@ const COMPACT = new Intl.NumberFormat('en', { notation: 'compact', maximumFracti
 function bucketLabel(iso: string, granularity: RevenueTrend['granularity']): string {
   const [y, m, d] = iso.split('-').map(Number);
   const date = new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1);
-  if (granularity === 'MONTH') return date.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
-  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  if (granularity === 'MONTH') return date.toLocaleDateString(LOCALE_TAG[getLocale()], { month: 'short', year: '2-digit' });
+  return date.toLocaleDateString(LOCALE_TAG[getLocale()], { day: 'numeric', month: 'short' });
 }
 
 /**
@@ -19,7 +20,10 @@ function bucketLabel(iso: string, granularity: RevenueTrend['granularity']): str
  * Bars are billed (what was sold that day), the line is collected (cash that day). They are not
  * expected to track each other — that gap is the point of the chart.
  */
+const GRANULARITY_UNIT: Record<RevenueTrend['granularity'], string> = { DAY: 'day', WEEK: 'week', MONTH: 'month' };
+
 export function BilledVsCollectedChart({ trend }: { trend: RevenueTrend }) {
+  const t = useT();
   const points = trend.points;
   const gradientId = `collected-fill-${useId().replace(/:/g, '')}`;
   const max = Math.max(1, ...points.map((p) => Math.max(p.billed, p.collected)));
@@ -50,25 +54,25 @@ export function BilledVsCollectedChart({ trend }: { trend: RevenueTrend }) {
   const labelEvery = Math.max(1, Math.ceil(points.length / 14));
 
   if (points.length === 0) {
-    return <p className="px-5 py-8 text-center text-body-sm text-muted">No activity in this period.</p>;
+    return <p className="px-5 py-8 text-center text-body-sm text-muted">{t('No activity in this period.')}</p>;
   }
+
+  const unit = t(GRANULARITY_UNIT[trend.granularity]);
 
   return (
     <div>
       <div className="flex flex-wrap items-center gap-x-5 gap-y-1 px-5 pb-2 text-caption">
         <span className="inline-flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-sm bg-primary/35" aria-hidden />
-          <span className="text-muted">Billed</span>
+          <span className="text-muted">{t('Billed')}</span>
           <span className="font-medium tabular-nums text-foreground">{formatMoney(totals.billed)}</span>
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span className="h-0.5 w-4 rounded-full bg-primary" aria-hidden />
-          <span className="text-muted">Collected</span>
+          <span className="text-muted">{t('Collected')}</span>
           <span className="font-medium tabular-nums text-foreground">{formatMoney(totals.collected)}</span>
         </span>
-        <span className="text-muted">
-          per {trend.granularity.toLowerCase()}
-        </span>
+        <span className="text-muted">{t('per {unit}', { unit })}</span>
       </div>
 
       <div className="overflow-x-auto px-2 pb-2">
@@ -76,7 +80,7 @@ export function BilledVsCollectedChart({ trend }: { trend: RevenueTrend }) {
           viewBox={`0 0 ${W} ${H}`}
           className="w-full min-w-[640px]"
           role="img"
-          aria-label={`Billed and collected per ${trend.granularity.toLowerCase()} over the selected period`}
+          aria-label={t('Billed and collected per {unit} over the selected period', { unit })}
         >
           <defs>
             <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
@@ -116,7 +120,7 @@ export function BilledVsCollectedChart({ trend }: { trend: RevenueTrend }) {
                 className="fill-primary/30"
               >
                 <title>
-                  {bucketLabel(c.bucket, trend.granularity)} · billed {formatMoney(c.billed)}
+                  {t('{date} · billed {amount}', { date: bucketLabel(c.bucket, trend.granularity), amount: formatMoney(c.billed) })}
                 </title>
               </rect>
             </g>
@@ -130,8 +134,8 @@ export function BilledVsCollectedChart({ trend }: { trend: RevenueTrend }) {
               {points.length <= 40 && (
                 <circle cx={c.x} cy={c.cy} r={3} className="fill-surface stroke-primary" strokeWidth={2}>
                   <title>
-                    {bucketLabel(c.bucket, trend.granularity)} · collected {formatMoney(c.collected)}
-                    {c.refunded > 0 ? ` · refunded ${formatMoney(c.refunded)}` : ''}
+                    {t('{date} · collected {amount}', { date: bucketLabel(c.bucket, trend.granularity), amount: formatMoney(c.collected) })}
+                    {c.refunded > 0 ? ` ${t('· refunded {amount}', { amount: formatMoney(c.refunded) })}` : ''}
                   </title>
                 </circle>
               )}

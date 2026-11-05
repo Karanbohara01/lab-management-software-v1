@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/Badge';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { formatMoney } from '@/lib/money';
+import { useT, getLocale, LOCALE_TAG } from '@/i18n';
 import { portalApi } from './api';
 import { BrandMark } from '@/components/brand/BrandMark';
 
@@ -14,10 +15,22 @@ const REPORT_STATUS_TONE: Record<string, 'neutral' | 'info' | 'success'> = {
   DELIVERED: 'success',
 };
 
+const REPORT_STATUS_LABEL: Record<string, string> = {
+  GENERATED: 'Generated',
+  RELEASED: 'Released',
+  DELIVERED: 'Delivered',
+};
+
 const INVOICE_STATUS_TONE: Record<string, 'neutral' | 'success' | 'danger'> = {
   DRAFT: 'neutral',
   ISSUED: 'success',
   CANCELLED: 'danger',
+};
+
+const INVOICE_STATUS_LABEL: Record<string, string> = {
+  DRAFT: 'Draft',
+  ISSUED: 'Issued',
+  CANCELLED: 'Cancelled',
 };
 
 /**
@@ -28,6 +41,7 @@ const INVOICE_STATUS_TONE: Record<string, 'neutral' | 'success' | 'danger'> = {
  * state for that; the token itself scopes everything.
  */
 export function PatientPortalPage() {
+  const t = useT();
   const { token } = useParams<{ token: string }>();
   const { data, loading, error } = useQuery(() => portalApi.summary(token!), [token]);
 
@@ -37,13 +51,13 @@ export function PatientPortalPage() {
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <Link
             to="/"
-            aria-label="LIMS home"
+            aria-label={t('LIMS home')}
             className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             <BrandMark className="h-14" />
           </Link>
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Your lab records</h1>
+            <h1 className="text-xl font-semibold text-foreground">{t('Your lab records')}</h1>
             {data && (
               <p className="mt-1 text-sm text-muted">
                 {data.patientName} · <span className="font-mono">{data.patientMrn}</span>
@@ -53,7 +67,7 @@ export function PatientPortalPage() {
         </div>
 
         {loading && !data ? (
-          <LoadingState label="Loading…" />
+          <LoadingState label={t('Loading…')} />
         ) : error ? (
           <ErrorState message={error} />
         ) : !data ? null : (
@@ -62,10 +76,10 @@ export function PatientPortalPage() {
               <CardBody>
                 <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
                   <FileText className="h-4 w-4" aria-hidden />
-                  Reports
+                  {t('Reports')}
                 </h2>
                 {data.reports.length === 0 ? (
-                  <p className="text-sm text-muted">No reports available yet.</p>
+                  <p className="text-sm text-muted">{t('No reports available yet.')}</p>
                 ) : (
                   <ul className="divide-y divide-border">
                     {data.reports.map((r) => (
@@ -77,10 +91,10 @@ export function PatientPortalPage() {
                           <span>
                             <span className="font-medium text-foreground">{r.reportNumber}</span>{' '}
                             <span className="text-muted">
-                              {r.releasedAt ? new Date(r.releasedAt).toLocaleDateString() : ''}
+                              {r.releasedAt ? new Date(r.releasedAt).toLocaleDateString(LOCALE_TAG[getLocale()]) : ''}
                             </span>
                           </span>
-                          <Badge tone={REPORT_STATUS_TONE[r.status] ?? 'neutral'}>{r.status}</Badge>
+                          <Badge tone={REPORT_STATUS_TONE[r.status] ?? 'neutral'}>{t(REPORT_STATUS_LABEL[r.status] ?? r.status)}</Badge>
                         </Link>
                       </li>
                     ))}
@@ -93,10 +107,10 @@ export function PatientPortalPage() {
               <CardBody>
                 <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
                   <Receipt className="h-4 w-4" aria-hidden />
-                  Invoices
+                  {t('Invoices')}
                 </h2>
                 {data.invoices.length === 0 ? (
-                  <p className="text-sm text-muted">No invoices yet.</p>
+                  <p className="text-sm text-muted">{t('No invoices yet.')}</p>
                 ) : (
                   <ul className="divide-y divide-border">
                     {data.invoices.map((i) => (
@@ -110,7 +124,9 @@ export function PatientPortalPage() {
                             <span className="text-muted">{formatMoney(i.totalAmount)}</span>
                           </span>
                           <Badge tone={INVOICE_STATUS_TONE[i.status] ?? 'neutral'}>
-                            {i.status === 'ISSUED' && i.balance > 0 ? `Due ${formatMoney(i.balance)}` : i.status}
+                            {i.status === 'ISSUED' && i.balance > 0
+                              ? t('Due {amount}', { amount: formatMoney(i.balance) })
+                              : t(INVOICE_STATUS_LABEL[i.status] ?? i.status)}
                           </Badge>
                         </Link>
                       </li>

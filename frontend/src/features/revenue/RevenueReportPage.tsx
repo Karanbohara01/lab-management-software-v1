@@ -11,6 +11,7 @@ import { branchesApi } from '@/features/branches/api';
 import { revenueApi, type RevenueWindow } from './api';
 import { RevenueReportDocument } from './RevenueReportDocument';
 import type { RevenuePreset } from './types';
+import { useT } from '@/i18n';
 
 /**
  * The printable report, on its own route so the window it was generated for lives in a shareable
@@ -18,6 +19,7 @@ import type { RevenuePreset } from './types';
  * once the figures have loaded — the one action anyone arriving here wants.
  */
 export function RevenueReportPage() {
+  const t = useT();
   const [searchParams] = useSearchParams();
   const preset = searchParams.get('preset') as RevenuePreset | null;
   const from = searchParams.get('from');
@@ -36,7 +38,13 @@ export function RevenueReportPage() {
   const branches = useQuery(() => branchesApi.list(false), [], { cacheKey: 'revenue:branches:all' });
 
   const period = data?.summary.period;
-  usePageTitle(period ? `Revenue ${period.from === period.to ? period.from : `${period.from} to ${period.to}`}` : 'Revenue report');
+  usePageTitle(
+    period
+      ? t('Revenue {period}', {
+          period: period.from === period.to ? period.from : t('{from} to {to}', { from: period.from, to: period.to }),
+        })
+      : t('Revenue report'),
+  );
 
   // Print once, when the figures first arrive — not on every refetch.
   const printed = useRef(false);
@@ -47,39 +55,40 @@ export function RevenueReportPage() {
     return () => window.clearTimeout(id);
   }, [data]);
 
-  const branchName = branchId ? (branches.data?.find((b) => b.id === Number(branchId))?.name ?? `Branch ${branchId}`) : null;
+  const branchName = branchId ? (branches.data?.find((b) => b.id === Number(branchId))?.name ?? t('Branch {id}', { id: branchId })) : null;
 
   return (
     <>
       <div data-print-hide className="mb-4">
         <BackLink to={`/app/revenue${searchParams.toString() ? `?${searchParams.toString()}` : ''}`} className="mb-3">
-          Back to Revenue
+          {t('Back to Revenue')}
         </BackLink>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-heading-3 text-foreground">Revenue report</h1>
+            <h1 className="text-heading-3 text-foreground">{t('Revenue report')}</h1>
             <p className="text-body-sm text-muted">
-              Print preview. Use your browser's "Save as PDF" destination to keep a copy.
+              {t('Print preview. Use your browser\'s "Save as PDF" destination to keep a copy.')}
             </p>
           </div>
           <Button onClick={() => window.print()} disabled={!data}>
             <Printer className="h-4 w-4" aria-hidden />
-            Print
+            {t('Print')}
           </Button>
         </div>
         {data && (data.payments.truncated || data.outstanding.truncated) && (
           <div className="mt-3">
             <Alert tone="warning">
-              This period has more transactions than one report can list. The registers show the first{' '}
-              {data.payments.truncated ? data.payments.rows.length : data.outstanding.rows.length} rows and the
-              summary totals still cover everything — print a shorter period for a complete register.
+              {t(
+                'This period has more transactions than one report can list. The registers show the first {rows} rows and the summary totals still cover everything — print a shorter period for a complete register.',
+                { rows: data.payments.truncated ? data.payments.rows.length : data.outstanding.rows.length },
+              )}
             </Alert>
           </div>
         )}
       </div>
 
       {loading && !data ? (
-        <LoadingState label="Building the report…" />
+        <LoadingState label={t('Building the report…')} />
       ) : error ? (
         <ErrorState message={error} onRetry={refetch} />
       ) : data ? (

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
+import { useT } from '@/i18n';
 import { platformApi } from './api';
 import type { Plan } from './types';
 
@@ -50,6 +51,7 @@ export function OrganizationFormModal({
   plans: Plan[];
   onSaved: () => void;
 }) {
+  const t = useT();
   const toast = useToast();
   const {
     register,
@@ -89,7 +91,7 @@ export function OrganizationFormModal({
         pan: values.pan || undefined,
         notes: values.notes || undefined,
       });
-      toast.success('Clinic onboarded');
+      toast.success(t('Clinic onboarded'));
       onSaved();
       onClose();
     } catch (err) {
@@ -103,49 +105,49 @@ export function OrganizationFormModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Onboard a new clinic"
+      title={t('Onboard a new clinic')}
       size="lg"
       confirmClose={isDirty && !isSubmitting}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {errors.root && <Alert tone="danger">{errors.root.message}</Alert>}
         <Alert tone="info">
-          This registers the clinic, starts a subscription, and gives it its own isolated data,
-          default letterhead settings, and a first Lab Administrator login — share those
-          credentials with them, or have them reset the password after their first sign-in.
+          {t(
+            'This registers the clinic, starts a subscription, and gives it its own isolated data, default letterhead settings, and a first Lab Administrator login — share those credentials with them, or have them reset the password after their first sign-in.',
+          )}
         </Alert>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Clinic name" {...register('name')} error={errors.name?.message} data-autofocus />
-          <Input label="Slug" placeholder="e.g. marici-labs" {...register('slug')} error={errors.slug?.message} />
-          <Input label="Contact name" {...register('contactName')} error={errors.contactName?.message} />
-          <Input label="Contact email" {...register('contactEmail')} error={errors.contactEmail?.message} />
-          <Input label="Contact phone" {...register('contactPhone')} error={errors.contactPhone?.message} />
-          <Input label="City" {...register('city')} error={errors.city?.message} />
+          <Input label={t('Clinic name')} {...register('name')} error={errors.name?.message} data-autofocus />
+          <Input label={t('Slug')} placeholder="e.g. marici-labs" {...register('slug')} error={errors.slug?.message} />
+          <Input label={t('Contact name')} {...register('contactName')} error={errors.contactName?.message} />
+          <Input label={t('Contact email')} {...register('contactEmail')} error={errors.contactEmail?.message} />
+          <Input label={t('Contact phone')} {...register('contactPhone')} error={errors.contactPhone?.message} />
+          <Input label={t('City')} {...register('city')} error={errors.city?.message} />
           <Input
-            label="PAN"
-            placeholder="Clinic's own PAN (for IRD e-billing)"
+            label={t('PAN')}
+            placeholder={t("Clinic's own PAN (for IRD e-billing)")}
             {...register('pan')}
             error={errors.pan?.message}
           />
         </div>
         <Select
-          label="Subscription plan"
+          label={t('Subscription plan')}
           {...register('planCode')}
           error={errors.planCode?.message}
           options={plans
             .filter((p) => p.active)
             .map((p) => ({ value: p.code, label: `${p.name} — NPR ${p.priceMonthly}/mo` }))}
         />
-        <Textarea label="Notes" {...register('notes')} error={errors.notes?.message} />
+        <Textarea label={t('Notes')} {...register('notes')} error={errors.notes?.message} />
 
         <div className="border-t border-border pt-4">
-          <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted">First admin login</p>
+          <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted">{t('First admin login')}</p>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input label="Username" {...register('adminUsername')} error={errors.adminUsername?.message} />
-            <Input label="Admin email" {...register('adminEmail')} error={errors.adminEmail?.message} />
-            <Input label="Admin full name" {...register('adminFullName')} error={errors.adminFullName?.message} />
+            <Input label={t('Username')} {...register('adminUsername')} error={errors.adminUsername?.message} />
+            <Input label={t('Admin email')} {...register('adminEmail')} error={errors.adminEmail?.message} />
+            <Input label={t('Admin full name')} {...register('adminFullName')} error={errors.adminFullName?.message} />
             <Input
-              label="Temporary password"
+              label={t('Temporary password')}
               type="password"
               {...register('adminPassword')}
               error={errors.adminPassword?.message}
@@ -156,7 +158,7 @@ export function OrganizationFormModal({
         <div className="flex justify-end gap-2 pt-2">
           <ModalCancelButton />
           <Button type="submit" loading={isSubmitting}>
-            Onboard clinic
+            {t('Onboard clinic')}
           </Button>
         </div>
       </form>

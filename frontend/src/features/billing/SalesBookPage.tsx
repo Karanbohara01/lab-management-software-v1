@@ -10,6 +10,7 @@ import { formatMoney } from '@/lib/money';
 import { exportCsv, exportExcel } from '@/lib/exportData';
 import { invoicesApi } from './api';
 import type { SalesBookRow } from './types';
+import { useT, getLocale, LOCALE_TAG } from '@/i18n';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -17,7 +18,7 @@ const MONTHS = [
 ];
 
 function dt(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' });
+  return new Date(iso).toLocaleDateString(LOCALE_TAG[getLocale()], { dateStyle: 'medium' });
 }
 
 const NOW = new Date();
@@ -39,6 +40,7 @@ const CSV_COLUMNS: { key: keyof SalesBookRow; header: string }[] = [
 ];
 
 export function SalesBookPage() {
+  const t = useT();
   const { params, set } = useListParams(PARAMS);
   const { year, month } = params;
 
@@ -62,8 +64,8 @@ export function SalesBookPage() {
     <>
       <div data-print-hide>
         <PageHeader
-          title="Sales book"
-          description="Monthly sales register (Anusuchi-7 of the e-invoice procedure) — every issued invoice, taxable/non-taxable/export split, discount and tax."
+          title={t('Sales book')}
+          description={t('Monthly sales register (Anusuchi-7 of the e-invoice procedure) — every issued invoice, taxable/non-taxable/export split, discount and tax.')}
           actions={
             <div className="flex items-center gap-2">
               <Button
@@ -79,7 +81,7 @@ export function SalesBookPage() {
                 }
               >
                 <Download className="h-4 w-4" aria-hidden />
-                Export CSV
+                {t('Export CSV')}
               </Button>
               <Button
                 variant="secondary"
@@ -95,11 +97,11 @@ export function SalesBookPage() {
                 }
               >
                 <Download className="h-4 w-4" aria-hidden />
-                Export Excel
+                {t('Export Excel')}
               </Button>
               <Button onClick={() => window.print()} disabled={!data || data.length === 0}>
                 <Printer className="h-4 w-4" aria-hidden />
-                Print
+                {t('Print')}
               </Button>
             </div>
           }
@@ -109,15 +111,15 @@ export function SalesBookPage() {
           <div className="flex flex-wrap items-center gap-3 p-4">
             <div className="w-40">
               <Select
-                label="Month"
+                label={t('Month')}
                 value={String(month)}
                 onChange={(e) => set({ month: Number(e.target.value) })}
-                options={MONTHS.map((m, i) => ({ value: String(i + 1), label: m }))}
+                options={MONTHS.map((m, i) => ({ value: String(i + 1), label: t(m) }))}
               />
             </div>
             <div className="w-32">
               <Select
-                label="Year"
+                label={t('Year')}
                 value={String(year)}
                 onChange={(e) => set({ year: Number(e.target.value) })}
                 options={YEAR_OPTIONS.map((y) => ({ value: String(y), label: String(y) }))}
@@ -138,7 +140,7 @@ export function SalesBookPage() {
         ) : error ? (
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.length === 0 ? (
-          <EmptyState title="No sales" message="No invoices were issued in this period." />
+          <EmptyState title={t('No sales')} message={t('No invoices were issued in this period.')} />
         ) : (
           data && (
             <div className="overflow-x-auto">

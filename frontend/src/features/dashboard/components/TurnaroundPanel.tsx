@@ -3,10 +3,12 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useNavigateFrom } from '@/lib/navigation';
 import { SectionHeader } from './SectionHeader';
+import { useT } from '@/i18n';
 
 /** Turnaround risk, built from the results actually in flight — no fabricated average-minute figures. */
 export function TurnaroundPanel({ resultCounts }: { resultCounts: Record<string, number> }) {
   const navigate = useNavigateFrom();
+  const t = useT();
   const active = (resultCounts.PENDING ?? 0) + (resultCounts.ENTERED ?? 0) + (resultCounts.VERIFIED ?? 0);
   const overdue = resultCounts.OVERDUE ?? 0;
   const onTrack = Math.max(0, active - overdue);
@@ -20,7 +22,7 @@ export function TurnaroundPanel({ resultCounts }: { resultCounts: Record<string,
         action={
           overdue > 0 ? (
             <Button size="sm" variant="ghost" onClick={() => navigate('/app/results?overdueOnly=true')}>
-              View overdue
+              {t('View overdue')}
             </Button>
           ) : undefined
         }
@@ -28,7 +30,7 @@ export function TurnaroundPanel({ resultCounts }: { resultCounts: Record<string,
       {active === 0 ? (
         <div className="flex items-center gap-2 text-sm text-success">
           <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
-          No results currently in progress.
+          {t('No results currently in progress.')}
         </div>
       ) : (
         <>
@@ -39,13 +41,13 @@ export function TurnaroundPanel({ resultCounts }: { resultCounts: Record<string,
           <div className="mt-3 flex items-center justify-between text-sm">
             <span className="flex items-center gap-1.5 text-muted">
               <span className="h-2 w-2 rounded-full bg-success" aria-hidden />
-              {onTrack} on track
+              {t('{count} on track', { count: onTrack })}
             </span>
             <span className="flex items-center gap-1.5 text-muted">
               <span className="h-2 w-2 rounded-full bg-danger" aria-hidden />
-              {overdue} overdue
+              {t('{count} overdue', { count: overdue })}
             </span>
-            <span className="font-medium text-foreground">{active} in progress</span>
+            <span className="font-medium text-foreground">{t('{count} in progress', { count: active })}</span>
           </div>
         </>
       )}

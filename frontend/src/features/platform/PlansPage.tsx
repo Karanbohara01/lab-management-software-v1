@@ -8,6 +8,7 @@ import { ErrorState, EmptyState } from '@/components/ui/PageState';
 import { StatTileRow, type StatTileData } from '@/features/dashboard/components/StatTile';
 import { cn } from '@/lib/cn';
 import { useQuery } from '@/hooks/useQuery';
+import { useT } from '@/i18n';
 import { platformApi } from './api';
 import { PlanFormModal } from './PlanFormModal';
 import type { Plan } from './types';
@@ -15,6 +16,7 @@ import type { Plan } from './types';
 /** Subscription plans offered to clinics — previously fixed at three seeded rows with no way to
  * change a price or add a tier without a migration. Real CRUD now, same as everything else. */
 export function PlansPage() {
+  const t = useT();
   const { back } = useBackTarget();
   const [editing, setEditing] = useState<Plan | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -28,10 +30,10 @@ export function PlansPage() {
 
   const stats: StatTileData[] = data
     ? [
-        { label: 'Total plans', value: data.length, icon: CreditCard },
-        { label: 'Active (offered to new clinics)', value: data.filter((p) => p.active).length, icon: CheckCircle2 },
+        { label: t('Total plans'), value: data.length, icon: CreditCard },
+        { label: t('Active (offered to new clinics)'), value: data.filter((p) => p.active).length, icon: CheckCircle2 },
         {
-          label: 'Price range',
+          label: t('Price range'),
           value:
             data.length === 0
               ? '—'
@@ -55,12 +57,12 @@ export function PlansPage() {
     <>
       <PageHeader
         back={back}
-        title="Subscription plans"
-        description="Pricing tiers offered when onboarding a clinic. Only active plans are offered for new clinics."
+        title={t('Subscription plans')}
+        description={t('Pricing tiers offered when onboarding a clinic. Only active plans are offered for new clinics.')}
         actions={
           <Button onClick={openNew}>
             <Plus className="h-4 w-4" aria-hidden />
-            New plan
+            {t('New plan')}
           </Button>
         }
       />
@@ -77,9 +79,9 @@ export function PlansPage() {
         <ErrorState message={error} onRetry={refetch} />
       ) : data && data.length === 0 ? (
         <EmptyState
-          title="No plans yet"
-          message="Create the first plan to start onboarding clinics."
-          action={<Button onClick={openNew}>New plan</Button>}
+          title={t('No plans yet')}
+          message={t('Create the first plan to start onboarding clinics.')}
+          action={<Button onClick={openNew}>{t('New plan')}</Button>}
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -98,28 +100,28 @@ export function PlansPage() {
                   <p className="font-mono text-xs text-muted">{p.code}</p>
                   <h3 className="mt-0.5 text-lg font-semibold text-foreground">{p.name}</h3>
                 </div>
-                <Badge tone={p.active ? 'success' : 'neutral'}>{p.active ? 'Active' : 'Inactive'}</Badge>
+                <Badge tone={p.active ? 'success' : 'neutral'}>{p.active ? t('Active') : t('Inactive')}</Badge>
               </div>
 
               <p className="mt-4 flex items-baseline gap-1">
                 <span className="text-3xl font-bold text-foreground">NPR {p.priceMonthly.toLocaleString()}</span>
-                <span className="text-sm text-muted">/ mo</span>
+                <span className="text-sm text-muted">{t('/ mo')}</span>
               </p>
 
               {p.description ? (
                 <p className="mt-2 line-clamp-2 text-sm text-muted">{p.description}</p>
               ) : (
-                <p className="mt-2 text-sm italic text-muted">No description</p>
+                <p className="mt-2 text-sm italic text-muted">{t('No description')}</p>
               )}
 
               <ul className="mt-4 flex-1 space-y-2 border-t border-border pt-4 text-sm text-foreground">
                 <li className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-muted" aria-hidden />
-                  Up to {p.maxUsers.toLocaleString()} user{p.maxUsers === 1 ? '' : 's'}
+                  {t(p.maxUsers === 1 ? 'Up to {count} user' : 'Up to {count} users', { count: p.maxUsers.toLocaleString() })}
                 </li>
                 <li className="flex items-center gap-2">
                   <GitBranch className="h-4 w-4 text-muted" aria-hidden />
-                  Up to {p.maxBranches.toLocaleString()} branch{p.maxBranches === 1 ? '' : 'es'}
+                  {t(p.maxBranches === 1 ? 'Up to {count} branch' : 'Up to {count} branches', { count: p.maxBranches.toLocaleString() })}
                 </li>
               </ul>
             </button>

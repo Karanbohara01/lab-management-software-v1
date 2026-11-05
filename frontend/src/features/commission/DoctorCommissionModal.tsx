@@ -10,11 +10,12 @@ import { useQuery } from '@/hooks/useQuery';
 import { useToast } from '@/components/ui/toast';
 import { formatMoney } from '@/lib/money';
 import { ApiError } from '@/types/api';
+import { getLocale, LOCALE_TAG, useT } from '@/i18n';
 import { commissionApi } from './api';
 import { PAYMENT_METHOD_LABEL, type DoctorCommissionSummary, type PaymentMethod } from './types';
 
 function dt(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  return new Date(iso).toLocaleString(LOCALE_TAG[getLocale()], { dateStyle: 'medium', timeStyle: 'short' });
 }
 
 export function DoctorCommissionModal({
@@ -28,6 +29,7 @@ export function DoctorCommissionModal({
   onClose: () => void;
   onPaid: () => void;
 }) {
+  const t = useT();
   const toast = useToast();
   const entriesQ = useQuery(() => commissionApi.entries(summary.doctorId), [summary.doctorId]);
   const payoutsQ = useQuery(() => commissionApi.payouts(summary.doctorId), [summary.doctorId]);
@@ -54,12 +56,12 @@ export function DoctorCommissionModal({
         reference: reference || undefined,
         note: note || undefined,
       });
-      toast.success('Payout recorded');
+      toast.success(t('Payout recorded'));
       setShowPayoutForm(false);
       payoutsQ.refetch();
       onPaid();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Unable to record payout');
+      setError(err instanceof ApiError ? err.message : t('Unable to record payout'));
     } finally {
       setSaving(false);
     }
@@ -70,15 +72,15 @@ export function DoctorCommissionModal({
       <div className="space-y-5">
         <div className="grid grid-cols-3 gap-3 text-sm">
           <div className="rounded-md border border-border p-3">
-            <p className="text-xs text-muted">Earned</p>
+            <p className="text-xs text-muted">{t('Earned')}</p>
             <p className="text-lg font-semibold text-foreground">{formatMoney(summary.totalEarned)}</p>
           </div>
           <div className="rounded-md border border-border p-3">
-            <p className="text-xs text-muted">Paid</p>
+            <p className="text-xs text-muted">{t('Paid')}</p>
             <p className="text-lg font-semibold text-foreground">{formatMoney(summary.totalPaid)}</p>
           </div>
           <div className="rounded-md border border-border p-3">
-            <p className="text-xs text-muted">Outstanding</p>
+            <p className="text-xs text-muted">{t('Outstanding')}</p>
             <p className="text-lg font-semibold text-warning">{formatMoney(summary.outstanding)}</p>
           </div>
         </div>
@@ -86,12 +88,12 @@ export function DoctorCommissionModal({
         {canManage && summary.outstanding > 0 && (
           <div>
             {!showPayoutForm ? (
-              <Button onClick={() => setShowPayoutForm(true)}>Record payout</Button>
+              <Button onClick={() => setShowPayoutForm(true)}>{t('Record payout')}</Button>
             ) : (
               <div className="space-y-3 rounded-md border border-border p-4">
                 {error && <Alert tone="danger">{error}</Alert>}
                 <Input
-                  label="Amount (NPR)"
+                  label={t('Amount (NPR)')}
                   type="number"
                   step="any"
                   min={0}
@@ -100,22 +102,22 @@ export function DoctorCommissionModal({
                   onChange={(e) => setAmount(e.target.value)}
                 />
                 {numericAmount > summary.outstanding && (
-                  <Alert tone="warning">Exceeds outstanding balance of {formatMoney(summary.outstanding)}.</Alert>
+                  <Alert tone="warning">{t('Exceeds outstanding balance of {amount}.', { amount: formatMoney(summary.outstanding) })}</Alert>
                 )}
                 <Select
-                  label="Method"
-                  options={Object.entries(PAYMENT_METHOD_LABEL).map(([value, label]) => ({ value, label }))}
+                  label={t('Method')}
+                  options={Object.entries(PAYMENT_METHOD_LABEL).map(([value, label]) => ({ value, label: t(label) }))}
                   value={method}
                   onChange={(e) => setMethod(e.target.value as PaymentMethod)}
                 />
-                <Input label="Reference (optional)" value={reference} onChange={(e) => setReference(e.target.value)} />
-                <Textarea label="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} />
+                <Input label={t('Reference (optional)')} value={reference} onChange={(e) => setReference(e.target.value)} />
+                <Textarea label={t('Note (optional)')} value={note} onChange={(e) => setNote(e.target.value)} />
                 <div className="flex justify-end gap-2">
                   <Button variant="secondary" onClick={() => setShowPayoutForm(false)}>
-                    Cancel
+                    {t('Cancel')}
                   </Button>
                   <Button onClick={recordPayout} loading={saving} disabled={invalid}>
-                    Record payout
+                    {t('Record payout')}
                   </Button>
                 </div>
               </div>
@@ -124,22 +126,22 @@ export function DoctorCommissionModal({
         )}
 
         <div>
-          <p className="mb-2 text-sm font-semibold text-foreground">Earned entries</p>
+          <p className="mb-2 text-sm font-semibold text-foreground">{t('Earned entries')}</p>
           {entriesQ.loading && !entriesQ.data ? (
             <LoadingState />
           ) : entriesQ.data && entriesQ.data.length === 0 ? (
-            <p className="text-sm text-muted">No entries yet.</p>
+            <p className="text-sm text-muted">{t('No entries yet.')}</p>
           ) : (
             <div className="max-h-64 overflow-y-auto rounded-md border border-border">
               <table className="w-full text-xs">
                 <thead className="sticky top-0 bg-surface">
                   <tr className="border-b border-border text-left uppercase tracking-wide text-muted">
-                    <th className="px-3 py-1.5">Invoice</th>
-                    <th className="px-3 py-1.5">Order</th>
-                    <th className="px-3 py-1.5 text-right">Base</th>
-                    <th className="px-3 py-1.5 text-right">Rate</th>
-                    <th className="px-3 py-1.5 text-right">Commission</th>
-                    <th className="px-3 py-1.5">Earned</th>
+                    <th className="px-3 py-1.5">{t('Invoice')}</th>
+                    <th className="px-3 py-1.5">{t('Order')}</th>
+                    <th className="px-3 py-1.5 text-right">{t('Base')}</th>
+                    <th className="px-3 py-1.5 text-right">{t('Rate')}</th>
+                    <th className="px-3 py-1.5 text-right">{t('Commission')}</th>
+                    <th className="px-3 py-1.5">{t('Earned')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -160,11 +162,11 @@ export function DoctorCommissionModal({
         </div>
 
         <div>
-          <p className="mb-2 text-sm font-semibold text-foreground">Payout history</p>
+          <p className="mb-2 text-sm font-semibold text-foreground">{t('Payout history')}</p>
           {payoutsQ.loading && !payoutsQ.data ? (
             <LoadingState />
           ) : payoutsQ.data && payoutsQ.data.length === 0 ? (
-            <p className="text-sm text-muted">No payouts recorded yet.</p>
+            <p className="text-sm text-muted">{t('No payouts recorded yet.')}</p>
           ) : (
             <ul className="divide-y divide-border rounded-md border border-border text-sm">
               {payoutsQ.data?.map((p) => (
@@ -172,7 +174,7 @@ export function DoctorCommissionModal({
                   <div>
                     <p className="font-medium text-foreground">{formatMoney(p.amount)}</p>
                     <p className="text-xs text-muted">
-                      {dt(p.paidAt)} · {PAYMENT_METHOD_LABEL[p.method]} · {p.paidBy}
+                      {dt(p.paidAt)} · {t(PAYMENT_METHOD_LABEL[p.method])} · {p.paidBy}
                       {p.reference ? ` · ${p.reference}` : ''}
                     </p>
                   </div>

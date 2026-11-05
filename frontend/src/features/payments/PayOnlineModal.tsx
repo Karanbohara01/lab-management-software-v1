@@ -6,6 +6,7 @@ import { useQuery } from '@/hooks/useQuery';
 import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/types/api';
 import { formatMoney } from '@/lib/money';
+import { useT } from '@/i18n';
 import { paymentGatewaysApi, submitEsewaForm } from './api';
 import { PROVIDER_LABEL, type PaymentProvider } from './types';
 
@@ -20,6 +21,7 @@ export function PayOnlineModal({
   invoiceId: number;
   balance: number;
 }) {
+  const t = useT();
   const toast = useToast();
   const [provider, setProvider] = useState<PaymentProvider | null>(null);
   const [busy, setBusy] = useState(false);
@@ -37,12 +39,12 @@ export function PayOnlineModal({
       } else if (result.formAction && result.formFields) {
         submitEsewaForm(result.formAction, result.formFields);
       } else {
-        toast.error('Gateway did not return a way to continue checkout');
+        toast.error(t('Gateway did not return a way to continue checkout'));
         setBusy(false);
       }
       // page navigates away on success — no need to reset busy/close here
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to start checkout');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to start checkout'));
       setBusy(false);
     }
   };
@@ -51,28 +53,29 @@ export function PayOnlineModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Pay online"
+      title={t('Pay online')}
       footer={
         <>
           <Button variant="secondary" type="button" onClick={onClose} disabled={busy}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button onClick={pay} loading={busy} disabled={!provider}>
-            Continue to {provider ? PROVIDER_LABEL[provider] : 'gateway'}
+            {t('Continue to {gateway}', { gateway: provider ? PROVIDER_LABEL[provider] : t('gateway') })}
           </Button>
         </>
       }
     >
       <div className="space-y-4">
         <p className="text-sm text-muted">
-          Outstanding balance: <span className="font-semibold text-foreground">{formatMoney(balance)}</span>
+          {t('Outstanding balance')}: <span className="font-semibold text-foreground">{formatMoney(balance)}</span>
         </p>
         {loading ? (
-          <p className="text-sm text-muted">Loading available gateways…</p>
+          <p className="text-sm text-muted">{t('Loading available gateways…')}</p>
         ) : configured.length === 0 ? (
-          <Alert tone="warning" title="No payment gateway configured">
-            Neither eSewa nor Khalti is configured on this server. Ask an administrator to set up online payments, or
-            collect payment manually.
+          <Alert tone="warning" title={t('No payment gateway configured')}>
+            {t(
+              'Neither eSewa nor Khalti is configured on this server. Ask an administrator to set up online payments, or collect payment manually.',
+            )}
           </Alert>
         ) : (
           <div className="space-y-2">

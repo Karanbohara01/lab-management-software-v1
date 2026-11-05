@@ -1,5 +1,6 @@
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { useT } from '@/i18n';
 
 export const IMPORT_STEPS = [
   'Upload',
@@ -21,8 +22,9 @@ export type ImportStep = (typeof IMPORT_STEPS)[number];
  * one you are on.
  */
 export function ImportStepper({ current }: { current: number }) {
+  const t = useT();
   return (
-    <nav aria-label="Import progress" className="mb-6">
+    <nav aria-label={t('Import progress')} className="mb-6">
       <ol className="hidden items-center gap-1 sm:flex">
         {IMPORT_STEPS.map((label, index) => {
           const done = index < current;
@@ -46,8 +48,8 @@ export function ImportStepper({ current }: { current: number }) {
                   active ? 'font-semibold text-foreground' : 'text-muted',
                 )}
               >
-                {label}
-                {active && <span className="sr-only"> (current step)</span>}
+                {t(label)}
+                {active && <span className="sr-only"> {t('(current step)')}</span>}
               </span>
               {index < IMPORT_STEPS.length - 1 && (
                 <span className={cn('mx-1 h-px flex-1', done ? 'bg-primary' : 'bg-border')} aria-hidden />
@@ -58,9 +60,9 @@ export function ImportStepper({ current }: { current: number }) {
       </ol>
 
       <p className="text-caption text-muted sm:hidden">
-        Step {current + 1} of {IMPORT_STEPS.length}
+        {t('Step {current} of {total}', { current: current + 1, total: IMPORT_STEPS.length })}
         <span className="mx-1.5">·</span>
-        <span className="font-semibold text-foreground">{IMPORT_STEPS[current]}</span>
+        <span className="font-semibold text-foreground">{t(IMPORT_STEPS[current] ?? '')}</span>
       </p>
     </nav>
   );

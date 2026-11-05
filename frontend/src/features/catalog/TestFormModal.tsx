@@ -34,6 +34,7 @@ import {
   type TestDetail,
   type TestUpsertPayload,
 } from './types';
+import { useT, tOpts } from '@/i18n';
 
 const numish = z
   .union([z.coerce.number(), z.literal('')])
@@ -170,6 +171,7 @@ function ParameterRow({
   onRemove: () => void;
   presetsByName: Map<string, ParameterMaster>;
 }) {
+  const t = useT();
   const name = param?.name?.trim();
 
   const applyPreset = (typed: string) => {
@@ -206,7 +208,7 @@ function ParameterRow({
   const field = (k: keyof FormValues['parameters'][number]) => `parameters.${index}.${k}` as const;
 
   const summary = [
-    DATA_TYPE_LABELS[dataType],
+    t(DATA_TYPE_LABELS[dataType]),
     param?.unit || null,
     isNumeric && !isCalc && (param?.low !== '' || param?.high !== '')
       ? `${param?.low || '…'}–${param?.high || '…'}`
@@ -229,16 +231,16 @@ function ParameterRow({
             aria-hidden
           />
           <span className="shrink-0 text-sm font-medium text-foreground">
-            {name || `Parameter ${index + 1}`}
+            {name || t('Parameter {n}', { n: index + 1 })}
           </span>
-          {isCalc && <Badge tone="info">calculated</Badge>}
+          {isCalc && <Badge tone="info">{t('calculated')}</Badge>}
           {!open && summary && <span className="truncate text-xs text-muted">{summary}</span>}
         </button>
         <button
           type="button"
           onClick={onRemove}
           className="rounded p-1 text-muted hover:text-danger"
-          aria-label={`Remove parameter ${index + 1}`}
+          aria-label={t('Remove parameter {n}', { n: index + 1 })}
         >
           <Trash2 className="h-4 w-4" aria-hidden />
         </button>
@@ -248,43 +250,44 @@ function ParameterRow({
         <div className="space-y-4 border-t border-border px-3 py-3">
           <div className="grid gap-3 sm:grid-cols-4">
             <Input
-              label="Name"
+              label={t('Name')}
               list="lab-analyte-options"
-              placeholder="Type or pick…"
+              placeholder={t('Type or pick…')}
               error={err?.name?.message}
               {...register(field('name'), {
                 onChange: (e) => applyPreset(e.target.value),
               })}
             />
-            <Input label="Code" hint="Used in formulas" {...register(field('code'))} />
-            <Input label="Unit" list="lab-unit-options" placeholder="Type or pick…" {...register(field('unit'))} />
-            <Select label="Type" options={DATA_TYPE_OPTIONS} {...register(field('dataType'))} />
+            <Input label={t('Code')} hint={t('Used in formulas')} {...register(field('code'))} />
+            <Input label={t('Unit')} list="lab-unit-options" placeholder={t('Type or pick…')} {...register(field('unit'))} />
+            <Select label={t('Type')} options={tOpts(DATA_TYPE_OPTIONS)} {...register(field('dataType'))} />
           </div>
 
           {isNumeric && isCalc && (
             <p className="rounded-md bg-primary/5 px-3 py-2 text-xs text-muted">
-              Calculated parameter — its value comes from the formula in Advanced; no manual entry or
-              reference range.
+              {t(
+                'Calculated parameter — its value comes from the formula in Advanced; no manual entry or reference range.',
+              )}
             </p>
           )}
 
           {isNumeric && !isCalc && (
             <fieldset className="rounded-md border border-border p-3">
               <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted">
-                Reference range
+                {t('Reference range')}
               </legend>
               <div className="grid gap-3 sm:grid-cols-4">
-                <Input label="Normal low" type="number" step="any" {...register(field('low'))} />
-                <Input label="Normal high" type="number" step="any" {...register(field('high'))} />
-                <Input label="Critical low" type="number" step="any" {...register(field('criticalLow'))} />
-                <Input label="Critical high" type="number" step="any" {...register(field('criticalHigh'))} />
+                <Input label={t('Normal low')} type="number" step="any" {...register(field('low'))} />
+                <Input label={t('Normal high')} type="number" step="any" {...register(field('high'))} />
+                <Input label={t('Critical low')} type="number" step="any" {...register(field('criticalLow'))} />
+                <Input label={t('Critical high')} type="number" step="any" {...register(field('criticalHigh'))} />
               </div>
               {showBand ? (
                 <div className="mt-3 grid gap-3 sm:grid-cols-4">
-                  <Select label="Applies to" options={GENDER_OPTIONS} {...register(field('gender'))} />
-                  <Input label="Age from" type="number" min={0} {...register(field('ageLow'))} />
-                  <Input label="Age to" type="number" min={0} {...register(field('ageHigh'))} />
-                  <Select label="Age unit" options={AGE_UNIT_OPTIONS} {...register(field('ageUnit'))} />
+                  <Select label={t('Applies to')} options={tOpts(GENDER_OPTIONS)} {...register(field('gender'))} />
+                  <Input label={t('Age from')} type="number" min={0} {...register(field('ageLow'))} />
+                  <Input label={t('Age to')} type="number" min={0} {...register(field('ageHigh'))} />
+                  <Select label={t('Age unit')} options={tOpts(AGE_UNIT_OPTIONS)} {...register(field('ageUnit'))} />
                 </div>
               ) : (
                 <button
@@ -292,7 +295,7 @@ function ParameterRow({
                   onClick={() => setShowBand(true)}
                   className="mt-2 text-sm font-medium text-primary hover:underline"
                 >
-                  + Age / sex-specific range
+                  {t('+ Age / sex-specific range')}
                 </button>
               )}
             </fieldset>
@@ -300,16 +303,16 @@ function ParameterRow({
 
           {isCategorical && (
             <Input
-              label="Allowed values"
+              label={t('Allowed values')}
               placeholder="Nil | Trace | 1+ | 2+ | 3+"
-              hint="Separate the options with a vertical bar ( | )"
+              hint={t('Separate the options with a vertical bar ( | )')}
               {...register(field('allowedValues'))}
             />
           )}
 
           {!isNumeric && !isCategorical && (
             <Input
-              label="Normal / expected result"
+              label={t('Normal / expected result')}
               placeholder="e.g. Negative, Nil, Clear"
               {...register(field('normalText'))}
             />
@@ -318,41 +321,41 @@ function ParameterRow({
           <details className="group rounded-md border border-border px-3 py-2">
             <summary className="cursor-pointer list-none text-xs font-semibold uppercase tracking-wide text-muted">
               <ChevronRight className="mr-1 inline h-3 w-3 transition-transform group-open:rotate-90" aria-hidden />
-              Advanced — grouping, formula, plausibility, delta
+              {t('Advanced — grouping, formula, plausibility, delta')}
             </summary>
             <div className="mt-3 space-y-3">
               <div className="grid gap-3 sm:grid-cols-2">
-                <Input label="Group heading" placeholder="e.g. Differential count" {...register(field('groupHeading'))} />
-                <Input label="Method / analyzer" {...register(field('method'))} />
+                <Input label={t('Group heading')} placeholder="e.g. Differential count" {...register(field('groupHeading'))} />
+                <Input label={t('Method / analyzer')} {...register(field('method'))} />
               </div>
               {isNumeric && (
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Input label="Decimal places" type="number" min={0} {...register(field('decimalPlaces'))} />
+                  <Input label={t('Decimal places')} type="number" min={0} {...register(field('decimalPlaces'))} />
                   <Input
-                    label="Formula"
+                    label={t('Formula')}
                     placeholder="e.g. TC - HDL - TG/5"
-                    hint="Arithmetic over other parameter codes"
+                    hint={t('Arithmetic over other parameter codes')}
                     {...register(field('calculationFormula'))}
                   />
                   <Input
-                    label="Plausible min"
+                    label={t('Plausible min')}
                     type="number"
                     step="any"
-                    hint="Reject values below this"
+                    hint={t('Reject values below this')}
                     {...register(field('absurdLow'))}
                   />
                   <Input
-                    label="Plausible max"
+                    label={t('Plausible max')}
                     type="number"
                     step="any"
-                    hint="Reject values above this"
+                    hint={t('Reject values above this')}
                     {...register(field('absurdHigh'))}
                   />
                   <Input
-                    label="Delta check %"
+                    label={t('Delta check %')}
                     type="number"
                     step="any"
-                    hint="Flag if change vs the previous result exceeds this"
+                    hint={t('Flag if change vs the previous result exceeds this')}
                     {...register(field('deltaCheckPercent'))}
                   />
                 </div>
@@ -448,6 +451,7 @@ export function TestFormModal({
   departments: Department[];
   onSaved: () => void;
 }) {
+  const t = useT();
   const toast = useToast();
   const [memberIds, setMemberIds] = useState<number[]>([]);
   const [memberSearch, setMemberSearch] = useState('');
@@ -532,7 +536,7 @@ export function TestFormModal({
   const onSubmit = handleSubmit(async (values) => {
     const parsed = values as ParsedValues;
     if (parsed.type === 'PROFILE' && memberIds.length === 0) {
-      setError('root', { message: 'Add at least one member test to the profile.' });
+      setError('root', { message: t('Add at least one member test to the profile.') });
       return;
     }
     try {
@@ -540,15 +544,15 @@ export function TestFormModal({
       if (test) {
         const { code: _code, ...rest } = payload;
         await testCatalogApi.update(test.id, rest);
-        toast.success('Test updated');
+        toast.success(t('Test updated'));
       } else {
         await testCatalogApi.create(payload);
-        toast.success('Test added to catalog');
+        toast.success(t('Test added to catalog'));
       }
       onSaved();
       onClose();
     } catch (err) {
-      setError('root', { message: err instanceof ApiError ? err.message : 'Unable to save test' });
+      setError('root', { message: err instanceof ApiError ? err.message : t('Unable to save test') });
     }
   });
 
@@ -568,28 +572,28 @@ export function TestFormModal({
   const memberOptions = useMemo(
     () =>
       (allTests.data?.content ?? [])
-        .filter((t) => t.type === 'ANALYTE' && t.id !== test?.id)
-        .filter((t) =>
+        .filter((tst) => tst.type === 'ANALYTE' && tst.id !== test?.id)
+        .filter((tst) =>
           memberSearch
-            ? `${t.code} ${t.name}`.toLowerCase().includes(memberSearch.toLowerCase())
+            ? `${tst.code} ${tst.name}`.toLowerCase().includes(memberSearch.toLowerCase())
             : true,
         ),
     [allTests.data, memberSearch, test?.id],
   );
-  const selectedMembers = (allTests.data?.content ?? []).filter((t) => memberIds.includes(t.id));
+  const selectedMembers = (allTests.data?.content ?? []).filter((tst) => memberIds.includes(tst.id));
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title={test ? `Edit test · ${test.code}` : 'New test'}
+      title={test ? t('Edit test · {code}', { code: test.code }) : t('New test')}
       size="xl"
       confirmClose={(isDirty || membersChanged) && !isSubmitting}
       footer={
         <>
           <ModalCancelButton />
           <Button type="submit" form="test-form" loading={isSubmitting}>
-            {test ? 'Save changes' : 'Add test'}
+            {test ? t('Save changes') : t('Add test')}
           </Button>
         </>
       }
@@ -607,118 +611,123 @@ export function TestFormModal({
         </datalist>
         {errors.root && <Alert tone="danger">{errors.root.message}</Alert>}
 
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Test details</h3>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">{t('Test details')}</h3>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Code" disabled={!!test} error={errors.code?.message} {...register('code')} />
-          <Input label="Test name" data-autofocus error={errors.name?.message} {...register('name')} />
+          <Input label={t('Code')} disabled={!!test} error={errors.code?.message} {...register('code')} />
+          <Input label={t('Test name')} data-autofocus error={errors.name?.message} {...register('name')} />
           <Select
-            label="Type"
+            label={t('Type')}
             options={[
-              { value: 'ANALYTE', label: 'Analyte — measured test with parameters' },
-              { value: 'PROFILE', label: 'Profile / panel — bundle of member tests' },
+              { value: 'ANALYTE', label: t('Analyte — measured test with parameters') },
+              { value: 'PROFILE', label: t('Profile / panel — bundle of member tests') },
             ]}
             {...register('type')}
           />
           {type === 'ANALYTE' && (
             <Select
-              label="Result entry"
+              label={t('Result entry')}
               options={[
-                { value: 'PARAMETRIC', label: 'Parametric — one value per parameter' },
-                { value: 'CULTURE', label: 'Culture — microbiology growth + sensitivity' },
+                { value: 'PARAMETRIC', label: t('Parametric — one value per parameter') },
+                { value: 'CULTURE', label: t('Culture — microbiology growth + sensitivity') },
               ]}
               {...register('resultMode')}
             />
           )}
-          <Select label="Department" options={deptOptions} placeholder="Select…" error={errors.departmentId?.message} {...register('departmentId')} />
-          <Input label="Category" {...register('category')} />
-          <Select label="Specimen type" options={specimenOptions} {...register('specimenType')} />
-          <Input label="Method" {...register('method')} />
-          <Input label="LOINC code" {...register('loincCode')} />
-          <Input label="Price (NPR)" type="number" step="0.01" min={0} error={errors.price?.message} {...register('price')} />
-          <Input label="Turnaround (hours)" type="number" min={0} {...register('turnaroundHours')} />
+          <Select label={t('Department')} options={deptOptions} placeholder={t('Select…')} error={errors.departmentId?.message} {...register('departmentId')} />
+          <Input label={t('Category')} {...register('category')} />
+          <Select label={t('Specimen type')} options={tOpts(specimenOptions)} {...register('specimenType')} />
+          <Input label={t('Method')} {...register('method')} />
+          <Input label={t('LOINC code')} {...register('loincCode')} />
+          <Input label={t('Price (NPR)')} type="number" step="0.01" min={0} error={errors.price?.message} {...register('price')} />
+          <Input label={t('Turnaround (hours)')} type="number" min={0} {...register('turnaroundHours')} />
         </div>
 
         <details className="rounded-md border border-border p-3">
-          <summary className="cursor-pointer text-sm font-semibold text-foreground">Specimen &amp; handling</summary>
+          <summary className="cursor-pointer text-sm font-semibold text-foreground">{t('Specimen & handling')}</summary>
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
-            <Input label="Container / tube" placeholder="e.g. Lavender EDTA" {...register('containerType')} />
-            <Input label="Min volume (mL)" type="number" step="any" {...register('minVolumeMl')} />
-            <Input label="Stability" placeholder="e.g. 24h at 2–8°C" {...register('stabilityNote')} />
-            <Checkbox label="Fasting required" {...register('fastingRequired')} />
-            {fasting && <Input label="Fasting hours" type="number" min={0} {...register('fastingHours')} />}
-            <Checkbox label="Send-away (referral) test" {...register('referral')} />
-            {referral && <Input label="Reference laboratory" {...register('referralLab')} />}
+            <Input label={t('Container / tube')} placeholder="e.g. Lavender EDTA" {...register('containerType')} />
+            <Input label={t('Min volume (mL)')} type="number" step="any" {...register('minVolumeMl')} />
+            <Input label={t('Stability')} placeholder="e.g. 24h at 2–8°C" {...register('stabilityNote')} />
+            <Checkbox label={t('Fasting required')} {...register('fastingRequired')} />
+            {fasting && <Input label={t('Fasting hours')} type="number" min={0} {...register('fastingHours')} />}
+            <Checkbox label={t('Send-away (referral) test')} {...register('referral')} />
+            {referral && <Input label={t('Reference laboratory')} {...register('referralLab')} />}
           </div>
-          <Textarea label="Specimen requirements / instructions" className="mt-3" {...register('specimenRequirements')} />
+          <Textarea label={t('Specimen requirements / instructions')} className="mt-3" {...register('specimenRequirements')} />
           <Checkbox
             className="mt-3"
-            label="Auto-verify normal results"
-            hint="A fully-normal, in-range result with no delta breach is verified automatically"
+            label={t('Auto-verify normal results')}
+            hint={t('A fully-normal, in-range result with no delta breach is verified automatically')}
             {...register('autoVerifyEnabled')}
           />
         </details>
 
         {type === 'PROFILE' ? (
           <div>
-            <h3 className="mb-2 text-sm font-semibold text-foreground">Member tests</h3>
+            <h3 className="mb-2 text-sm font-semibold text-foreground">{t('Member tests')}</h3>
             <div className="mb-2 flex flex-wrap gap-1.5">
               {selectedMembers.map((m) => (
                 <Badge key={m.id} tone="info">
                   {m.code}
-                  <button type="button" onClick={() => setMemberIds((ids) => ids.filter((i) => i !== m.id))} aria-label={`Remove ${m.code}`}>
+                  <button type="button" onClick={() => setMemberIds((ids) => ids.filter((i) => i !== m.id))} aria-label={t('Remove {code}', { code: m.code })}>
                     <X className="h-3 w-3" aria-hidden />
                   </button>
                 </Badge>
               ))}
-              {selectedMembers.length === 0 && <span className="text-sm text-muted">No member tests yet.</span>}
+              {selectedMembers.length === 0 && <span className="text-sm text-muted">{t('No member tests yet.')}</span>}
             </div>
-            <Input placeholder="Search tests to add…" value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)} />
+            <Input placeholder={t('Search tests to add…')} value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)} />
             {memberSearch && (
               <ul className="mt-1 max-h-48 overflow-y-auto rounded-md border border-border">
-                {memberOptions.map((t) => (
-                  <li key={t.id}>
+                {memberOptions.map((tst) => (
+                  <li key={tst.id}>
                     <button
                       type="button"
-                      disabled={memberIds.includes(t.id)}
+                      disabled={memberIds.includes(tst.id)}
                       onClick={() => {
-                        setMemberIds((ids) => [...ids, t.id]);
+                        setMemberIds((ids) => [...ids, tst.id]);
                         setMemberSearch('');
                       }}
                       className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-surface-muted disabled:opacity-40"
                     >
-                      <span className="font-mono text-xs text-muted">{t.code}</span>
-                      {t.name}
-                      <span className="ml-auto text-xs text-muted">{t.departmentName}</span>
+                      <span className="font-mono text-xs text-muted">{tst.code}</span>
+                      {tst.name}
+                      <span className="ml-auto text-xs text-muted">{tst.departmentName}</span>
                     </button>
                   </li>
                 ))}
-                {memberOptions.length === 0 && <li className="px-3 py-2 text-sm text-muted">No matching analyte tests.</li>}
+                {memberOptions.length === 0 && <li className="px-3 py-2 text-sm text-muted">{t('No matching analyte tests.')}</li>}
               </ul>
             )}
             <p className="mt-2 text-xs text-muted">
-              Ordering this profile bills the price above and produces results for each member test.
+              {t('Ordering this profile bills the price above and produces results for each member test.')}
             </p>
           </div>
         ) : isCulture ? (
-          <Alert tone="info" title="Culture & sensitivity test">
-            Results are entered as a growth outcome plus, when organisms are isolated, an antibiotic
-            susceptibility panel per isolate — configured on the result screen, not here. No parameters
-            are needed.
+          <Alert tone="info" title={t('Culture & sensitivity test')}>
+            {t(
+              'Results are entered as a growth outcome plus, when organisms are isolated, an antibiotic susceptibility panel per isolate — configured on the result screen, not here. No parameters are needed.',
+            )}
           </Alert>
         ) : (
           <div>
             <div className="mb-2 flex items-center justify-between">
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Parameters</h3>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">{t('Parameters')}</h3>
                 <p className="text-xs text-muted">
                   {fields.length === 0
-                    ? 'A test can report a single value or several parameters.'
-                    : `${fields.length} parameter${fields.length === 1 ? '' : 's'} — click a row to expand.`}
+                    ? t('A test can report a single value or several parameters.')
+                    : t(
+                        fields.length === 1
+                          ? '{count} parameter — click a row to expand.'
+                          : '{count} parameters — click a row to expand.',
+                        { count: fields.length },
+                      )}
                 </p>
               </div>
               <Button type="button" variant="secondary" size="sm" onClick={() => append(emptyParam)}>
                 <Plus className="h-4 w-4" aria-hidden />
-                Add parameter
+                {t('Add parameter')}
               </Button>
             </div>
 
@@ -728,7 +737,7 @@ export function TestFormModal({
                 onClick={() => append(emptyParam)}
                 className="w-full rounded-md border border-dashed border-border px-3 py-6 text-center text-sm text-muted hover:border-primary hover:text-primary"
               >
-                + Add the first parameter
+                {t('+ Add the first parameter')}
               </button>
             ) : (
               <ul className="space-y-2">

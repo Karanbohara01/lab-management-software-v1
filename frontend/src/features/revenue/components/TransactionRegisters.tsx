@@ -14,6 +14,7 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { formatAmount } from '@/lib/money';
 import { exportCsv } from '@/lib/exportData';
 import type { PaymentMethod } from '@/features/billing/types';
+import { getLocale, LOCALE_TAG, useT } from '@/i18n';
 import { revenueApi, type RevenueWindow } from '../api';
 import {
   PAYMENT_METHOD_LABEL,
@@ -27,11 +28,11 @@ const PAGE_SIZE = 25;
 const METHODS: PaymentMethod[] = ['CASH', 'CARD', 'BANK_TRANSFER', 'DIGITAL_WALLET', 'CHEQUE', 'CREDIT'];
 
 function dt(iso: string | null): string {
-  return iso ? new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+  return iso ? new Date(iso).toLocaleString(LOCALE_TAG[getLocale()], { dateStyle: 'medium', timeStyle: 'short' }) : '—';
 }
 
 function d(iso: string | null): string {
-  return iso ? new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '—';
+  return iso ? new Date(iso).toLocaleDateString(LOCALE_TAG[getLocale()], { dateStyle: 'medium' }) : '—';
 }
 
 type RegisterTab = 'payments' | 'refunds' | 'outstanding';
@@ -42,6 +43,7 @@ type RegisterTab = 'payments' | 'refunds' | 'outstanding';
  * period never ships a whole table to the browser.
  */
 export function TransactionRegisters({ window, windowLabel }: { window: RevenueWindow; windowLabel: string }) {
+  const t = useT();
   const [tab, setTab] = useState<RegisterTab>('payments');
   const [page, setPage] = useState(0);
   const [method, setMethod] = useState<PaymentMethod | ''>('');
@@ -72,12 +74,12 @@ export function TransactionRegisters({ window, windowLabel }: { window: RevenueW
   );
 
   const paymentColumns: Column<PaymentRow>[] = [
-    { key: 'receivedAt', header: 'Received', cell: (r) => dt(r.receivedAt) },
-    { key: 'receipt', header: 'Receipt', cell: (r) => <span className="font-mono text-xs">#{r.id}</span> },
-    { key: 'invoice', header: 'Invoice', cell: (r) => <span className="font-mono text-xs">{r.invoiceNumber}</span> },
+    { key: 'receivedAt', header: t('Received'), cell: (r) => dt(r.receivedAt) },
+    { key: 'receipt', header: t('Receipt'), cell: (r) => <span className="font-mono text-xs">#{r.id}</span> },
+    { key: 'invoice', header: t('Invoice'), cell: (r) => <span className="font-mono text-xs">{r.invoiceNumber}</span> },
     {
       key: 'patient',
-      header: 'Patient',
+      header: t('Patient'),
       cell: (r) => (
         <span className="flex min-w-0 flex-col">
           <span className="truncate">{r.patientName}</span>
@@ -85,39 +87,39 @@ export function TransactionRegisters({ window, windowLabel }: { window: RevenueW
         </span>
       ),
     },
-    { key: 'method', header: 'Method', cell: (r) => PAYMENT_METHOD_LABEL[r.method] ?? r.method, hideOnMobile: true },
-    { key: 'reference', header: 'Reference', cell: (r) => r.reference ?? <span className="text-muted">—</span>, hideOnMobile: true },
-    { key: 'receivedBy', header: 'Received by', cell: (r) => r.receivedBy, hideOnMobile: true },
-    { key: 'amount', header: 'Amount', cell: (r) => formatAmount(r.amount), className: 'text-right tabular-nums' },
+    { key: 'method', header: t('Method'), cell: (r) => t(PAYMENT_METHOD_LABEL[r.method] ?? r.method), hideOnMobile: true },
+    { key: 'reference', header: t('Reference'), cell: (r) => r.reference ?? <span className="text-muted">—</span>, hideOnMobile: true },
+    { key: 'receivedBy', header: t('Received by'), cell: (r) => r.receivedBy, hideOnMobile: true },
+    { key: 'amount', header: t('Amount'), cell: (r) => formatAmount(r.amount), className: 'text-right tabular-nums' },
     {
       key: 'status',
-      header: 'Status',
+      header: t('Status'),
       cell: (r) =>
         r.refundedAmount > 0 ? (
-          <Badge tone="warning">Refunded {formatAmount(r.refundedAmount)}</Badge>
+          <Badge tone="warning">{t('Refunded {amount}', { amount: formatAmount(r.refundedAmount) })}</Badge>
         ) : (
-          <Badge tone="success">Settled</Badge>
+          <Badge tone="success">{t('Settled')}</Badge>
         ),
     },
   ];
 
   const refundColumns: Column<RefundRow>[] = [
-    { key: 'decidedAt', header: 'Approved', cell: (r) => dt(r.decidedAt) },
-    { key: 'invoice', header: 'Invoice', cell: (r) => <span className="font-mono text-xs">{r.invoiceNumber}</span> },
-    { key: 'patient', header: 'Patient', cell: (r) => r.patientName },
-    { key: 'reason', header: 'Reason', cell: (r) => r.reason, hideOnMobile: true },
-    { key: 'method', header: 'Original method', cell: (r) => (r.paymentMethod ? PAYMENT_METHOD_LABEL[r.paymentMethod] : '—'), hideOnMobile: true },
-    { key: 'requestedBy', header: 'Requested by', cell: (r) => r.requestedBy, hideOnMobile: true },
-    { key: 'decidedBy', header: 'Approved by', cell: (r) => r.decidedBy ?? '—', hideOnMobile: true },
-    { key: 'amount', header: 'Amount', cell: (r) => formatAmount(r.amount), className: 'text-right tabular-nums' },
+    { key: 'decidedAt', header: t('Approved'), cell: (r) => dt(r.decidedAt) },
+    { key: 'invoice', header: t('Invoice'), cell: (r) => <span className="font-mono text-xs">{r.invoiceNumber}</span> },
+    { key: 'patient', header: t('Patient'), cell: (r) => r.patientName },
+    { key: 'reason', header: t('Reason'), cell: (r) => r.reason, hideOnMobile: true },
+    { key: 'method', header: t('Original method'), cell: (r) => (r.paymentMethod ? t(PAYMENT_METHOD_LABEL[r.paymentMethod]) : '—'), hideOnMobile: true },
+    { key: 'requestedBy', header: t('Requested by'), cell: (r) => r.requestedBy, hideOnMobile: true },
+    { key: 'decidedBy', header: t('Approved by'), cell: (r) => r.decidedBy ?? '—', hideOnMobile: true },
+    { key: 'amount', header: t('Amount'), cell: (r) => formatAmount(r.amount), className: 'text-right tabular-nums' },
   ];
 
   const outstandingColumns: Column<OutstandingRow>[] = [
-    { key: 'invoice', header: 'Invoice', cell: (r) => <span className="font-mono text-xs">{r.invoiceNumber}</span> },
-    { key: 'issuedAt', header: 'Issued', cell: (r) => d(r.issuedAt) },
+    { key: 'invoice', header: t('Invoice'), cell: (r) => <span className="font-mono text-xs">{r.invoiceNumber}</span> },
+    { key: 'issuedAt', header: t('Issued'), cell: (r) => d(r.issuedAt) },
     {
       key: 'patient',
-      header: 'Patient',
+      header: t('Patient'),
       cell: (r) => (
         <span className="flex min-w-0 flex-col">
           <span className="truncate">{r.patientName}</span>
@@ -125,19 +127,19 @@ export function TransactionRegisters({ window, windowLabel }: { window: RevenueW
         </span>
       ),
     },
-    { key: 'payer', header: 'Payer', cell: (r) => r.payerName ?? <span className="text-muted">Self</span>, hideOnMobile: true },
-    { key: 'total', header: 'Invoice total', cell: (r) => formatAmount(r.totalAmount), className: 'text-right tabular-nums', hideOnMobile: true },
-    { key: 'paid', header: 'Paid', cell: (r) => formatAmount(r.netPaid), className: 'text-right tabular-nums', hideOnMobile: true },
-    { key: 'balance', header: 'Balance', cell: (r) => formatAmount(r.balance), className: 'text-right tabular-nums' },
+    { key: 'payer', header: t('Payer'), cell: (r) => r.payerName ?? <span className="text-muted">{t('Self')}</span>, hideOnMobile: true },
+    { key: 'total', header: t('Invoice total'), cell: (r) => formatAmount(r.totalAmount), className: 'text-right tabular-nums', hideOnMobile: true },
+    { key: 'paid', header: t('Paid'), cell: (r) => formatAmount(r.netPaid), className: 'text-right tabular-nums', hideOnMobile: true },
+    { key: 'balance', header: t('Balance'), cell: (r) => formatAmount(r.balance), className: 'text-right tabular-nums' },
     {
       key: 'status',
-      header: 'Status',
+      header: t('Status'),
       cell: (r) => (
         <span className="flex flex-col gap-0.5">
           <Badge tone={r.paymentStatus === 'PARTIAL' ? 'warning' : 'neutral'}>
-            {r.paymentStatus === 'PARTIAL' ? 'Part paid' : 'Unpaid'}
+            {t(r.paymentStatus === 'PARTIAL' ? 'Part paid' : 'Unpaid')}
           </Badge>
-          <span className="text-xs text-muted">{r.daysOutstanding}d</span>
+          <span className="text-xs text-muted">{t('{days}d', { days: r.daysOutstanding })}</span>
         </span>
       ),
     },
@@ -151,16 +153,16 @@ export function TransactionRegisters({ window, windowLabel }: { window: RevenueW
       exportCsv(
         payments.data.content as unknown as Record<string, unknown>[],
         [
-          { key: 'id', header: 'Receipt' },
-          { key: 'receivedAt', header: 'Received at' },
-          { key: 'invoiceNumber', header: 'Invoice' },
-          { key: 'patientMrn', header: 'Patient ID' },
-          { key: 'patientName', header: 'Patient' },
-          { key: 'method', header: 'Method' },
-          { key: 'reference', header: 'Reference' },
-          { key: 'receivedBy', header: 'Received by' },
-          { key: 'amount', header: 'Amount' },
-          { key: 'refundedAmount', header: 'Refunded' },
+          { key: 'id', header: t('Receipt') },
+          { key: 'receivedAt', header: t('Received at') },
+          { key: 'invoiceNumber', header: t('Invoice') },
+          { key: 'patientMrn', header: t('Patient ID') },
+          { key: 'patientName', header: t('Patient') },
+          { key: 'method', header: t('Method') },
+          { key: 'reference', header: t('Reference') },
+          { key: 'receivedBy', header: t('Received by') },
+          { key: 'amount', header: t('Amount') },
+          { key: 'refundedAmount', header: t('Refunded') },
         ],
         `revenue-payments-${windowLabel}.csv`,
       );
@@ -168,13 +170,13 @@ export function TransactionRegisters({ window, windowLabel }: { window: RevenueW
       exportCsv(
         refunds.data.content as unknown as Record<string, unknown>[],
         [
-          { key: 'decidedAt', header: 'Approved at' },
-          { key: 'invoiceNumber', header: 'Invoice' },
-          { key: 'patientName', header: 'Patient' },
-          { key: 'amount', header: 'Amount' },
-          { key: 'reason', header: 'Reason' },
-          { key: 'requestedBy', header: 'Requested by' },
-          { key: 'decidedBy', header: 'Approved by' },
+          { key: 'decidedAt', header: t('Approved at') },
+          { key: 'invoiceNumber', header: t('Invoice') },
+          { key: 'patientName', header: t('Patient') },
+          { key: 'amount', header: t('Amount') },
+          { key: 'reason', header: t('Reason') },
+          { key: 'requestedBy', header: t('Requested by') },
+          { key: 'decidedBy', header: t('Approved by') },
         ],
         `revenue-refunds-${windowLabel}.csv`,
       );
@@ -182,15 +184,15 @@ export function TransactionRegisters({ window, windowLabel }: { window: RevenueW
       exportCsv(
         outstanding.data.content as unknown as Record<string, unknown>[],
         [
-          { key: 'invoiceNumber', header: 'Invoice' },
-          { key: 'issuedAt', header: 'Issued at' },
-          { key: 'patientMrn', header: 'Patient ID' },
-          { key: 'patientName', header: 'Patient' },
-          { key: 'payerName', header: 'Payer' },
-          { key: 'totalAmount', header: 'Invoice total' },
-          { key: 'netPaid', header: 'Paid' },
-          { key: 'balance', header: 'Balance' },
-          { key: 'daysOutstanding', header: 'Days outstanding' },
+          { key: 'invoiceNumber', header: t('Invoice') },
+          { key: 'issuedAt', header: t('Issued at') },
+          { key: 'patientMrn', header: t('Patient ID') },
+          { key: 'patientName', header: t('Patient') },
+          { key: 'payerName', header: t('Payer') },
+          { key: 'totalAmount', header: t('Invoice total') },
+          { key: 'netPaid', header: t('Paid') },
+          { key: 'balance', header: t('Balance') },
+          { key: 'daysOutstanding', header: t('Days outstanding') },
         ],
         `revenue-outstanding-${windowLabel}.csv`,
       );
@@ -203,19 +205,19 @@ export function TransactionRegisters({ window, windowLabel }: { window: RevenueW
         <Tabs
           className="border-b-0"
           value={tab}
-          onChange={(t) => {
-            setTab(t);
+          onChange={(tabId) => {
+            setTab(tabId);
             setPage(0);
           }}
           tabs={[
-            { id: 'payments', label: `Payments${payments.data ? ` (${payments.data.totalElements})` : ''}` },
-            { id: 'refunds', label: `Refunds${refunds.data ? ` (${refunds.data.totalElements})` : ''}` },
-            { id: 'outstanding', label: `Outstanding${outstanding.data ? ` (${outstanding.data.totalElements})` : ''}` },
+            { id: 'payments', label: `${t('Payments')}${payments.data ? ` (${payments.data.totalElements})` : ''}` },
+            { id: 'refunds', label: `${t('Refunds')}${refunds.data ? ` (${refunds.data.totalElements})` : ''}` },
+            { id: 'outstanding', label: `${t('Outstanding')}${outstanding.data ? ` (${outstanding.data.totalElements})` : ''}` },
           ]}
         />
         <Button variant="secondary" size="sm" className="mb-3" onClick={exportCurrent} disabled={!active.data || active.data.content.length === 0}>
           <Download className="h-4 w-4" aria-hidden />
-          Export page
+          {t('Export page')}
         </Button>
       </div>
 
@@ -223,12 +225,12 @@ export function TransactionRegisters({ window, windowLabel }: { window: RevenueW
         <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
           <div className="w-52">
             <Select
-              aria-label="Filter by payment method"
+              aria-label={t('Filter by payment method')}
               value={method}
               onChange={(e) => reset(setMethod)(e.target.value as PaymentMethod | '')}
               options={[
-                { value: '', label: 'All payment methods' },
-                ...METHODS.map((m) => ({ value: m, label: PAYMENT_METHOD_LABEL[m] })),
+                { value: '', label: t('All payment methods') },
+                ...METHODS.map((m) => ({ value: m, label: t(PAYMENT_METHOD_LABEL[m]) })),
               ]}
             />
           </div>
@@ -236,7 +238,7 @@ export function TransactionRegisters({ window, windowLabel }: { window: RevenueW
             <SearchInput
               value={cashier}
               onChange={(e) => reset(setCashier)(e.target.value)}
-              placeholder="Filter by who received it"
+              placeholder={t('Filter by who received it')}
             />
           </div>
         </div>
@@ -246,12 +248,12 @@ export function TransactionRegisters({ window, windowLabel }: { window: RevenueW
         <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
           <div className="w-64">
             <Select
-              aria-label="Which unpaid invoices to list"
+              aria-label={t('Which unpaid invoices to list')}
               value={scope}
               onChange={(e) => reset(setScope)(e.target.value as OutstandingScope)}
               options={[
-                { value: 'PERIOD', label: 'Issued in this period' },
-                { value: 'ALL', label: 'Every unpaid invoice, all time' },
+                { value: 'PERIOD', label: t('Issued in this period') },
+                { value: 'ALL', label: t('Every unpaid invoice, all time') },
               ]}
             />
           </div>
@@ -264,7 +266,7 @@ export function TransactionRegisters({ window, windowLabel }: { window: RevenueW
         <ErrorState message={active.error} onRetry={active.refetch} />
       ) : tab === 'payments' && payments.data ? (
         payments.data.content.length === 0 ? (
-          <EmptyState title="No payments" message="No money was received in this period under these filters." />
+          <EmptyState title={t('No payments')} message={t('No money was received in this period under these filters.')} />
         ) : (
           <>
             <DataTable columns={paymentColumns} rows={payments.data.content} rowKey={(r) => r.id} rowHref={(r) => `/app/invoices/${r.invoiceId}`} />
@@ -273,7 +275,7 @@ export function TransactionRegisters({ window, windowLabel }: { window: RevenueW
         )
       ) : tab === 'refunds' && refunds.data ? (
         refunds.data.content.length === 0 ? (
-          <EmptyState title="No refunds" message="No refunds were approved in this period." />
+          <EmptyState title={t('No refunds')} message={t('No refunds were approved in this period.')} />
         ) : (
           <>
             <DataTable columns={refundColumns} rows={refunds.data.content} rowKey={(r) => r.id} rowHref={(r) => `/app/invoices/${r.invoiceId}`} />
@@ -282,7 +284,7 @@ export function TransactionRegisters({ window, windowLabel }: { window: RevenueW
         )
       ) : outstanding.data ? (
         outstanding.data.content.length === 0 ? (
-          <EmptyState title="Nothing outstanding" message="Every invoice in this view is settled." />
+          <EmptyState title={t('Nothing outstanding')} message={t('Every invoice in this view is settled.')} />
         ) : (
           <>
             <DataTable columns={outstandingColumns} rows={outstanding.data.content} rowKey={(r) => r.invoiceId} rowHref={(r) => `/app/invoices/${r.invoiceId}`} />

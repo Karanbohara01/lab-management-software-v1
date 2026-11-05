@@ -1,5 +1,6 @@
 import { formatAmount } from '@/lib/money';
 import { PAYER_TYPE_LABEL, PATIENT_CATEGORY_LABEL, PAYMENT_METHOD_LABEL, type RevenueReport } from './types';
+import { getLocale, LOCALE_TAG, translate, useT } from '@/i18n';
 
 /* ------------------------------------------------------------------------------------------------
  * A4 revenue report.
@@ -19,15 +20,15 @@ const DATE = { dateStyle: 'medium' } as const;
 const DATETIME = { dateStyle: 'medium', timeStyle: 'short' } as const;
 
 function d(iso: string | null): string {
-  return iso ? new Date(iso).toLocaleDateString(undefined, DATE) : '—';
+  return iso ? new Date(iso).toLocaleDateString(LOCALE_TAG[getLocale()], DATE) : '—';
 }
 
 function dt(iso: string | null): string {
-  return iso ? new Date(iso).toLocaleString(undefined, DATETIME) : '—';
+  return iso ? new Date(iso).toLocaleString(LOCALE_TAG[getLocale()], DATETIME) : '—';
 }
 
 function periodText(from: string, to: string): string {
-  return from === to ? d(from) : `${d(from)} to ${d(to)}`;
+  return from === to ? d(from) : translate(getLocale(), '{from} to {to}', { from: d(from), to: d(to) });
 }
 
 /** A page-break boundary: each major section starts a new sheet after the first. */
@@ -81,9 +82,10 @@ function Line({ label, value, note, strong, rule }: { label: string; value: stri
 }
 
 export function RevenueReportDocument({ report, branchName }: { report: RevenueReport; branchName?: string | null }) {
+  const t = useT();
   const { summary, breakdown, payments, refunds, outstanding } = report;
   const { lab, period, billing, collections } = summary;
-  const title = period.from === period.to ? 'Daily Revenue Report' : 'Revenue Report';
+  const title = t(period.from === period.to ? 'Daily Revenue Report' : 'Revenue Report');
 
   return (
     <>
@@ -112,7 +114,11 @@ export function RevenueReportDocument({ report, branchName }: { report: RevenueR
                   {[lab.addressLine, lab.city].filter(Boolean).join(', ')}
                 </p>
                 <p className="text-[8.5px] leading-snug text-gray-700">
-                  {[lab.phone && `Tel: ${lab.phone}`, lab.email, lab.panNumber && `PAN: ${lab.panNumber}`]
+                  {[
+                    lab.phone && t('Tel: {phone}', { phone: lab.phone }),
+                    lab.email,
+                    lab.panNumber && t('PAN: {pan}', { pan: lab.panNumber }),
+                  ]
                     .filter(Boolean)
                     .join('  ·  ')}
                 </p>
@@ -125,99 +131,109 @@ export function RevenueReportDocument({ report, branchName }: { report: RevenueR
             </p>
             <p className="mt-1 text-[8.5px] font-semibold text-black">{periodText(period.from, period.to)}</p>
             <p className="text-[7.5px] leading-snug text-gray-600">
-              {period.days} day{period.days === 1 ? '' : 's'} · days as they fall in {period.zone.replace('_', ' ')}
+              {t(period.days === 1 ? '{count} day' : '{count} days', { count: period.days })} ·{' '}
+              {t('days as they fall in')} {period.zone.replace('_', ' ')}
             </p>
             <p className="text-[7.5px] leading-snug text-gray-600">
-              {branchName ? `Branch: ${branchName}` : 'All branches'}
+              {branchName ? t('Branch: {branch}', { branch: branchName }) : t('All branches')}
             </p>
             <p className="text-[7.5px] leading-snug text-gray-600">
-              Generated {dt(summary.generatedAt)} by {summary.generatedBy}
+              {t('Generated {time} by {user}', { time: dt(summary.generatedAt), user: summary.generatedBy })}
             </p>
           </div>
         </header>
 
         {/* ---------- B. Financial summary ---------- */}
-        <Section title="A. Financial summary">
+        <Section title={t('A. Financial summary')}>
           <div className="grid gap-x-8 sm:grid-cols-2">
             <div>
               <p className="mb-1 text-[8px] font-bold uppercase tracking-wide text-gray-600">
-                Billed — invoices issued in this period
+                {t('Billed — invoices issued in this period')}
               </p>
-              <Line label="Gross test charges" value={formatAmount(billing.grossCharges)} note="Before any discount" />
-              <Line label="Less line discounts" value={formatAmount(billing.lineDiscounts)} />
-              <Line label="Less invoice discounts" value={formatAmount(billing.invoiceDiscounts)} />
-              <Line label="Total discounts" value={formatAmount(billing.totalDiscounts)} />
-              <Line label="Subtotal" value={formatAmount(billing.subtotal)} note="Net of discounts" />
-              <Line label="Taxable amount" value={formatAmount(billing.taxableAmount)} />
-              <Line label="VAT" value={formatAmount(billing.taxAmount)} note="Collected on the government's behalf" />
-              <Line label="Total billed" value={formatAmount(billing.totalBilled)} strong rule />
-              <Line label="Invoices issued" value={String(billing.invoiceCount)} />
-              <Line label="Tests and packages billed" value={String(billing.testsOrdered)} />
+              <Line label={t('Gross test charges')} value={formatAmount(billing.grossCharges)} note={t('Before any discount')} />
+              <Line label={t('Less line discounts')} value={formatAmount(billing.lineDiscounts)} />
+              <Line label={t('Less invoice discounts')} value={formatAmount(billing.invoiceDiscounts)} />
+              <Line label={t('Total discounts')} value={formatAmount(billing.totalDiscounts)} />
+              <Line label={t('Subtotal')} value={formatAmount(billing.subtotal)} note={t('Net of discounts')} />
+              <Line label={t('Taxable amount')} value={formatAmount(billing.taxableAmount)} />
+              <Line label={t('VAT')} value={formatAmount(billing.taxAmount)} note={t("Collected on the government's behalf")} />
+              <Line label={t('Total billed')} value={formatAmount(billing.totalBilled)} strong rule />
+              <Line label={t('Invoices issued')} value={String(billing.invoiceCount)} />
+              <Line label={t('Tests and packages billed')} value={String(billing.testsOrdered)} />
               {summary.cancelled.issuedThenCancelledCount > 0 && (
                 <Line
-                  label="Of these, since cancelled"
+                  label={t('Of these, since cancelled')}
                   value={formatAmount(summary.cancelled.issuedThenCancelledAmount)}
-                  note={`${summary.cancelled.issuedThenCancelledCount} invoice(s). Billed as issued was ${formatAmount(summary.cancelled.billedAsIssued)}.`}
+                  note={t('{count} invoice(s). Billed as issued was {amount}.', {
+                    count: summary.cancelled.issuedThenCancelledCount,
+                    amount: formatAmount(summary.cancelled.billedAsIssued),
+                  })}
                 />
               )}
             </div>
             <div>
               <p className="mb-1 text-[8px] font-bold uppercase tracking-wide text-gray-600">
-                Collected — money received in this period
+                {t('Collected — money received in this period')}
               </p>
-              <Line label="Total collected" value={formatAmount(collections.grossCollected)} note="By the date each payment was taken" />
+              <Line label={t('Total collected')} value={formatAmount(collections.grossCollected)} note={t('By the date each payment was taken')} />
               {collections.onAccount > 0 && (
                 <>
-                  <Line label="Cash, card, bank, wallet, cheque" value={formatAmount(collections.cashAndBank)} />
-                  <Line label="Booked on account (credit)" value={formatAmount(collections.onAccount)} note="A settlement on account, not money through the till" />
+                  <Line label={t('Cash, card, bank, wallet, cheque')} value={formatAmount(collections.cashAndBank)} />
+                  <Line label={t('Booked on account (credit)')} value={formatAmount(collections.onAccount)} note={t('A settlement on account, not money through the till')} />
                 </>
               )}
-              <Line label="Less refunds approved" value={formatAmount(summary.refunds.amount)} note={`${summary.refunds.count} refund(s), by approval date`} />
-              <Line label="Net collections" value={formatAmount(summary.netCollected)} strong rule />
-              <Line label="Payment transactions" value={String(collections.paymentCount)} />
+              <Line label={t('Less refunds approved')} value={formatAmount(summary.refunds.amount)} note={t('{count} refund(s), by approval date', { count: summary.refunds.count })} />
+              <Line label={t('Net collections')} value={formatAmount(summary.netCollected)} strong rule />
+              <Line label={t('Payment transactions')} value={String(collections.paymentCount)} />
               <div className="mt-2.5">
-                <p className="mb-1 text-[8px] font-bold uppercase tracking-wide text-gray-600">Outstanding</p>
+                <p className="mb-1 text-[8px] font-bold uppercase tracking-wide text-gray-600">{t('Outstanding')}</p>
                 <Line
-                  label="On invoices issued in this period"
+                  label={t('On invoices issued in this period')}
                   value={formatAmount(billing.outstanding)}
-                  note={`${billing.outstandingInvoiceCount} of ${billing.invoiceCount} invoice(s) unpaid, as at generation`}
+                  note={t('{outstandingCount} of {totalCount} invoice(s) unpaid, as at generation', {
+                    outstandingCount: billing.outstandingInvoiceCount,
+                    totalCount: billing.invoiceCount,
+                  })}
                 />
                 <Line
-                  label="All unpaid invoices, all time"
+                  label={t('All unpaid invoices, all time')}
                   value={formatAmount(summary.outstanding.amount)}
-                  note={`${summary.outstanding.invoiceCount} invoice(s)`}
+                  note={t('{count} invoice(s)', { count: summary.outstanding.invoiceCount })}
                 />
-                <Line label="Invoices cancelled in this period" value={formatAmount(summary.cancelled.amount)} note={`${summary.cancelled.count} invoice(s)`} />
+                <Line
+                  label={t('Invoices cancelled in this period')}
+                  value={formatAmount(summary.cancelled.amount)}
+                  note={t('{count} invoice(s)', { count: summary.cancelled.count })}
+                />
               </div>
             </div>
           </div>
           <p className="mt-2 border border-gray-300 bg-gray-50 px-2 py-1 text-[7.5px] leading-snug text-gray-700">
-            Billed counts invoices by the date they were issued; cancelled invoices are excluded. Collected counts
-            payments by the date the money arrived, and refunds by the date they were approved. An invoice billed in
-            one period may therefore be collected in another, and the two columns are not expected to agree. Net
-            collections is the figure that reconciles against cash in hand.
+            {t(
+              'Billed counts invoices by the date they were issued; cancelled invoices are excluded. Collected counts payments by the date the money arrived, and refunds by the date they were approved. An invoice billed in one period may therefore be collected in another, and the two columns are not expected to agree. Net collections is the figure that reconciles against cash in hand.',
+            )}
           </p>
         </Section>
 
         {/* ---------- D. Payment method breakdown ---------- */}
-        <Section title="B. Collections by payment method" subtitle="Reconcile these against the till, the bank and the gateway statements.">
+        <Section title={t('B. Collections by payment method')} subtitle={t('Reconcile these against the till, the bank and the gateway statements.')}>
           <Table>
             <thead>
               <tr>
-                <th className={TH}>Payment method</th>
-                <th className={THR}>Transactions</th>
-                <th className={THR}>Amount collected</th>
+                <th className={TH}>{t('Payment method')}</th>
+                <th className={THR}>{t('Transactions')}</th>
+                <th className={THR}>{t('Amount collected')}</th>
               </tr>
             </thead>
             <tbody>
               {collections.byMethod.length === 0 ? (
                 <tr>
-                  <td className={TD} colSpan={3}>No payments were received in this period.</td>
+                  <td className={TD} colSpan={3}>{t('No payments were received in this period.')}</td>
                 </tr>
               ) : (
                 collections.byMethod.map((m) => (
                   <tr key={m.method} style={{ breakInside: 'avoid' }}>
-                    <td className={TD}>{PAYMENT_METHOD_LABEL[m.method] ?? m.method}</td>
+                    <td className={TD}>{t(PAYMENT_METHOD_LABEL[m.method] ?? m.method)}</td>
                     <td className={TDR}>{m.transactions}</td>
                     <td className={TDR}>{formatAmount(m.amount)}</td>
                   </tr>
@@ -226,7 +242,7 @@ export function RevenueReportDocument({ report, branchName }: { report: RevenueR
             </tbody>
             <tfoot>
               <tr className="font-bold">
-                <td className={TD}>Total collected</td>
+                <td className={TD}>{t('Total collected')}</td>
                 <td className={TDR}>{collections.paymentCount}</td>
                 <td className={TDR}>{formatAmount(collections.grossCollected)}</td>
               </tr>
@@ -235,13 +251,13 @@ export function RevenueReportDocument({ report, branchName }: { report: RevenueR
 
           {collections.byCashier.length > 0 && (
             <>
-              <p className="mb-1 mt-3 text-[8px] font-bold uppercase tracking-wide text-gray-600">By who received it</p>
+              <p className="mb-1 mt-3 text-[8px] font-bold uppercase tracking-wide text-gray-600">{t('By who received it')}</p>
               <Table>
                 <thead>
                   <tr>
-                    <th className={TH}>Received by</th>
-                    <th className={THR}>Transactions</th>
-                    <th className={THR}>Amount collected</th>
+                    <th className={TH}>{t('Received by')}</th>
+                    <th className={THR}>{t('Transactions')}</th>
+                    <th className={THR}>{t('Amount collected')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -249,7 +265,7 @@ export function RevenueReportDocument({ report, branchName }: { report: RevenueR
                     <tr key={c.receivedBy} style={{ breakInside: 'avoid' }}>
                       <td className={TD}>
                         {c.receivedBy.startsWith('system:')
-                          ? `${c.receivedBy.slice(7)} (online gateway)`
+                          ? t('{provider} (online gateway)', { provider: c.receivedBy.slice(7) })
                           : c.receivedBy}
                       </td>
                       <td className={TDR}>{c.transactions}</td>
@@ -259,7 +275,7 @@ export function RevenueReportDocument({ report, branchName }: { report: RevenueR
                 </tbody>
                 <tfoot>
                   <tr className="font-bold">
-                    <td className={TD}>Total</td>
+                    <td className={TD}>{t('Total')}</td>
                     <td className={TDR}>{collections.paymentCount}</td>
                     <td className={TDR}>{formatAmount(collections.grossCollected)}</td>
                   </tr>
@@ -271,88 +287,94 @@ export function RevenueReportDocument({ report, branchName }: { report: RevenueR
 
         {/* ---------- C. Test, category and package breakdown ---------- */}
         <Section
-          title="C. Revenue by test"
-          subtitle="Over the invoices issued in this period. Billed is exact; collected and outstanding are each line's pro-rata share of its invoice."
+          title={t('C. Revenue by test')}
+          subtitle={t(
+            "Over the invoices issued in this period. Billed is exact; collected and outstanding are each line's pro-rata share of its invoice.",
+          )}
           breakBefore
         >
           <Table>
             <thead>
               <tr>
-                <th className={TH}>Code</th>
-                <th className={TH}>Test / package</th>
-                <th className={TH}>Department</th>
-                <th className={THR}>Times</th>
-                <th className={THR}>Gross</th>
-                <th className={THR}>Discount</th>
-                <th className={THR}>Billed</th>
-                <th className={THR}>Collected</th>
-                <th className={THR}>Outstanding</th>
+                <th className={TH}>{t('Code')}</th>
+                <th className={TH}>{t('Test / package')}</th>
+                <th className={TH}>{t('Department')}</th>
+                <th className={THR}>{t('Times')}</th>
+                <th className={THR}>{t('Gross')}</th>
+                <th className={THR}>{t('Discount')}</th>
+                <th className={THR}>{t('Billed')}</th>
+                <th className={THR}>{t('Collected')}</th>
+                <th className={THR}>{t('Outstanding')}</th>
               </tr>
             </thead>
             <tbody>
               {breakdown.byTest.length === 0 ? (
                 <tr>
-                  <td className={TD} colSpan={9}>No tests were billed in this period.</td>
+                  <td className={TD} colSpan={9}>{t('No tests were billed in this period.')}</td>
                 </tr>
               ) : (
-                breakdown.byTest.map((t) => (
-                  <tr key={t.code} style={{ breakInside: 'avoid' }}>
-                    <td className={`${TD} font-mono`}>{t.code}</td>
+                breakdown.byTest.map((row) => (
+                  <tr key={row.code} style={{ breakInside: 'avoid' }}>
+                    <td className={`${TD} font-mono`}>{row.code}</td>
                     <td className={TD}>
-                      {t.name}
-                      {t.type === 'PROFILE' && <span className="ml-1 text-gray-500">(package)</span>}
+                      {row.name}
+                      {row.type === 'PROFILE' && <span className="ml-1 text-gray-500">{t('(package)')}</span>}
                     </td>
-                    <td className={TD}>{t.department ?? '—'}</td>
-                    <td className={TDR}>{t.timesOrdered}</td>
-                    <td className={TDR}>{formatAmount(t.gross)}</td>
-                    <td className={TDR}>{formatAmount(t.discount)}</td>
-                    <td className={TDR}>{formatAmount(t.netBilled)}</td>
-                    <td className={TDR}>{formatAmount(t.collected)}</td>
-                    <td className={TDR}>{formatAmount(t.outstanding)}</td>
+                    <td className={TD}>{row.department ?? '—'}</td>
+                    <td className={TDR}>{row.timesOrdered}</td>
+                    <td className={TDR}>{formatAmount(row.gross)}</td>
+                    <td className={TDR}>{formatAmount(row.discount)}</td>
+                    <td className={TDR}>{formatAmount(row.netBilled)}</td>
+                    <td className={TDR}>{formatAmount(row.collected)}</td>
+                    <td className={TDR}>{formatAmount(row.outstanding)}</td>
                   </tr>
                 ))
               )}
             </tbody>
             <tfoot>
               <tr className="font-bold">
-                <td className={TD} colSpan={3}>Total ({breakdown.byTest.length} test{breakdown.byTest.length === 1 ? '' : 's'})</td>
-                <td className={TDR}>{breakdown.byTest.reduce((s, t) => s + t.timesOrdered, 0)}</td>
-                <td className={TDR}>{formatAmount(breakdown.byTest.reduce((s, t) => s + t.gross, 0))}</td>
-                <td className={TDR}>{formatAmount(breakdown.byTest.reduce((s, t) => s + t.discount, 0))}</td>
-                <td className={TDR}>{formatAmount(breakdown.byTest.reduce((s, t) => s + t.netBilled, 0))}</td>
-                <td className={TDR}>{formatAmount(breakdown.byTest.reduce((s, t) => s + t.collected, 0))}</td>
-                <td className={TDR}>{formatAmount(breakdown.byTest.reduce((s, t) => s + t.outstanding, 0))}</td>
+                <td className={TD} colSpan={3}>
+                  {t(breakdown.byTest.length === 1 ? 'Total ({count} test)' : 'Total ({count} tests)', { count: breakdown.byTest.length })}
+                </td>
+                <td className={TDR}>{breakdown.byTest.reduce((s, row) => s + row.timesOrdered, 0)}</td>
+                <td className={TDR}>{formatAmount(breakdown.byTest.reduce((s, row) => s + row.gross, 0))}</td>
+                <td className={TDR}>{formatAmount(breakdown.byTest.reduce((s, row) => s + row.discount, 0))}</td>
+                <td className={TDR}>{formatAmount(breakdown.byTest.reduce((s, row) => s + row.netBilled, 0))}</td>
+                <td className={TDR}>{formatAmount(breakdown.byTest.reduce((s, row) => s + row.collected, 0))}</td>
+                <td className={TDR}>{formatAmount(breakdown.byTest.reduce((s, row) => s + row.outstanding, 0))}</td>
               </tr>
             </tfoot>
           </Table>
           <p className="mt-1 text-[7.5px] leading-snug text-gray-600">
-            A package is billed once at its own price. The tests inside it are performed but never billed
-            separately, so no revenue here is counted twice. These lines sum to the subtotal, not to total billed —
-            whole-invoice discounts and VAT are not distributed across lines.
+            {t(
+              'A package is billed once at its own price. The tests inside it are performed but never billed separately, so no revenue here is counted twice. These lines sum to the subtotal, not to total billed — whole-invoice discounts and VAT are not distributed across lines.',
+            )}
           </p>
         </Section>
 
-        <Section title="D. Revenue by category and department">
+        <Section title={t('D. Revenue by category and department')}>
           <div className="grid gap-4 sm:grid-cols-2">
             {([
               ['Category', breakdown.byCategory],
               ['Department', breakdown.byDepartment],
             ] as const).map(([heading, rows]) => (
               <div key={heading}>
-                <p className="mb-1 text-[8px] font-bold uppercase tracking-wide text-gray-600">By {heading.toLowerCase()}</p>
+                <p className="mb-1 text-[8px] font-bold uppercase tracking-wide text-gray-600">
+                  {t(heading === 'Category' ? 'By category' : 'By department')}
+                </p>
                 <Table>
                   <thead>
                     <tr>
-                      <th className={TH}>{heading}</th>
-                      <th className={THR}>Times</th>
-                      <th className={THR}>Billed</th>
-                      <th className={THR}>Collected</th>
+                      <th className={TH}>{t(heading)}</th>
+                      <th className={THR}>{t('Times')}</th>
+                      <th className={THR}>{t('Billed')}</th>
+                      <th className={THR}>{t('Collected')}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {rows.length === 0 ? (
                       <tr>
-                        <td className={TD} colSpan={4}>No revenue in this period.</td>
+                        <td className={TD} colSpan={4}>{t('No revenue in this period.')}</td>
                       </tr>
                     ) : (
                       rows.map((g) => (
@@ -367,7 +389,7 @@ export function RevenueReportDocument({ report, branchName }: { report: RevenueR
                   </tbody>
                   <tfoot>
                     <tr className="font-bold">
-                      <td className={TD}>Total</td>
+                      <td className={TD}>{t('Total')}</td>
                       <td className={TDR}>{rows.reduce((s, g) => s + g.timesOrdered, 0)}</td>
                       <td className={TDR}>{formatAmount(rows.reduce((s, g) => s + g.netBilled, 0))}</td>
                       <td className={TDR}>{formatAmount(rows.reduce((s, g) => s + g.collected, 0))}</td>
@@ -381,16 +403,16 @@ export function RevenueReportDocument({ report, branchName }: { report: RevenueR
           {breakdown.byPackage.length > 0 && (
             <>
               <p className="mb-1 mt-3 text-[8px] font-bold uppercase tracking-wide text-gray-600">
-                Packages and health-checkup panels sold
+                {t('Packages and health-checkup panels sold')}
               </p>
               <Table>
                 <thead>
                   <tr>
-                    <th className={TH}>Package</th>
-                    <th className={THR}>Sold</th>
-                    <th className={THR}>Billed</th>
-                    <th className={THR}>Collected</th>
-                    <th className={THR}>Outstanding</th>
+                    <th className={TH}>{t('Package')}</th>
+                    <th className={THR}>{t('Sold')}</th>
+                    <th className={THR}>{t('Billed')}</th>
+                    <th className={THR}>{t('Collected')}</th>
+                    <th className={THR}>{t('Outstanding')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -406,7 +428,7 @@ export function RevenueReportDocument({ report, branchName }: { report: RevenueR
                 </tbody>
                 <tfoot>
                   <tr className="font-bold">
-                    <td className={TD}>Total</td>
+                    <td className={TD}>{t('Total')}</td>
                     <td className={TDR}>{breakdown.byPackage.reduce((s, g) => s + g.timesOrdered, 0)}</td>
                     <td className={TDR}>{formatAmount(breakdown.byPackage.reduce((s, g) => s + g.netBilled, 0))}</td>
                     <td className={TDR}>{formatAmount(breakdown.byPackage.reduce((s, g) => s + g.collected, 0))}</td>
@@ -419,24 +441,24 @@ export function RevenueReportDocument({ report, branchName }: { report: RevenueR
         </Section>
 
         {/* ---------- Patient and payer ---------- */}
-        <Section title="E. Revenue by patient type and payer" breakBefore>
+        <Section title={t('E. Revenue by patient type and payer')} breakBefore>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <p className="mb-1 text-[8px] font-bold uppercase tracking-wide text-gray-600">By patient type</p>
+              <p className="mb-1 text-[8px] font-bold uppercase tracking-wide text-gray-600">{t('By patient type')}</p>
               <Table>
                 <thead>
                   <tr>
-                    <th className={TH}>Patient type</th>
-                    <th className={THR}>Invoices</th>
-                    <th className={THR}>Billed</th>
-                    <th className={THR}>Collected</th>
-                    <th className={THR}>Outstanding</th>
+                    <th className={TH}>{t('Patient type')}</th>
+                    <th className={THR}>{t('Invoices')}</th>
+                    <th className={THR}>{t('Billed')}</th>
+                    <th className={THR}>{t('Collected')}</th>
+                    <th className={THR}>{t('Outstanding')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {breakdown.byPatientCategory.map((r) => (
                     <tr key={r.category} style={{ breakInside: 'avoid' }}>
-                      <td className={TD}>{PATIENT_CATEGORY_LABEL[r.category] ?? r.category}</td>
+                      <td className={TD}>{t(PATIENT_CATEGORY_LABEL[r.category] ?? r.category)}</td>
                       <td className={TDR}>{r.invoices}</td>
                       <td className={TDR}>{formatAmount(r.billed)}</td>
                       <td className={TDR}>{formatAmount(r.collected)}</td>
@@ -446,7 +468,7 @@ export function RevenueReportDocument({ report, branchName }: { report: RevenueR
                 </tbody>
                 <tfoot>
                   <tr className="font-bold">
-                    <td className={TD}>Total</td>
+                    <td className={TD}>{t('Total')}</td>
                     <td className={TDR}>{breakdown.byPatientCategory.reduce((s, r) => s + r.invoices, 0)}</td>
                     <td className={TDR}>{formatAmount(breakdown.byPatientCategory.reduce((s, r) => s + r.billed, 0))}</td>
                     <td className={TDR}>{formatAmount(breakdown.byPatientCategory.reduce((s, r) => s + r.collected, 0))}</td>
@@ -457,26 +479,26 @@ export function RevenueReportDocument({ report, branchName }: { report: RevenueR
             </div>
             <div>
               <p className="mb-1 text-[8px] font-bold uppercase tracking-wide text-gray-600">
-                By payer (corporate, insurance and schemes)
+                {t('By payer (corporate, insurance and schemes)')}
               </p>
               <Table>
                 <thead>
                   <tr>
-                    <th className={TH}>Payer</th>
-                    <th className={THR}>Invoices</th>
-                    <th className={THR}>Billed</th>
-                    <th className={THR}>Collected</th>
-                    <th className={THR}>Outstanding</th>
+                    <th className={TH}>{t('Payer')}</th>
+                    <th className={THR}>{t('Invoices')}</th>
+                    <th className={THR}>{t('Billed')}</th>
+                    <th className={THR}>{t('Collected')}</th>
+                    <th className={THR}>{t('Outstanding')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {breakdown.byPayer.map((r) => (
                     <tr key={`${r.payerType}:${r.payerName ?? ''}`} style={{ breakInside: 'avoid' }}>
                       <td className={TD}>
-                        {r.payerName || PAYER_TYPE_LABEL[r.payerType] || r.payerType}
+                        {r.payerName || t(PAYER_TYPE_LABEL[r.payerType] ?? r.payerType)}
                         {r.payerName && (
                           <span className="block text-[7.5px] text-gray-500">
-                            {PAYER_TYPE_LABEL[r.payerType] ?? r.payerType}
+                            {t(PAYER_TYPE_LABEL[r.payerType] ?? r.payerType)}
                           </span>
                         )}
                       </td>
@@ -489,7 +511,7 @@ export function RevenueReportDocument({ report, branchName }: { report: RevenueR
                 </tbody>
                 <tfoot>
                   <tr className="font-bold">
-                    <td className={TD}>Total</td>
+                    <td className={TD}>{t('Total')}</td>
                     <td className={TDR}>{breakdown.byPayer.reduce((s, r) => s + r.invoices, 0)}</td>
                     <td className={TDR}>{formatAmount(breakdown.byPayer.reduce((s, r) => s + r.billed, 0))}</td>
                     <td className={TDR}>{formatAmount(breakdown.byPayer.reduce((s, r) => s + r.collected, 0))}</td>
@@ -503,34 +525,37 @@ export function RevenueReportDocument({ report, branchName }: { report: RevenueR
 
         {/* ---------- E. Payment transaction register ---------- */}
         <Section
-          title="F. Payment transaction register"
+          title={t('F. Payment transaction register')}
           subtitle={
             payments.truncated
-              ? `Every payment received in this period. Showing the first ${payments.rows.length} of ${payments.total} — narrow the period for the complete register.`
-              : `Every payment received in this period, ${payments.total} in total, oldest first.`
+              ? t('Every payment received in this period. Showing the first {shown} of {total} — narrow the period for the complete register.', {
+                  shown: payments.rows.length,
+                  total: payments.total,
+                })
+              : t('Every payment received in this period, {total} in total, oldest first.', { total: payments.total })
           }
           breakBefore
         >
           <Table>
             <thead>
               <tr>
-                <th className={TH}>Receipt</th>
-                <th className={TH}>Date &amp; time</th>
-                <th className={TH}>Invoice</th>
-                <th className={TH}>Patient ID</th>
-                <th className={TH}>Patient</th>
-                <th className={TH}>Method</th>
-                <th className={TH}>Reference</th>
-                <th className={TH}>Received by</th>
-                <th className={THR}>Amount</th>
-                <th className={THR}>Refunded</th>
-                <th className={TH}>Status</th>
+                <th className={TH}>{t('Receipt')}</th>
+                <th className={TH}>{t('Date & time')}</th>
+                <th className={TH}>{t('Invoice')}</th>
+                <th className={TH}>{t('Patient ID')}</th>
+                <th className={TH}>{t('Patient')}</th>
+                <th className={TH}>{t('Method')}</th>
+                <th className={TH}>{t('Reference')}</th>
+                <th className={TH}>{t('Received by')}</th>
+                <th className={THR}>{t('Amount')}</th>
+                <th className={THR}>{t('Refunded')}</th>
+                <th className={TH}>{t('Status')}</th>
               </tr>
             </thead>
             <tbody>
               {payments.rows.length === 0 ? (
                 <tr>
-                  <td className={TD} colSpan={11}>No payments were received in this period.</td>
+                  <td className={TD} colSpan={11}>{t('No payments were received in this period.')}</td>
                 </tr>
               ) : (
                 payments.rows.map((p) => (
@@ -540,13 +565,13 @@ export function RevenueReportDocument({ report, branchName }: { report: RevenueR
                     <td className={`${TD} font-mono`}>{p.invoiceNumber}</td>
                     <td className={`${TD} font-mono`}>{p.patientMrn}</td>
                     <td className={TD}>{p.patientName}</td>
-                    <td className={TD}>{PAYMENT_METHOD_LABEL[p.method] ?? p.method}</td>
+                    <td className={TD}>{t(PAYMENT_METHOD_LABEL[p.method] ?? p.method)}</td>
                     <td className={TD}>{p.reference ?? '—'}</td>
                     <td className={TD}>{p.receivedBy}</td>
                     <td className={TDR}>{formatAmount(p.amount)}</td>
                     <td className={TDR}>{p.refundedAmount > 0 ? formatAmount(p.refundedAmount) : '—'}</td>
                     <td className={TD}>
-                      {p.invoiceStatus === 'CANCELLED' ? 'Invoice cancelled' : p.refundedAmount > 0 ? 'Refunded' : 'Settled'}
+                      {t(p.invoiceStatus === 'CANCELLED' ? 'Invoice cancelled' : p.refundedAmount > 0 ? 'Refunded' : 'Settled')}
                     </td>
                   </tr>
                 ))
@@ -554,7 +579,11 @@ export function RevenueReportDocument({ report, branchName }: { report: RevenueR
             </tbody>
             <tfoot>
               <tr className="font-bold">
-                <td className={TD} colSpan={8}>Total ({payments.rows.length} transaction{payments.rows.length === 1 ? '' : 's'} listed)</td>
+                <td className={TD} colSpan={8}>
+                  {t(payments.rows.length === 1 ? 'Total ({count} transaction listed)' : 'Total ({count} transactions listed)', {
+                    count: payments.rows.length,
+                  })}
+                </td>
                 <td className={TDR}>{formatAmount(payments.rows.reduce((s, p) => s + p.amount, 0))}</td>
                 <td className={TDR}>{formatAmount(payments.rows.reduce((s, p) => s + p.refundedAmount, 0))}</td>
                 <td className={TD} />
@@ -562,24 +591,24 @@ export function RevenueReportDocument({ report, branchName }: { report: RevenueR
             </tfoot>
           </Table>
           <p className="mt-1 text-[7.5px] leading-snug text-gray-600">
-            The Refunded column shows refunds raised against that specific receipt, whenever they were approved —
-            which may be outside this period. The refunds deducted from net collections above are those approved
-            within it, listed next.
+            {t(
+              'The Refunded column shows refunds raised against that specific receipt, whenever they were approved — which may be outside this period. The refunds deducted from net collections above are those approved within it, listed next.',
+            )}
           </p>
         </Section>
 
         {refunds.rows.length > 0 && (
-          <Section title="G. Refunds approved in this period">
+          <Section title={t('G. Refunds approved in this period')}>
             <Table>
               <thead>
                 <tr>
-                  <th className={TH}>Date &amp; time</th>
-                  <th className={TH}>Invoice</th>
-                  <th className={TH}>Patient</th>
-                  <th className={TH}>Reason</th>
-                  <th className={TH}>Requested by</th>
-                  <th className={TH}>Approved by</th>
-                  <th className={THR}>Amount</th>
+                  <th className={TH}>{t('Date & time')}</th>
+                  <th className={TH}>{t('Invoice')}</th>
+                  <th className={TH}>{t('Patient')}</th>
+                  <th className={TH}>{t('Reason')}</th>
+                  <th className={TH}>{t('Requested by')}</th>
+                  <th className={TH}>{t('Approved by')}</th>
+                  <th className={THR}>{t('Amount')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -597,7 +626,7 @@ export function RevenueReportDocument({ report, branchName }: { report: RevenueR
               </tbody>
               <tfoot>
                 <tr className="font-bold">
-                  <td className={TD} colSpan={6}>Total refunds ({refunds.total})</td>
+                  <td className={TD} colSpan={6}>{t('Total refunds ({count})', { count: refunds.total })}</td>
                   <td className={TDR}>{formatAmount(summary.refunds.amount)}</td>
                 </tr>
               </tfoot>
@@ -607,54 +636,64 @@ export function RevenueReportDocument({ report, branchName }: { report: RevenueR
 
         {/* ---------- F. Outstanding payment summary ---------- */}
         <Section
-          title="H. Outstanding payment summary"
+          title={t('H. Outstanding payment summary')}
           subtitle={
             outstanding.truncated
-              ? `Unpaid invoices issued in this period. Showing the first ${outstanding.rows.length} of ${outstanding.total}.`
-              : 'Unpaid invoices issued in this period, as at the time of generation.'
+              ? t('Unpaid invoices issued in this period. Showing the first {shown} of {total}.', {
+                  shown: outstanding.rows.length,
+                  total: outstanding.total,
+                })
+              : t('Unpaid invoices issued in this period, as at the time of generation.')
           }
           breakBefore
         >
           <Table>
             <thead>
               <tr>
-                <th className={TH}>Invoice</th>
-                <th className={TH}>Issued</th>
-                <th className={TH}>Patient ID</th>
-                <th className={TH}>Patient</th>
-                <th className={TH}>Payer</th>
-                <th className={THR}>Invoice total</th>
-                <th className={THR}>Paid</th>
-                <th className={THR}>Balance</th>
-                <th className={TH}>Status</th>
-                <th className={THR}>Days</th>
+                <th className={TH}>{t('Invoice')}</th>
+                <th className={TH}>{t('Issued')}</th>
+                <th className={TH}>{t('Patient ID')}</th>
+                <th className={TH}>{t('Patient')}</th>
+                <th className={TH}>{t('Payer')}</th>
+                <th className={THR}>{t('Invoice total')}</th>
+                <th className={THR}>{t('Paid')}</th>
+                <th className={THR}>{t('Balance')}</th>
+                <th className={TH}>{t('Status')}</th>
+                <th className={THR}>{t('Days')}</th>
               </tr>
             </thead>
             <tbody>
               {outstanding.rows.length === 0 ? (
                 <tr>
-                  <td className={TD} colSpan={10}>Every invoice issued in this period is settled.</td>
+                  <td className={TD} colSpan={10}>{t('Every invoice issued in this period is settled.')}</td>
                 </tr>
               ) : (
-                outstanding.rows.map((o) => (
+                outstanding.rows.map((o) => {
+                  const payerTypeLabel = PAYER_TYPE_LABEL[o.payerType];
+                  return (
                   <tr key={o.invoiceId} style={{ breakInside: 'avoid' }}>
                     <td className={`${TD} font-mono`}>{o.invoiceNumber}</td>
                     <td className={TD}>{d(o.issuedAt)}</td>
                     <td className={`${TD} font-mono`}>{o.patientMrn}</td>
                     <td className={TD}>{o.patientName}</td>
-                    <td className={TD}>{o.payerName || PAYER_TYPE_LABEL[o.payerType] || '—'}</td>
+                    <td className={TD}>{o.payerName || (payerTypeLabel ? t(payerTypeLabel) : '—')}</td>
                     <td className={TDR}>{formatAmount(o.totalAmount)}</td>
                     <td className={TDR}>{formatAmount(o.netPaid)}</td>
                     <td className={TDR}>{formatAmount(o.balance)}</td>
-                    <td className={TD}>{o.paymentStatus === 'PARTIAL' ? 'Part paid' : 'Unpaid'}</td>
+                    <td className={TD}>{t(o.paymentStatus === 'PARTIAL' ? 'Part paid' : 'Unpaid')}</td>
                     <td className={TDR}>{o.daysOutstanding}</td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
             <tfoot>
               <tr className="font-bold">
-                <td className={TD} colSpan={5}>Total ({outstanding.rows.length} invoice{outstanding.rows.length === 1 ? '' : 's'} listed)</td>
+                <td className={TD} colSpan={5}>
+                  {t(outstanding.rows.length === 1 ? 'Total ({count} invoice listed)' : 'Total ({count} invoices listed)', {
+                    count: outstanding.rows.length,
+                  })}
+                </td>
                 <td className={TDR}>{formatAmount(outstanding.rows.reduce((s, o) => s + o.totalAmount, 0))}</td>
                 <td className={TDR}>{formatAmount(outstanding.rows.reduce((s, o) => s + o.netPaid, 0))}</td>
                 <td className={TDR}>{formatAmount(outstanding.rows.reduce((s, o) => s + o.balance, 0))}</td>
@@ -670,17 +709,22 @@ export function RevenueReportDocument({ report, branchName }: { report: RevenueR
             {['Prepared by', 'Verified by', 'Approved by'].map((role) => (
               <div key={role}>
                 <div className="h-10 border-b border-gray-700" />
-                <p className="mt-1 text-[8px] font-semibold uppercase tracking-wide text-gray-700">{role}</p>
-                <p className="text-[7.5px] leading-relaxed text-gray-500">Name / signature</p>
-                <p className="text-[7.5px] leading-relaxed text-gray-500">Date</p>
+                <p className="mt-1 text-[8px] font-semibold uppercase tracking-wide text-gray-700">{t(role)}</p>
+                <p className="text-[7.5px] leading-relaxed text-gray-500">{t('Name / signature')}</p>
+                <p className="text-[7.5px] leading-relaxed text-gray-500">{t('Date')}</p>
               </div>
             ))}
           </div>
           <p className="mt-4 border-t border-gray-300 pt-1.5 text-[7px] leading-snug text-gray-500">
-            Computer-generated from {lab.name}'s laboratory information system on {dt(summary.generatedAt)} by{' '}
-            {summary.generatedBy}. Figures cover {periodText(period.from, period.to)} and are stated in NPR. This is
-            a management report; the statutory sales register, master bill and corrections reports are produced
-            separately and cut their months at a different hour of the day, so month totals may differ slightly.
+            {t(
+              "Computer-generated from {labName}'s laboratory information system on {time} by {user}. Figures cover {period} and are stated in NPR. This is a management report; the statutory sales register, master bill and corrections reports are produced separately and cut their months at a different hour of the day, so month totals may differ slightly.",
+              {
+                labName: lab.name,
+                time: dt(summary.generatedAt),
+                user: summary.generatedBy,
+                period: periodText(period.from, period.to),
+              },
+            )}
           </p>
         </section>
       </div>

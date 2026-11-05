@@ -4,10 +4,12 @@ import { invoicesApi } from '@/features/billing/api';
 import { formatMoney } from '@/lib/money';
 import { useNavigateFrom } from '@/lib/navigation';
 import { QueueShell } from './QueueShell';
+import { useT } from '@/i18n';
 
 /** Front-desk / accounts worklist: invoices with a balance still owed. */
 export function OutstandingInvoices() {
   const navigate = useNavigateFrom();
+  const t = useT();
   const { data, loading, error, refetch } = useQuery(
     () => invoicesApi.list({ unpaidOnly: true, size: 8 }),
     [],
@@ -37,11 +39,14 @@ export function OutstandingInvoices() {
                 {inv.patientName} <span className="font-mono text-xs text-muted">{inv.invoiceNumber ?? inv.orderNumber}</span>
               </p>
               <p className="truncate text-xs text-muted">
-                {formatMoney(inv.balance)} outstanding of {formatMoney(inv.totalAmount)}
+                {t('{balance} outstanding of {total}', {
+                  balance: formatMoney(inv.balance),
+                  total: formatMoney(inv.totalAmount),
+                })}
               </p>
             </button>
             <Button size="sm" variant="secondary" onClick={() => navigate(`/app/invoices/${inv.id}`)}>
-              Record payment
+              {t('Record payment')}
             </Button>
           </li>
         ))}

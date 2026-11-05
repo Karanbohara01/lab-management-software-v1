@@ -11,6 +11,7 @@ import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
 import { useQuery } from '@/hooks/useQuery';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useT } from '@/i18n';
 import { inventoryApi, purchaseOrdersApi, suppliersApi } from './api';
 import type { PurchaseOrderDetail } from './types';
 
@@ -34,6 +35,7 @@ export function PurchaseOrderBuilderModal({
   po: PurchaseOrderDetail | null;
   onSaved: (id: number) => void;
 }) {
+  const t = useT();
   const toast = useToast();
   const suppliers = useQuery(() => suppliersApi.active(), [open]);
   const [supplierId, setSupplierId] = useState('');
@@ -92,8 +94,8 @@ export function PurchaseOrderBuilderModal({
 
   const submit = async () => {
     setErr(null);
-    if (!supplierId) return setErr('Select a supplier.');
-    if (lines.length === 0) return setErr('Add at least one line.');
+    if (!supplierId) return setErr(t('Select a supplier.'));
+    if (lines.length === 0) return setErr(t('Add at least one line.'));
     setBusy(true);
     try {
       const payload = {
@@ -107,11 +109,11 @@ export function PurchaseOrderBuilderModal({
         })),
       };
       const saved = po ? await purchaseOrdersApi.update(po.id, payload) : await purchaseOrdersApi.create(payload);
-      toast.success(po ? 'Purchase order updated' : `Draft ${saved.poNumber} created`);
+      toast.success(po ? t('Purchase order updated') : t('Draft {po} created', { po: saved.poNumber }));
       onSaved(saved.id);
       onClose();
     } catch (e) {
-      setErr(e instanceof ApiError ? e.message : 'Unable to save');
+      setErr(e instanceof ApiError ? e.message : t('Unable to save'));
     } finally {
       setBusy(false);
     }
@@ -121,14 +123,14 @@ export function PurchaseOrderBuilderModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={po ? `Edit ${po.poNumber}` : 'New purchase order'}
+      title={po ? t('Edit {code}', { code: po.poNumber }) : t('New purchase order')}
       size="lg"
       confirmClose={isDirty && !busy}
       footer={
         <>
           <ModalCancelButton />
           <Button onClick={submit} loading={busy}>
-            {po ? 'Save' : 'Create draft'}
+            {po ? t('Save') : t('Create draft')}
           </Button>
         </>
       }
@@ -137,20 +139,20 @@ export function PurchaseOrderBuilderModal({
         {err && <Alert tone="danger">{err}</Alert>}
         <div className="grid gap-4 sm:grid-cols-2">
           <Select
-            label="Supplier"
-            placeholder="Select…"
+            label={t('Supplier')}
+            placeholder={t('Select…')}
             options={(suppliers.data ?? []).map((s) => ({ value: String(s.id), label: s.name }))}
             value={supplierId}
             onChange={(e) => setSupplierId(e.target.value)}
           />
-          <Input label="Expected date" type="date" value={expectedDate} onChange={(e) => setExpectedDate(e.target.value)} />
+          <Input label={t('Expected date')} type="date" value={expectedDate} onChange={(e) => setExpectedDate(e.target.value)} />
         </div>
 
         <div>
-          <p className="mb-1.5 text-sm font-medium text-foreground">Items</p>
+          <p className="mb-1.5 text-sm font-medium text-foreground">{t('Items')}</p>
           <Input
             leadingIcon={<Search className="h-4 w-4" aria-hidden />}
-            placeholder="Search inventory items to add"
+            placeholder={t('Search inventory items to add')}
             value={term}
             onChange={(e) => setTerm(e.target.value)}
           />
@@ -176,7 +178,7 @@ export function PurchaseOrderBuilderModal({
                         setTerm('');
                       }}
                     >
-                      {added ? 'Added' : <><Plus className="h-4 w-4" aria-hidden /> Add</>}
+                      {added ? t('Added') : <><Plus className="h-4 w-4" aria-hidden /> {t('Add')}</>}
                     </Button>
                   </li>
                 );
@@ -193,7 +195,7 @@ export function PurchaseOrderBuilderModal({
                     <p className="font-mono text-xs text-muted">{l.itemCode}</p>
                   </div>
                   <Input
-                    label={`Qty (${l.unit})`}
+                    label={t('Qty ({unit})', { unit: l.unit })}
                     type="number"
                     step="any"
                     min={0}
@@ -201,7 +203,7 @@ export function PurchaseOrderBuilderModal({
                     onChange={(e) => setLines((p) => p.map((x, i) => (i === index ? { ...x, quantity: e.target.value } : x)))}
                   />
                   <Input
-                    label="Est. cost"
+                    label={t('Est. cost')}
                     type="number"
                     step="any"
                     min={0}
@@ -212,7 +214,7 @@ export function PurchaseOrderBuilderModal({
                     type="button"
                     onClick={() => setLines((p) => p.filter((_, i) => i !== index))}
                     className="mb-2 text-muted hover:text-danger"
-                    aria-label={`Remove ${l.itemName}`}
+                    aria-label={t('Remove {name}', { name: l.itemName })}
                   >
                     <Trash2 className="h-4 w-4" aria-hidden />
                   </button>
@@ -222,7 +224,7 @@ export function PurchaseOrderBuilderModal({
           )}
         </div>
 
-        <Textarea label="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+        <Textarea label={t('Notes')} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </div>
     </Modal>
   );
@@ -239,6 +241,7 @@ export function ReceivePurchaseOrderModal({
   po: PurchaseOrderDetail;
   onDone: () => void;
 }) {
+  const t = useT();
   const toast = useToast();
   const [rows, setRows] = useState<Record<number, { batchNumber: string; expiryDate: string; quantity: string; unitCost: string }>>({});
   const [busy, setBusy] = useState(false);
@@ -267,18 +270,18 @@ export function ReceivePurchaseOrderModal({
         unitCost: r.unitCost ? Number(r.unitCost) : null,
       }));
     if (lines.length === 0) {
-      setErr('Enter a batch number and quantity for at least one line.');
+      setErr(t('Enter a batch number and quantity for at least one line.'));
       return;
     }
     setBusy(true);
     setErr(null);
     try {
       await purchaseOrdersApi.receive(po.id, { lines });
-      toast.success('Stock received');
+      toast.success(t('Stock received'));
       onDone();
       onClose();
     } catch (e) {
-      setErr(e instanceof ApiError ? e.message : 'Unable to receive');
+      setErr(e instanceof ApiError ? e.message : t('Unable to receive'));
     } finally {
       setBusy(false);
     }
@@ -288,15 +291,15 @@ export function ReceivePurchaseOrderModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={`Receive against ${po.poNumber}`}
+      title={t('Receive against {number}', { number: po.poNumber })}
       size="lg"
       footer={
         <>
           <Button variant="secondary" type="button" onClick={onClose} disabled={busy}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button onClick={submit} loading={busy}>
-            Receive stock
+            {t('Receive stock')}
           </Button>
         </>
       }
@@ -314,13 +317,13 @@ export function ReceivePurchaseOrderModal({
                   {l.itemName} <span className="font-mono text-xs text-muted">{l.itemCode}</span>
                 </p>
                 <p className="mb-2 text-xs text-muted">
-                  Ordered {l.quantityOrdered} {l.unit} · received {l.quantityReceived}
+                  {t('Ordered {qty} {unit} · received {received}', { qty: l.quantityOrdered, unit: l.unit, received: l.quantityReceived })}
                 </p>
                 <div className="grid gap-2 sm:grid-cols-4">
-                  <Input label="Batch no." value={r.batchNumber} onChange={(e) => set({ batchNumber: e.target.value })} />
-                  <Input label="Expiry" type="date" value={r.expiryDate} onChange={(e) => set({ expiryDate: e.target.value })} />
-                  <Input label={`Qty (${l.unit})`} type="number" step="any" min={0} value={r.quantity} onChange={(e) => set({ quantity: e.target.value })} />
-                  <Input label="Unit cost" type="number" step="any" min={0} value={r.unitCost} onChange={(e) => set({ unitCost: e.target.value })} />
+                  <Input label={t('Batch no.')} value={r.batchNumber} onChange={(e) => set({ batchNumber: e.target.value })} />
+                  <Input label={t('Expiry')} type="date" value={r.expiryDate} onChange={(e) => set({ expiryDate: e.target.value })} />
+                  <Input label={t('Qty ({unit})', { unit: l.unit })} type="number" step="any" min={0} value={r.quantity} onChange={(e) => set({ quantity: e.target.value })} />
+                  <Input label={t('Unit cost')} type="number" step="any" min={0} value={r.unitCost} onChange={(e) => set({ unitCost: e.target.value })} />
                 </div>
               </div>
             );

@@ -16,8 +16,10 @@ import { reportsApi } from './api';
 import { REPORT_STATUS_TONE } from './types';
 import { ReportDocument } from './ReportDocument';
 import { DeliverReportModal } from './DeliverReportModal';
+import { useT } from '@/i18n';
 
 export function ReportViewPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const { back } = useBackTarget();
   const toast = useToast();
@@ -29,7 +31,7 @@ export function ReportViewPage() {
   // This page draws its own print-aware header rather than PageHeader, so it publishes its title itself.
   usePageTitle(report?.reportNumber);
 
-  if (loading && !report) return <LoadingState label="Loading report…" />;
+  if (loading && !report) return <LoadingState label={t('Loading report…')} />;
   if (error) return <ErrorState message={error} onRetry={refetch} />;
   if (!report) return null;
 
@@ -43,7 +45,7 @@ export function ReportViewPage() {
       toast.success(msg);
       refetch();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Action failed');
+      toast.error(err instanceof ApiError ? err.message : t('Action failed'));
     } finally {
       setBusy(false);
     }
@@ -53,59 +55,59 @@ export function ReportViewPage() {
     <>
       <div data-print-hide>
         <BackLink to={back.href} className="mb-3">
-          Back to {back.label}
+          {t('Back to {label}', { label: back.label })}
         </BackLink>
 
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <h1 className="mr-2 text-xl font-semibold text-foreground">{report.reportNumber}</h1>
           <Badge tone={REPORT_STATUS_TONE[report.status]}>{report.status}</Badge>
-          {report.reportType === 'PRELIMINARY' && <Badge tone="warning">Preliminary</Badge>}
+          {report.reportType === 'PRELIMINARY' && <Badge tone="warning">{t('Preliminary')}</Badge>}
           {report.reportVersion > 1 && <Badge tone="warning">v{report.reportVersion}</Badge>}
-          {report.signedBy && <Badge tone="success">Signed</Badge>}
+          {report.signedBy && <Badge tone="success">{t('Signed')}</Badge>}
           <LinkFrom to={`/app/orders/${report.orderId}`} className="text-sm text-muted hover:underline">
-            Order {report.orderNumber}
+            {t('Order {number}', { number: report.orderNumber })}
           </LinkFrom>
           <div className="flex-1" />
           <Button variant="secondary" onClick={() => window.print()}>
             <Printer className="h-4 w-4" aria-hidden />
-            Print / PDF
+            {t('Print / PDF')}
           </Button>
           {canGenerate && (
             <Button
               variant="secondary"
               disabled={busy}
-              onClick={() => act(() => reportsApi.generate(report.orderId), 'Report regenerated')}
+              onClick={() => act(() => reportsApi.generate(report.orderId), t('Report regenerated'))}
             >
               <RefreshCw className="h-4 w-4" aria-hidden />
-              Regenerate (final)
+              {t('Regenerate (final)')}
             </Button>
           )}
           {canGenerate && report.reportType === 'PRELIMINARY' && (
             <Button
               variant="secondary"
               disabled={busy}
-              onClick={() => act(() => reportsApi.generate(report.orderId, true), 'Preliminary report updated')}
+              onClick={() => act(() => reportsApi.generate(report.orderId, true), t('Preliminary report updated'))}
             >
               <RefreshCw className="h-4 w-4" aria-hidden />
-              Update preliminary
+              {t('Update preliminary')}
             </Button>
           )}
           {canGenerate && report.status === 'GENERATED' && (
             <Button
               disabled={busy}
               onClick={() => {
-                const cred = window.prompt('Signing credentials (e.g. MBBS, MD Pathology, NMC 12345) — optional:') ?? '';
-                act(() => reportsApi.release(report.id, cred || undefined), 'Report signed & released');
+                const cred = window.prompt(t('Signing credentials (e.g. MBBS, MD Pathology, NMC 12345) — optional:')) ?? '';
+                act(() => reportsApi.release(report.id, cred || undefined), t('Report signed & released'));
               }}
             >
               <ShieldCheck className="h-4 w-4" aria-hidden />
-              Sign &amp; release
+              {t('Sign & release')}
             </Button>
           )}
           {canDeliver && report.status !== 'GENERATED' && (
             <Button disabled={busy} onClick={() => setDeliverOpen(true)}>
               <Send className="h-4 w-4" aria-hidden />
-              Record delivery
+              {t('Record delivery')}
             </Button>
           )}
         </div>

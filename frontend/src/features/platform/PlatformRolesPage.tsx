@@ -11,6 +11,7 @@ import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/types/api';
+import { useT } from '@/i18n';
 import { platformApi, type PlatformRole } from './api';
 
 /**
@@ -22,6 +23,7 @@ import { platformApi, type PlatformRole } from './api';
  * every other clinic too.
  */
 export function PlatformRolesPage() {
+  const t = useT();
   const { back } = useBackTarget();
   const toast = useToast();
   const rolesQ = useQuery(() => platformApi.roles(), []);
@@ -32,8 +34,8 @@ export function PlatformRolesPage() {
     <>
       <PageHeader
         back={back}
-        title="Roles & permissions"
-        description="Global permission set for each role — shared by every clinic on this platform."
+        title={t('Roles & permissions')}
+        description={t('Global permission set for each role — shared by every clinic on this platform.')}
       />
       {rolesQ.loading && !rolesQ.data ? (
         <LoadingState />
@@ -50,17 +52,17 @@ export function PlatformRolesPage() {
                   <button
                     onClick={() => setEditing(role)}
                     className="rounded p-1.5 text-muted hover:bg-surface-muted"
-                    aria-label={`Edit permissions for ${role.name}`}
+                    aria-label={t('Edit permissions for {role}', { role: role.name })}
                   >
                     <Pencil className="h-4 w-4" aria-hidden />
                   </button>
                 }
               />
               <CardBody>
-                <p className="mb-2 text-xs text-muted">{role.permissions.length} permissions</p>
+                <p className="mb-2 text-xs text-muted">{t('{count} permissions', { count: role.permissions.length })}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {role.permissions.length === 0 ? (
-                    <span className="text-xs text-muted">No permissions granted.</span>
+                    <span className="text-xs text-muted">{t('No permissions granted.')}</span>
                   ) : (
                     role.permissions.map((p) => (
                       <Badge key={p} tone="neutral">
@@ -81,7 +83,7 @@ export function PlatformRolesPage() {
         onClose={() => setEditing(null)}
         onSaved={() => {
           rolesQ.refetch();
-          toast.success('Permissions updated');
+          toast.success(t('Permissions updated'));
         }}
       />
     </>
@@ -99,6 +101,7 @@ function EditRolePermissionsModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const t = useT();
   const [selected, setSelected] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -120,7 +123,7 @@ function EditRolePermissionsModal({
       onSaved();
       onClose();
     } catch (e) {
-      setErr(e instanceof ApiError ? e.message : 'Unable to update permissions');
+      setErr(e instanceof ApiError ? e.message : t('Unable to update permissions'));
     } finally {
       setBusy(false);
     }
@@ -130,15 +133,15 @@ function EditRolePermissionsModal({
     <Modal
       open={!!role}
       onClose={onClose}
-      title={role ? `Permissions · ${role.name.replace(/_/g, ' ')}` : ''}
+      title={role ? t('Permissions · {role}', { role: role.name.replace(/_/g, ' ') }) : ''}
       size="lg"
       footer={
         <>
           <Button variant="secondary" type="button" onClick={onClose} disabled={busy}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button onClick={submit} loading={busy}>
-            Save
+            {t('Save')}
           </Button>
         </>
       }
@@ -146,7 +149,7 @@ function EditRolePermissionsModal({
       <div className="space-y-3">
         {err && <Alert tone="danger">{err}</Alert>}
         <p className="text-xs text-muted">
-          This changes what every user with this role can do, on every clinic on this platform — not just one.
+          {t('This changes what every user with this role can do, on every clinic on this platform — not just one.')}
         </p>
         <div className="grid max-h-96 gap-2 overflow-y-auto sm:grid-cols-2">
           {allPermissions.map((p) => (

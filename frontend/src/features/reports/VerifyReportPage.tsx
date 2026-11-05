@@ -5,6 +5,7 @@ import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { reportsApi } from './api';
 import { BrandMark } from '@/components/brand/BrandMark';
+import { useT, LOCALE_TAG, getLocale } from '@/i18n';
 
 interface Verification {
   found: boolean;
@@ -30,6 +31,7 @@ interface Verification {
  * matching backend endpoint was already correctly public) and fixed by moving this route out.
  */
 export function VerifyReportPage() {
+  const t = useT();
   const { token } = useParams<{ token: string }>();
   const { data, loading, error } = useQuery(() => reportsApi.verify(token!) as Promise<Verification>, [token]);
 
@@ -39,51 +41,51 @@ export function VerifyReportPage() {
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <Link
             to="/"
-            aria-label="LIMS home"
+            aria-label={t('LIMS home')}
             className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             <BrandMark className="h-14" />
           </Link>
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Report verification</h1>
-            <p className="mt-1 text-sm text-muted">Confirm this report's authenticity.</p>
+            <h1 className="text-xl font-semibold text-foreground">{t('Report verification')}</h1>
+            <p className="mt-1 text-sm text-muted">{t("Confirm this report's authenticity.")}</p>
           </div>
         </div>
 
         {loading && !data ? (
-          <LoadingState label="Checking…" />
+          <LoadingState label={t('Checking…')} />
         ) : error ? (
           <ErrorState message={error} />
         ) : !data ? null : !data.found ? (
           <Card>
             <CardBody>
-              <Badge tone="danger">Not found</Badge>
+              <Badge tone="danger">{t('Not found')}</Badge>
               <p className="mt-2 text-sm text-muted">
-                No report matches this verification code. Treat the document as unverified.
+                {t('No report matches this verification code. Treat the document as unverified.')}
               </p>
             </CardBody>
           </Card>
         ) : (
           <Card>
             <CardBody className="space-y-2 text-sm">
-              <Badge tone="success">Genuine LIMS report</Badge>
+              <Badge tone="success">{t('Genuine LIMS report')}</Badge>
               <dl className="mt-2 grid grid-cols-2 gap-2">
-                <dt className="text-muted">Report</dt>
+                <dt className="text-muted">{t('Report')}</dt>
                 <dd className="font-mono">
                   {data.reportNumber} · v{data.reportVersion} · {data.reportType}
                 </dd>
-                <dt className="text-muted">Status</dt>
+                <dt className="text-muted">{t('Status')}</dt>
                 <dd>{data.status}</dd>
-                <dt className="text-muted">Patient MRN</dt>
+                <dt className="text-muted">{t('Patient MRN')}</dt>
                 <dd className="font-mono">{data.patientMrn}</dd>
-                <dt className="text-muted">Released</dt>
-                <dd>{data.releasedAt ? new Date(data.releasedAt).toLocaleString() : '—'}</dd>
-                <dt className="text-muted">Signed by</dt>
+                <dt className="text-muted">{t('Released')}</dt>
+                <dd>{data.releasedAt ? new Date(data.releasedAt).toLocaleString(LOCALE_TAG[getLocale()]) : '—'}</dd>
+                <dt className="text-muted">{t('Signed by')}</dt>
                 <dd>
                   {data.signedBy ?? '—'}
                   {data.signerCredentials ? `, ${data.signerCredentials}` : ''}
                 </dd>
-                <dt className="text-muted">Content hash</dt>
+                <dt className="text-muted">{t('Content hash')}</dt>
                 <dd className="break-all font-mono text-xs">{data.contentHash}</dd>
               </dl>
             </CardBody>

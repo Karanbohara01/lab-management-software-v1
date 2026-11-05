@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/types/api';
 import { samplesApi } from './api';
 import { SPECIMEN_CONDITION_FLAGS, type SpecimenConditionInput } from './types';
+import { useT } from '@/i18n';
 
 const EMPTY: SpecimenConditionInput = {
   haemolysed: false,
@@ -31,6 +32,7 @@ export function ReceiveSampleModal({
   accession: string;
   onReceived: () => void;
 }) {
+  const t = useT();
   const toast = useToast();
   const [condition, setCondition] = useState<SpecimenConditionInput>(EMPTY);
   const [busy, setBusy] = useState(false);
@@ -42,12 +44,12 @@ export function ReceiveSampleModal({
     setBusy(true);
     try {
       await samplesApi.receive(sampleId, { condition: anyFlag ? condition : undefined });
-      toast.success(`${accession} received into the lab`);
+      toast.success(t('{accession} received into the lab', { accession }));
       onReceived();
       onClose();
       setCondition(EMPTY);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to receive sample');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to receive sample'));
     } finally {
       setBusy(false);
     }
@@ -57,35 +59,36 @@ export function ReceiveSampleModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={`Receive ${accession}`}
+      title={t('Receive {accession}', { accession })}
       footer={
         <>
           <Button variant="secondary" type="button" onClick={onClose}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button type="button" loading={busy} onClick={submit}>
-            Receive sample
+            {t('Receive sample')}
           </Button>
         </>
       }
     >
       <div className="space-y-3">
         <p className="text-sm text-muted">
-          Record any problem with the specimen. Condition flags are carried onto the results and printed
-          on the report.
+          {t(
+            'Record any problem with the specimen. Condition flags are carried onto the results and printed on the report.',
+          )}
         </p>
         <div className="grid grid-cols-2 gap-2">
           {SPECIMEN_CONDITION_FLAGS.map((f) => (
             <Checkbox
               key={f.key}
-              label={f.label}
+              label={t(f.label)}
               checked={condition[f.key] as boolean}
               onChange={(e) => setCondition((c) => ({ ...c, [f.key]: e.target.checked }))}
             />
           ))}
         </div>
         <Textarea
-          label="Condition note (optional)"
+          label={t('Condition note (optional)')}
           rows={2}
           value={condition.note ?? ''}
           onChange={(e) => setCondition((c) => ({ ...c, note: e.target.value }))}

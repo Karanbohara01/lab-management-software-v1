@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Modal } from './Modal';
+import { useT } from '@/i18n';
 import { Button } from './Button';
 import { Textarea } from './Textarea';
 
@@ -9,7 +10,7 @@ interface ConfirmDialogProps {
   onConfirm: (reason: string) => Promise<void> | void;
   title: string;
   message: string;
-  confirmLabel?: string;
+  confirmLabel?: string; // defaults to the translated "Confirm"
   tone?: 'primary' | 'danger';
   /** Show a required/optional reason field. */
   reason?: 'none' | 'optional' | 'required';
@@ -21,17 +22,19 @@ export function ConfirmDialog({
   onConfirm,
   title,
   message,
-  confirmLabel = 'Confirm',
+  confirmLabel,
   tone = 'primary',
   reason = 'none',
 }: ConfirmDialogProps) {
+  const t = useT();
+  const resolvedConfirmLabel = confirmLabel ?? t('Confirm');
   const [value, setValue] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const submit = async () => {
     if (reason === 'required' && !value.trim()) {
-      setError('Please give a reason.');
+      setError(t('Please give a reason.'));
       return;
     }
     setBusy(true);
@@ -41,7 +44,7 @@ export function ConfirmDialog({
       setValue('');
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Action failed');
+      setError(err instanceof Error ? err.message : t('Action failed'));
     } finally {
       setBusy(false);
     }
@@ -55,10 +58,10 @@ export function ConfirmDialog({
       footer={
         <>
           <Button variant="secondary" type="button" onClick={onClose} disabled={busy}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button variant={tone === 'danger' ? 'danger' : 'primary'} onClick={submit} loading={busy}>
-            {confirmLabel}
+            {resolvedConfirmLabel}
           </Button>
         </>
       }
@@ -67,7 +70,7 @@ export function ConfirmDialog({
       {reason !== 'none' && (
         <div className="mt-4">
           <Textarea
-            label={reason === 'required' ? 'Reason' : 'Reason (optional)'}
+            label={reason === 'required' ? t('Reason') : t('Reason (optional)')}
             value={value}
             onChange={(e) => setValue(e.target.value)}
             error={error ?? undefined}

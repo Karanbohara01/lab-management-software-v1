@@ -10,6 +10,7 @@ import { useQuery } from '@/hooks/useQuery';
 import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/types/api';
 import { settingsApi } from './api';
+import { useT } from '@/i18n';
 
 /**
  * This clinic's own IRD/CBMS taxpayer credentials — overrides the deployment-wide default for
@@ -17,6 +18,7 @@ import { settingsApi } from './api';
  * (if any) seamlessly; only clinics with their own IRD registration need to touch this card.
  */
 export function IrdCredentialsCard({ canWrite }: { canWrite: boolean }) {
+  const t = useT();
   const toast = useToast();
   const { data, loading, error, refetch } = useQuery(() => settingsApi.getIrdCredentials(), []);
 
@@ -47,10 +49,10 @@ export function IrdCredentialsCard({ canWrite }: { canWrite: boolean }) {
         password: password || undefined,
       });
       setPassword('');
-      toast.success('IRD credentials saved');
+      toast.success(t('IRD credentials saved'));
       refetch();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to save');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to save'));
     } finally {
       setSaving(false);
     }
@@ -59,40 +61,40 @@ export function IrdCredentialsCard({ canWrite }: { canWrite: boolean }) {
   return (
     <Card>
       <CardHeader
-        title="IRD / e-Billing"
-        description="Your own CBMS taxpayer login, if you're IRD-registered — otherwise this deployment's shared default (if any) is used."
+        title={t('IRD / e-Billing')}
+        description={t("Your own CBMS taxpayer login, if you're IRD-registered — otherwise this deployment's shared default (if any) is used.")}
       />
       <CardBody className="space-y-4">
         <div className="flex items-center justify-between">
           <Checkbox
-            label="Use my own IRD credentials"
+            label={t('Use my own IRD credentials')}
             checked={enabled}
             disabled={!canWrite}
             onChange={(e) => setEnabled(e.target.checked)}
           />
           <Badge tone={data.passwordConfigured ? 'success' : 'neutral'}>
-            {data.passwordConfigured ? 'Configured' : 'Not configured'}
+            {data.passwordConfigured ? t('Configured') : t('Not configured')}
           </Badge>
         </div>
         {enabled && (
           <div className="grid gap-3 sm:grid-cols-2">
-            <Input label="IRD username" value={username} disabled={!canWrite} onChange={(e) => setUsername(e.target.value)} />
-            <Input label="Seller PAN" value={sellerPan} disabled={!canWrite} onChange={(e) => setSellerPan(e.target.value)} />
+            <Input label={t('IRD username')} value={username} disabled={!canWrite} onChange={(e) => setUsername(e.target.value)} />
+            <Input label={t('Seller PAN')} value={sellerPan} disabled={!canWrite} onChange={(e) => setSellerPan(e.target.value)} />
             <Input
-              label="IRD password"
+              label={t('IRD password')}
               type="password"
-              placeholder={data.passwordConfigured ? '•••••••• (leave blank to keep)' : ''}
+              placeholder={data.passwordConfigured ? t('•••••••• (leave blank to keep)') : ''}
               value={password}
               disabled={!canWrite}
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
         )}
-        {!canWrite && <Alert tone="info">You have read-only access to settings.</Alert>}
+        {!canWrite && <Alert tone="info">{t('You have read-only access to settings.')}</Alert>}
         {canWrite && (
           <div className="flex justify-end">
             <Button onClick={save} loading={saving}>
-              Save IRD settings
+              {t('Save IRD settings')}
             </Button>
           </div>
         )}

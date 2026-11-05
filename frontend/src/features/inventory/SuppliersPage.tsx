@@ -18,6 +18,7 @@ import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
+import { useT } from '@/i18n';
 import { suppliersApi } from './api';
 import type { Supplier } from './types';
 
@@ -26,6 +27,7 @@ const PAGE_SIZE = 20;
 const PARAMS = { q: '', page: 1 };
 
 export function SuppliersPage() {
+  const t = useT();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.INVENTORY_WRITE);
   const [editing, setEditing] = useState<Supplier | null>(null);
@@ -41,22 +43,22 @@ export function SuppliersPage() {
   );
 
   const columns: Column<Supplier>[] = [
-    { key: 'name', header: 'Name', cell: (s) => <span className="font-medium">{s.name}</span> },
-    { key: 'contact', header: 'Contact', cell: (s) => s.contactPerson ?? '—', hideOnMobile: true },
-    { key: 'phone', header: 'Phone', cell: (s) => s.phone ?? '—', hideOnMobile: true },
-    { key: 'status', header: 'Status', cell: (s) => <Badge tone={s.active ? 'success' : 'neutral'}>{s.active ? 'Active' : 'Inactive'}</Badge> },
+    { key: 'name', header: t('Name'), cell: (s) => <span className="font-medium">{s.name}</span> },
+    { key: 'contact', header: t('Contact'), cell: (s) => s.contactPerson ?? '—', hideOnMobile: true },
+    { key: 'phone', header: t('Phone'), cell: (s) => s.phone ?? '—', hideOnMobile: true },
+    { key: 'status', header: t('Status'), cell: (s) => <Badge tone={s.active ? 'success' : 'neutral'}>{t(s.active ? 'Active' : 'Inactive')}</Badge> },
   ];
 
   return (
     <>
       <PageHeader
-        title="Suppliers"
-        description="Vendors that supply reagents, kits and consumables."
+        title={t('Suppliers')}
+        description={t('Vendors that supply reagents, kits and consumables.')}
         actions={
           canWrite ? (
             <Button onClick={() => { setEditing(null); setOpen(true); }}>
               <Plus className="h-4 w-4" aria-hidden />
-              New supplier
+              {t('New supplier')}
             </Button>
           ) : undefined
         }
@@ -65,7 +67,7 @@ export function SuppliersPage() {
       <Card>
         <div className="border-b border-border p-4">
           <div className="max-w-sm">
-            <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search suppliers" />
+            <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('Search suppliers')} />
           </div>
         </div>
         {loading && !data ? (
@@ -73,7 +75,7 @@ export function SuppliersPage() {
         ) : error ? (
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.content.length === 0 ? (
-          <EmptyState title="No suppliers" message="Add a supplier to record purchases." />
+          <EmptyState title={t('No suppliers')} message={t('Add a supplier to record purchases.')} />
         ) : (
           data && (
             <>
@@ -110,6 +112,7 @@ function SupplierFormModal({
   supplier: Supplier | null;
   onSaved: () => void;
 }) {
+  const t = useT();
   const toast = useToast();
   const [f, setF] = useState({ name: '', contactPerson: '', phone: '', email: '', address: '', panNumber: '' });
   const [busy, setBusy] = useState(false);
@@ -138,11 +141,11 @@ function SupplierFormModal({
       const payload = { ...f, name: f.name.trim() };
       if (supplier) await suppliersApi.update(supplier.id, payload);
       else await suppliersApi.create(payload);
-      toast.success(supplier ? 'Supplier updated' : 'Supplier added');
+      toast.success(supplier ? t('Supplier updated') : t('Supplier added'));
       onSaved();
       onClose();
     } catch (e) {
-      setErr(e instanceof ApiError ? e.message : 'Unable to save');
+      setErr(e instanceof ApiError ? e.message : t('Unable to save'));
     } finally {
       setBusy(false);
     }
@@ -152,29 +155,29 @@ function SupplierFormModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={supplier ? 'Edit supplier' : 'New supplier'}
+      title={supplier ? t('Edit supplier') : t('New supplier')}
       size="lg"
       footer={
         <>
           <Button variant="secondary" type="button" onClick={onClose} disabled={busy}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button onClick={submit} loading={busy}>
-            {supplier ? 'Save' : 'Add supplier'}
+            {supplier ? t('Save') : t('Add supplier')}
           </Button>
         </>
       }
     >
       <div className="space-y-4">
         {err && <Alert tone="danger">{err}</Alert>}
-        <Input label="Name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
+        <Input label={t('Name')} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Contact person" value={f.contactPerson} onChange={(e) => setF({ ...f, contactPerson: e.target.value })} />
-          <Input label="Phone" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} />
-          <Input label="Email" type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
-          <Input label="PAN number" value={f.panNumber} onChange={(e) => setF({ ...f, panNumber: e.target.value })} />
+          <Input label={t('Contact person')} value={f.contactPerson} onChange={(e) => setF({ ...f, contactPerson: e.target.value })} />
+          <Input label={t('Phone')} value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} />
+          <Input label={t('Email')} type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
+          <Input label={t('PAN number')} value={f.panNumber} onChange={(e) => setF({ ...f, panNumber: e.target.value })} />
         </div>
-        <Textarea label="Address" value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} />
+        <Textarea label={t('Address')} value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} />
       </div>
     </Modal>
   );

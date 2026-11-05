@@ -10,8 +10,16 @@ import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
 import { reportsApi } from '@/features/reports/api';
-import { REPORT_STATUS_TONE, type ReportDetail } from '@/features/reports/types';
+import { REPORT_STATUS_TONE, type ReportDetail, type ReportStatus } from '@/features/reports/types';
 import { DeliverReportModal } from '@/features/reports/DeliverReportModal';
+import { useT } from '@/i18n';
+
+/** ReportStatus has no shared label map (just a tone map) — the raw value doubles as the label. */
+const REPORT_STATUS_LABEL: Record<ReportStatus, string> = {
+  GENERATED: 'Generated',
+  RELEASED: 'Released',
+  DELIVERED: 'Delivered',
+};
 
 export function OrderReportCard({
   orderId,
@@ -27,6 +35,7 @@ export function OrderReportCard({
   hasApprovedResults: boolean;
   onChange: () => void;
 }) {
+  const t = useT();
   const toast = useToast();
   const { hasPermission } = useAuth();
   const canGenerate = hasPermission(PERMISSIONS.REPORT_GENERATE);
@@ -41,53 +50,53 @@ export function OrderReportCard({
       toast.success(ok);
       onChange();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Action failed');
+      toast.error(err instanceof ApiError ? err.message : t('Action failed'));
     } finally {
       setBusy(false);
     }
   };
 
   const release = () => {
-    const creds = window.prompt('Signing credentials (e.g. "MD Pathology, NMC-12345"):', '');
+    const creds = window.prompt(t('Signing credentials (e.g. "MD Pathology, NMC-12345"):'), '');
     if (creds === null) return;
-    run(() => reportsApi.release(report!.id, creds.trim() || undefined), 'Report signed & released');
+    run(() => reportsApi.release(report!.id, creds.trim() || undefined), t('Report signed & released'));
   };
 
   return (
     <Card>
-      <CardHeader title="Report" />
+      <CardHeader title={t('Report')} />
       {loading ? (
         <LoadingState />
       ) : report ? (
         <CardBody className="space-y-3">
           <div className="flex items-center justify-between">
             <span className="font-mono text-sm">{report.reportNumber}</span>
-            <Badge tone={REPORT_STATUS_TONE[report.status]}>{report.status}</Badge>
+            <Badge tone={REPORT_STATUS_TONE[report.status]}>{t(REPORT_STATUS_LABEL[report.status])}</Badge>
           </div>
           {report.status === 'GENERATED' && canGenerate && (
             <Button className="w-full" loading={busy} onClick={release}>
-              Sign &amp; release
+              {t('Sign & release')}
             </Button>
           )}
           {report.status === 'RELEASED' && canDeliver && (
             <Button className="w-full" onClick={() => setDeliverOpen(true)}>
-              Deliver report
+              {t('Deliver report')}
             </Button>
           )}
           <div className="flex gap-2">
             <LinkFrom to={`/app/reports/${report.id}`} className="flex-1">
               <Button variant="secondary" className="w-full">
                 <FileText className="h-4 w-4" aria-hidden />
-                Open report
+                {t('Open report')}
               </Button>
             </LinkFrom>
             {canGenerate && report.status === 'GENERATED' && (
               <Button
                 variant="ghost"
                 loading={busy}
-                onClick={() => run(() => reportsApi.generate(orderId, false), 'Report regenerated')}
+                onClick={() => run(() => reportsApi.generate(orderId, false), t('Report regenerated'))}
               >
-                Regenerate
+                {t('Regenerate')}
               </Button>
             )}
           </div>
@@ -95,28 +104,28 @@ export function OrderReportCard({
       ) : (
         <CardBody className="space-y-2">
           {!hasApprovedResults ? (
-            <p className="text-sm text-muted">A report can be generated once results are authorized.</p>
+            <p className="text-sm text-muted">{t('A report can be generated once results are authorized.')}</p>
           ) : canGenerate ? (
             <>
               <Button
                 className="w-full"
                 loading={busy}
-                onClick={() => run(() => reportsApi.generate(orderId, false), 'Report generated')}
+                onClick={() => run(() => reportsApi.generate(orderId, false), t('Report generated'))}
               >
                 <FileText className="h-4 w-4" aria-hidden />
-                Generate final report
+                {t('Generate final report')}
               </Button>
               <Button
                 variant="secondary"
                 className="w-full"
                 loading={busy}
-                onClick={() => run(() => reportsApi.generate(orderId, true), 'Preliminary report generated')}
+                onClick={() => run(() => reportsApi.generate(orderId, true), t('Preliminary report generated'))}
               >
-                Generate preliminary report
+                {t('Generate preliminary report')}
               </Button>
             </>
           ) : (
-            <p className="text-sm text-muted">Results are authorized — a pathologist can generate the report.</p>
+            <p className="text-sm text-muted">{t('Results are authorized — a pathologist can generate the report.')}</p>
           )}
         </CardBody>
       )}

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { BackLink } from './BackLink';
+import { useT } from '@/i18n';
 import { usePageTitle } from './layout/PageTitleContext';
 import type { BackTarget } from '@/lib/navigation';
 
@@ -20,12 +21,13 @@ export function PageHeader({
   actions?: ReactNode;
   back?: BackTarget | null;
 }) {
+  const t = useT();
   usePageTitle(title);
   return (
     <div className="mb-6">
       {back && (
         <BackLink to={back.href} className="mb-2">
-          Back to {back.label}
+          {t('Back to {label}', { label: back.label })}
         </BackLink>
       )}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

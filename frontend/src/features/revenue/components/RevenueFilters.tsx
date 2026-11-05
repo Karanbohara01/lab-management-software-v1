@@ -2,6 +2,7 @@ import { Select } from '@/components/ui/Select';
 import { DateRangePicker } from '@/components/ui/DateRangePicker';
 import { cn } from '@/lib/cn';
 import type { Branch } from '@/features/branches/api';
+import { useT } from '@/i18n';
 import { REVENUE_PRESET_LABEL, type RevenuePreset } from '../types';
 import type { RevenueWindowState } from '../useRevenueWindow';
 
@@ -21,10 +22,11 @@ export function RevenueFilters({
   branches: Branch[];
   showBranch: boolean;
 }) {
+  const t = useT();
   return (
     <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row lg:items-end lg:justify-between">
       <div className="min-w-0">
-        <p className="mb-2 text-label text-muted">Reporting period</p>
+        <p className="mb-2 text-label text-muted">{t('Reporting period')}</p>
         <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]">
           {PRESETS.map((p) => {
             const active = window.preset === p;
@@ -41,7 +43,7 @@ export function RevenueFilters({
                     : 'border-border text-muted-foreground hover:bg-surface-muted hover:text-foreground',
                 )}
               >
-                {REVENUE_PRESET_LABEL[p]}
+                {t(REVENUE_PRESET_LABEL[p])}
               </button>
             );
           })}
@@ -50,22 +52,22 @@ export function RevenueFilters({
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <DateRangePicker
-          label="Custom range"
+          label={t('Custom range')}
           className="sm:w-64"
           align="right"
           value={window.range}
           onChange={window.setRange}
           maxDate={new Date()}
-          placeholder="Pick any two dates"
+          placeholder={t('Pick any two dates')}
         />
         {showBranch && (
           <div className="sm:w-48">
             <Select
-              label="Branch"
+              label={t('Branch')}
               value={String(window.branchId ?? '')}
               onChange={(e) => window.setBranch(e.target.value)}
               options={[
-                { value: '', label: 'All branches' },
+                { value: '', label: t('All branches') },
                 ...branches.map((b) => ({ value: String(b.id), label: b.name })),
               ]}
             />

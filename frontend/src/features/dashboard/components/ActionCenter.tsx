@@ -8,6 +8,7 @@ import { PERMISSIONS } from '@/features/auth/permissions';
 import { SectionHeader } from './SectionHeader';
 import type { DashboardSummary } from '../api';
 import { useNavigateFrom } from '@/lib/navigation';
+import { useT } from '@/i18n';
 
 type Severity = 'critical' | 'warning' | 'info';
 
@@ -41,6 +42,7 @@ export function ActionCenter({
 }) {
   const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
+  const t = useT();
 
   const criticalPending = resultCounts.CRITICAL_PENDING ?? summary.unresolvedCriticalResults;
   const overdue = resultCounts.OVERDUE ?? 0;
@@ -50,9 +52,9 @@ export function ActionCenter({
       key: 'critical',
       severity: 'critical',
       icon: AlertOctagon,
-      title: 'Critical results awaiting acknowledgment',
-      description: `${criticalPending} result${criticalPending === 1 ? '' : 's'} need a documented callback to the clinician.`,
-      cta: 'Review critical results',
+      title: t('Critical results awaiting acknowledgment'),
+      description: t('{count} result(s) need a documented callback to the clinician.', { count: criticalPending }),
+      cta: t('Review critical results'),
       to: '/app/results?criticalPendingOnly=true',
       permission: PERMISSIONS.RESULT_READ,
     },
@@ -60,9 +62,11 @@ export function ActionCenter({
       key: 'verify',
       severity: 'warning',
       icon: FileCheck,
-      title: 'Results awaiting verification',
-      description: `${summary.resultsPendingVerification} result${summary.resultsPendingVerification === 1 ? '' : 's'} entered and ready for technician verification.`,
-      cta: 'Review results',
+      title: t('Results awaiting verification'),
+      description: t('{count} result(s) entered and ready for technician verification.', {
+        count: summary.resultsPendingVerification,
+      }),
+      cta: t('Review results'),
       to: '/app/results?status=ENTERED',
       permission: PERMISSIONS.RESULT_VERIFY,
     },
@@ -70,9 +74,9 @@ export function ActionCenter({
       key: 'approve',
       severity: 'info',
       icon: FileCheck,
-      title: 'Reports awaiting pathologist authorization',
-      description: `${summary.resultsPendingApproval} verified result${summary.resultsPendingApproval === 1 ? '' : 's'} ready for final sign-off.`,
-      cta: 'Review & authorize',
+      title: t('Reports awaiting pathologist authorization'),
+      description: t('{count} verified result(s) ready for final sign-off.', { count: summary.resultsPendingApproval }),
+      cta: t('Review & authorize'),
       to: '/app/results?status=VERIFIED',
       permission: PERMISSIONS.RESULT_APPROVE,
     },
@@ -80,9 +84,9 @@ export function ActionCenter({
       key: 'collect',
       severity: 'warning',
       icon: FlaskConical,
-      title: 'Samples awaiting collection',
-      description: `${summary.pendingCollection} sample${summary.pendingCollection === 1 ? '' : 's'} not yet collected from the patient.`,
-      cta: 'View samples',
+      title: t('Samples awaiting collection'),
+      description: t('{count} sample(s) not yet collected from the patient.', { count: summary.pendingCollection }),
+      cta: t('View samples'),
       to: '/app/samples?status=AWAITING_COLLECTION',
       permission: PERMISSIONS.SAMPLE_READ,
     },
@@ -90,9 +94,9 @@ export function ActionCenter({
       key: 'overdue',
       severity: 'warning',
       icon: Clock,
-      title: 'Results past their turnaround target',
-      description: `${overdue} result${overdue === 1 ? '' : 's'} are running behind the expected turnaround time.`,
-      cta: 'View overdue results',
+      title: t('Results past their turnaround target'),
+      description: t('{count} result(s) are running behind the expected turnaround time.', { count: overdue }),
+      cta: t('View overdue results'),
       to: '/app/results?overdueOnly=true',
       permission: PERMISSIONS.RESULT_READ,
     },
@@ -100,9 +104,11 @@ export function ActionCenter({
       key: 'ird',
       severity: 'critical',
       icon: ScrollText,
-      title: 'Failed IRD e-billing submissions',
-      description: `${summary.failedIrdSubmissions} submission${summary.failedIrdSubmissions === 1 ? '' : 's'} failed and need to be retried or filed manually.`,
-      cta: 'Review submissions',
+      title: t('Failed IRD e-billing submissions'),
+      description: t('{count} submission(s) failed and need to be retried or filed manually.', {
+        count: summary.failedIrdSubmissions,
+      }),
+      cta: t('Review submissions'),
       to: '/app/ird?status=FAILED',
       permission: PERMISSIONS.IRD_SUBMISSION_READ,
     },
@@ -110,9 +116,9 @@ export function ActionCenter({
       key: 'inventory',
       severity: 'warning',
       icon: Package,
-      title: 'Inventory needs attention',
-      description: `${summary.inventoryAlerts} item${summary.inventoryAlerts === 1 ? '' : 's'} are low, expiring soon, or out of stock.`,
-      cta: 'View inventory',
+      title: t('Inventory needs attention'),
+      description: t('{count} item(s) are low, expiring soon, or out of stock.', { count: summary.inventoryAlerts }),
+      cta: t('View inventory'),
       to: '/app/inventory',
       permission: PERMISSIONS.INVENTORY_READ,
     },
@@ -145,7 +151,7 @@ export function ActionCenter({
       {visible.length === 0 ? (
         <div className="flex items-center gap-3 px-5 pb-5 text-sm text-success">
           <CheckCircle2 className="h-5 w-5 shrink-0" aria-hidden />
-          Nothing needs attention right now — the laboratory is caught up.
+          {t('Nothing needs attention right now — the laboratory is caught up.')}
         </div>
       ) : (
         <ul className="divide-y divide-border">

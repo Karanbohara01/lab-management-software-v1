@@ -14,6 +14,7 @@ import { useQuery } from '@/hooks/useQuery';
 import { useNavigateFrom } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
+import { useT, tOpts } from '@/i18n';
 import { inventoryApi } from './api';
 import { ItemFormModal } from './InventoryModals';
 import {
@@ -29,6 +30,7 @@ const PAGE_SIZE = 20;
 const PARAMS = { q: '', category: '', page: 1 };
 
 export function InventoryPage() {
+  const t = useT();
   const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.INVENTORY_WRITE);
@@ -55,37 +57,37 @@ export function InventoryPage() {
   const alertCount = (summary.data?.alerts ?? []).length;
 
   const columns: Column<InventoryItemListItem>[] = [
-    { key: 'code', header: 'Code', cell: (i) => <span className="font-mono text-xs">{i.code}</span> },
-    { key: 'name', header: 'Item', cell: (i) => <span className="font-medium">{i.name}</span> },
-    { key: 'cat', header: 'Category', cell: (i) => CATEGORY_LABEL[i.category], hideOnMobile: true },
+    { key: 'code', header: t('Code'), cell: (i) => <span className="font-mono text-xs">{i.code}</span> },
+    { key: 'name', header: t('Item'), cell: (i) => <span className="font-medium">{i.name}</span> },
+    { key: 'cat', header: t('Category'), cell: (i) => t(CATEGORY_LABEL[i.category]), hideOnMobile: true },
     {
       key: 'stock',
-      header: 'On hand',
+      header: t('On hand'),
       cell: (i) => (
         <span>
           {i.quantityOnHand} {i.unit}
-          {i.minimumStock > 0 && <span className="ml-1 text-xs text-muted">/ min {i.minimumStock}</span>}
+          {i.minimumStock > 0 && <span className="ml-1 text-xs text-muted">{t('/ min {min}', { min: i.minimumStock })}</span>}
         </span>
       ),
       className: 'text-right',
     },
     {
       key: 'status',
-      header: 'Status',
-      cell: (i) => <Badge tone={STOCK_STATUS_TONE[i.status]}>{STOCK_STATUS_LABEL[i.status]}</Badge>,
+      header: t('Status'),
+      cell: (i) => <Badge tone={STOCK_STATUS_TONE[i.status]}>{t(STOCK_STATUS_LABEL[i.status])}</Badge>,
     },
   ];
 
   return (
     <>
       <PageHeader
-        title="Inventory"
-        description="Reagents, kits and consumables — batches, stock levels and expiry."
+        title={t('Inventory')}
+        description={t('Reagents, kits and consumables — batches, stock levels and expiry.')}
         actions={
           canWrite ? (
             <Button onClick={() => setModalOpen(true)}>
               <Plus className="h-4 w-4" aria-hidden />
-              New item
+              {t('New item')}
             </Button>
           ) : undefined
         }
@@ -96,7 +98,7 @@ export function InventoryPage() {
           <CardBody>
             <div className="flex items-center gap-2 text-sm">
               <AlertTriangle className="h-4 w-4 text-warning" aria-hidden />
-              <span className="font-medium text-foreground">{alertCount} item(s) need attention</span>
+              <span className="font-medium text-foreground">{t('{count} item(s) need attention', { count: alertCount })}</span>
             </div>
             <ul className="mt-2 flex flex-wrap gap-2">
               {(summary.data?.alerts ?? []).slice(0, 12).map((a) => (
@@ -105,7 +107,7 @@ export function InventoryPage() {
                     onClick={() => navigate(`/app/inventory/${a.id}`)}
                     className="rounded-full border border-border px-2 py-0.5 text-xs hover:bg-surface-muted"
                   >
-                    {a.code} · {STOCK_STATUS_LABEL[a.status]}
+                    {a.code} · {t(STOCK_STATUS_LABEL[a.status])}
                   </button>
                 </li>
               ))}
@@ -120,14 +122,14 @@ export function InventoryPage() {
             <SearchInput
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name or code"
+              placeholder={t('Search by name or code')}
             />
           </div>
           <div className="sm:w-48">
             <Select
               options={[
-                { value: '', label: 'All categories' },
-                ...Object.entries(CATEGORY_LABEL).map(([value, label]) => ({ value, label })),
+                { value: '', label: t('All categories') },
+                ...tOpts(Object.entries(CATEGORY_LABEL).map(([value, label]) => ({ value, label }))),
               ]}
               value={params.category}
               onChange={(e) => set({ category: e.target.value })}
@@ -141,9 +143,9 @@ export function InventoryPage() {
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.content.length === 0 ? (
           <EmptyState
-            title="No items"
-            message={params.q || params.category ? 'Adjust the filters.' : 'Add your first inventory item.'}
-            action={canWrite && !params.q && !params.category ? <Button onClick={() => setModalOpen(true)}>New item</Button> : undefined}
+            title={t('No items')}
+            message={params.q || params.category ? t('Adjust the filters.') : t('Add your first inventory item.')}
+            action={canWrite && !params.q && !params.category ? <Button onClick={() => setModalOpen(true)}>{t('New item')}</Button> : undefined}
           />
         ) : (
           data && (

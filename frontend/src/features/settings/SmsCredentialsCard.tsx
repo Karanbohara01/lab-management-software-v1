@@ -10,6 +10,7 @@ import { useQuery } from '@/hooks/useQuery';
 import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/types/api';
 import { settingsApi } from './api';
+import { useT } from '@/i18n';
 
 /**
  * This clinic's own Sparrow SMS account, for report-delivery text messages — overrides the
@@ -17,6 +18,7 @@ import { settingsApi } from './api';
  * (if any) seamlessly.
  */
 export function SmsCredentialsCard({ canWrite }: { canWrite: boolean }) {
+  const t = useT();
   const toast = useToast();
   const { data, loading, error, refetch } = useQuery(() => settingsApi.getSmsCredentials(), []);
 
@@ -40,10 +42,10 @@ export function SmsCredentialsCard({ canWrite }: { canWrite: boolean }) {
     try {
       await settingsApi.updateSmsCredentials({ enabled, from: from || undefined, token: token || undefined });
       setToken('');
-      toast.success('SMS settings saved');
+      toast.success(t('SMS settings saved'));
       refetch();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to save');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to save'));
     } finally {
       setSaving(false);
     }
@@ -52,39 +54,39 @@ export function SmsCredentialsCard({ canWrite }: { canWrite: boolean }) {
   return (
     <Card>
       <CardHeader
-        title="SMS delivery"
-        description="Your own Sparrow SMS account for texting report links — otherwise this deployment's shared default (if any) is used."
+        title={t('SMS delivery')}
+        description={t("Your own Sparrow SMS account for texting report links — otherwise this deployment's shared default (if any) is used.")}
       />
       <CardBody className="space-y-4">
         <div className="flex items-center justify-between">
           <Checkbox
-            label="Use my own Sparrow SMS account"
+            label={t('Use my own Sparrow SMS account')}
             checked={enabled}
             disabled={!canWrite}
             onChange={(e) => setEnabled(e.target.checked)}
           />
           <Badge tone={data.tokenConfigured ? 'success' : 'neutral'}>
-            {data.tokenConfigured ? 'Configured' : 'Not configured'}
+            {data.tokenConfigured ? t('Configured') : t('Not configured')}
           </Badge>
         </div>
         {enabled && (
           <div className="grid gap-3 sm:grid-cols-2">
-            <Input label="Sender identity" value={from} disabled={!canWrite} onChange={(e) => setFrom(e.target.value)} />
+            <Input label={t('Sender identity')} value={from} disabled={!canWrite} onChange={(e) => setFrom(e.target.value)} />
             <Input
-              label="API token"
+              label={t('API token')}
               type="password"
-              placeholder={data.tokenConfigured ? '•••••••• (leave blank to keep)' : ''}
+              placeholder={data.tokenConfigured ? t('•••••••• (leave blank to keep)') : ''}
               value={token}
               disabled={!canWrite}
               onChange={(e) => setToken(e.target.value)}
             />
           </div>
         )}
-        {!canWrite && <Alert tone="info">You have read-only access to settings.</Alert>}
+        {!canWrite && <Alert tone="info">{t('You have read-only access to settings.')}</Alert>}
         {canWrite && (
           <div className="flex justify-end">
             <Button onClick={save} loading={saving}>
-              Save SMS settings
+              {t('Save SMS settings')}
             </Button>
           </div>
         )}

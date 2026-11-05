@@ -12,8 +12,10 @@ import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { branchesApi, type Branch } from './api';
 import { BranchFormModal } from './BranchFormModal';
+import { useT } from '@/i18n';
 
 export function BranchesPage() {
+  const t = useT();
   const { back } = useBackTarget();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.BRANCH_WRITE);
@@ -23,14 +25,14 @@ export function BranchesPage() {
   const { data, loading, error, refetch } = useQuery(() => branchesApi.list(false), []);
 
   const columns: Column<Branch>[] = [
-    { key: 'code', header: 'Code', cell: (b) => <span className="font-mono text-xs">{b.code}</span> },
-    { key: 'name', header: 'Name', cell: (b) => <span className="font-medium">{b.name}</span> },
-    { key: 'city', header: 'City', cell: (b) => b.city ?? '—', hideOnMobile: true },
-    { key: 'phone', header: 'Phone', cell: (b) => b.phone ?? '—', hideOnMobile: true },
+    { key: 'code', header: t('Code'), cell: (b) => <span className="font-mono text-xs">{b.code}</span> },
+    { key: 'name', header: t('Name'), cell: (b) => <span className="font-medium">{b.name}</span> },
+    { key: 'city', header: t('City'), cell: (b) => b.city ?? '—', hideOnMobile: true },
+    { key: 'phone', header: t('Phone'), cell: (b) => b.phone ?? '—', hideOnMobile: true },
     {
       key: 'status',
-      header: 'Status',
-      cell: (b) => <Badge tone={b.active ? 'success' : 'neutral'}>{b.active ? 'Active' : 'Inactive'}</Badge>,
+      header: t('Status'),
+      cell: (b) => <Badge tone={b.active ? 'success' : 'neutral'}>{t(b.active ? 'Active' : 'Inactive')}</Badge>,
     },
   ];
 
@@ -38,8 +40,8 @@ export function BranchesPage() {
     <>
       <PageHeader
         back={back}
-        title="Branches"
-        description="Locations and collection centers. Staff with a home branch see only that branch's orders, samples and invoices."
+        title={t('Branches')}
+        description={t("Locations and collection centers. Staff with a home branch see only that branch's orders, samples and invoices.")}
         actions={
           canWrite ? (
             <Button
@@ -49,7 +51,7 @@ export function BranchesPage() {
               }}
             >
               <Plus className="h-4 w-4" aria-hidden />
-              New branch
+              {t('New branch')}
             </Button>
           ) : undefined
         }
@@ -61,7 +63,7 @@ export function BranchesPage() {
         ) : error ? (
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.length === 0 ? (
-          <EmptyState title="No branches yet" message="Create the first branch to enable branch-scoped operations." />
+          <EmptyState title={t('No branches yet')} message={t('Create the first branch to enable branch-scoped operations.')} />
         ) : (
           data && (
             <DataTable

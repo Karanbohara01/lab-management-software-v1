@@ -8,10 +8,12 @@ import { Breadcrumbs } from './Breadcrumbs';
 import { PageTitleProvider } from './PageTitleContext';
 import { KeyboardShortcutsModal } from './KeyboardShortcutsModal';
 import { useGlobalShortcuts } from './useGlobalShortcuts';
+import { useT } from '@/i18n';
 
 const COLLAPSE_KEY = 'lims.sidebar.collapsed';
 
 export function AppShell() {
+  const t = useT();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const openShortcutsHelp = useCallback(() => setShortcutsOpen(true), []);
@@ -55,7 +57,7 @@ export function AppShell() {
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground"
       >
-        Skip to main content
+        {t('Skip to main content')}
       </a>
 
       {/* Desktop sidebar */}
@@ -81,14 +83,14 @@ export function AppShell() {
           <div
             role="dialog"
             aria-modal="true"
-            aria-label="Navigation menu"
+            aria-label={t('Navigation menu')}
             className={cn('absolute inset-y-0 left-0 w-72 max-w-[80%] shadow-popover animate-slide-in-left')}
           >
             <button
               type="button"
               onClick={() => setDrawerOpen(false)}
               className="absolute right-3 top-4 z-10 rounded-md p-2 text-muted-foreground hover:bg-surface-muted"
-              aria-label="Close navigation menu"
+              aria-label={t('Close navigation menu')}
             >
               <X className="h-5 w-5" aria-hidden />
             </button>

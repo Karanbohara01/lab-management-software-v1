@@ -26,6 +26,7 @@ import {
   type InvoiceListItem,
   type InvoiceStatus,
 } from './types';
+import { useT } from '@/i18n';
 
 const EXPORT_COLUMNS: { key: keyof InvoiceListItem; header: string }[] = [
   { key: 'invoiceNumber', header: 'InvoiceNumber' },
@@ -44,6 +45,7 @@ const PAGE_SIZE = 20;
 const PARAMS = { q: '', status: '', unpaidOnly: false, branchId: '', page: 1 };
 
 export function InvoicesPage() {
+  const t = useT();
   const navigate = useNavigateFrom();
   const toast = useToast();
   const { user } = useAuth();
@@ -95,17 +97,17 @@ export function InvoicesPage() {
         );
       }
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Export failed');
+      toast.error(err instanceof ApiError ? err.message : t('Export failed'));
     } finally {
       setExporting(false);
     }
   };
 
   const columns: Column<InvoiceListItem>[] = [
-    { key: 'no', header: 'Invoice', cell: (i) => <span className="font-mono text-xs">{i.invoiceNumber ?? 'Draft'}</span> },
+    { key: 'no', header: t('Invoice'), cell: (i) => <span className="font-mono text-xs">{i.invoiceNumber ?? t('Draft')}</span> },
     {
       key: 'patient',
-      header: 'Patient',
+      header: t('Patient'),
       cell: (i) => (
         <span>
           <span className="font-medium">{i.patientName}</span>
@@ -113,12 +115,12 @@ export function InvoicesPage() {
         </span>
       ),
     },
-    { key: 'date', header: 'Date', cell: (i) => formatDate(i.createdAt), hideOnMobile: true },
-    { key: 'total', header: 'Total', cell: (i) => formatMoney(i.totalAmount), className: 'text-right' },
-    { key: 'balance', header: 'Balance', cell: (i) => formatMoney(i.balance), className: 'text-right' },
+    { key: 'date', header: t('Date'), cell: (i) => formatDate(i.createdAt), hideOnMobile: true },
+    { key: 'total', header: t('Total'), cell: (i) => formatMoney(i.totalAmount), className: 'text-right' },
+    { key: 'balance', header: t('Balance'), cell: (i) => formatMoney(i.balance), className: 'text-right' },
     {
       key: 'status',
-      header: 'Status',
+      header: t('Status'),
       cell: (i) => (
         <span className="flex items-center gap-1.5">
           <Badge tone={INVOICE_STATUS_TONE[i.status]}>{i.status}</Badge>
@@ -131,21 +133,21 @@ export function InvoicesPage() {
   return (
     <>
       <PageHeader
-        title="Invoices"
-        description="Billing for lab orders — issue, collect payment and track balances."
+        title={t('Invoices')}
+        description={t('Billing for lab orders — issue, collect payment and track balances.')}
         actions={
           <div className="flex items-center gap-2">
             <Button variant="secondary" loading={exporting} onClick={() => exportAll('csv')}>
               <Download className="h-4 w-4" aria-hidden />
-              Export CSV
+              {t('Export CSV')}
             </Button>
             <Button variant="secondary" loading={exporting} onClick={() => exportAll('xls')}>
               <Download className="h-4 w-4" aria-hidden />
-              Export Excel
+              {t('Export Excel')}
             </Button>
             <Button variant="secondary" loading={exporting} onClick={() => exportAll('xml')}>
               <Download className="h-4 w-4" aria-hidden />
-              Export XML
+              {t('Export XML')}
             </Button>
           </div>
         }
@@ -157,16 +159,16 @@ export function InvoicesPage() {
             <SearchInput
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search invoice no., patient or MRN"
+              placeholder={t('Search invoice no., patient or MRN')}
             />
           </div>
           <div className="sm:w-44">
             <Select
               options={[
-                { value: '', label: 'All statuses' },
-                { value: 'DRAFT', label: 'Draft' },
-                { value: 'ISSUED', label: 'Issued' },
-                { value: 'CANCELLED', label: 'Cancelled' },
+                { value: '', label: t('All statuses') },
+                { value: 'DRAFT', label: t('Draft') },
+                { value: 'ISSUED', label: t('Issued') },
+                { value: 'CANCELLED', label: t('Cancelled') },
               ]}
               value={params.status}
               onChange={(e) => set({ status: e.target.value })}
@@ -175,7 +177,7 @@ export function InvoicesPage() {
           {isHq && (
             <div className="sm:w-56">
               <Select
-                options={[{ value: '', label: 'All branches' }, ...branches.map((b) => ({ value: String(b.id), label: b.name }))]}
+                options={[{ value: '', label: t('All branches') }, ...branches.map((b) => ({ value: String(b.id), label: b.name }))]}
                 value={params.branchId}
                 onChange={(e) => set({ branchId: e.target.value })}
               />
@@ -188,7 +190,7 @@ export function InvoicesPage() {
               onChange={(e) => set({ unpaidOnly: e.target.checked })}
               className="h-4 w-4 rounded border-input"
             />
-            Outstanding only
+            {t('Outstanding only')}
           </label>
         </div>
 
@@ -197,7 +199,7 @@ export function InvoicesPage() {
         ) : error ? (
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.content.length === 0 ? (
-          <EmptyState title="No invoices" message="Raise an invoice from a confirmed lab order." />
+          <EmptyState title={t('No invoices')} message={t('Raise an invoice from a confirmed lab order.')} />
         ) : (
           data && (
             <>

@@ -10,12 +10,14 @@ import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { useNavigateFrom } from '@/lib/navigation';
 import { QueueShell } from './QueueShell';
+import { useT } from '@/i18n';
 
 /** Sample-collection staff worklist: specimens ordered but not yet drawn from the patient. */
 export function SamplesToCollect() {
   const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
   const toast = useToast();
+  const t = useT();
   const [busyId, setBusyId] = useState<number | null>(null);
   const { data, loading, error, refetch } = useQuery(
     () => samplesApi.list({ status: 'AWAITING_COLLECTION', size: 8 }),
@@ -26,22 +28,22 @@ export function SamplesToCollect() {
     setBusyId(id);
     try {
       await samplesApi.collect(id, {});
-      toast.success('Sample marked collected');
+      toast.success(t('Sample marked collected'));
       refetch();
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
-        const reason = window.prompt(`${e.message}\n\nEnter a reason to collect without payment:`);
+        const reason = window.prompt(`${e.message}\n\n${t('Enter a reason to collect without payment:')}`);
         if (reason && reason.trim()) {
           try {
             await samplesApi.collect(id, { paymentOverrideReason: reason.trim() });
-            toast.success('Sample collected without payment');
+            toast.success(t('Sample collected without payment'));
             refetch();
           } catch (e2) {
-            toast.error(e2 instanceof ApiError ? e2.message : 'Failed');
+            toast.error(e2 instanceof ApiError ? e2.message : t('Failed'));
           }
         }
       } else {
-        toast.error(e instanceof ApiError ? e.message : 'Unable to collect sample');
+        toast.error(e instanceof ApiError ? e.message : t('Unable to collect sample'));
       }
     } finally {
       setBusyId(null);
@@ -72,12 +74,16 @@ export function SamplesToCollect() {
                 {s.patientName} <span className="font-mono text-xs text-muted">{s.patientMrn}</span>
               </p>
               <p className="truncate text-xs text-muted">
-                {SPECIMEN_LABELS[s.specimenType]} · {s.testCount} test(s) · ordered {formatDateTime(s.createdAt)}
+                {t('{specimen} · {count} test(s) · ordered {time}', {
+                  specimen: t(SPECIMEN_LABELS[s.specimenType]),
+                  count: s.testCount,
+                  time: formatDateTime(s.createdAt),
+                })}
               </p>
             </button>
             {hasPermission(PERMISSIONS.SAMPLE_COLLECT) && (
               <Button size="sm" loading={busyId === s.id} onClick={() => collect(s.id)}>
-                Collect
+                {t('Collect')}
               </Button>
             )}
           </li>

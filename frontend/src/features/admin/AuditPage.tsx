@@ -18,6 +18,7 @@ import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/types/api';
 import { exportCsv, exportExcel, exportXml } from '@/lib/exportData';
 import { adminApi, type AuditListItem } from './api';
+import { useT, getLocale, LOCALE_TAG } from '@/i18n';
 
 const PAGE_SIZE = 30;
 /**
@@ -47,6 +48,7 @@ function pretty(json: string | null): string {
 }
 
 export function AuditPage() {
+  const t = useT();
   const { back } = useBackTarget();
   const toast = useToast();
   const [exporting, setExporting] = useState(false);
@@ -101,39 +103,39 @@ export function AuditPage() {
         );
       }
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Export failed');
+      toast.error(err instanceof ApiError ? err.message : t('Export failed'));
     } finally {
       setExporting(false);
     }
   };
 
   const columns: Column<AuditListItem>[] = [
-    { key: 'when', header: 'When', cell: (a) => new Date(a.createdAt).toLocaleString() },
-    { key: 'actor', header: 'Actor', cell: (a) => a.actor },
-    { key: 'module', header: 'Module', cell: (a) => <Badge tone="neutral">{a.module}</Badge>, hideOnMobile: true },
-    { key: 'action', header: 'Action', cell: (a) => <span className="font-mono text-xs">{a.action}</span> },
-    { key: 'summary', header: 'Summary', cell: (a) => a.summary ?? '—' },
+    { key: 'when', header: t('When'), cell: (a) => new Date(a.createdAt).toLocaleString(LOCALE_TAG[getLocale()]) },
+    { key: 'actor', header: t('Actor'), cell: (a) => a.actor },
+    { key: 'module', header: t('Module'), cell: (a) => <Badge tone="neutral">{a.module}</Badge>, hideOnMobile: true },
+    { key: 'action', header: t('Action'), cell: (a) => <span className="font-mono text-xs">{a.action}</span> },
+    { key: 'summary', header: t('Summary'), cell: (a) => a.summary ?? '—' },
   ];
 
   return (
     <>
       <PageHeader
         back={back}
-        title="Audit log"
-        description="Every sensitive operation, who performed it and what changed."
+        title={t('Audit log')}
+        description={t('Every sensitive operation, who performed it and what changed.')}
         actions={
           <div className="flex items-center gap-2">
             <Button variant="secondary" loading={exporting} onClick={() => exportAll('csv')}>
               <Download className="h-4 w-4" aria-hidden />
-              Export CSV
+              {t('Export CSV')}
             </Button>
             <Button variant="secondary" loading={exporting} onClick={() => exportAll('xls')}>
               <Download className="h-4 w-4" aria-hidden />
-              Export Excel
+              {t('Export Excel')}
             </Button>
             <Button variant="secondary" loading={exporting} onClick={() => exportAll('xml')}>
               <Download className="h-4 w-4" aria-hidden />
-              Export XML
+              {t('Export XML')}
             </Button>
           </div>
         }
@@ -141,16 +143,16 @@ export function AuditPage() {
 
       <Card>
         <div className="grid gap-3 border-b border-border p-4 sm:grid-cols-2 lg:grid-cols-4">
-          <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search summary" />
+          <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('Search summary')} />
           <Select
-            options={[{ value: '', label: 'All modules' }, ...(modules.data ?? []).map((m) => ({ value: m, label: m }))]}
+            options={[{ value: '', label: t('All modules') }, ...(modules.data ?? []).map((m) => ({ value: m, label: m }))]}
             value={params.module}
             onChange={(e) => set({ module: e.target.value })}
           />
-          <Input placeholder="Actor" value={actor} onChange={(e) => setActor(e.target.value)} />
+          <Input placeholder={t('Actor')} value={actor} onChange={(e) => setActor(e.target.value)} />
           <div className="grid grid-cols-2 gap-2">
-            <Input type="date" value={params.from} onChange={(e) => set({ from: e.target.value })} aria-label="From date" />
-            <Input type="date" value={params.to} onChange={(e) => set({ to: e.target.value })} aria-label="To date" />
+            <Input type="date" value={params.from} onChange={(e) => set({ from: e.target.value })} aria-label={t('From date')} />
+            <Input type="date" value={params.to} onChange={(e) => set({ to: e.target.value })} aria-label={t('To date')} />
           </div>
         </div>
 
@@ -159,7 +161,7 @@ export function AuditPage() {
         ) : error ? (
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.content.length === 0 ? (
-          <EmptyState title="No entries" message="No audit entries match these filters." />
+          <EmptyState title={t('No entries')} message={t('No audit entries match these filters.')} />
         ) : (
           data && (
             <>
@@ -180,26 +182,26 @@ export function AuditPage() {
         )}
       </Card>
 
-      <Modal open={params.entry !== 0} onClose={() => set({ entry: 0 }, { resetPage: false })} title="Audit entry" size="lg">
+      <Modal open={params.entry !== 0} onClose={() => set({ entry: 0 }, { resetPage: false })} title={t('Audit entry')} size="lg">
         {detail.loading || !detail.data ? (
           <LoadingState />
         ) : (
           <div className="space-y-4 text-sm">
             <dl className="grid grid-cols-2 gap-2">
-              <div><dt className="text-muted">Actor</dt><dd className="text-foreground">{detail.data.actor}</dd></div>
-              <div><dt className="text-muted">When</dt><dd className="text-foreground">{new Date(detail.data.createdAt).toLocaleString()}</dd></div>
-              <div><dt className="text-muted">Module / action</dt><dd className="text-foreground">{detail.data.module} · {detail.data.action}</dd></div>
-              <div><dt className="text-muted">Entity</dt><dd className="text-foreground">{detail.data.entityType ?? '—'} {detail.data.entityId ?? ''}</dd></div>
-              <div><dt className="text-muted">IP</dt><dd className="text-foreground">{detail.data.ipAddress ?? '—'}</dd></div>
+              <div><dt className="text-muted">{t('Actor')}</dt><dd className="text-foreground">{detail.data.actor}</dd></div>
+              <div><dt className="text-muted">{t('When')}</dt><dd className="text-foreground">{new Date(detail.data.createdAt).toLocaleString(LOCALE_TAG[getLocale()])}</dd></div>
+              <div><dt className="text-muted">{t('Module / action')}</dt><dd className="text-foreground">{detail.data.module} · {detail.data.action}</dd></div>
+              <div><dt className="text-muted">{t('Entity')}</dt><dd className="text-foreground">{detail.data.entityType ?? '—'} {detail.data.entityId ?? ''}</dd></div>
+              <div><dt className="text-muted">{t('IP')}</dt><dd className="text-foreground">{detail.data.ipAddress ?? '—'}</dd></div>
             </dl>
             {detail.data.summary && <p className="rounded-md bg-surface-muted p-2">{detail.data.summary}</p>}
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <p className="mb-1 text-xs font-semibold uppercase text-muted">Before</p>
+                <p className="mb-1 text-xs font-semibold uppercase text-muted">{t('Before')}</p>
                 <pre className="max-h-72 overflow-auto rounded-md border border-border bg-surface-muted p-2 text-xs">{pretty(detail.data.beforeState)}</pre>
               </div>
               <div>
-                <p className="mb-1 text-xs font-semibold uppercase text-muted">After</p>
+                <p className="mb-1 text-xs font-semibold uppercase text-muted">{t('After')}</p>
                 <pre className="max-h-72 overflow-auto rounded-md border border-border bg-surface-muted p-2 text-xs">{pretty(detail.data.afterState)}</pre>
               </div>
             </div>

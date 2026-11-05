@@ -25,6 +25,7 @@ import { TestPicker } from '@/features/catalog/TestPicker';
 import { branchesApi, type Branch } from '@/features/branches/api';
 import { useAuth } from '@/features/auth/useAuth';
 import { appointmentsApi } from '@/features/appointments/api';
+import { useT } from '@/i18n';
 import { ordersApi } from './api';
 import type { DiscountType, OrderPricing, OrderPriority } from './types';
 import { PricingSummary } from './PricingSummary';
@@ -59,6 +60,7 @@ const ZERO_PRICING: OrderPricing = {
 };
 
 export function OrderBuilderPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const isEdit = !!id;
   const [searchParams] = useSearchParams();
@@ -171,7 +173,7 @@ export function OrderBuilderPage() {
       setLoading(false);
     }
     bootstrap().catch(() => {
-      toast.error('Unable to load the order builder');
+      toast.error(t('Unable to load the order builder'));
       setLoading(false);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -225,8 +227,8 @@ export function OrderBuilderPage() {
   // ---- save -------------------------------------------------------
   const save = async (confirm: boolean) => {
     setFormError(null);
-    if (!patient) return setFormError('Select a patient.');
-    if (rows.length === 0) return setFormError('Add at least one test.');
+    if (!patient) return setFormError(t('Select a patient.'));
+    if (rows.length === 0) return setFormError(t('Add at least one test.'));
     setSaving(true);
     try {
       const payload = {
@@ -244,7 +246,11 @@ export function OrderBuilderPage() {
       const saved = isEdit
         ? await ordersApi.update(Number(id), payload)
         : await ordersApi.create(payload);
-      toast.success(confirm ? `Order ${saved.orderNumber} confirmed` : `Draft ${saved.orderNumber} saved`);
+      toast.success(
+        confirm
+          ? t('Order {number} confirmed', { number: saved.orderNumber })
+          : t('Draft {number} saved', { number: saved.orderNumber }),
+      );
 
       // Booked from an appointment ("Convert to order")? Link the appointment to this order so
       // it moves to CONVERTED — best-effort: the order itself is already safely created either way.
@@ -253,7 +259,7 @@ export function OrderBuilderPage() {
         try {
           await appointmentsApi.convert(Number(appointmentId), saved.id);
         } catch {
-          toast.error('Order created, but the appointment could not be marked as converted');
+          toast.error(t('Order created, but the appointment could not be marked as converted'));
         }
       }
 
@@ -262,25 +268,25 @@ export function OrderBuilderPage() {
       allowNextNavigation();
       navigate(`/app/orders/${saved.id}`, { replace: true, state: location.state });
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : 'Unable to save the order');
+      setFormError(err instanceof ApiError ? err.message : t('Unable to save the order'));
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return <LoadingState label="Loading…" />;
+  if (loading) return <LoadingState label={t('Loading…')} />;
 
   return (
     <>
       {unsavedDialog}
       <PageHeader
         back={back}
-        title={isEdit ? 'Edit draft order' : 'New lab order'}
+        title={isEdit ? t('Edit draft order') : t('New lab order')}
         actions={
           // This form had no way out but the back link, which always went to the orders list even
           // when the user arrived from a patient or an appointment.
           <Button variant="secondary" type="button" onClick={() => navigate(back.href)}>
-            Cancel
+            {t('Cancel')}
           </Button>
         }
       />
@@ -294,7 +300,7 @@ export function OrderBuilderPage() {
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="min-w-0 space-y-4 lg:col-span-2">
           <Card>
-            <CardHeader title="Patient" />
+            <CardHeader title={t('Patient')} />
             <CardBody>
               {patient ? (
                 <div className="flex items-center justify-between gap-3">
@@ -308,7 +314,7 @@ export function OrderBuilderPage() {
                   {!isEdit && (
                     <Button variant="ghost" size="sm" onClick={() => setPatient(null)}>
                       <X className="h-4 w-4" aria-hidden />
-                      Change
+                      {t('Change')}
                     </Button>
                   )}
                 </div>
@@ -319,7 +325,7 @@ export function OrderBuilderPage() {
           </Card>
 
           <Card>
-            <CardHeader title="Tests" description="Search the catalog and add the tests to order." />
+            <CardHeader title={t('Tests')} description={t('Search the catalog and add the tests to order.')} />
             <CardBody className="space-y-4">
               <TestPicker
                 existingIds={rows.map((r) => r.testId)}
@@ -341,18 +347,18 @@ export function OrderBuilderPage() {
 
               {rows.length === 0 ? (
                 <p className="rounded-md border border-dashed border-border px-3 py-6 text-center text-sm text-muted">
-                  No tests added yet.
+                  {t('No tests added yet.')}
                 </p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
-                        <th className="py-2 pr-3">Test</th>
-                        <th className="px-2 py-2 text-right">Rate</th>
-                        <th className="px-2 py-2 text-center">Qty</th>
-                        <th className="px-2 py-2 text-right">Line disc.</th>
-                        <th className="px-2 py-2 text-right">Total</th>
+                        <th className="py-2 pr-3">{t('Test')}</th>
+                        <th className="px-2 py-2 text-right">{t('Rate')}</th>
+                        <th className="px-2 py-2 text-center">{t('Qty')}</th>
+                        <th className="px-2 py-2 text-right">{t('Line disc.')}</th>
+                        <th className="px-2 py-2 text-right">{t('Total')}</th>
                         <th className="py-2 pl-2" />
                       </tr>
                     </thead>
@@ -377,7 +383,7 @@ export function OrderBuilderPage() {
                                 )
                               }
                               className="h-8 w-16 rounded-md border border-input bg-surface px-2 text-center"
-                              aria-label={`Quantity for ${row.testName}`}
+                              aria-label={t('Quantity for {test}', { test: row.testName })}
                             />
                           </td>
                           <td className="px-2 py-2">
@@ -394,7 +400,7 @@ export function OrderBuilderPage() {
                                 )
                               }
                               className="h-8 w-20 rounded-md border border-input bg-surface px-2 text-right"
-                              aria-label={`Line discount for ${row.testName}`}
+                              aria-label={t('Line discount for {test}', { test: row.testName })}
                             />
                           </td>
                           <td className="px-2 py-2 text-right font-medium">
@@ -405,7 +411,7 @@ export function OrderBuilderPage() {
                               type="button"
                               onClick={() => setRows((prev) => prev.filter((_, i) => i !== index))}
                               className="text-muted hover:text-danger"
-                              aria-label={`Remove ${row.testName}`}
+                              aria-label={t('Remove {test}', { test: row.testName })}
                             >
                               <Trash2 className="h-4 w-4" aria-hidden />
                             </button>
@@ -420,36 +426,36 @@ export function OrderBuilderPage() {
           </Card>
 
           <Card>
-            <CardHeader title="Referral & notes" />
+            <CardHeader title={t('Referral & notes')} />
             <CardBody className="space-y-4">
               {!isBranchScoped && (
                 <Select
-                  label="Branch"
-                  placeholder="Default branch"
+                  label={t('Branch')}
+                  placeholder={t('Default branch')}
                   options={branches.map((b) => ({ value: String(b.id), label: b.name }))}
                   value={branchId}
                   onChange={(e) => setBranchId(e.target.value)}
                 />
               )}
               <Combobox
-                label="Referring doctor"
-                placeholder="No referring doctor"
+                label={t('Referring doctor')}
+                placeholder={t('No referring doctor')}
                 options={doctors.map((d) => ({ value: String(d.id), label: d.fullName }))}
                 value={referringDoctorId}
                 onChange={setReferringDoctorId}
               />
               <Select
-                label="Priority"
+                label={t('Priority')}
                 options={[
-                  { value: 'ROUTINE', label: 'Routine' },
-                  { value: 'URGENT', label: 'Urgent' },
-                  { value: 'STAT', label: 'STAT � jumps the queue, tighter turnaround' },
+                  { value: 'ROUTINE', label: t('Routine') },
+                  { value: 'URGENT', label: t('Urgent') },
+                  { value: 'STAT', label: t('STAT — jumps the queue, tighter turnaround') },
                 ]}
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as OrderPriority)}
               />
               <Textarea
-                label="Clinical notes"
+                label={t('Clinical notes')}
                 value={clinicalNotes}
                 onChange={(e) => setClinicalNotes(e.target.value)}
               />
@@ -459,21 +465,21 @@ export function OrderBuilderPage() {
 
         <div className="space-y-4">
           <Card>
-            <CardHeader title="Discount & tax" />
+            <CardHeader title={t('Discount & tax')} />
             <CardBody className="space-y-3">
               <Select
-                label="Discount type"
+                label={t('Discount type')}
                 options={[
-                  { value: 'NONE', label: 'No discount' },
-                  { value: 'PERCENT', label: 'Percentage (%)' },
-                  { value: 'AMOUNT', label: 'Flat amount (NPR)' },
+                  { value: 'NONE', label: t('No discount') },
+                  { value: 'PERCENT', label: t('Percentage (%)') },
+                  { value: 'AMOUNT', label: t('Flat amount (NPR)') },
                 ]}
                 value={discountType}
                 onChange={(e) => setDiscountType(e.target.value as DiscountType)}
               />
               {discountType !== 'NONE' && (
                 <Input
-                  label={discountType === 'PERCENT' ? 'Discount %' : 'Discount amount'}
+                  label={discountType === 'PERCENT' ? t('Discount %') : t('Discount amount')}
                   type="number"
                   min={0}
                   step="any"
@@ -482,11 +488,11 @@ export function OrderBuilderPage() {
                 />
               )}
               <Input
-                label="Tax rate %"
+                label={t('Tax rate %')}
                 type="number"
                 min={0}
                 step="any"
-                hint="Most diagnostic services in Nepal are VAT-exempt — leave at 0 unless advised."
+                hint={t('Most diagnostic services in Nepal are VAT-exempt — leave at 0 unless advised.')}
                 value={taxRate}
                 onChange={(e) => setTaxRate(e.target.value)}
               />
@@ -494,19 +500,19 @@ export function OrderBuilderPage() {
           </Card>
 
           <Card>
-            <CardHeader title="Order summary" />
+            <CardHeader title={t('Order summary')} />
             <CardBody className="space-y-4">
               <PricingSummary pricing={pricing} />
               <div className="flex flex-col gap-2">
                 <Button onClick={() => save(true)} loading={saving} disabled={rows.length === 0 || !patient}>
-                  Save &amp; confirm
+                  {t('Save & confirm')}
                 </Button>
                 <Button variant="secondary" onClick={() => save(false)} loading={saving}>
-                  Save as draft
+                  {t('Save as draft')}
                 </Button>
               </div>
               <p className="text-xs text-muted">
-                Totals are recalculated and finalised by the server on save.
+                {t('Totals are recalculated and finalised by the server on save.')}
               </p>
             </CardBody>
           </Card>

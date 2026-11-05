@@ -12,8 +12,10 @@ import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
 import { irdApi } from '@/features/ird/api';
 import { IRD_STATUS_LABEL, IRD_STATUS_TONE } from '@/features/ird/types';
+import { useT, translate, getLocale } from '@/i18n';
 
 export function InvoiceIrdCard({ invoiceId }: { invoiceId: number }) {
+  const t = useT();
   const navigate = useNavigateFrom();
   const toast = useToast();
   const { hasPermission } = useAuth();
@@ -33,10 +35,10 @@ export function InvoiceIrdCard({ invoiceId }: { invoiceId: number }) {
     setBusy(true);
     try {
       const updated = await irdApi.submit(invoiceId);
-      toast.success('Submission attempted');
+      toast.success(t('Submission attempted'));
       navigate(`/app/ird/${updated.id}`);
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to submit');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to submit'));
     } finally {
       setBusy(false);
     }
@@ -44,34 +46,33 @@ export function InvoiceIrdCard({ invoiceId }: { invoiceId: number }) {
 
   return (
     <Card>
-      <CardHeader title="IRD / e-Billing" />
+      <CardHeader title={t('IRD / e-Billing')} />
       {sub.loading ? (
         <LoadingState />
       ) : !sub.data ? (
         <CardBody>
-          <p className="text-sm text-muted">Available once the invoice is issued.</p>
+          <p className="text-sm text-muted">{t('Available once the invoice is issued.')}</p>
         </CardBody>
       ) : (
         <CardBody className="space-y-3">
           <div className="flex items-center justify-between">
             <span className="flex gap-1.5">
-              <Badge tone={IRD_STATUS_TONE[sub.data.status]}>{IRD_STATUS_LABEL[sub.data.status]}</Badge>
-              {sub.data.manual && <Badge tone="neutral">Manual</Badge>}
+              <Badge tone={IRD_STATUS_TONE[sub.data.status]}>{translate(getLocale(), IRD_STATUS_LABEL[sub.data.status])}</Badge>
+              {sub.data.manual && <Badge tone="neutral">{t('Manual')}</Badge>}
             </span>
             <LinkFrom to={`/app/ird/${sub.data.id}`} className="text-sm text-primary">
-              Details
+              {t('Details')}
             </LinkFrom>
           </div>
           {config.data && !config.data.enabled && (
             <p className="text-xs text-muted">
-              Electronic submission is not configured — no data is transmitted. Bills can be recorded
-              as filed manually.
+              {t('Electronic submission is not configured — no data is transmitted. Bills can be recorded as filed manually.')}
             </p>
           )}
           {canManage && (sub.data.status === 'NOT_SUBMITTED' || sub.data.status === 'FAILED') && (
             <Button variant="secondary" className="w-full" loading={busy} onClick={submit}>
               <ScrollText className="h-4 w-4" aria-hidden />
-              {sub.data.status === 'FAILED' ? 'Retry submission' : 'Submit to IRD'}
+              {sub.data.status === 'FAILED' ? t('Retry submission') : t('Submit to IRD')}
             </Button>
           )}
         </CardBody>

@@ -4,9 +4,8 @@ import { Card } from '@/components/ui/Card';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { cn } from '@/lib/cn';
 import { formatMoney } from '@/lib/money';
+import { getLocale, LOCALE_TAG, useT } from '@/i18n';
 import type { RevenueSummary } from '../types';
-
-const PERCENT = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 
 /** Change against the previous window of equal length. Null when there is no base to compare to. */
 function delta(current: number, previous: number): { pct: number; up: boolean } | null {
@@ -16,23 +15,25 @@ function delta(current: number, previous: number): { pct: number; up: boolean } 
 }
 
 function Trend({ current, previous, invert }: { current: number; previous: number; invert?: boolean }) {
+  const t = useT();
   const d = delta(current, previous);
   if (!d) {
     return (
       <span className="inline-flex items-center gap-1 text-caption text-muted">
         <Minus className="h-3 w-3" aria-hidden />
-        no prior figure
+        {t('no prior figure')}
       </span>
     );
   }
   // "Good" is usually up, but not for refunds or outstanding balances.
   const good = invert ? !d.up : d.up;
   const Icon = d.up ? ArrowUpRight : ArrowDownRight;
+  const percent = new Intl.NumberFormat(LOCALE_TAG[getLocale()], { maximumFractionDigits: 1 });
   return (
     <span className={cn('inline-flex items-center gap-1 text-caption font-medium', good ? 'text-success' : 'text-danger')}>
       <Icon className="h-3 w-3" aria-hidden />
-      {PERCENT.format(Math.abs(d.pct))}%
-      <span className="font-normal text-muted">vs previous</span>
+      {percent.format(Math.abs(d.pct))}%
+      <span className="font-normal text-muted">{t('vs previous')}</span>
     </span>
   );
 }
@@ -84,85 +85,94 @@ function Kpi({
  * figure that reconciles to the cash drawer.
  */
 export function RevenueKpis({ summary }: { summary: RevenueSummary }) {
+  const t = useT();
   const { billing, collections, refunds, previous, cancelled } = summary;
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <Kpi
-        label="Total billed"
+        label={t('Total billed')}
         value={formatMoney(billing.totalBilled)}
         icon={Receipt}
-        hint="Invoices issued in this period, VAT included. Cancelled invoices are excluded. This is what was sold, not what was received."
+        hint={t('Invoices issued in this period, VAT included. Cancelled invoices are excluded. This is what was sold, not what was received.')}
         footer={<Trend current={billing.totalBilled} previous={previous.totalBilled} />}
       />
       <Kpi
-        label="Total collected"
+        label={t('Total collected')}
         value={formatMoney(collections.grossCollected)}
         icon={Banknote}
-        hint="Every payment received in this period, by the date it was taken — whatever invoice it settles. Refunds are not deducted here."
+        hint={t('Every payment received in this period, by the date it was taken — whatever invoice it settles. Refunds are not deducted here.')}
         footer={<Trend current={collections.grossCollected} previous={previous.grossCollected} />}
       />
       <Kpi
-        label="Net collections"
+        label={t('Net collections')}
         value={formatMoney(summary.netCollected)}
         icon={Wallet}
         emphasis
-        hint="Collected less refunds approved in this period. This is the figure that should reconcile against the cash actually in hand."
+        hint={t('Collected less refunds approved in this period. This is the figure that should reconcile against the cash actually in hand.')}
         footer={<Trend current={summary.netCollected} previous={previous.netCollected} />}
       />
       <Kpi
-        label="Outstanding"
+        label={t('Outstanding')}
         value={formatMoney(billing.outstanding)}
         icon={FileText}
-        hint="What the invoices issued in this period are still owed, as they stand today. Not a historical balance — it moves as those invoices get paid."
+        hint={t('What the invoices issued in this period are still owed, as they stand today. Not a historical balance — it moves as those invoices get paid.')}
         footer={
           <span className="text-caption text-muted">
-            {billing.outstandingInvoiceCount} of {billing.invoiceCount} invoice
-            {billing.invoiceCount === 1 ? '' : 's'} unpaid
+            {t(billing.invoiceCount === 1 ? '{outstandingCount} of {totalCount} invoice unpaid' : '{outstandingCount} of {totalCount} invoices unpaid', {
+              outstandingCount: billing.outstandingInvoiceCount,
+              totalCount: billing.invoiceCount,
+            })}
           </span>
         }
       />
       <Kpi
-        label="Total discounts"
+        label={t('Total discounts')}
         value={formatMoney(billing.totalDiscounts)}
         icon={Percent}
-        hint="Per-test discounts plus whole-invoice discounts on the invoices issued in this period."
+        hint={t('Per-test discounts plus whole-invoice discounts on the invoices issued in this period.')}
         footer={
           <span className="text-caption text-muted">
-            {formatMoney(billing.lineDiscounts)} on lines · {formatMoney(billing.invoiceDiscounts)} on invoices
+            {t('{lineAmount} on lines · {invoiceAmount} on invoices', {
+              lineAmount: formatMoney(billing.lineDiscounts),
+              invoiceAmount: formatMoney(billing.invoiceDiscounts),
+            })}
           </span>
         }
       />
       <Kpi
-        label="Total refunds"
+        label={t('Total refunds')}
         value={formatMoney(refunds.amount)}
         icon={Undo2}
-        hint="Refunds approved in this period, by their approval date. Requested and rejected refunds move no money and are not counted."
+        hint={t('Refunds approved in this period, by their approval date. Requested and rejected refunds move no money and are not counted.')}
         footer={<Trend current={refunds.amount} previous={previous.refunds} invert />}
       />
       <Kpi
-        label="Invoices issued"
+        label={t('Invoices issued')}
         value={String(billing.invoiceCount)}
         icon={Receipt}
-        hint="Invoices issued in this period, excluding cancelled ones. Drafts are not invoices and are never counted."
+        hint={t('Invoices issued in this period, excluding cancelled ones. Drafts are not invoices and are never counted.')}
         footer={
           <span className="text-caption text-muted">
-            {billing.testsOrdered} test{billing.testsOrdered === 1 ? '' : 's'} billed
+            {t(billing.testsOrdered === 1 ? '{count} test billed' : '{count} tests billed', { count: billing.testsOrdered })}
           </span>
         }
       />
       <Kpi
-        label="Payment transactions"
+        label={t('Payment transactions')}
         value={String(collections.paymentCount)}
         icon={Banknote}
-        hint="Individual payments received in this period. One invoice can be settled by several, so this is usually higher than the invoice count."
+        hint={t('Individual payments received in this period. One invoice can be settled by several, so this is usually higher than the invoice count.')}
         footer={
           cancelled.count > 0 ? (
             <span className="inline-flex items-center gap-1 text-caption text-warning">
               <Ban className="h-3 w-3" aria-hidden />
-              {cancelled.count} invoice{cancelled.count === 1 ? '' : 's'} cancelled ({formatMoney(cancelled.amount)})
+              {t(cancelled.count === 1 ? '{count} invoice cancelled ({amount})' : '{count} invoices cancelled ({amount})', {
+                count: cancelled.count,
+                amount: formatMoney(cancelled.amount),
+              })}
             </span>
           ) : (
-            <span className="text-caption text-muted">no cancellations in this period</span>
+            <span className="text-caption text-muted">{t('no cancellations in this period')}</span>
           )
         }
       />

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/cn';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
+import { translate, getLocale, useT } from '@/i18n';
 import type { SampleListItem } from '@/features/samples/types';
 import type { ResultListItem } from '@/features/results/types';
 import type { ReportStatus } from '@/features/reports/types';
@@ -40,30 +41,34 @@ export function computeStage(
   results: ResultListItem[],
   report: { status: ReportStatus } | null,
 ): Stage {
-  if (order.status === 'CANCELLED') return { index: -1, next: null, note: 'Order cancelled.' };
+  // A plain function, called outside any component — no hook access, so translate() is called
+  // directly against the current locale rather than through useT().
+  const tr = (key: string, vars?: Record<string, string | number>) => translate(getLocale(), key, vars);
+
+  if (order.status === 'CANCELLED') return { index: -1, next: null, note: tr('Order cancelled.') };
   if (order.status === 'DRAFT')
     return {
       index: 0,
-      next: { action: 'confirm', label: 'Confirm order', permission: PERMISSIONS.LAB_ORDER_WRITE },
-      note: 'Confirm to lock the order and generate samples.',
+      next: { action: 'confirm', label: tr('Confirm order'), permission: PERMISSIONS.LAB_ORDER_WRITE },
+      note: tr('Confirm to lock the order and generate samples.'),
     };
 
   const active = samples.filter((s) => s.status !== 'REJECTED');
-  if (active.length === 0) return { index: 1, next: null, note: 'Generating samples…' };
+  if (active.length === 0) return { index: 1, next: null, note: tr('Generating samples…') };
 
   if (active.some((s) => s.status === 'AWAITING_COLLECTION'))
     return {
       index: 2,
-      next: { action: 'collect', label: 'Collect samples', permission: PERMISSIONS.SAMPLE_COLLECT },
+      next: { action: 'collect', label: tr('Collect samples'), permission: PERMISSIONS.SAMPLE_COLLECT },
     };
   if (active.some((s) => s.status === 'COLLECTED'))
     return {
       index: 2,
-      next: { action: 'receive', label: 'Receive into lab', permission: PERMISSIONS.SAMPLE_RECEIVE },
+      next: { action: 'receive', label: tr('Receive into lab'), permission: PERMISSIONS.SAMPLE_RECEIVE },
     };
 
   // all active samples received
-  if (results.length === 0) return { index: 3, next: null, note: 'Opening result worklist…' };
+  if (results.length === 0) return { index: 3, next: null, note: tr('Opening result worklist…') };
   const count = (s: ResultListItem['status']) => results.filter((r) => r.status === s).length;
 
   if (count('PENDING') > 0)
@@ -71,7 +76,7 @@ export function computeStage(
       index: 4,
       next: {
         action: 'enter',
-        label: `Enter results (${count('PENDING')} pending)`,
+        label: tr('Enter results ({count} pending)', { count: count('PENDING') }),
         permission: PERMISSIONS.RESULT_ENTER,
       },
     };
@@ -80,7 +85,7 @@ export function computeStage(
       index: 4,
       next: {
         action: 'verify',
-        label: `Verify results (${count('ENTERED')})`,
+        label: tr('Verify results ({count})', { count: count('ENTERED') }),
         permission: PERMISSIONS.RESULT_VERIFY,
       },
     };
@@ -89,7 +94,7 @@ export function computeStage(
       index: 4,
       next: {
         action: 'approve',
-        label: `Authorize results (${count('VERIFIED')})`,
+        label: tr('Authorize results ({count})', { count: count('VERIFIED') }),
         permission: PERMISSIONS.RESULT_APPROVE,
       },
     };
@@ -98,23 +103,23 @@ export function computeStage(
   if (!report)
     return {
       index: 5,
-      next: { action: 'report', label: 'Generate report', permission: PERMISSIONS.REPORT_GENERATE },
+      next: { action: 'report', label: tr('Generate report'), permission: PERMISSIONS.REPORT_GENERATE },
     };
   if (report.status === 'GENERATED')
     return {
       index: 6,
       next: {
         action: 'release',
-        label: 'Sign & release report',
+        label: tr('Sign & release report'),
         permission: PERMISSIONS.REPORT_GENERATE,
       },
     };
   if (report.status === 'RELEASED')
     return {
       index: 6,
-      next: { action: 'deliver', label: 'Deliver report', permission: PERMISSIONS.REPORT_DELIVER },
+      next: { action: 'deliver', label: tr('Deliver report'), permission: PERMISSIONS.REPORT_DELIVER },
     };
-  return { index: 7, next: null, note: 'Report delivered — this order is complete.' };
+  return { index: 7, next: null, note: tr('Report delivered — this order is complete.') };
 }
 
 export function OrderWorkflow({
@@ -126,6 +131,7 @@ export function OrderWorkflow({
   busy: boolean;
   onAction: (a: WorkflowAction) => void;
 }) {
+  const t = useT();
   const { hasPermission } = useAuth();
   const cancelled = stage.index === -1;
 
@@ -153,7 +159,7 @@ export function OrderWorkflow({
                   current ? 'font-semibold text-foreground' : 'text-muted',
                 )}
               >
-                {label}
+                {t(label)}
               </span>
               {i < STEPS.length - 1 && (
                 <ChevronRight className="mx-1 h-4 w-4 shrink-0 text-border" aria-hidden />
@@ -166,7 +172,7 @@ export function OrderWorkflow({
       {(stage.next || stage.note) && (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
           <div className="text-sm">
-            <span className="text-muted">Next step: </span>
+            <span className="text-muted">{t('Next step:')} </span>
             <span className="font-medium text-foreground">
               {stage.next ? stage.next.label : stage.note}
             </span>

@@ -10,6 +10,7 @@ import { Alert } from '@/components/ui/Alert';
 import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
 import { departmentsApi, type Department } from './api';
+import { useT } from '@/i18n';
 
 const schema = z.object({
   code: z
@@ -33,6 +34,7 @@ export function DepartmentFormModal({
   department: Department | null;
   onSaved: () => void;
 }) {
+  const t = useT();
   const toast = useToast();
   const {
     register,
@@ -55,14 +57,14 @@ export function DepartmentFormModal({
     try {
       if (department) {
         await departmentsApi.update(department.id, { name: values.name.trim(), description: values.description || undefined });
-        toast.success('Department updated');
+        toast.success(t('Department updated'));
       } else {
         await departmentsApi.create({
           code: values.code.trim().toUpperCase(),
           name: values.name.trim(),
           description: values.description || undefined,
         });
-        toast.success('Department created');
+        toast.success(t('Department created'));
       }
       onSaved();
       onClose();
@@ -71,7 +73,7 @@ export function DepartmentFormModal({
         err.fieldErrors.forEach((fe) => setError(fe.field as keyof FormValues, { message: fe.message }));
         if (err.fieldErrors.length === 0) setError('root', { message: err.message });
       } else {
-        setError('root', { message: 'Unable to save department' });
+        setError('root', { message: t('Unable to save department') });
       }
     }
   });
@@ -80,14 +82,14 @@ export function DepartmentFormModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={department ? 'Edit department' : 'New department'}
+      title={department ? t('Edit department') : t('New department')}
       footer={
         <>
           <Button variant="secondary" type="button" onClick={onClose}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button type="submit" form="department-form" loading={isSubmitting}>
-            {department ? 'Save changes' : 'Create department'}
+            {department ? t('Save changes') : t('Create department')}
           </Button>
         </>
       }
@@ -95,14 +97,14 @@ export function DepartmentFormModal({
       <form id="department-form" onSubmit={onSubmit} className="space-y-4" noValidate>
         {errors.root && <Alert tone="danger">{errors.root.message}</Alert>}
         <Input
-          label="Code"
-          hint="Short unique identifier, e.g. HAEM"
+          label={t('Code')}
+          hint={t('Short unique identifier, e.g. HAEM')}
           disabled={!!department}
           error={errors.code?.message}
           {...register('code')}
         />
-        <Input label="Name" error={errors.name?.message} {...register('name')} />
-        <Textarea label="Description" error={errors.description?.message} {...register('description')} />
+        <Input label={t('Name')} error={errors.name?.message} {...register('name')} />
+        <Textarea label={t('Description')} error={errors.description?.message} {...register('description')} />
       </form>
     </Modal>
   );

@@ -7,7 +7,8 @@ import { Select } from '@/components/ui/Select';
 import { Alert } from '@/components/ui/Alert';
 import { ApiError } from '@/types/api';
 import { patientsApi } from './api';
-import { GENDERS } from './constants';
+import { GENDERS, tOpts } from './constants';
+import { useT } from '@/i18n';
 import type { Gender, PatientDetail } from './types';
 
 /**
@@ -30,6 +31,7 @@ export function QuickRegisterPatientModal({
   initialName?: string;
   onCreated: (patient: PatientDetail) => void;
 }) {
+  const t = useT();
   const [fullName, setFullName] = useState('');
   const [gender, setGender] = useState<Gender>('MALE');
   const [age, setAge] = useState('');
@@ -48,11 +50,11 @@ export function QuickRegisterPatientModal({
 
   const submit = async () => {
     if (!fullName.trim()) {
-      setFormError('Enter a name.');
+      setFormError(t('Enter a name.'));
       return;
     }
     if (!age.trim()) {
-      setFormError('Enter an approximate age.');
+      setFormError(t('Enter an approximate age.'));
       return;
     }
     setSubmitting(true);
@@ -67,7 +69,7 @@ export function QuickRegisterPatientModal({
       onCreated(created);
       onClose();
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : 'Unable to register the patient');
+      setFormError(err instanceof ApiError ? err.message : t('Unable to register the patient'));
     } finally {
       setSubmitting(false);
     }
@@ -77,15 +79,15 @@ export function QuickRegisterPatientModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Quick-register patient"
-      description="Just enough to identify them and carry on — add the rest later from their record."
+      title={t('Quick-register patient')}
+      description={t('Just enough to identify them and carry on — add the rest later from their record.')}
       footer={
         <>
           <Button variant="secondary" type="button" onClick={onClose} disabled={submitting}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button onClick={submit} loading={submitting}>
-            Register &amp; select
+            {t('Register & select')}
           </Button>
         </>
       }
@@ -93,17 +95,17 @@ export function QuickRegisterPatientModal({
       <div className="space-y-4">
         {formError && <Alert tone="danger">{formError}</Alert>}
 
-        <Input label="Full name" autoFocus value={fullName} onChange={(e) => setFullName(e.target.value)} />
+        <Input label={t('Full name')} autoFocus value={fullName} onChange={(e) => setFullName(e.target.value)} />
 
         <div className="grid grid-cols-2 gap-4">
           <Select
-            label="Gender"
-            options={GENDERS}
+            label={t('Gender')}
+            options={tOpts(GENDERS)}
             value={gender}
             onChange={(e) => setGender(e.target.value as Gender)}
           />
           <Input
-            label="Age (years)"
+            label={t('Age (years)')}
             type="number"
             min={0}
             max={150}
@@ -112,12 +114,12 @@ export function QuickRegisterPatientModal({
           />
         </div>
 
-        <Input label="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value)} />
+        <Input label={t('Phone (optional)')} value={phone} onChange={(e) => setPhone(e.target.value)} />
 
         <p className="text-xs text-muted">
-          Need to capture address, ID documents, or billing/payer details now instead?{' '}
+          {t('Need to capture address, ID documents, or billing/payer details now instead?')}{' '}
           <Link to="/app/patients/new" className="text-primary hover:underline">
-            Use the full registration page
+            {t('Use the full registration page')}
           </Link>
           .
         </p>

@@ -3,8 +3,7 @@ import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { formatAmount } from '@/lib/money';
 import { EmptyState } from '@/components/ui/PageState';
-
-const COUNT = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 });
+import { getLocale, LOCALE_TAG, useT } from '@/i18n';
 
 export interface MoneyColumn<T> {
   key: string;
@@ -36,10 +35,10 @@ export function MoneyTable<T>({
   columns,
   rows,
   rowKey,
-  emptyMessage = 'Nothing in this period.',
+  emptyMessage,
   initialSort,
   sortable = true,
-  footerLabel = 'Total',
+  footerLabel,
   maxRows,
   className,
 }: {
@@ -54,6 +53,10 @@ export function MoneyTable<T>({
   maxRows?: number;
   className?: string;
 }) {
+  const t = useT();
+  const resolvedEmptyMessage = emptyMessage ?? t('Nothing in this period.');
+  const resolvedFooterLabel = footerLabel ?? t('Total');
+  const count = useMemo(() => new Intl.NumberFormat(LOCALE_TAG[getLocale()], { maximumFractionDigits: 0 }), [getLocale()]);
   const [sort, setSort] = useState<{ key: string; descending: boolean } | null>(
     initialSort ? { key: initialSort.key, descending: initialSort.descending ?? true } : null,
   );
@@ -83,7 +86,7 @@ export function MoneyTable<T>({
     return out;
   }, [rows, columns]);
 
-  if (rows.length === 0) return <EmptyState title="No data" message={emptyMessage} />;
+  if (rows.length === 0) return <EmptyState title={t('No data')} message={resolvedEmptyMessage} />;
 
   const headerCell = (col: MoneyColumn<T>) => {
     const right = col.align === 'right' || (!col.align && !!col.amount);
@@ -157,7 +160,7 @@ export function MoneyTable<T>({
                       ? col.cell(row)
                       : col.amount
                         ? col.format === 'count'
-                          ? COUNT.format(col.amount(row))
+                          ? count.format(col.amount(row))
                           : formatAmount(col.amount(row))
                         : null}
                   </td>
@@ -183,10 +186,10 @@ export function MoneyTable<T>({
                   >
                     {col.total && col.amount
                       ? col.format === 'count'
-                        ? COUNT.format(totals[col.key] ?? 0)
+                        ? count.format(totals[col.key] ?? 0)
                         : formatAmount(totals[col.key] ?? 0)
                       : i === 0
-                        ? `${footerLabel}${maxRows && rows.length > maxRows ? ` (all ${rows.length})` : ''}`
+                        ? `${resolvedFooterLabel}${maxRows && rows.length > maxRows ? ` ${t('(all {count})', { count: rows.length })}` : ''}`
                         : null}
                   </td>
                 );
@@ -197,7 +200,7 @@ export function MoneyTable<T>({
       </table>
       {maxRows && rows.length > maxRows && (
         <p className="px-3 py-2 text-caption text-muted print:hidden">
-          Showing the top {maxRows} of {rows.length}. The total above covers all of them.
+          {t('Showing the top {shown} of {total}. The total above covers all of them.', { shown: maxRows, total: rows.length })}
         </p>
       )}
     </div>
