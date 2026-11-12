@@ -2,8 +2,10 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ClipboardList, X } from 'lucide-react';
+import { cn } from '@/lib/cn';
 import { DEMO_WHATSAPP_HREF } from '../data';
 import { buttonClasses } from './buttonStyles';
+import { TYPE } from './typography';
 import { WhatsAppIcon } from './WhatsAppIcon';
 
 const OPTION =
@@ -13,6 +15,8 @@ const OPTION =
  * Lets the visitor choose how to take the next step: message the team on WhatsApp (the chat opens
  * with the request already written) or fill in the free-trial form. Esc, the backdrop and the
  * close button dismiss it; focus stays inside while open and returns to the trigger afterwards.
+ * It portals to document.body (outside the marketing layout), which is fine for type: the
+ * semantic text tokens are plain utilities and the page font is set on <body>.
  */
 function DemoDialog({ onClose }: { onClose: () => void }) {
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -54,7 +58,7 @@ function DemoDialog({ onClose }: { onClose: () => void }) {
   }, [onClose]);
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 font-nunito sm:items-center">
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
       <div className="absolute inset-0 animate-fade-in bg-foreground/40" onClick={onClose} aria-hidden />
       <div
         ref={dialogRef}
@@ -73,10 +77,12 @@ function DemoDialog({ onClose }: { onClose: () => void }) {
           <X className="h-5 w-5" aria-hidden />
         </button>
 
-        <h2 id={titleId} className="pr-10 text-2xl font-bold tracking-tight text-foreground">
+        <h2 id={titleId} className="pr-10 text-balance text-heading-2 text-foreground">
           How would you like to get started?
         </h2>
-        <p className="mt-2 text-[15px] text-muted">Choose whichever suits you — either one gets you to our team.</p>
+        <p className="mt-2 text-pretty text-body-sm text-muted">
+          Choose whichever suits you — either one gets you to our team.
+        </p>
 
         <div className="mt-6 grid gap-3">
           <a
@@ -92,8 +98,8 @@ function DemoDialog({ onClose }: { onClose: () => void }) {
               <WhatsAppIcon className="h-6 w-6 text-[#25D366]" />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-[17px] font-bold text-foreground">Message us on WhatsApp</span>
-              <span className="mt-0.5 block text-[15px] leading-snug text-muted">
+              <span className={cn('block', TYPE.h4)}>Message us on WhatsApp</span>
+              <span className={cn('mt-0.5 block', TYPE.bodySm)}>
                 Opens a chat with our team, with your request already written.
               </span>
             </span>
@@ -108,10 +114,8 @@ function DemoDialog({ onClose }: { onClose: () => void }) {
               <ClipboardList className="h-6 w-6 text-primary" aria-hidden />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-[17px] font-bold text-foreground">Start your free trial</span>
-              <span className="mt-0.5 block text-[15px] leading-snug text-muted">
-                Fill in a short form and set up your laboratory.
-              </span>
+              <span className={cn('block', TYPE.h4)}>Start your free trial</span>
+              <span className={cn('mt-0.5 block', TYPE.bodySm)}>Fill in a short form and set up your laboratory.</span>
             </span>
             <ArrowRight
               className="h-5 w-5 shrink-0 text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-primary"

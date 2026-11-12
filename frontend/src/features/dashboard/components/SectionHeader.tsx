@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
+import { useT } from '@/i18n';
 
 /** Compact heading used above each dashboard section — title + optional context + a "view all" action. */
 export function SectionHeader({
@@ -13,6 +14,7 @@ export function SectionHeader({
   action?: ReactNode;
   icon?: LucideIcon;
 }) {
+  const t = useT();
   return (
     <div className="mb-3 flex items-center justify-between gap-3">
       <div className="flex min-w-0 items-center gap-2">
@@ -22,8 +24,8 @@ export function SectionHeader({
           </span>
         )}
         <div className="min-w-0">
-          <h2 className="truncate text-sm font-semibold text-foreground">{title}</h2>
-          {description && <p className="truncate text-xs text-muted">{description}</p>}
+          <h2 className="truncate text-sm font-semibold text-foreground">{t(title)}</h2>
+          {description && <p className="truncate text-xs text-muted">{t(description)}</p>}
         </div>
       </div>
       {action && <div className="shrink-0">{action}</div>}

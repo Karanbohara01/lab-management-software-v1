@@ -212,6 +212,66 @@ public class Patient extends BaseEntity {
         this.emergencyContact = contact == null ? new EmergencyContact() : contact;
     }
 
+    /**
+     * Fills in only what this record does not already have, from a bulk import of the clinic's old
+     * patient list. Every assignment is guarded on the current value being absent, so an import can
+     * complete a thin record but can never overwrite something the clinic already holds — which is
+     * the whole basis on which an administrator is asked to allow it.
+     */
+    public void fillBlanksFrom(String phone, String alternatePhone, String email,
+                               LocalDate dateOfBirth, Integer approximateAgeYears,
+                               BloodGroup bloodGroup, MaritalStatus maritalStatus,
+                               String occupation, String nameLocal, String externalMrn,
+                               Address address, EmergencyContact emergency) {
+        if (isBlank(this.phone) && !isBlank(phone)) {
+            this.phone = phone;
+            this.phoneDigits = normalizeDigits(phone);
+        }
+        if (isBlank(this.alternatePhone) && !isBlank(alternatePhone)) {
+            this.alternatePhone = alternatePhone;
+        }
+        if (isBlank(this.email) && !isBlank(email)) {
+            this.email = email;
+        }
+        if (this.dateOfBirth == null && dateOfBirth != null) {
+            this.dateOfBirth = dateOfBirth;
+            // A real date of birth supersedes an estimate that was only ever a stand-in for one.
+            this.approximateAgeYears = null;
+        } else if (this.dateOfBirth == null && this.approximateAgeYears == null && approximateAgeYears != null) {
+            this.approximateAgeYears = approximateAgeYears;
+        }
+        if (this.bloodGroup == null && bloodGroup != null) {
+            this.bloodGroup = bloodGroup;
+        }
+        if (this.maritalStatus == null && maritalStatus != null) {
+            this.maritalStatus = maritalStatus;
+        }
+        if (isBlank(this.occupation) && !isBlank(occupation)) {
+            this.occupation = occupation;
+        }
+        if (isBlank(this.nameLocal) && !isBlank(nameLocal)) {
+            this.nameLocal = nameLocal;
+        }
+        if (isBlank(this.externalMrn) && !isBlank(externalMrn)) {
+            this.externalMrn = externalMrn;
+        }
+        if ((this.address == null || this.address.isEmpty()) && address != null && !address.isEmpty()) {
+            this.address = address;
+        }
+        if ((this.emergencyContact == null || this.emergencyContact.isEmpty())
+                && emergency != null && !emergency.isEmpty()) {
+            this.emergencyContact = emergency;
+        }
+    }
+
+    /**
+     * Marks this record as having arrived through a bulk migration rather than the registration
+     * desk, so a clinic can always tell its imported history from what it registered itself.
+     */
+    public void markImported() {
+        this.registrationChannel = RegistrationChannel.IMPORT;
+    }
+
     public void applyClassification(PatientCategory category, RegistrationChannel channel,
                                     String registrationBranch, String externalMrn) {
         this.category = category == null ? PatientCategory.WALK_IN : category;

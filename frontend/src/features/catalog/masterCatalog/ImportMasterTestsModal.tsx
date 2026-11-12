@@ -9,6 +9,7 @@ import { useQuery } from '@/hooks/useQuery';
 import { formatMoney } from '@/lib/money';
 import { SPECIMEN_LABELS } from '../types';
 import { masterCatalogApi } from './api';
+import { useT } from '@/i18n';
 
 export function ImportMasterTestsModal({
   open,
@@ -19,6 +20,7 @@ export function ImportMasterTestsModal({
   onClose: () => void;
   onImported: () => void;
 }) {
+  const t = useT();
   const toast = useToast();
   const { data, loading, error, refetch } = useQuery(() => (open ? masterCatalogApi.list() : Promise.resolve(null)), [open]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -42,17 +44,24 @@ export function ImportMasterTestsModal({
     try {
       const result = await masterCatalogApi.import(Array.from(selected));
       if (result.imported.length > 0) {
-        toast.success(`Imported ${result.imported.length} test${result.imported.length === 1 ? '' : 's'}`);
+        toast.success(
+          t(result.imported.length === 1 ? 'Imported {count} test' : 'Imported {count} tests', {
+            count: result.imported.length,
+          }),
+        );
       }
       if (result.skippedAlreadyExists.length > 0) {
         toast.error(
-          `Skipped ${result.skippedAlreadyExists.length} — already in your catalog: ${result.skippedAlreadyExists.join(', ')}`,
+          t('Skipped {count} — already in your catalog: {names}', {
+            count: result.skippedAlreadyExists.length,
+            names: result.skippedAlreadyExists.join(', '),
+          }),
         );
       }
       onImported();
       onClose();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Import failed');
+      toast.error(err instanceof ApiError ? err.message : t('Import failed'));
     } finally {
       setImporting(false);
     }
@@ -62,16 +71,16 @@ export function ImportMasterTestsModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Import from master catalogue"
-      description="Pick the tests you want — each becomes your own editable copy (price, ranges, etc.), not a live link."
+      title={t('Import from master catalogue')}
+      description={t('Pick the tests you want — each becomes your own editable copy (price, ranges, etc.), not a live link.')}
       size="lg"
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button onClick={doImport} loading={importing} disabled={selected.size === 0}>
-            Import {selected.size > 0 ? `(${selected.size})` : ''}
+            {t('Import')}{selected.size > 0 ? ` (${selected.size})` : ''}
           </Button>
         </>
       }
@@ -82,30 +91,32 @@ export function ImportMasterTestsModal({
         <ErrorState message={error} onRetry={refetch} />
       ) : !data || data.length === 0 ? (
         <EmptyState
-          title="Nothing to import"
-          message="The platform admin hasn't added any master tests yet."
+          title={t('Nothing to import')}
+          message={t("The platform admin hasn't added any master tests yet.")}
         />
       ) : (
         <ul className="divide-y divide-border">
-          {data.map((t) => (
-            <li key={t.id} className="flex items-start gap-3 py-3">
+          {data.map((row) => (
+            <li key={row.id} className="flex items-start gap-3 py-3">
               <input
                 type="checkbox"
-                checked={selected.has(t.id)}
-                onChange={() => toggle(t.id)}
-                aria-label={`Select ${t.name}`}
+                checked={selected.has(row.id)}
+                onChange={() => toggle(row.id)}
+                aria-label={t('Select {name}', { name: row.name })}
                 className="mt-1 h-4 w-4 shrink-0 rounded border-input text-primary focus-visible:ring-2 focus-visible:ring-ring"
               />
-              <button type="button" className="flex-1 text-left" onClick={() => toggle(t.id)}>
+              <button type="button" className="flex-1 text-left" onClick={() => toggle(row.id)}>
                 <p className="text-sm font-medium text-foreground">
-                  {t.name} <span className="font-mono text-xs text-muted">{t.code}</span>
+                  {row.name} <span className="font-mono text-xs text-muted">{row.code}</span>
                 </p>
                 <p className="text-xs text-muted">
-                  {t.departmentName} · {SPECIMEN_LABELS[t.specimenType]} · {t.parameterCount} parameter
-                  {t.parameterCount === 1 ? '' : 's'}
+                  {row.departmentName} · {t(SPECIMEN_LABELS[row.specimenType])} ·{' '}
+                  {t(row.parameterCount === 1 ? '{count} parameter' : '{count} parameters', {
+                    count: row.parameterCount,
+                  })}
                 </p>
               </button>
-              <Badge tone="neutral">{formatMoney(t.suggestedPrice)}</Badge>
+              <Badge tone="neutral">{formatMoney(row.suggestedPrice)}</Badge>
             </li>
           ))}
         </ul>

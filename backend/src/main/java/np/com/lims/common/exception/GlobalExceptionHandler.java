@@ -83,6 +83,27 @@ public class GlobalExceptionHandler {
                 "The request body could not be read", code.status().value(), req.getRequestURI()));
     }
 
+    /**
+     * A query parameter that cannot be converted to its declared type — most often an unknown enum
+     * value, like {@code ?status=NONSENSE} or {@code ?preset=NONSENSE}. That is the caller getting
+     * the request wrong, so it is a 400; without this it fell through to the catch-all below and
+     * was reported as an internal error on every endpoint that takes a typed parameter.
+     */
+    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiError> handleTypeMismatch(
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException ex,
+            HttpServletRequest req) {
+        ErrorCode code = ErrorCode.VALIDATION_FAILED;
+        Class<?> target = ex.getRequiredType();
+        String accepted = target != null && target.isEnum()
+                ? " Accepted values: " + String.join(", ",
+                        java.util.Arrays.stream(target.getEnumConstants()).map(String::valueOf).toList()) + "."
+                : "";
+        return ResponseEntity.status(code.status()).body(ApiError.of(code.name(),
+                "'" + ex.getValue() + "' is not a valid value for '" + ex.getName() + "'." + accepted,
+                code.status().value(), req.getRequestURI()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleUnexpected(Exception ex, HttpServletRequest req) {
         log.error("Unhandled exception at {}", req.getRequestURI(), ex);

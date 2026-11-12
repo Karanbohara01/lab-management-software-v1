@@ -15,6 +15,7 @@ import { ANALYTE_PRESETS, findAnalytePreset, UNIT_OPTIONS } from '../analytePres
 import { DATA_TYPE_LABELS, SPECIMEN_LABELS } from '../types';
 import { masterCatalogAdminApi } from './api';
 import type { MasterTestDetail } from './types';
+import { useT, tOpts } from '@/i18n';
 
 const numish = z
   .union([z.coerce.number(), z.literal('')])
@@ -114,6 +115,7 @@ export function MasterTestFormModal({
   test: MasterTestDetail | null;
   onSaved: () => void;
 }) {
+  const t = useT();
   const toast = useToast();
   const isEdit = !!test;
   const [presetPanelOpen, setPresetPanelOpen] = useState(false);
@@ -240,15 +242,15 @@ export function MasterTestFormModal({
     try {
       if (isEdit) {
         await masterCatalogAdminApi.update(test!.id, payload);
-        toast.success('Master test updated');
+        toast.success(t('Master test updated'));
       } else {
         await masterCatalogAdminApi.create(payload);
-        toast.success('Master test created');
+        toast.success(t('Master test created'));
       }
       onSaved();
       onClose();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to save');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to save'));
     }
   });
 
@@ -256,16 +258,16 @@ export function MasterTestFormModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={isEdit ? `Edit ${test?.code}` : 'New master test'}
-      description="Curated for every clinic to import — not tied to any one clinic's own catalog."
+      title={isEdit ? t('Edit {code}', { code: test?.code ?? '' }) : t('New master test')}
+      description={t("Curated for every clinic to import — not tied to any one clinic's own catalog.")}
       size="xl"
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button onClick={onSubmit} loading={isSubmitting}>
-            Save
+            {t('Save')}
           </Button>
         </>
       }
@@ -288,34 +290,34 @@ export function MasterTestFormModal({
         </datalist>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Input label="Code" error={errors.code?.message} {...register('code')} />
-          <Input label="Name" className="col-span-2" error={errors.name?.message} {...register('name')} />
+          <Input label={t('Code')} error={errors.code?.message} {...register('code')} />
+          <Input label={t('Name')} className="col-span-2" error={errors.name?.message} {...register('name')} />
           <Input
-            label="Department"
+            label={t('Department')}
             list="master-department-options"
-            hint="Auto-created per clinic if missing"
+            hint={t('Auto-created per clinic if missing')}
             error={errors.departmentName?.message}
             {...register('departmentName')}
           />
-          <Input label="Category" {...register('category')} />
-          <Select label="Specimen type" options={SPECIMEN_OPTIONS} {...register('specimenType')} />
-          <Input label="Suggested price" type="number" step="0.01" {...register('suggestedPrice')} />
-          <Input label="Turnaround (hrs)" type="number" {...register('turnaroundHours')} />
-          <Input label="Display order" type="number" {...register('displayOrder')} />
+          <Input label={t('Category')} {...register('category')} />
+          <Select label={t('Specimen type')} options={tOpts(SPECIMEN_OPTIONS)} {...register('specimenType')} />
+          <Input label={t('Suggested price')} type="number" step="0.01" {...register('suggestedPrice')} />
+          <Input label={t('Turnaround (hrs)')} type="number" {...register('turnaroundHours')} />
+          <Input label={t('Display order')} type="number" {...register('displayOrder')} />
         </div>
-        <Checkbox label="Active (visible to clinics for import)" {...register('active')} />
+        <Checkbox label={t('Active (visible to clinics for import)')} {...register('active')} />
 
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-semibold text-foreground">Parameters</p>
+            <p className="text-sm font-semibold text-foreground">{t('Parameters')}</p>
             <div className="flex gap-2">
               <Button type="button" variant="secondary" size="sm" onClick={() => setPresetPanelOpen((v) => !v)}>
                 <ListPlus className="h-4 w-4" aria-hidden />
-                Add from presets
+                {t('Add from presets')}
               </Button>
               <Button type="button" variant="secondary" size="sm" onClick={() => append({ ...EMPTY_PARAM })}>
                 <Plus className="h-4 w-4" aria-hidden />
-                Blank parameter
+                {t('Blank parameter')}
               </Button>
             </div>
           </div>
@@ -323,8 +325,9 @@ export function MasterTestFormModal({
           {presetPanelOpen && (
             <div className="mb-3 rounded-md border border-border bg-surface-muted/60 p-3">
               <p className="mb-2 text-xs text-muted">
-                Click any analyte to add it with its typical unit and reference range pre-filled — everything stays
-                editable afterward. Click several in a row to build up a multi-parameter test quickly.
+                {t(
+                  'Click any analyte to add it with its typical unit and reference range pre-filled — everything stays editable afterward. Click several in a row to build up a multi-parameter test quickly.',
+                )}
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {ANALYTE_PRESETS.map((p) => {
@@ -347,39 +350,39 @@ export function MasterTestFormModal({
 
           {fields.length === 0 ? (
             <p className="rounded-md border border-dashed border-border px-3 py-6 text-center text-sm text-muted">
-              No parameters yet — add from presets above, or add a blank one.
+              {t('No parameters yet — add from presets above, or add a blank one.')}
             </p>
           ) : (
             <div className="space-y-2">
               {fields.map((field, i) => (
                 <div key={field.id} className="rounded-md border border-border p-2.5">
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
-                    <Input placeholder="Code" {...register(`parameters.${i}.code`)} />
+                    <Input placeholder={t('Code')} {...register(`parameters.${i}.code`)} />
                     <Input
-                      placeholder="Name"
+                      placeholder={t('Name')}
                       className="col-span-2"
                       list="master-analyte-options"
                       error={errors.parameters?.[i]?.name?.message}
                       {...register(`parameters.${i}.name`, { onChange: (e) => applyPresetToRow(i, e.target.value) })}
                     />
-                    <Input placeholder="Unit" list="master-unit-options" {...register(`parameters.${i}.unit`)} />
-                    <Select options={DATA_TYPE_OPTIONS} {...register(`parameters.${i}.dataType`)} />
+                    <Input placeholder={t('Unit')} list="master-unit-options" {...register(`parameters.${i}.unit`)} />
+                    <Select options={tOpts(DATA_TYPE_OPTIONS)} {...register(`parameters.${i}.dataType`)} />
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       onClick={() => remove(i)}
-                      aria-label="Remove parameter"
+                      aria-label={t('Remove parameter')}
                     >
                       <Trash2 className="h-4 w-4 text-danger" aria-hidden />
                     </Button>
                   </div>
                   <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
-                    <Input placeholder="Decimal places" type="number" {...register(`parameters.${i}.decimalPlaces`)} />
-                    <Input placeholder="Low" type="number" step="any" {...register(`parameters.${i}.low`)} />
-                    <Input placeholder="High" type="number" step="any" {...register(`parameters.${i}.high`)} />
-                    <Input placeholder="Critical low" type="number" step="any" {...register(`parameters.${i}.criticalLow`)} />
-                    <Input placeholder="Critical high" type="number" step="any" {...register(`parameters.${i}.criticalHigh`)} />
+                    <Input placeholder={t('Decimal places')} type="number" {...register(`parameters.${i}.decimalPlaces`)} />
+                    <Input placeholder={t('Low')} type="number" step="any" {...register(`parameters.${i}.low`)} />
+                    <Input placeholder={t('High')} type="number" step="any" {...register(`parameters.${i}.high`)} />
+                    <Input placeholder={t('Critical low')} type="number" step="any" {...register(`parameters.${i}.criticalLow`)} />
+                    <Input placeholder={t('Critical high')} type="number" step="any" {...register(`parameters.${i}.criticalHigh`)} />
                   </div>
                 </div>
               ))}

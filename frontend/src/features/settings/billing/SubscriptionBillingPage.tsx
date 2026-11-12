@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { Check } from 'lucide-react';
-import { BackLink } from '@/components/BackLink';
 import { PageHeader } from '@/components/PageHeader';
+import { useBackTarget } from '@/lib/navigation';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -16,6 +16,7 @@ import { useToast } from '@/components/ui/toast';
 import { signupApi } from '@/features/signup/api';
 import { subscriptionBillingApi, submitEsewaForm } from './api';
 import { SUBSCRIPTION_INVOICE_STATUS_LABEL, SUBSCRIPTION_INVOICE_STATUS_TONE } from './types';
+import { useT, useTRich, getLocale, LOCALE_TAG } from '@/i18n';
 
 const SUBSCRIPTION_STATUS_LABEL: Record<string, string> = {
   TRIALING: 'Trial',
@@ -38,6 +39,8 @@ const SUBSCRIPTION_STATUS_TONE: Record<string, 'neutral' | 'info' | 'success' | 
  * proration) rather than risky. See SubscriptionBillingService.requestPlanChange's javadoc.
  */
 function PlanCard({ canWrite }: { canWrite: boolean }) {
+  const t = useT();
+  const tRich = useTRich();
   const toast = useToast();
   const { data: sub, loading, error, refetch } = useQuery(() => subscriptionBillingApi.mySubscription(), []);
   const { data: plans } = useQuery(() => signupApi.plans(), []);
@@ -53,12 +56,12 @@ function PlanCard({ canWrite }: { canWrite: boolean }) {
       await subscriptionBillingApi.changePlan(planCode);
       toast.success(
         planCode === sub.planCode
-          ? 'Scheduled plan change cancelled.'
-          : 'Plan change scheduled — it takes effect at the start of your next billing period.',
+          ? t('Scheduled plan change cancelled.')
+          : t('Plan change scheduled — it takes effect at the start of your next billing period.'),
       );
       refetch();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to change plan');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to change plan'));
     } finally {
       setChanging(null);
     }
@@ -67,31 +70,32 @@ function PlanCard({ canWrite }: { canWrite: boolean }) {
   return (
     <Card>
       <CardHeader
-        title="Plan"
-        description="Changing plans takes effect at the start of your next billing period — no mid-period charge or credit."
+        title={t('Plan')}
+        description={t('Changing plans takes effect at the start of your next billing period — no mid-period charge or credit.')}
       />
       <CardBody className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm font-medium text-foreground">
-              {sub.planName} · NPR {sub.priceMonthly.toLocaleString()}/mo
+              {t('{plan} · NPR {price}/mo', { plan: sub.planName, price: sub.priceMonthly.toLocaleString(LOCALE_TAG[getLocale()]) })}
             </p>
             <p className="text-xs text-muted">
-              Up to {sub.maxUsers} users, {sub.maxBranches} branch(es)
-              {sub.currentPeriodEnd && ` · renews ${new Date(sub.currentPeriodEnd).toLocaleDateString(undefined, { dateStyle: 'medium' })}`}
+              {t('Up to {maxUsers} users, {maxBranches} branch(es)', { maxUsers: sub.maxUsers, maxBranches: sub.maxBranches })}
+              {sub.currentPeriodEnd &&
+                ` · ${t('renews {date}', { date: new Date(sub.currentPeriodEnd).toLocaleDateString(LOCALE_TAG[getLocale()], { dateStyle: 'medium' }) })}`}
             </p>
           </div>
           <Badge tone={SUBSCRIPTION_STATUS_TONE[sub.status] ?? 'neutral'}>
-            {SUBSCRIPTION_STATUS_LABEL[sub.status] ?? sub.status}
+            {t(SUBSCRIPTION_STATUS_LABEL[sub.status] ?? sub.status)}
           </Badge>
         </div>
 
         {sub.pendingPlanName && (
           <Alert tone="info">
-            Switching to <strong>{sub.pendingPlanName}</strong> at the start of your next billing period.
+            {tRich('Switching to {plan} at the start of your next billing period.', { plan: <strong>{sub.pendingPlanName}</strong> })}
             {canWrite && (
               <Button variant="ghost" size="sm" className="ml-2" onClick={() => requestChange(sub.planCode)} loading={changing === sub.planCode}>
-                Cancel
+                {t('Cancel')}
               </Button>
             )}
           </Alert>
@@ -117,24 +121,24 @@ function PlanCard({ canWrite }: { canWrite: boolean }) {
                     {(isCurrent || isPending) && <Check className="h-4 w-4 text-primary" aria-hidden />}
                   </div>
                   <p className="mt-1 text-xs text-muted">
-                    NPR {plan.priceMonthly.toLocaleString()}/mo · up to {plan.maxUsers} users
+                    {t('NPR {price}/mo · up to {maxUsers} users', { price: plan.priceMonthly.toLocaleString(LOCALE_TAG[getLocale()]), maxUsers: plan.maxUsers })}
                   </p>
                   <p className="mt-1 text-xs text-muted">
-                    {isCurrent ? 'Current plan' : isPending ? 'Scheduled' : 'Switch to this plan'}
+                    {isCurrent ? t('Current plan') : isPending ? t('Scheduled') : t('Switch to this plan')}
                   </p>
                 </button>
               );
             })}
           </div>
         )}
-        {!canWrite && <Alert tone="info">You have read-only access to billing.</Alert>}
+        {!canWrite && <Alert tone="info">{t('You have read-only access to billing.')}</Alert>}
       </CardBody>
     </Card>
   );
 }
 
 function dt(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' });
+  return new Date(iso).toLocaleDateString(LOCALE_TAG[getLocale()], { dateStyle: 'medium' });
 }
 
 /**
@@ -144,6 +148,9 @@ function dt(iso: string): string {
  * PlatformEsewaClient javadoc for why that distinction matters).
  */
 export function SubscriptionBillingPage() {
+  const t = useT();
+  const { back } = useBackTarget();
+  const location = useLocation();
   const { invoiceId } = useParams<{ invoiceId?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const toast = useToast();
@@ -162,20 +169,25 @@ export function SubscriptionBillingPage() {
       .verify(Number(invoiceId))
       .then((inv) => {
         if (inv.status === 'PAID') {
-          toast.success(`Payment confirmed for ${inv.invoiceNumber}`);
+          toast.success(t('Payment confirmed for {invoiceNumber}', { invoiceNumber: inv.invoiceNumber }));
         } else {
-          toast.error('Payment could not be confirmed. If you completed checkout, it may take a moment — refresh shortly.');
+          toast.error(t('Payment could not be confirmed. If you completed checkout, it may take a moment — refresh shortly.'));
         }
         refetch();
       })
-      .catch((err) => toast.error(err instanceof ApiError ? err.message : 'Unable to verify payment'))
+      .catch((err) => toast.error(err instanceof ApiError ? err.message : t('Unable to verify payment')))
       .finally(() => {
         setVerifying(false);
-        setSearchParams((prev) => {
-          const next = new URLSearchParams(prev);
-          next.delete('gatewayResult');
-          return next;
-        }, { replace: true });
+        setSearchParams(
+          (prev) => {
+            const next = new URLSearchParams(prev);
+            next.delete('gatewayResult');
+            return next;
+          },
+          // Carry the router state over — without it this rewrite drops the origin and the
+          // "Back to …" link falls back to the static parent.
+          { replace: true, state: location.state },
+        );
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invoiceId]);
@@ -188,26 +200,26 @@ export function SubscriptionBillingPage() {
         submitEsewaForm(result.formAction, result.formFields);
         // page navigates away — no need to reset payingId
       } else {
-        toast.error(result.errorMessage ?? 'Unable to start checkout');
+        toast.error(result.errorMessage ?? t('Unable to start checkout'));
         setPayingId(null);
       }
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to start checkout');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to start checkout'));
       setPayingId(null);
     }
   };
 
   return (
     <>
-      <BackLink to="/app/settings">Back to settings</BackLink>
       <PageHeader
-        title="Subscription & billing"
-        description="Invoices for this clinic's own LIMS subscription."
+        back={back}
+        title={t('Subscription & billing')}
+        description={t("Invoices for this clinic's own LIMS subscription.")}
       />
 
       {verifying && (
         <div className="mb-4">
-          <Alert tone="info">Confirming your payment…</Alert>
+          <Alert tone="info">{t('Confirming your payment…')}</Alert>
         </div>
       )}
 
@@ -216,7 +228,7 @@ export function SubscriptionBillingPage() {
       </div>
 
       <Card>
-        <CardHeader title="Invoices" />
+        <CardHeader title={t('Invoices')} />
         <CardBody className="p-0">
           {loading && !data ? (
             <div className="p-6">
@@ -228,7 +240,7 @@ export function SubscriptionBillingPage() {
             </div>
           ) : !data || data.content.length === 0 ? (
             <div className="p-6">
-              <EmptyState title="No invoices yet" message="Your first subscription invoice will appear here once issued." />
+              <EmptyState title={t('No invoices yet')} message={t('Your first subscription invoice will appear here once issued.')} />
             </div>
           ) : (
             <ul className="divide-y divide-border">
@@ -239,19 +251,27 @@ export function SubscriptionBillingPage() {
                       {inv.invoiceNumber} · {inv.planName}
                     </p>
                     <p className="text-xs text-muted">
-                      {dt(inv.periodStart)} – {dt(inv.periodEnd)} · due {dt(inv.dueAt)} · NPR {inv.amount.toLocaleString()}
+                      {t('{start} – {end} · due {due} · NPR {amount}', {
+                        start: dt(inv.periodStart),
+                        end: dt(inv.periodEnd),
+                        due: dt(inv.dueAt),
+                        amount: inv.amount.toLocaleString(LOCALE_TAG[getLocale()]),
+                      })}
                     </p>
                     {inv.status === 'PAID' && inv.paidAt && (
-                      <p className="text-xs text-muted">Paid {dt(inv.paidAt)}{inv.paymentReference ? ` · ${inv.paymentReference}` : ''}</p>
+                      <p className="text-xs text-muted">
+                        {t('Paid {date}', { date: dt(inv.paidAt) })}
+                        {inv.paymentReference ? ` · ${inv.paymentReference}` : ''}
+                      </p>
                     )}
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge tone={SUBSCRIPTION_INVOICE_STATUS_TONE[inv.status]}>
-                      {SUBSCRIPTION_INVOICE_STATUS_LABEL[inv.status]}
+                      {t(SUBSCRIPTION_INVOICE_STATUS_LABEL[inv.status])}
                     </Badge>
                     {(inv.status === 'PENDING' || inv.status === 'OVERDUE') && canWrite && (
                       <Button size="sm" onClick={() => pay(inv.id)} loading={payingId === inv.id}>
-                        Pay now
+                        {t('Pay now')}
                       </Button>
                     )}
                   </div>

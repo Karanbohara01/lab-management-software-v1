@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Ban, Pencil } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Ban, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -9,6 +9,7 @@ import { Alert } from '@/components/ui/Alert';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
+import { LinkFrom, useBackTarget, useNavigateFrom } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
@@ -18,8 +19,9 @@ import { formatDate } from '@/features/patients/format';
 import { samplesApi } from '@/features/samples/api';
 import { resultsApi } from '@/features/results/api';
 import { reportsApi } from '@/features/reports/api';
+import { useT } from '@/i18n';
 import { ordersApi } from './api';
-import { ORDER_STATUS_TONE } from './types';
+import { ORDER_STATUS_TONE, type OrderStatus } from './types';
 import { PricingSummary } from './PricingSummary';
 import { OrderSamplesCard } from './OrderSamplesCard';
 import { OrderResultsCard } from './OrderResultsCard';
@@ -27,9 +29,18 @@ import { OrderReportCard } from './OrderReportCard';
 import { OrderInvoiceCard } from './OrderInvoiceCard';
 import { OrderWorkflow, computeStage, type WorkflowAction } from './OrderWorkflow';
 
+/** OrderStatus has no shared label map (just a tone map) — the raw value doubles as the label. */
+const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
+  DRAFT: 'Draft',
+  CONFIRMED: 'Confirmed',
+  CANCELLED: 'Cancelled',
+};
+
 export function OrderDetailPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
+  const { back } = useBackTarget();
   const toast = useToast();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.LAB_ORDER_WRITE);
@@ -60,7 +71,7 @@ export function OrderDetailPage() {
     [id, confirmed],
   );
 
-  if (loading && !order) return <LoadingState label="Loading order…" />;
+  if (loading && !order) return <LoadingState label={t('Loading order…')} />;
   if (error) return <ErrorState message={error} onRetry={refetch} />;
   if (!order) return null;
 
@@ -84,7 +95,9 @@ export function OrderDetailPage() {
       const failed = outcomes.filter((o) => o.status === 'rejected');
       if (failed.length) {
         const first = failed[0] as PromiseRejectedResult;
-        toast.error(first.reason instanceof ApiError ? first.reason.message : `${failed.length} item(s) failed`);
+        toast.error(
+          first.reason instanceof ApiError ? first.reason.message : t('{count} item(s) failed', { count: failed.length }),
+        );
       } else {
         toast.success(label);
       }
@@ -100,35 +113,35 @@ export function OrderDetailPage() {
         return setConfirmOpen(true);
       case 'collect':
         return bulk(
-          'Samples collected',
+          t('Samples collected'),
           samples.filter((s) => s.status === 'AWAITING_COLLECTION').map((s) => samplesApi.collect(s.id, {})),
         );
       case 'receive':
         return bulk(
-          'Samples received into the lab',
+          t('Samples received into the lab'),
           samples.filter((s) => s.status === 'COLLECTED').map((s) => samplesApi.receive(s.id)),
         );
       case 'enter': {
         const first = results.find((r) => r.status === 'PENDING');
-        if (first) navigate(`/app/results/${first.id}?from=order:${order.id}`);
+        if (first) navigate(`/app/results/${first.id}`);
         return;
       }
       case 'verify':
         return bulk(
-          'Results verified',
+          t('Results verified'),
           results.filter((r) => r.status === 'ENTERED').map((r) => resultsApi.verify(r.id)),
         );
       case 'approve':
         return bulk(
-          'Results authorized',
+          t('Results authorized'),
           results.filter((r) => r.status === 'VERIFIED').map((r) => resultsApi.approve(r.id)),
         );
       case 'report':
-        return bulk('Report generated', [reportsApi.generate(order.id, false)]);
+        return bulk(t('Report generated'), [reportsApi.generate(order.id, false)]);
       case 'release': {
-        const creds = window.prompt('Signing credentials (e.g. "MD Pathology, NMC-12345"):', '');
+        const creds = window.prompt(t('Signing credentials (e.g. "MD Pathology, NMC-12345"):'), '');
         if (creds === null || !report) return;
-        return bulk('Report signed & released', [reportsApi.release(report.id, creds.trim() || undefined)]);
+        return bulk(t('Report signed & released'), [reportsApi.release(report.id, creds.trim() || undefined)]);
       }
       case 'deliver': {
         if (!report) return;
@@ -144,22 +157,22 @@ export function OrderDetailPage() {
     setBusyRow(sid);
     try {
       await samplesApi.collect(sid, {});
-      toast.success('Sample collected');
+      toast.success(t('Sample collected'));
       reload();
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
-        const reason = window.prompt(`${e.message}\n\nEnter a reason to collect without payment:`);
+        const reason = window.prompt(t('{message}\n\nEnter a reason to collect without payment:', { message: e.message }));
         if (reason && reason.trim()) {
           try {
             await samplesApi.collect(sid, { paymentOverrideReason: reason.trim() });
-            toast.success('Sample collected without payment');
+            toast.success(t('Sample collected without payment'));
             reload();
           } catch (e2) {
-            toast.error(e2 instanceof ApiError ? e2.message : 'Failed');
+            toast.error(e2 instanceof ApiError ? e2.message : t('Failed'));
           }
         }
       } else {
-        toast.error(e instanceof ApiError ? e.message : 'Unable to collect sample');
+        toast.error(e instanceof ApiError ? e.message : t('Unable to collect sample'));
       }
     } finally {
       setBusyRow(null);
@@ -170,22 +183,24 @@ export function OrderDetailPage() {
     setBusyRow(rid);
     try {
       await resultsApi.verify(rid);
-      toast.success('Result verified');
+      toast.success(t('Result verified'));
       reload();
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
-        const reason = window.prompt(`${e.message}\n\nEnter a documented reason to verify it yourself:`);
+        const reason = window.prompt(
+          t('{message}\n\nEnter a documented reason to verify it yourself:', { message: e.message }),
+        );
         if (reason && reason.trim()) {
           try {
             await resultsApi.verify(rid, reason.trim());
-            toast.success('Result verified with override');
+            toast.success(t('Result verified with override'));
             reload();
           } catch (e2) {
-            toast.error(e2 instanceof ApiError ? e2.message : 'Failed');
+            toast.error(e2 instanceof ApiError ? e2.message : t('Failed'));
           }
         }
       } else {
-        toast.error(e instanceof ApiError ? e.message : 'Unable to verify');
+        toast.error(e instanceof ApiError ? e.message : t('Unable to verify'));
       }
     } finally {
       setBusyRow(null);
@@ -196,22 +211,24 @@ export function OrderDetailPage() {
     setBusyRow(rid);
     try {
       await resultsApi.approve(rid);
-      toast.success('Result authorized');
+      toast.success(t('Result authorized'));
       reload();
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
-        const reason = window.prompt(`${e.message}\n\nEnter a documented reason to authorize anyway:`);
+        const reason = window.prompt(
+          t('{message}\n\nEnter a documented reason to authorize anyway:', { message: e.message }),
+        );
         if (reason && reason.trim()) {
           try {
             await resultsApi.approve(rid, reason.trim());
-            toast.success('Result authorized with override');
+            toast.success(t('Result authorized with override'));
             reload();
           } catch (e2) {
-            toast.error(e2 instanceof ApiError ? e2.message : 'Failed');
+            toast.error(e2 instanceof ApiError ? e2.message : t('Failed'));
           }
         }
       } else {
-        toast.error(e instanceof ApiError ? e.message : 'Unable to authorize');
+        toast.error(e instanceof ApiError ? e.message : t('Unable to authorize'));
       }
     } finally {
       setBusyRow(null);
@@ -221,10 +238,10 @@ export function OrderDetailPage() {
   const doConfirm = async () => {
     try {
       await ordersApi.confirm(order.id);
-      toast.success('Order confirmed');
+      toast.success(t('Order confirmed'));
       reload();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to confirm order');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to confirm order'));
       throw err;
     }
   };
@@ -232,40 +249,37 @@ export function OrderDetailPage() {
   const doCancel = async (reason: string) => {
     try {
       await ordersApi.cancel(order.id, reason);
-      toast.success('Order cancelled');
+      toast.success(t('Order cancelled'));
       reload();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to cancel order');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to cancel order'));
       throw err;
     }
   };
 
   return (
     <>
-      <Link
-        to={`/app/patients/${order.patientId}`}
-        className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        {order.patientName}
-      </Link>
-
       <PageHeader
-        title={`Order ${order.orderNumber}`}
-        description={`${order.patientName} · ${order.patientMrn} · placed ${formatDate(order.orderedAt)}`}
+        back={back}
+        title={t('Order {number}', { number: order.orderNumber })}
+        description={t('{patient} · {mrn} · placed {date}', {
+          patient: order.patientName,
+          mrn: order.patientMrn,
+          date: formatDate(order.orderedAt),
+        })}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Badge tone={ORDER_STATUS_TONE[order.status]}>{order.status}</Badge>
+            <Badge tone={ORDER_STATUS_TONE[order.status]}>{t(ORDER_STATUS_LABEL[order.status])}</Badge>
             {canWrite && order.status === 'DRAFT' && (
               <Button variant="secondary" onClick={() => navigate(`/app/orders/${order.id}/edit`)}>
                 <Pencil className="h-4 w-4" aria-hidden />
-                Edit
+                {t('Edit')}
               </Button>
             )}
             {canWrite && order.status !== 'CANCELLED' && (
               <Button variant="danger" onClick={() => setCancelOpen(true)}>
                 <Ban className="h-4 w-4" aria-hidden />
-                Cancel
+                {t('Cancel')}
               </Button>
             )}
           </div>
@@ -274,8 +288,8 @@ export function OrderDetailPage() {
 
       {order.status === 'CANCELLED' ? (
         <div className="mb-4">
-          <Alert tone="danger" title="Order cancelled">
-            {order.cancelReason || 'No reason recorded.'} · {formatDate(order.cancelledAt)}
+          <Alert tone="danger" title={t('Order cancelled')}>
+            {order.cancelReason || t('No reason recorded.')} · {formatDate(order.cancelledAt)}
           </Alert>
         </div>
       ) : (
@@ -285,17 +299,17 @@ export function OrderDetailPage() {
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="min-w-0 space-y-4 lg:col-span-2">
           <Card>
-            <CardHeader title="Tests" description={`${order.items.length} test(s)`} />
+            <CardHeader title={t('Tests')} description={t('{count} test(s)', { count: order.items.length })} />
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
-                    <th className="px-5 py-2">Test</th>
-                    <th className="px-5 py-2">Dept.</th>
-                    <th className="px-5 py-2 text-right">Rate</th>
-                    <th className="px-5 py-2 text-center">Qty</th>
-                    <th className="px-5 py-2 text-right">Discount</th>
-                    <th className="px-5 py-2 text-right">Line total</th>
+                  <tr className="border-b border-border text-left text-label uppercase text-muted">
+                    <th className="px-5 py-2">{t('Test')}</th>
+                    <th className="px-5 py-2">{t('Dept.')}</th>
+                    <th className="px-5 py-2 text-right">{t('Rate')}</th>
+                    <th className="px-5 py-2 text-center">{t('Qty')}</th>
+                    <th className="px-5 py-2 text-right">{t('Discount')}</th>
+                    <th className="px-5 py-2 text-right">{t('Line total')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -328,7 +342,6 @@ export function OrderDetailPage() {
                 onReload={reload}
               />
               <OrderResultsCard
-                orderId={order.id}
                 results={results}
                 busyId={busyRow}
                 onVerify={rowVerify}
@@ -340,21 +353,24 @@ export function OrderDetailPage() {
 
         <div className="space-y-4">
           <Card>
-            <CardHeader title="Patient & referral" />
+            <CardHeader title={t('Patient & referral')} />
             <CardBody className="space-y-2 text-sm">
               <div>
-                <span className="text-muted">Patient</span>
+                <span className="text-muted">{t('Patient')}</span>
                 <p className="font-medium text-foreground">
-                  {order.patientName} <span className="font-mono text-xs text-muted">{order.patientMrn}</span>
+                  <LinkFrom to={`/app/patients/${order.patientId}`} className="hover:underline">
+                    {order.patientName}
+                  </LinkFrom>{' '}
+                  <span className="font-mono text-xs text-muted">{order.patientMrn}</span>
                 </p>
               </div>
               <div>
-                <span className="text-muted">Referring doctor</span>
+                <span className="text-muted">{t('Referring doctor')}</span>
                 <p className="text-foreground">{order.referringDoctorName ?? '—'}</p>
               </div>
               {order.clinicalNotes && (
                 <div>
-                  <span className="text-muted">Clinical notes</span>
+                  <span className="text-muted">{t('Clinical notes')}</span>
                   <p className="text-foreground">{order.clinicalNotes}</p>
                 </div>
               )}
@@ -362,7 +378,7 @@ export function OrderDetailPage() {
           </Card>
 
           <Card>
-            <CardHeader title="Billing" />
+            <CardHeader title={t('Billing')} />
             <CardBody>
               <PricingSummary pricing={order.pricing} />
             </CardBody>
@@ -387,17 +403,17 @@ export function OrderDetailPage() {
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         onConfirm={doConfirm}
-        title="Confirm this order?"
-        message="Once confirmed, the order is locked for editing and samples are generated for collection."
-        confirmLabel="Confirm order"
+        title={t('Confirm this order?')}
+        message={t('Once confirmed, the order is locked for editing and samples are generated for collection.')}
+        confirmLabel={t('Confirm order')}
       />
       <ConfirmDialog
         open={cancelOpen}
         onClose={() => setCancelOpen(false)}
         onConfirm={doCancel}
-        title="Cancel this order?"
-        message="This will cancel the whole order. This cannot be undone."
-        confirmLabel="Cancel order"
+        title={t('Cancel this order?')}
+        message={t('This will cancel the whole order. This cannot be undone.')}
+        confirmLabel={t('Cancel order')}
         tone="danger"
         reason="required"
       />

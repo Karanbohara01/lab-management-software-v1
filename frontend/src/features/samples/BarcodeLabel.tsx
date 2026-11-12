@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import JsBarcode from 'jsbarcode';
+import { useT } from '@/i18n';
 
 interface BarcodeLabelProps {
   value: string;
@@ -17,6 +18,7 @@ interface BarcodeLabelProps {
  * long patient name can never push content off the label instead of just truncating.
  */
 export function BarcodeLabel({ value, patientName, patientMrn, specimen, container }: BarcodeLabelProps) {
+  const t = useT();
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -51,7 +53,7 @@ export function BarcodeLabel({ value, patientName, patientMrn, specimen, contain
       style={{ width: '50mm', height: '70mm', padding: '3mm' }}
       className="box-border flex flex-col items-stretch justify-start gap-[2mm] overflow-hidden border border-border bg-white text-black print:border-0"
     >
-      <svg ref={svgRef} style={{ height: '20mm', width: '100%' }} role="img" aria-label={`Barcode ${value}`} />
+      <svg ref={svgRef} style={{ height: '20mm', width: '100%' }} role="img" aria-label={t('Barcode {value}', { value })} />
       <p style={{ fontSize: '3.4mm' }} className="text-center font-mono font-semibold tracking-wider">
         {value}
       </p>

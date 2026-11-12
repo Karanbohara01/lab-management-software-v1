@@ -9,6 +9,7 @@ import { Alert } from '@/components/ui/Alert';
 import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
 import { branchesApi, type Branch } from './api';
+import { useT } from '@/i18n';
 
 const schema = z.object({
   code: z
@@ -35,6 +36,7 @@ export function BranchFormModal({
   branch: Branch | null;
   onSaved: () => void;
 }) {
+  const t = useT();
   const toast = useToast();
   const {
     register,
@@ -71,10 +73,10 @@ export function BranchFormModal({
     try {
       if (branch) {
         await branchesApi.update(branch.id, payload);
-        toast.success('Branch updated');
+        toast.success(t('Branch updated'));
       } else {
         await branchesApi.create({ code: values.code.trim().toUpperCase(), ...payload });
-        toast.success('Branch created');
+        toast.success(t('Branch created'));
       }
       onSaved();
       onClose();
@@ -83,7 +85,7 @@ export function BranchFormModal({
         err.fieldErrors.forEach((fe) => setError(fe.field as keyof FormValues, { message: fe.message }));
         if (err.fieldErrors.length === 0) setError('root', { message: err.message });
       } else {
-        setError('root', { message: 'Unable to save branch' });
+        setError('root', { message: t('Unable to save branch') });
       }
     }
   });
@@ -92,14 +94,14 @@ export function BranchFormModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={branch ? 'Edit branch' : 'New branch'}
+      title={branch ? t('Edit branch') : t('New branch')}
       footer={
         <>
           <Button variant="secondary" type="button" onClick={onClose}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button type="submit" form="branch-form" loading={isSubmitting}>
-            {branch ? 'Save changes' : 'Create branch'}
+            {branch ? t('Save changes') : t('Create branch')}
           </Button>
         </>
       }
@@ -107,19 +109,19 @@ export function BranchFormModal({
       <form id="branch-form" onSubmit={onSubmit} className="space-y-4" noValidate>
         {errors.root && <Alert tone="danger">{errors.root.message}</Alert>}
         <Input
-          label="Code"
-          hint="Short unique identifier, e.g. PKR"
+          label={t('Code')}
+          hint={t('Short unique identifier, e.g. PKR')}
           disabled={!!branch}
           error={errors.code?.message}
           {...register('code')}
         />
-        <Input label="Name" error={errors.name?.message} {...register('name')} />
-        <Input label="Address" error={errors.addressLine?.message} {...register('addressLine')} />
+        <Input label={t('Name')} error={errors.name?.message} {...register('name')} />
+        <Input label={t('Address')} error={errors.addressLine?.message} {...register('addressLine')} />
         <div className="grid grid-cols-2 gap-4">
-          <Input label="City" error={errors.city?.message} {...register('city')} />
-          <Input label="Phone" error={errors.phone?.message} {...register('phone')} />
+          <Input label={t('City')} error={errors.city?.message} {...register('city')} />
+          <Input label={t('Phone')} error={errors.phone?.message} {...register('phone')} />
         </div>
-        <Input label="Email" error={errors.email?.message} {...register('email')} />
+        <Input label={t('Email')} error={errors.email?.message} {...register('email')} />
       </form>
     </Modal>
   );

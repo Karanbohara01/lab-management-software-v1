@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/Checkbox';
 import { Alert } from '@/components/ui/Alert';
 import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/types/api';
+import { useT, tOpts } from '@/i18n';
 import { resultsApi } from './api';
 import type { ContactMethod, ResultDetail } from './types';
 
@@ -31,6 +32,7 @@ export function CriticalCallbackModal({
   onLogged: () => void;
 }) {
   const toast = useToast();
+  const t = useT();
   const [mode, setMode] = useState<'log' | 'waive'>('log');
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
@@ -46,7 +48,7 @@ export function CriticalCallbackModal({
       if (mode === 'waive') {
         if (waiveReason.trim().length < 4) return;
         await resultsApi.waiveCriticalCallback(result.id, waiveReason.trim());
-        toast.success('Callback requirement waived');
+        toast.success(t('Callback requirement waived'));
       } else {
         if (name.trim().length < 2) return;
         await resultsApi.logCriticalCallback(result.id, {
@@ -56,12 +58,12 @@ export function CriticalCallbackModal({
           readBackConfirmed: readBack,
           remarks: remarks.trim() || undefined,
         });
-        toast.success('Critical-value callback recorded');
+        toast.success(t('Critical-value callback recorded'));
       }
       onLogged();
       onClose();
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : 'Unable to record callback');
+      toast.error(e instanceof ApiError ? e.message : t('Unable to record callback'));
     } finally {
       setBusy(false);
     }
@@ -71,21 +73,21 @@ export function CriticalCallbackModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={`Critical-value callback · ${result.testCode}`}
+      title={t('Critical-value callback · {code}', { code: result.testCode })}
       footer={
         <>
           <Button variant="secondary" type="button" onClick={onClose}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button type="button" loading={busy} onClick={submit}>
-            {mode === 'waive' ? 'Waive requirement' : 'Record callback'}
+            {mode === 'waive' ? t('Waive requirement') : t('Record callback')}
           </Button>
         </>
       }
     >
       <div className="space-y-3">
         <Alert tone="danger">
-          A critical value must be communicated to the treating clinician / ward with read-back confirmation.
+          {t('A critical value must be communicated to the treating clinician / ward with read-back confirmation.')}
         </Alert>
         <div className="flex gap-1 text-sm">
           <button
@@ -93,32 +95,32 @@ export function CriticalCallbackModal({
             onClick={() => setMode('log')}
             className={mode === 'log' ? 'rounded-md bg-primary/10 px-3 py-1 font-medium text-primary' : 'px-3 py-1 text-muted'}
           >
-            Log callback
+            {t('Log callback')}
           </button>
           <button
             type="button"
             onClick={() => setMode('waive')}
             className={mode === 'waive' ? 'rounded-md bg-primary/10 px-3 py-1 font-medium text-primary' : 'px-3 py-1 text-muted'}
           >
-            Waive
+            {t('Waive')}
           </button>
         </div>
 
         {mode === 'log' ? (
           <>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Input label="Notified person" value={name} onChange={(e) => setName(e.target.value)} />
-              <Input label="Role / designation" placeholder="e.g. Ward nurse, Dr on call" value={role} onChange={(e) => setRole(e.target.value)} />
-              <Select label="Contact method" options={METHODS} value={method} onChange={(e) => setMethod(e.target.value as ContactMethod)} />
+              <Input label={t('Notified person')} value={name} onChange={(e) => setName(e.target.value)} />
+              <Input label={t('Role / designation')} placeholder={t('e.g. Ward nurse, Dr on call')} value={role} onChange={(e) => setRole(e.target.value)} />
+              <Select label={t('Contact method')} options={tOpts(METHODS)} value={method} onChange={(e) => setMethod(e.target.value as ContactMethod)} />
               <div className="flex items-end pb-1">
-                <Checkbox label="Read-back confirmed" checked={readBack} onChange={(e) => setReadBack(e.target.checked)} />
+                <Checkbox label={t('Read-back confirmed')} checked={readBack} onChange={(e) => setReadBack(e.target.checked)} />
               </div>
             </div>
-            <Textarea label="Remarks (optional)" rows={2} value={remarks} onChange={(e) => setRemarks(e.target.value)} />
+            <Textarea label={t('Remarks (optional)')} rows={2} value={remarks} onChange={(e) => setRemarks(e.target.value)} />
           </>
         ) : (
           <Textarea
-            label="Reason for waiving the callback"
+            label={t('Reason for waiving the callback')}
             rows={3}
             value={waiveReason}
             onChange={(e) => setWaiveReason(e.target.value)}

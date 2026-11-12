@@ -1,4 +1,5 @@
 import { Modal } from '@/components/ui/Modal';
+import { useT } from '@/i18n';
 import { useAuth } from '@/features/auth/useAuth';
 import { NAV_SECTIONS } from './navigation';
 import { GENERAL_SHORTCUTS, GO_TO_SHORTCUTS } from './shortcuts';
@@ -15,6 +16,7 @@ function Key({ children }: { children: string }) {
 }
 
 export function KeyboardShortcutsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const t = useT();
   const { hasAnyPermission } = useAuth();
   const items = NAV_SECTIONS.flatMap((s) => s.items);
 
@@ -24,14 +26,14 @@ export function KeyboardShortcutsModal({ open, onClose }: { open: boolean; onClo
   }).filter((s): s is NonNullable<typeof s> => s !== null && (s.anyPermission.length === 0 || hasAnyPermission(s.anyPermission)));
 
   return (
-    <Modal open={open} onClose={onClose} title="Keyboard shortcuts" size="md">
+    <Modal open={open} onClose={onClose} title={t('Keyboard shortcuts')} size="md">
       <div className="space-y-5">
         <section>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">General</h3>
+          <h3 className="mb-2 text-label uppercase text-muted">{t('General')}</h3>
           <ul className="space-y-2">
             {GENERAL_SHORTCUTS.map((s) => (
               <li key={s.description} className="flex items-center justify-between text-sm">
-                <span className="text-foreground">{s.description}</span>
+                <span className="text-foreground">{t(s.description)}</span>
                 <span className="flex items-center gap-1">
                   {s.keys.map((k) => (
                     <Key key={k}>{k}</Key>
@@ -43,12 +45,12 @@ export function KeyboardShortcutsModal({ open, onClose }: { open: boolean; onClo
         </section>
 
         <section>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Go to</h3>
-          <p className="mb-2 text-xs text-muted">Press "g", then the letter below.</p>
+          <h3 className="mb-2 text-label uppercase text-muted">{t('Go to')}</h3>
+          <p className="mb-2 text-xs text-muted">{t('Press "g", then the letter below.')}</p>
           <ul className="grid grid-cols-2 gap-x-4 gap-y-2">
             {goTo.map((s) => (
               <li key={s.to} className="flex items-center justify-between text-sm">
-                <span className="text-foreground">{s.label}</span>
+                <span className="text-foreground">{t(s.label)}</span>
                 <span className="flex items-center gap-1">
                   <Key>g</Key>
                   <Key>{s.key}</Key>

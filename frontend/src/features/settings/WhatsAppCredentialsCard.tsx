@@ -10,6 +10,7 @@ import { useQuery } from '@/hooks/useQuery';
 import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/types/api';
 import { settingsApi } from './api';
+import { useT } from '@/i18n';
 
 /**
  * This clinic's own WhatsApp Business Cloud API account, for report-delivery messages — overrides
@@ -18,6 +19,7 @@ import { settingsApi } from './api';
  * see WhatsAppCloudApiGateway's javadoc on the backend.
  */
 export function WhatsAppCredentialsCard({ canWrite }: { canWrite: boolean }) {
+  const t = useT();
   const toast = useToast();
   const { data, loading, error, refetch } = useQuery(() => settingsApi.getWhatsAppCredentials(), []);
 
@@ -45,10 +47,10 @@ export function WhatsAppCredentialsCard({ canWrite }: { canWrite: boolean }) {
         accessToken: accessToken || undefined,
       });
       setAccessToken('');
-      toast.success('WhatsApp settings saved');
+      toast.success(t('WhatsApp settings saved'));
       refetch();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to save');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to save'));
     } finally {
       setSaving(false);
     }
@@ -57,44 +59,44 @@ export function WhatsAppCredentialsCard({ canWrite }: { canWrite: boolean }) {
   return (
     <Card>
       <CardHeader
-        title="WhatsApp delivery"
-        description="Your own WhatsApp Business Cloud API account for messaging report links — otherwise this deployment's shared default (if any) is used."
+        title={t('WhatsApp delivery')}
+        description={t("Your own WhatsApp Business Cloud API account for messaging report links — otherwise this deployment's shared default (if any) is used.")}
       />
       <CardBody className="space-y-4">
         <div className="flex items-center justify-between">
           <Checkbox
-            label="Use my own WhatsApp Business account"
+            label={t('Use my own WhatsApp Business account')}
             checked={enabled}
             disabled={!canWrite}
             onChange={(e) => setEnabled(e.target.checked)}
           />
           <Badge tone={data.accessTokenConfigured ? 'success' : 'neutral'}>
-            {data.accessTokenConfigured ? 'Configured' : 'Not configured'}
+            {data.accessTokenConfigured ? t('Configured') : t('Not configured')}
           </Badge>
         </div>
         {enabled && (
           <div className="grid gap-3 sm:grid-cols-2">
             <Input
-              label="Phone number id"
+              label={t('Phone number id')}
               value={phoneNumberId}
               disabled={!canWrite}
               onChange={(e) => setPhoneNumberId(e.target.value)}
             />
             <Input
-              label="Access token"
+              label={t('Access token')}
               type="password"
-              placeholder={data.accessTokenConfigured ? '•••••••• (leave blank to keep)' : ''}
+              placeholder={data.accessTokenConfigured ? t('•••••••• (leave blank to keep)') : ''}
               value={accessToken}
               disabled={!canWrite}
               onChange={(e) => setAccessToken(e.target.value)}
             />
           </div>
         )}
-        {!canWrite && <Alert tone="info">You have read-only access to settings.</Alert>}
+        {!canWrite && <Alert tone="info">{t('You have read-only access to settings.')}</Alert>}
         {canWrite && (
           <div className="flex justify-end">
             <Button onClick={save} loading={saving}>
-              Save WhatsApp settings
+              {t('Save WhatsApp settings')}
             </Button>
           </div>
         )}

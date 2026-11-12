@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/Card';
 import { formatMoney } from '@/lib/money';
 import { SectionHeader } from './SectionHeader';
 import type { AnalyticsPoint } from '@/features/analytics/api';
+import { useT } from '@/i18n';
 
 const COMPACT = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 });
 
@@ -20,6 +21,7 @@ export function RevenueTrend({
   days: number;
   detailed?: boolean;
 }) {
+  const t = useT();
   const max = Math.max(1, ...points.map((p) => p.value));
   const total = points.reduce((s, p) => s + p.value, 0);
   const W = detailed ? 480 : 560;
@@ -54,17 +56,17 @@ export function RevenueTrend({
     <Card className="min-w-0 p-5">
       <SectionHeader
         title="Revenue trend"
-        description={`Booked per day · last ${days} day${days === 1 ? '' : 's'} · total ${formatMoney(total)}`}
+        description={t('Booked per day · last {days} day(s) · total {total}', { days, total: formatMoney(total) })}
       />
       {points.length === 0 || total === 0 ? (
-        <p className="text-sm text-muted">No billed revenue in this period yet.</p>
+        <p className="text-sm text-muted">{t('No billed revenue in this period yet.')}</p>
       ) : (
         <div ref={scroller} className="overflow-x-auto">
           <svg
             viewBox={`0 0 ${W} ${H}`}
             className={detailed ? 'w-full min-w-[360px]' : 'min-w-[420px]'}
             role="img"
-            aria-label="Revenue by day"
+            aria-label={t('Revenue by day')}
           >
             <defs>
               <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
@@ -113,9 +115,7 @@ export function RevenueTrend({
                       className={isLast ? 'fill-primary stroke-surface' : 'fill-surface stroke-primary'}
                       strokeWidth={2}
                     >
-                      <title>
-                        {c.label}: {formatMoney(c.value)}
-                      </title>
+                      <title>{t('{label}: {amount}', { label: c.label, amount: formatMoney(c.value) })}</title>
                     </circle>
                   )}
                   {detailed && few && c.value > 0 && (

@@ -1,6 +1,7 @@
 import { PieChart } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/features/dashboard/components/SectionHeader';
+import { useT } from '@/i18n';
 import type { PlanDistributionPoint } from './types';
 
 /** Fixed opacity steps for the primary hue, assigned by rank (most-subscribed plan first) — never
@@ -10,13 +11,14 @@ const SHADES = ['bg-primary', 'bg-primary/75', 'bg-primary/55', 'bg-primary/40',
 
 /** Share of clinics on each plan, by current subscription. */
 export function PlanDistributionCard({ points }: { points: PlanDistributionPoint[] }) {
+  const t = useT();
   const total = points.reduce((s, p) => s + p.count, 0) || 1;
 
   return (
     <Card className="p-5">
-      <SectionHeader icon={PieChart} title="Plan distribution" description="Clinics on each plan today" />
+      <SectionHeader icon={PieChart} title={t('Plan distribution')} description={t('Clinics on each plan today')} />
       {points.length === 0 ? (
-        <p className="text-sm text-muted">No active subscriptions yet.</p>
+        <p className="text-sm text-muted">{t('No active subscriptions yet.')}</p>
       ) : (
         <ul className="space-y-3">
           {points.map((p, i) => {

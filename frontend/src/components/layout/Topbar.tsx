@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ClipboardPlus, Keyboard, LogOut, Menu, Moon, Plus, Sun, SunMoon, UserPlus, UserRound } from 'lucide-react';
+import { useNavigateFrom } from '@/lib/navigation';
+import { ClipboardPlus, Keyboard, Languages, LogOut, Menu, Moon, Plus, Sun, SunMoon, UserPlus, UserRound } from 'lucide-react';
 import { useAppDispatch } from '@/store/hooks';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { NotificationBell } from '@/features/notifications/NotificationBell';
 import { useTheme, type ThemePreference } from '@/hooks/useTheme';
+import { useT, useLocale, LOCALES } from '@/i18n';
 import { CommandSearch } from './CommandSearch';
 
 const THEME_ORDER: ThemePreference[] = ['light', 'dark', 'system'];
@@ -16,16 +17,17 @@ const THEME_ICON: Record<ThemePreference, typeof Sun> = { light: Sun, dark: Moon
 const THEME_LABEL: Record<ThemePreference, string> = { light: 'Light', dark: 'Dark', system: 'System' };
 
 function ThemeToggle() {
+  const t = useT();
   const { preference, setPreference } = useTheme();
   const Icon = THEME_ICON[preference];
   const next = THEME_ORDER[(THEME_ORDER.indexOf(preference) + 1) % THEME_ORDER.length]!;
   return (
-    <Tooltip content={`Theme: ${THEME_LABEL[preference]} (click to change)`}>
+    <Tooltip content={t('Theme: {theme} (click to change)', { theme: t(THEME_LABEL[preference]) })}>
       <button
         type="button"
         onClick={() => setPreference(next)}
         className="hidden rounded-md p-2 text-muted-foreground hover:bg-surface-muted hover:text-foreground sm:block"
-        aria-label={`Theme: ${THEME_LABEL[preference]}. Click to switch to ${THEME_LABEL[next]}.`}
+        aria-label={t('Theme: {theme}. Click to switch to {next}.', { theme: t(THEME_LABEL[preference]), next: t(THEME_LABEL[next]) })}
       >
         <Icon className="h-[18px] w-[18px]" aria-hidden />
       </button>
@@ -33,9 +35,39 @@ function ThemeToggle() {
   );
 }
 
+/**
+ * Cycles the two supported languages, the same one-click shape as the theme toggle beside it.
+ * Deliberately a toggle, not a dropdown: a dropdown is the right control once there is a third
+ * language, which this app does not have yet.
+ */
+function LanguageToggle() {
+  const t = useT();
+  const { locale, setLocale } = useLocale();
+  const next = locale === 'en' ? 'ne' : 'en';
+  const current = LOCALES.find((l) => l.value === locale)!;
+  const upcoming = LOCALES.find((l) => l.value === next)!;
+  return (
+    <Tooltip content={t('Language: {language}', { language: current.nativeLabel })}>
+      <button
+        type="button"
+        onClick={() => setLocale(next)}
+        className="hidden rounded-md p-2 text-muted-foreground hover:bg-surface-muted hover:text-foreground sm:block"
+        aria-label={t('Language: {language}. Click to switch to {next}.', {
+          language: current.nativeLabel,
+          next: upcoming.nativeLabel,
+        })}
+      >
+        <Languages className="h-[18px] w-[18px]" aria-hidden />
+      </button>
+    </Tooltip>
+  );
+}
+
 export function Topbar({ onOpenMenu, onOpenShortcuts }: { onOpenMenu: () => void; onOpenShortcuts: () => void }) {
+  const t = useT();
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
+  // The create forms record where they were opened from, so Cancel and the back link return there.
+  const navigateFrom = useNavigateFrom();
   const { user, hasPermission } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -49,7 +81,7 @@ export function Topbar({ onOpenMenu, onOpenShortcuts }: { onOpenMenu: () => void
         type="button"
         onClick={onOpenMenu}
         className="rounded-md p-2 text-muted-foreground hover:bg-surface-muted lg:hidden"
-        aria-label="Open navigation menu"
+        aria-label={t('Open navigation menu')}
       >
         <Menu className="h-5 w-5" aria-hidden />
       </button>
@@ -63,7 +95,7 @@ export function Topbar({ onOpenMenu, onOpenShortcuts }: { onOpenMenu: () => void
         <div className="relative">
           <Button size="sm" onClick={() => setCreateOpen((v) => !v)} aria-haspopup="menu" aria-expanded={createOpen}>
             <Plus className="h-4 w-4" aria-hidden />
-            <span className="hidden sm:inline">New</span>
+            <span className="hidden sm:inline">{t('New')}</span>
           </Button>
           {createOpen && (
             <>
@@ -78,12 +110,12 @@ export function Topbar({ onOpenMenu, onOpenShortcuts }: { onOpenMenu: () => void
                     role="menuitem"
                     onClick={() => {
                       setCreateOpen(false);
-                      navigate('/app/orders/new');
+                      navigateFrom('/app/orders/new');
                     }}
                     className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm text-foreground hover:bg-surface-muted"
                   >
                     <ClipboardPlus className="h-4 w-4 text-muted" aria-hidden />
-                    New lab order
+                    {t('New lab order')}
                   </button>
                 )}
                 {canCreatePatient && (
@@ -92,12 +124,12 @@ export function Topbar({ onOpenMenu, onOpenShortcuts }: { onOpenMenu: () => void
                     role="menuitem"
                     onClick={() => {
                       setCreateOpen(false);
-                      navigate('/app/patients/new');
+                      navigateFrom('/app/patients/new');
                     }}
                     className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm text-foreground hover:bg-surface-muted"
                   >
                     <UserPlus className="h-4 w-4 text-muted" aria-hidden />
-                    Register patient
+                    {t('Register patient')}
                   </button>
                 )}
               </div>
@@ -106,16 +138,18 @@ export function Topbar({ onOpenMenu, onOpenShortcuts }: { onOpenMenu: () => void
         </div>
       )}
 
-      <Tooltip content="Keyboard shortcuts (?)">
+      <Tooltip content={t('Keyboard shortcuts (?)')}>
         <button
           type="button"
           onClick={onOpenShortcuts}
           className="hidden rounded-md p-2 text-muted-foreground hover:bg-surface-muted hover:text-foreground sm:block"
-          aria-label="Show keyboard shortcuts"
+          aria-label={t('Show keyboard shortcuts')}
         >
           <Keyboard className="h-[18px] w-[18px]" aria-hidden />
         </button>
       </Tooltip>
+
+      <LanguageToggle />
 
       <ThemeToggle />
 
@@ -158,7 +192,7 @@ export function Topbar({ onOpenMenu, onOpenShortcuts }: { onOpenMenu: () => void
                 role="menuitem"
               >
                 <LogOut className="h-4 w-4" aria-hidden />
-                Sign out
+                {t('Sign out')}
               </Button>
             </div>
           </>

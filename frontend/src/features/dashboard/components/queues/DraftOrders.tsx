@@ -1,14 +1,16 @@
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { useQuery } from '@/hooks/useQuery';
 import { ordersApi } from '@/features/orders/api';
 import { formatMoney } from '@/lib/money';
 import { formatDateTime } from '@/features/patients/format';
+import { useNavigateFrom } from '@/lib/navigation';
 import { QueueShell } from './QueueShell';
+import { useT } from '@/i18n';
 
 /** Front-desk worklist: orders started but not yet confirmed (and so not yet sent to the lab). */
 export function DraftOrders() {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
+  const t = useT();
   const { data, loading, error, refetch } = useQuery(() => ordersApi.list({ status: 'DRAFT', size: 8 }), []);
 
   return (
@@ -35,11 +37,15 @@ export function DraftOrders() {
                 {o.patientName} <span className="font-mono text-xs text-muted">{o.orderNumber}</span>
               </p>
               <p className="truncate text-xs text-muted">
-                {o.itemCount} test(s) · {formatMoney(o.totalAmount)} · started {formatDateTime(o.orderedAt)}
+                {t('{count} test(s) · {amount} · started {time}', {
+                  count: o.itemCount,
+                  amount: formatMoney(o.totalAmount),
+                  time: formatDateTime(o.orderedAt),
+                })}
               </p>
             </button>
             <Button size="sm" variant="secondary" onClick={() => navigate(`/app/orders/${o.id}`)}>
-              Open
+              {t('Open')}
             </Button>
           </li>
         ))}

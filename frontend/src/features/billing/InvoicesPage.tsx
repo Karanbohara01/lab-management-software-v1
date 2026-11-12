@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Download } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
@@ -10,8 +9,9 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
 import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
+import { useListParams, useSearchInput } from '@/hooks/useListParams';
 import { useQuery } from '@/hooks/useQuery';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useNavigateFrom } from '@/lib/navigation';
 import { formatMoney } from '@/lib/money';
 import { formatDate } from '@/features/patients/format';
 import { branchesApi, type Branch } from '@/features/branches/api';
@@ -26,6 +26,7 @@ import {
   type InvoiceListItem,
   type InvoiceStatus,
 } from './types';
+import { useT } from '@/i18n';
 
 const EXPORT_COLUMNS: { key: keyof InvoiceListItem; header: string }[] = [
   { key: 'invoiceNumber', header: 'InvoiceNumber' },
@@ -40,46 +41,47 @@ const EXPORT_COLUMNS: { key: keyof InvoiceListItem; header: string }[] = [
 ];
 
 const PAGE_SIZE = 20;
+/** Lives in the URL, so returning from an invoice lands on the same search, filters and page. */
+const PARAMS = { q: '', status: '', unpaidOnly: false, branchId: '', page: 1 };
 
 export function InvoicesPage() {
-  const navigate = useNavigate();
+  const t = useT();
+  const navigate = useNavigateFrom();
   const toast = useToast();
   const { user } = useAuth();
   const isHq = !user?.homeBranchId;
-  const [status, setStatus] = useState<'' | InvoiceStatus>('');
-  const [unpaidOnly, setUnpaidOnly] = useState(false);
-  const [search, setSearch] = useState('');
-  const [branchId, setBranchId] = useState('');
-  const [page, setPage] = useState(0);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [exporting, setExporting] = useState(false);
+
+  const { params, set } = useListParams(PARAMS);
+  const [search, setSearch] = useSearchInput(params.q, (q) => set({ q }, { replace: true }));
 
   useEffect(() => {
     if (isHq) branchesApi.list(true).then(setBranches);
   }, [isHq]);
 
-  const debouncedSearch = useDebouncedValue(search, 300);
   const { data, loading, error, refetch } = useQuery(
     () =>
       invoicesApi.list({
-        status: status || undefined,
-        unpaidOnly: unpaidOnly || undefined,
-        branchId: branchId ? Number(branchId) : undefined,
-        query: debouncedSearch || undefined,
-        page,
+        status: (params.status as InvoiceStatus) || undefined,
+        unpaidOnly: params.unpaidOnly || undefined,
+        branchId: params.branchId ? Number(params.branchId) : undefined,
+        query: params.q || undefined,
+        page: params.page - 1,
         size: PAGE_SIZE,
       }),
-    [status, unpaidOnly, branchId, debouncedSearch, page],
+    [params.status, params.unpaidOnly, params.branchId, params.q, params.page],
+    { cacheKey: `invoices:${params.q}:${params.status}:${params.unpaidOnly}:${params.branchId}:${params.page}` },
   );
 
   const exportAll = async (format: 'csv' | 'xls' | 'xml') => {
     setExporting(true);
     try {
       const rows = await invoicesApi.exportAll({
-        status: status || undefined,
-        unpaidOnly: unpaidOnly || undefined,
-        branchId: branchId ? Number(branchId) : undefined,
-        query: debouncedSearch || undefined,
+        status: (params.status as InvoiceStatus) || undefined,
+        unpaidOnly: params.unpaidOnly || undefined,
+        branchId: params.branchId ? Number(params.branchId) : undefined,
+        query: params.q || undefined,
       });
       if (format === 'csv') {
         exportCsv(rows as unknown as Record<string, unknown>[], EXPORT_COLUMNS as { key: string; header: string }[], 'invoices.csv');
@@ -95,17 +97,17 @@ export function InvoicesPage() {
         );
       }
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Export failed');
+      toast.error(err instanceof ApiError ? err.message : t('Export failed'));
     } finally {
       setExporting(false);
     }
   };
 
   const columns: Column<InvoiceListItem>[] = [
-    { key: 'no', header: 'Invoice', cell: (i) => <span className="font-mono text-xs">{i.invoiceNumber ?? 'Draft'}</span> },
+    { key: 'no', header: t('Invoice'), cell: (i) => <span className="font-mono text-xs">{i.invoiceNumber ?? t('Draft')}</span> },
     {
       key: 'patient',
-      header: 'Patient',
+      header: t('Patient'),
       cell: (i) => (
         <span>
           <span className="font-medium">{i.patientName}</span>
@@ -113,12 +115,12 @@ export function InvoicesPage() {
         </span>
       ),
     },
-    { key: 'date', header: 'Date', cell: (i) => formatDate(i.createdAt), hideOnMobile: true },
-    { key: 'total', header: 'Total', cell: (i) => formatMoney(i.totalAmount), className: 'text-right' },
-    { key: 'balance', header: 'Balance', cell: (i) => formatMoney(i.balance), className: 'text-right' },
+    { key: 'date', header: t('Date'), cell: (i) => formatDate(i.createdAt), hideOnMobile: true },
+    { key: 'total', header: t('Total'), cell: (i) => formatMoney(i.totalAmount), className: 'text-right' },
+    { key: 'balance', header: t('Balance'), cell: (i) => formatMoney(i.balance), className: 'text-right' },
     {
       key: 'status',
-      header: 'Status',
+      header: t('Status'),
       cell: (i) => (
         <span className="flex items-center gap-1.5">
           <Badge tone={INVOICE_STATUS_TONE[i.status]}>{i.status}</Badge>
@@ -131,21 +133,21 @@ export function InvoicesPage() {
   return (
     <>
       <PageHeader
-        title="Invoices"
-        description="Billing for lab orders — issue, collect payment and track balances."
+        title={t('Invoices')}
+        description={t('Billing for lab orders — issue, collect payment and track balances.')}
         actions={
           <div className="flex items-center gap-2">
             <Button variant="secondary" loading={exporting} onClick={() => exportAll('csv')}>
               <Download className="h-4 w-4" aria-hidden />
-              Export CSV
+              {t('Export CSV')}
             </Button>
             <Button variant="secondary" loading={exporting} onClick={() => exportAll('xls')}>
               <Download className="h-4 w-4" aria-hidden />
-              Export Excel
+              {t('Export Excel')}
             </Button>
             <Button variant="secondary" loading={exporting} onClick={() => exportAll('xml')}>
               <Download className="h-4 w-4" aria-hidden />
-              Export XML
+              {t('Export XML')}
             </Button>
           </div>
         }
@@ -156,51 +158,39 @@ export function InvoicesPage() {
           <div className="sm:max-w-xs sm:flex-1">
             <SearchInput
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(0);
-              }}
-              placeholder="Search invoice no., patient or MRN"
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t('Search invoice no., patient or MRN')}
             />
           </div>
           <div className="sm:w-44">
             <Select
               options={[
-                { value: '', label: 'All statuses' },
-                { value: 'DRAFT', label: 'Draft' },
-                { value: 'ISSUED', label: 'Issued' },
-                { value: 'CANCELLED', label: 'Cancelled' },
+                { value: '', label: t('All statuses') },
+                { value: 'DRAFT', label: t('Draft') },
+                { value: 'ISSUED', label: t('Issued') },
+                { value: 'CANCELLED', label: t('Cancelled') },
               ]}
-              value={status}
-              onChange={(e) => {
-                setStatus(e.target.value as '' | InvoiceStatus);
-                setPage(0);
-              }}
+              value={params.status}
+              onChange={(e) => set({ status: e.target.value })}
             />
           </div>
           {isHq && (
             <div className="sm:w-56">
               <Select
-                options={[{ value: '', label: 'All branches' }, ...branches.map((b) => ({ value: String(b.id), label: b.name }))]}
-                value={branchId}
-                onChange={(e) => {
-                  setBranchId(e.target.value);
-                  setPage(0);
-                }}
+                options={[{ value: '', label: t('All branches') }, ...branches.map((b) => ({ value: String(b.id), label: b.name }))]}
+                value={params.branchId}
+                onChange={(e) => set({ branchId: e.target.value })}
               />
             </div>
           )}
           <label className="flex items-center gap-2 text-sm text-foreground">
             <input
               type="checkbox"
-              checked={unpaidOnly}
-              onChange={(e) => {
-                setUnpaidOnly(e.target.checked);
-                setPage(0);
-              }}
+              checked={params.unpaidOnly}
+              onChange={(e) => set({ unpaidOnly: e.target.checked })}
               className="h-4 w-4 rounded border-input"
             />
-            Outstanding only
+            {t('Outstanding only')}
           </label>
         </div>
 
@@ -209,7 +199,7 @@ export function InvoicesPage() {
         ) : error ? (
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.content.length === 0 ? (
-          <EmptyState title="No invoices" message="Raise an invoice from a confirmed lab order." />
+          <EmptyState title={t('No invoices')} message={t('Raise an invoice from a confirmed lab order.')} />
         ) : (
           data && (
             <>
@@ -217,13 +207,14 @@ export function InvoicesPage() {
                 columns={columns}
                 rows={data.content}
                 rowKey={(i) => i.id}
+                rowHref={(i) => `/app/invoices/${i.id}`}
                 onRowClick={(i) => navigate(`/app/invoices/${i.id}`)}
               />
               <Pagination
                 page={data.page}
                 totalPages={data.totalPages}
                 totalElements={data.totalElements}
-                onPageChange={setPage}
+                onPageChange={(p) => set({ page: p + 1 })}
               />
             </>
           )

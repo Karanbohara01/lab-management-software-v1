@@ -1,17 +1,19 @@
 import { Card } from '@/components/ui/Card';
 import { SectionHeader } from './SectionHeader';
 import type { AnalyticsPoint } from '@/features/analytics/api';
+import { useT } from '@/i18n';
 
 /** Share of test volume per department, over the selected period. */
 export function DepartmentWorkload({ points, days }: { points: AnalyticsPoint[]; days: number }) {
+  const t = useT();
   const total = points.reduce((s, p) => s + p.value, 0) || 1;
   const top = [...points].sort((a, b) => b.value - a.value).slice(0, 6);
 
   return (
     <Card className="min-w-0 p-5">
-      <SectionHeader title="Department workload" description={`Share of tests ordered · last ${days} day${days === 1 ? '' : 's'}`} />
+      <SectionHeader title="Department workload" description={t('Share of tests ordered · last {days} day(s)', { days })} />
       {top.length === 0 ? (
-        <p className="text-sm text-muted">No tests ordered in this period.</p>
+        <p className="text-sm text-muted">{t('No tests ordered in this period.')}</p>
       ) : (
         <ul className="space-y-4">
           {top.map((p) => {

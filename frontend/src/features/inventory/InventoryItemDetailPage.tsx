@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Minus, Pencil, PackagePlus, Trash2 } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Minus, Pencil, PackagePlus, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -8,17 +8,29 @@ import { Badge } from '@/components/ui/Badge';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
+import { useBackTarget } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
 import { formatDate } from '@/features/patients/format';
+import { LOCALE_TAG, getLocale, useT } from '@/i18n';
 import { inventoryApi } from './api';
 import { ItemFormModal, IssueStockModal, ReceiveStockModal } from './InventoryModals';
 import { CATEGORY_LABEL, STOCK_STATUS_LABEL, STOCK_STATUS_TONE, type InventoryBatch } from './types';
 
+const TRANSACTION_TYPE_LABEL: Record<string, string> = {
+  RECEIPT: 'Receipt',
+  ISSUE: 'Issue',
+  ADJUSTMENT: 'Adjustment',
+  WASTAGE: 'Wastage',
+  RETURN: 'Return',
+};
+
 export function InventoryItemDetailPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
+  const { back } = useBackTarget();
   const toast = useToast();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.INVENTORY_WRITE);
@@ -31,7 +43,7 @@ export function InventoryItemDetailPage() {
   const { data: item, loading, error, refetch } = useQuery(() => inventoryApi.get(Number(id)), [id]);
   const txns = useQuery(() => inventoryApi.transactions(Number(id)), [id]);
 
-  if (loading && !item) return <LoadingState label="Loading item…" />;
+  if (loading && !item) return <LoadingState label={t('Loading item…')} />;
   if (error) return <ErrorState message={error} onRetry={refetch} />;
   if (!item) return null;
 
@@ -44,40 +56,36 @@ export function InventoryItemDetailPage() {
     if (!discard) return;
     try {
       await inventoryApi.discardBatch(discard.id, reason);
-      toast.success('Batch discarded');
+      toast.success(t('Batch discarded'));
       refreshAll();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to discard');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to discard'));
       throw err;
     }
   };
 
   return (
     <>
-      <Link to="/app/inventory" className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        Inventory
-      </Link>
-
       <PageHeader
+        back={back}
         title={item.name}
-        description={`${item.code} · ${CATEGORY_LABEL[item.category]}${item.departmentName ? ` · ${item.departmentName}` : ''}`}
+        description={`${item.code} · ${t(CATEGORY_LABEL[item.category])}${item.departmentName ? ` · ${item.departmentName}` : ''}`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Badge tone={STOCK_STATUS_TONE[item.status]}>{STOCK_STATUS_LABEL[item.status]}</Badge>
+            <Badge tone={STOCK_STATUS_TONE[item.status]}>{t(STOCK_STATUS_LABEL[item.status])}</Badge>
             {canWrite && (
               <>
                 <Button variant="secondary" onClick={() => setEditOpen(true)}>
                   <Pencil className="h-4 w-4" aria-hidden />
-                  Edit
+                  {t('Edit')}
                 </Button>
                 <Button variant="secondary" onClick={() => setIssueOpen(true)} disabled={item.quantityOnHand <= 0}>
                   <Minus className="h-4 w-4" aria-hidden />
-                  Issue
+                  {t('Issue')}
                 </Button>
                 <Button onClick={() => setReceiveOpen(true)}>
                   <PackagePlus className="h-4 w-4" aria-hidden />
-                  Receive
+                  {t('Receive')}
                 </Button>
               </>
             )}
@@ -86,22 +94,22 @@ export function InventoryItemDetailPage() {
       />
 
       <div className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Stat label="On hand" value={`${item.quantityOnHand} ${item.unit}`} />
-        <Stat label="Minimum" value={`${item.minimumStock} ${item.unit}`} />
-        <Stat label="Batches" value={String(item.batches.length)} />
-        <Stat label="Status" value={STOCK_STATUS_LABEL[item.status]} />
+        <Stat label={t('On hand')} value={`${item.quantityOnHand} ${item.unit}`} />
+        <Stat label={t('Minimum')} value={`${item.minimumStock} ${item.unit}`} />
+        <Stat label={t('Batches')} value={String(item.batches.length)} />
+        <Stat label={t('Status')} value={t(STOCK_STATUS_LABEL[item.status])} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="min-w-0">
-          <CardHeader title="Batches" />
+          <CardHeader title={t('Batches')} />
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
-                  <th className="px-5 py-2">Batch</th>
-                  <th className="px-5 py-2">Expiry</th>
-                  <th className="px-5 py-2 text-right">Remaining</th>
+                <tr className="border-b border-border text-left text-label uppercase text-muted">
+                  <th className="px-5 py-2">{t('Batch')}</th>
+                  <th className="px-5 py-2">{t('Expiry')}</th>
+                  <th className="px-5 py-2 text-right">{t('Remaining')}</th>
                   <th className="px-5 py-2" />
                 </tr>
               </thead>
@@ -109,7 +117,7 @@ export function InventoryItemDetailPage() {
                 {item.batches.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-5 py-4 text-muted">
-                      No batches — receive stock to add one.
+                      {t('No batches — receive stock to add one.')}
                     </td>
                   </tr>
                 ) : (
@@ -136,7 +144,7 @@ export function InventoryItemDetailPage() {
                           <button
                             onClick={() => setDiscard(b)}
                             className="text-muted hover:text-danger"
-                            aria-label={`Discard batch ${b.batchNumber}`}
+                            aria-label={t('Discard batch {batch}', { batch: b.batchNumber })}
                           >
                             <Trash2 className="h-4 w-4" aria-hidden />
                           </button>
@@ -151,30 +159,30 @@ export function InventoryItemDetailPage() {
         </Card>
 
         <Card>
-          <CardHeader title="Stock movements" />
+          <CardHeader title={t('Stock movements')} />
           <div className="max-h-96 overflow-y-auto">
             {txns.loading ? (
               <LoadingState />
             ) : !txns.data || txns.data.content.length === 0 ? (
-              <p className="px-5 py-4 text-sm text-muted">No movements yet.</p>
+              <p className="px-5 py-4 text-sm text-muted">{t('No movements yet.')}</p>
             ) : (
               <ul className="divide-y divide-border text-sm">
-                {txns.data.content.map((t) => (
-                  <li key={t.id} className="flex items-center justify-between px-5 py-2.5">
+                {txns.data.content.map((txn) => (
+                  <li key={txn.id} className="flex items-center justify-between px-5 py-2.5">
                     <div>
-                      <span className="font-medium text-foreground">{t.type}</span>
-                      {t.batchNumber && <span className="ml-1 text-xs text-muted">· {t.batchNumber}</span>}
-                      {t.reason && <p className="text-xs text-muted">{t.reason}</p>}
+                      <span className="font-medium text-foreground">{t(TRANSACTION_TYPE_LABEL[txn.type] ?? txn.type)}</span>
+                      {txn.batchNumber && <span className="ml-1 text-xs text-muted">· {txn.batchNumber}</span>}
+                      {txn.reason && <p className="text-xs text-muted">{txn.reason}</p>}
                       <p className="text-xs text-muted">
-                        {new Date(t.occurredAt).toLocaleString()} · {t.performedBy}
+                        {new Date(txn.occurredAt).toLocaleString(LOCALE_TAG[getLocale()])} · {txn.performedBy}
                       </p>
                     </div>
                     <div className="text-right">
-                      <span className={t.quantity < 0 ? 'text-danger' : 'text-success'}>
-                        {t.quantity > 0 ? '+' : ''}
-                        {t.quantity}
+                      <span className={txn.quantity < 0 ? 'text-danger' : 'text-success'}>
+                        {txn.quantity > 0 ? '+' : ''}
+                        {txn.quantity}
                       </span>
-                      <p className="text-xs text-muted">bal {t.balanceAfter}</p>
+                      <p className="text-xs text-muted">{t('bal {balance}', { balance: txn.balanceAfter })}</p>
                     </div>
                   </li>
                 ))}
@@ -191,9 +199,9 @@ export function InventoryItemDetailPage() {
         open={!!discard}
         onClose={() => setDiscard(null)}
         onConfirm={doDiscard}
-        title={`Discard batch ${discard?.batchNumber ?? ''}?`}
-        message="The full remaining quantity is written off as wastage. This cannot be undone."
-        confirmLabel="Discard batch"
+        title={t('Discard batch {batch}?', { batch: discard?.batchNumber ?? '' })}
+        message={t('The full remaining quantity is written off as wastage. This cannot be undone.')}
+        confirmLabel={t('Discard batch')}
         tone="danger"
         reason="required"
       />

@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -16,9 +15,12 @@
 
     --border: 214 32% 91%;
     --input: 214 32% 88%;
-    --ring: 199 89% 48%;
+    /* Brand navy — the LIMS logo's wordmark colour, also the landing page's primary/ring (see
+       `html.theme-lims` below, now redundant for these two tokens but kept as documentation and
+       as the one place that still differs: its teal `--success` for marketing-only decoration). */
+    --ring: 208 86% 40%;
 
-    --primary: 199 89% 40%;
+    --primary: 208 86% 27%;
     --primary-foreground: 0 0% 100%;
 
     --success: 152 60% 36%;
@@ -31,6 +33,19 @@
     --critical-foreground: 0 0% 100%;
 
     --radius: 0.625rem;
+
+    /* Fixed brand-navy shade ramp — NOT theme-reactive (defined only here, never in `.dark`), for
+       the handful of printed documents (ReportDocument, InvoicePrintDocument,
+       CreditNotePrintDocument, PatientCard) that deliberately use a literal colour instead of the
+       `--primary` token, so a printed report/invoice/card looks identical regardless of the
+       viewer's light/dark setting. Same hue/saturation as the brand navy above, stepped across the
+       lightness range a Tailwind `sky-*` ramp would have covered. */
+    --brand-50: 208 60% 97%;
+    --brand-100: 208 55% 93%;
+    --brand-300: 208 55% 72%;
+    --brand-600: 208 80% 33%;
+    --brand-700: 208 86% 27%;
+    --brand-900: 208 75% 15%;
   }
 
   /* Dark palette — same token structure as :root, tuned for a dark surface rather than an
@@ -50,9 +65,11 @@
 
     --border: 217 28% 20%;
     --input: 217 28% 24%;
-    --ring: 199 89% 55%;
+    /* Same brand navy as :root, lightened for legibility against a near-black surface — same hue
+       and saturation, same +15pt lightness boost the rest of this dark palette uses elsewhere. */
+    --ring: 208 86% 52%;
 
-    --primary: 199 89% 55%;
+    --primary: 208 86% 52%;
     --primary-foreground: 222 47% 7%;
 
     --success: 152 55% 48%;
@@ -65,14 +82,15 @@
     --critical-foreground: 222 47% 7%;
   }
 
-  /* The LIMS logo's colours — its navy wordmark and teal "I" — for the PUBLIC pages only (landing,
-     blog, sign-in). `useForcedLightTheme` puts this class on <html> while one of those pages is
-     showing and takes it off again on leaving, and index.html's first-paint script sets it too, so
-     the dashboard never sees it and keeps the app's own sky-blue. Only the brand colours change;
-     everything else (neutrals, status colours) is the normal light palette. */
+  /* The LIMS logo's teal "I" — for the PUBLIC pages only (landing, blog, sign-in), as a decorative
+     accent (alternating with the brand navy on icons, kickers, etc.) distinct from the clinical
+     green `--success` means everywhere in the authenticated app (a QC pass, a normal result, an
+     "Active" badge — color-coded states lab staff rely on, which must stay the conventional green
+     regardless of brand). `--primary`/`--ring` are the same navy as `:root` now, so this class is
+     redundant for those two and kept only for `--success` plus the forced-light-mode mechanics;
+     see `useForcedLightTheme`, which puts this class on <html> while one of those pages is showing
+     and index.html's first-paint script sets it too, so the authenticated app never sees it. */
   html.theme-lims {
-    --primary: 208 86% 27%; /* wordmark navy */
-    --ring: 208 86% 40%;
     --success: 175 75% 30%; /* the teal, darkened enough for small text on white */
   }
 

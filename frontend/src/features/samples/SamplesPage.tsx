@@ -1,5 +1,4 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ScanLine } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
@@ -12,7 +11,8 @@ import { Pagination } from '@/components/ui/Pagination';
 import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { cn } from '@/lib/cn';
 import { useQuery } from '@/hooks/useQuery';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useListParams, useSearchInput } from '@/hooks/useListParams';
+import { useNavigateFrom } from '@/lib/navigation';
 import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/types/api';
 import { SearchInput } from '@/components/ui/SearchInput';
@@ -23,6 +23,7 @@ import { SPECIMEN_LABELS } from '@/features/catalog/types';
 import { formatDate } from '@/features/patients/format';
 import { samplesApi } from './api';
 import { SAMPLE_STATUS_LABEL, SAMPLE_STATUS_TONE, type SampleListItem, type SampleStatus } from './types';
+import { useT, tOpts } from '@/i18n';
 
 const PAGE_SIZE = 20;
 const TABS: { value: '' | SampleStatus; label: string }[] = [
@@ -32,24 +33,24 @@ const TABS: { value: '' | SampleStatus; label: string }[] = [
   { value: 'RECEIVED', label: 'Received' },
   { value: 'REJECTED', label: 'Rejected' },
 ];
+/** Lives in the URL, so returning from a sample lands on the same tab, filters, search and page. */
+const PARAMS = { status: '', departmentId: '', branchId: '', q: '', page: 1 };
 
 export function SamplesPage() {
-  const navigate = useNavigate();
+  const t = useT();
+  const navigate = useNavigateFrom();
   const toast = useToast();
   const { user } = useAuth();
   const isHq = !user?.homeBranchId;
+  const tabs = tOpts(TABS);
 
-  const [status, setStatus] = useState<'' | SampleStatus>('');
-  const [departmentId, setDepartmentId] = useState('');
-  const [branchId, setBranchId] = useState('');
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(0);
+  const { params, set } = useListParams(PARAMS);
+  const [search, setSearch] = useSearchInput(params.q, (q) => set({ q }, { replace: true }));
   const [scan, setScan] = useState('');
   const [branches, setBranches] = useState<Branch[]>([]);
 
   const departments = useQuery(() => departmentsApi.list(true), []);
   const summary = useQuery(() => samplesApi.summary(), []);
-  const debouncedSearch = useDebouncedValue(search, 300);
 
   useEffect(() => {
     if (isHq) branchesApi.list(true).then(setBranches);
@@ -58,14 +59,15 @@ export function SamplesPage() {
   const { data, loading, error, refetch } = useQuery(
     () =>
       samplesApi.list({
-        status: status || undefined,
-        departmentId: departmentId ? Number(departmentId) : undefined,
-        branchId: branchId ? Number(branchId) : undefined,
-        query: debouncedSearch || undefined,
-        page,
+        status: (params.status as SampleStatus) || undefined,
+        departmentId: params.departmentId ? Number(params.departmentId) : undefined,
+        branchId: params.branchId ? Number(params.branchId) : undefined,
+        query: params.q || undefined,
+        page: params.page - 1,
         size: PAGE_SIZE,
       }),
-    [status, departmentId, branchId, debouncedSearch, page],
+    [params.status, params.departmentId, params.branchId, params.q, params.page],
+    { cacheKey: `samples:${params.status}:${params.departmentId}:${params.branchId}:${params.q}:${params.page}` },
   );
 
   const onScan = async (e: FormEvent) => {
@@ -77,15 +79,19 @@ export function SamplesPage() {
       setScan('');
       navigate(`/app/samples/${found.id}`);
     } catch (err) {
-      toast.error(err instanceof ApiError && err.status === 404 ? `No sample with barcode ${code}` : 'Lookup failed');
+      toast.error(
+        err instanceof ApiError && err.status === 404
+          ? t('No sample with barcode {code}', { code })
+          : t('Lookup failed'),
+      );
     }
   };
 
   const columns: Column<SampleListItem>[] = [
-    { key: 'acc', header: 'Accession', cell: (s) => <span className="font-mono text-xs">{s.accessionNumber}</span> },
+    { key: 'acc', header: t('Accession'), cell: (s) => <span className="font-mono text-xs">{s.accessionNumber}</span> },
     {
       key: 'patient',
-      header: 'Patient',
+      header: t('Patient'),
       cell: (s) => (
         <span>
           <span className="font-medium">{s.patientName}</span>
@@ -93,49 +99,46 @@ export function SamplesPage() {
         </span>
       ),
     },
-    { key: 'specimen', header: 'Specimen', cell: (s) => SPECIMEN_LABELS[s.specimenType], hideOnMobile: true },
-    { key: 'dept', header: 'Departments', cell: (s) => s.departments.join(', '), hideOnMobile: true },
-    { key: 'date', header: 'Created', cell: (s) => formatDate(s.createdAt), hideOnMobile: true },
+    { key: 'specimen', header: t('Specimen'), cell: (s) => t(SPECIMEN_LABELS[s.specimenType]), hideOnMobile: true },
+    { key: 'dept', header: t('Departments'), cell: (s) => s.departments.join(', '), hideOnMobile: true },
+    { key: 'date', header: t('Created (date)'), cell: (s) => formatDate(s.createdAt), hideOnMobile: true },
     {
       key: 'status',
-      header: 'Status',
-      cell: (s) => <Badge tone={SAMPLE_STATUS_TONE[s.status]}>{SAMPLE_STATUS_LABEL[s.status]}</Badge>,
+      header: t('Status'),
+      cell: (s) => <Badge tone={SAMPLE_STATUS_TONE[s.status]}>{t(SAMPLE_STATUS_LABEL[s.status])}</Badge>,
     },
   ];
 
   return (
     <>
-      <PageHeader title="Samples" description="Track specimens from collection through receipt into the laboratory." />
+      <PageHeader title={t('Samples')} description={t('Track specimens from collection through receipt into the laboratory.')} />
 
       <Card className="mb-4">
         <form onSubmit={onScan} className="flex items-center gap-2 p-4">
           <div className="flex-1">
             <Input
               leadingIcon={<ScanLine className="h-4 w-4" aria-hidden />}
-              placeholder="Scan or type a barcode / accession number"
+              placeholder={t('Scan or type a barcode / accession number')}
               value={scan}
               onChange={(e) => setScan(e.target.value)}
               autoFocus
             />
           </div>
-          <Button type="submit">Look up</Button>
+          <Button type="submit">{t('Look up')}</Button>
         </form>
       </Card>
 
       <Card>
         <div className="flex flex-wrap gap-1 border-b border-border p-2">
-          {TABS.map((tab) => {
+          {tabs.map((tab) => {
             const count = tab.value ? summary.data?.[tab.value] : undefined;
             return (
               <button
                 key={tab.value || 'all'}
-                onClick={() => {
-                  setStatus(tab.value);
-                  setPage(0);
-                }}
+                onClick={() => set({ status: tab.value })}
                 className={cn(
                   'rounded-md px-3 py-1.5 text-sm font-medium',
-                  status === tab.value ? 'bg-primary/10 text-primary' : 'text-muted hover:bg-surface-muted',
+                  params.status === tab.value ? 'bg-primary/10 text-primary' : 'text-muted hover:bg-surface-muted',
                 )}
               >
                 {tab.label}
@@ -151,35 +154,26 @@ export function SamplesPage() {
           <div className="sm:max-w-xs sm:flex-1">
             <SearchInput
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(0);
-              }}
-              placeholder="Search accession, patient or MRN"
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t('Search accession, patient or MRN')}
             />
           </div>
           <div className="sm:w-56">
             <Select
               options={[
-                { value: '', label: 'All departments' },
+                { value: '', label: t('All departments') },
                 ...(departments.data ?? []).map((d) => ({ value: String(d.id), label: d.name })),
               ]}
-              value={departmentId}
-              onChange={(e) => {
-                setDepartmentId(e.target.value);
-                setPage(0);
-              }}
+              value={params.departmentId}
+              onChange={(e) => set({ departmentId: e.target.value })}
             />
           </div>
           {isHq && (
             <div className="sm:w-56">
               <Select
-                options={[{ value: '', label: 'All branches' }, ...branches.map((b) => ({ value: String(b.id), label: b.name }))]}
-                value={branchId}
-                onChange={(e) => {
-                  setBranchId(e.target.value);
-                  setPage(0);
-                }}
+                options={[{ value: '', label: t('All branches') }, ...branches.map((b) => ({ value: String(b.id), label: b.name }))]}
+                value={params.branchId}
+                onChange={(e) => set({ branchId: e.target.value })}
               />
             </div>
           )}
@@ -191,8 +185,8 @@ export function SamplesPage() {
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.content.length === 0 ? (
           <EmptyState
-            title="No samples"
-            message="Samples are generated automatically when a lab order is confirmed."
+            title={t('No samples')}
+            message={t('Samples are generated automatically when a lab order is confirmed.')}
           />
         ) : (
           data && (
@@ -201,13 +195,14 @@ export function SamplesPage() {
                 columns={columns}
                 rows={data.content}
                 rowKey={(s) => s.id}
+                rowHref={(s) => `/app/samples/${s.id}`}
                 onRowClick={(s) => navigate(`/app/samples/${s.id}`)}
               />
               <Pagination
                 page={data.page}
                 totalPages={data.totalPages}
                 totalElements={data.totalElements}
-                onPageChange={setPage}
+                onPageChange={(p) => set({ page: p + 1 })}
               />
             </>
           )

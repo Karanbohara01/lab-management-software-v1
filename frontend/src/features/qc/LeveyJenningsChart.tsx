@@ -1,4 +1,5 @@
 import type { LeveyJennings } from './types';
+import { useT, getLocale, LOCALE_TAG } from '@/i18n';
 
 const STATUS_FILL: Record<string, string> = {
   IN_CONTROL: 'fill-success',
@@ -8,6 +9,7 @@ const STATUS_FILL: Record<string, string> = {
 
 /** Levey-Jennings chart: value vs run, with mean and ±1/2/3 SD reference lines. Pure SVG. */
 export function LeveyJenningsChart({ data }: { data: LeveyJennings }) {
+  const t = useT();
   const { mean, sd, points } = data;
   const W = 640;
   const H = 240;
@@ -26,7 +28,7 @@ export function LeveyJenningsChart({ data }: { data: LeveyJennings }) {
 
   return (
     <div className="overflow-x-auto">
-      <svg viewBox={`0 0 ${W} ${H}`} className="min-w-[520px]" role="img" aria-label="Levey-Jennings chart">
+      <svg viewBox={`0 0 ${W} ${H}`} className="min-w-[520px]" role="img" aria-label={t('Levey-Jennings chart')}>
         {lines.map((l) => (
           <g key={l.k}>
             <line
@@ -59,7 +61,7 @@ export function LeveyJenningsChart({ data }: { data: LeveyJennings }) {
             className={STATUS_FILL[p.status] ?? 'fill-muted'}
           >
             <title>
-              {new Date(p.runAt).toLocaleString()} · {p.value} (z {p.zScore ?? '—'})
+              {new Date(p.runAt).toLocaleString(LOCALE_TAG[getLocale()])} · {p.value} (z {p.zScore ?? '—'})
               {p.violatedRules ? ` · ${p.violatedRules}` : ''}
             </title>
           </circle>

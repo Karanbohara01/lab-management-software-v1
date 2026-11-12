@@ -1,6 +1,8 @@
 import { ArrowLeft } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
+import { cn } from '@/lib/cn';
 import { MarketingLayout } from '../components/MarketingLayout';
+import { TYPE } from '../components/typography';
 import { PRODUCT_NAME } from '../data';
 import { FinalCta } from '../sections/FinalCta';
 import { useSeo } from '../useSeo';
@@ -9,7 +11,7 @@ import { PostRow } from './PostCard';
 import { formatPostDate, getPost, latestPosts, readingMinutes } from './posts';
 
 const BACK_LINK =
-  'inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+  'inline-flex items-center gap-1.5 rounded-md text-body-sm font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 /**
  * /blog/:slug — one article. It uses the same wide container as the navbar and footer (so its edges
@@ -31,8 +33,8 @@ export function BlogPostPage() {
     return (
       <MarketingLayout>
         <div className="mx-auto w-full max-w-3xl px-4 pb-24 pt-32 sm:px-6 lg:pt-40">
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">We couldn’t find that article.</h1>
-          <p className="mt-4 text-base leading-relaxed text-muted">
+          <h1 className="text-balance text-display-3 text-foreground">We couldn’t find that article.</h1>
+          <p className="mt-4 text-pretty text-body text-muted">
             It may have been moved or renamed. The full list is on the blog page.
           </p>
           <Link to="/blog" className={`${BACK_LINK} mt-6`}>
@@ -57,11 +59,9 @@ export function BlogPostPage() {
         </Link>
 
         <header>
-          <p className="mt-8 text-xs font-semibold uppercase tracking-wider text-primary">{post.category}</p>
-          <h1 className="mt-3 max-w-4xl text-balance text-3xl font-semibold leading-tight tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-            {post.title}
-          </h1>
-          <p className="mt-4 text-sm text-muted">
+          <p className={cn('mt-8', TYPE.label, 'text-primary')}>{post.category}</p>
+          <h1 className="mt-4 max-w-4xl text-balance text-display-2 text-foreground">{post.title}</h1>
+          <p className={cn('mt-4', TYPE.caption)}>
             {formatPostDate(post.date)} · {readingMinutes(post)} min read
           </p>
         </header>
@@ -86,7 +86,7 @@ export function BlogPostPage() {
 
           {more.length > 0 && (
             <aside aria-labelledby="more-articles" className="lg:sticky lg:top-28 lg:self-start">
-              <h2 id="more-articles" className="text-xl font-semibold tracking-tight text-foreground">
+              <h2 id="more-articles" className="text-heading-2 text-foreground">
                 More articles
               </h2>
               <ul className="mt-4 space-y-3">

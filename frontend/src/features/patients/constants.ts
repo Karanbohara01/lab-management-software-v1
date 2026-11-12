@@ -8,8 +8,10 @@ import type {
   ReferralSourceType,
   RegistrationChannel,
 } from './types';
+import { translate, getLocale, tOpts, type Opt } from '@/i18n';
 
-type Opt<T extends string> = { value: T; label: string };
+export { tOpts };
+export type { Opt };
 
 export const GENDERS: Opt<Gender>[] = [
   { value: 'MALE', label: 'Male' },
@@ -107,8 +109,14 @@ export const PAYER_TYPES: Opt<PayerType>[] = [
   { value: 'OTHER', label: 'Other' },
 ];
 
-const label = <T extends string>(opts: Opt<T>[]) => (v: T | null | undefined) =>
-  (v && opts.find((o) => o.value === v)?.label) || '—';
+/**
+ * A read-only lookup — a table cell, a detail view — rather than a Select's options, so the
+ * dictionary is consulted at the point the English source would otherwise be shown directly.
+ */
+const label = <T extends string>(opts: Opt<T>[]) => (v: T | null | undefined) => {
+  const found = v && opts.find((o) => o.value === v)?.label;
+  return found ? translate(getLocale(), found) : '—';
+};
 
 export const categoryLabel = label(PATIENT_CATEGORIES);
 export const bloodGroupLabel = label(BLOOD_GROUPS);

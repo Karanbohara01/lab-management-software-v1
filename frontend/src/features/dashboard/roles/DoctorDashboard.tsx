@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
@@ -10,11 +9,12 @@ import { REPORT_STATUS_TONE } from '@/features/reports/types';
 import { formatDateTime } from '@/features/patients/format';
 import { DashboardHeader } from '../components/DashboardHeader';
 import { SectionHeader } from '../components/SectionHeader';
+import { useNavigateFrom } from '@/lib/navigation';
 import type { RoleDashboardProps } from './types';
 
 /** Read-only view for external referrers: recent lab activity, no operational actions. */
 export function DoctorDashboard({ lastUpdated, refreshing, onRefresh }: RoleDashboardProps) {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const ordersQ = useQuery(() => ordersApi.list({ size: 8 }), []);
   const reportsQ = useQuery(() => reportsApi.list({ size: 8 }), []);
 

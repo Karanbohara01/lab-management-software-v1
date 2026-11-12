@@ -17,6 +17,7 @@ import { qcApi } from './api';
 import type { LeveyJennings, QcControlState, QcMaterial } from './types';
 import { QcMaterialModal } from './QcMaterialModal';
 import { LeveyJenningsChart } from './LeveyJenningsChart';
+import { useT, getLocale, LOCALE_TAG } from '@/i18n';
 
 const STATE_TONE: Record<QcControlState, 'success' | 'warning' | 'danger' | 'neutral'> = {
   IN_CONTROL: 'success',
@@ -27,6 +28,7 @@ const STATE_TONE: Record<QcControlState, 'success' | 'warning' | 'danger' | 'neu
 };
 
 export function QcPage() {
+  const t = useT();
   const toast = useToast();
   const { hasPermission } = useAuth();
   const canManage = hasPermission(PERMISSIONS.TEST_CATALOG_WRITE);
@@ -81,12 +83,12 @@ export function QcPage() {
         analyzer: analyzer || undefined,
         shift: shift || undefined,
       });
-      if (run.status === 'REJECTED') toast.error(`QC REJECTED — ${run.violatedRules}`);
-      else if (run.status === 'WARNING') toast.error(`QC warning — ${run.violatedRules}`);
-      else toast.success('QC in control');
+      if (run.status === 'REJECTED') toast.error(t('QC REJECTED — {rules}', { rules: run.violatedRules ?? '' }));
+      else if (run.status === 'WARNING') toast.error(t('QC warning — {rules}', { rules: run.violatedRules ?? '' }));
+      else toast.success(t('QC in control'));
       setValue('');
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : 'Unable to record QC');
+      toast.error(e instanceof ApiError ? e.message : t('Unable to record QC'));
     } finally {
       setBusy(false);
     }
@@ -95,20 +97,20 @@ export function QcPage() {
   const accept = async (id: number) => {
     try {
       await qcApi.acceptRun(id);
-      toast.success('Run accepted');
+      toast.success(t('Run accepted'));
       setBusy((b) => !b);
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : 'Failed');
+      toast.error(e instanceof ApiError ? e.message : t('Failed'));
     }
   };
 
-  if (materials.loading && !materials.data) return <LoadingState label="Loading QC…" />;
+  if (materials.loading && !materials.data) return <LoadingState label={t('Loading QC…')} />;
 
   return (
     <>
       <PageHeader
-        title="Quality control"
-        description="QC materials, Westgard-rule evaluation and Levey-Jennings charts."
+        title={t('Quality control')}
+        description={t('QC materials, Westgard-rule evaluation and Levey-Jennings charts.')}
         actions={
           canManage ? (
             <Button
@@ -118,7 +120,7 @@ export function QcPage() {
               }}
             >
               <Plus className="h-4 w-4" aria-hidden />
-              New material
+              {t('New material')}
             </Button>
           ) : undefined
         }
@@ -126,9 +128,9 @@ export function QcPage() {
 
       <div className="grid gap-4 lg:grid-cols-[16rem_1fr]">
         <Card>
-          <CardHeader title="Materials" />
+          <CardHeader title={t('Materials')} />
           <CardBody className="space-y-1">
-            {(materials.data ?? []).length === 0 && <p className="text-sm text-muted">No QC materials yet.</p>}
+            {(materials.data ?? []).length === 0 && <p className="text-sm text-muted">{t('No QC materials yet.')}</p>}
             {(materials.data ?? []).map((m) => (
               <button
                 key={m.id}
@@ -165,7 +167,7 @@ export function QcPage() {
                           setModalOpen(true);
                         }}
                       >
-                        Edit
+                        {t('Edit')}
                       </Button>
                     )}
                   </div>
@@ -183,21 +185,21 @@ export function QcPage() {
                 )}
                 <div className="flex flex-wrap items-end gap-2">
                   <Select
-                    label="Parameter"
+                    label={t('Parameter')}
                     className="w-44"
-                    options={selected.targets.map((t) => ({
-                      value: String(t.parameterId),
-                      label: `${t.parameterName} (${t.targetMean}±${t.targetSd})`,
+                    options={selected.targets.map((tg) => ({
+                      value: String(tg.parameterId),
+                      label: `${tg.parameterName} (${tg.targetMean}±${tg.targetSd})`,
                     }))}
                     value={paramId ? String(paramId) : ''}
                     onChange={(e) => setParamId(Number(e.target.value))}
                   />
-                  <Input label="Value" type="number" step="any" className="w-28" value={value} onChange={(e) => setValue(e.target.value)} />
-                  <Input label="Analyzer" className="w-32" value={analyzer} onChange={(e) => setAnalyzer(e.target.value)} />
-                  <Input label="Shift" className="w-24" value={shift} onChange={(e) => setShift(e.target.value)} />
+                  <Input label={t('Value')} type="number" step="any" className="w-28" value={value} onChange={(e) => setValue(e.target.value)} />
+                  <Input label={t('Analyzer')} className="w-32" value={analyzer} onChange={(e) => setAnalyzer(e.target.value)} />
+                  <Input label={t('Shift')} className="w-24" value={shift} onChange={(e) => setShift(e.target.value)} />
                   {canRun && (
                     <Button onClick={record} loading={busy} disabled={!paramId || value === ''}>
-                      Record QC
+                      {t('Record QC')}
                     </Button>
                   )}
                 </div>
@@ -206,7 +208,7 @@ export function QcPage() {
 
             {lj && lj.points.length > 0 && (
               <Card>
-                <CardHeader title="Levey-Jennings" />
+                <CardHeader title={t('Levey-Jennings')} />
                 <CardBody>
                   <LeveyJenningsChart data={lj} />
                 </CardBody>
@@ -214,23 +216,23 @@ export function QcPage() {
             )}
 
             <Card>
-              <CardHeader title="Recent QC runs" />
+              <CardHeader title={t('Recent QC runs')} />
               <CardBody>
                 <table className="w-full text-sm">
                   <thead className="text-left text-xs uppercase text-muted">
                     <tr>
-                      <th className="py-1">When</th>
-                      <th className="py-1">Parameter</th>
-                      <th className="py-1">Value</th>
-                      <th className="py-1">z</th>
-                      <th className="py-1">Status</th>
+                      <th className="py-1">{t('When')}</th>
+                      <th className="py-1">{t('Parameter')}</th>
+                      <th className="py-1">{t('Value')}</th>
+                      <th className="py-1">{t('z')}</th>
+                      <th className="py-1">{t('Status')}</th>
                       <th className="py-1" />
                     </tr>
                   </thead>
                   <tbody>
                     {(runs.data ?? []).map((r) => (
                       <tr key={r.id} className="border-t border-border">
-                        <td className="py-1 text-muted">{new Date(r.runAt).toLocaleString()}</td>
+                        <td className="py-1 text-muted">{new Date(r.runAt).toLocaleString(LOCALE_TAG[getLocale()])}</td>
                         <td className="py-1">{r.parameterName}</td>
                         <td className="py-1 font-medium">{r.value}</td>
                         <td className="py-1">{r.zScore ?? '—'}</td>
@@ -241,12 +243,12 @@ export function QcPage() {
                             {r.status.replace('_', ' ')}
                           </Badge>
                           {r.violatedRules && <span className="ml-1 text-xs text-muted">{r.violatedRules}</span>}
-                          {r.accepted && <span className="ml-1 text-xs text-muted">(accepted)</span>}
+                          {r.accepted && <span className="ml-1 text-xs text-muted">{t('(accepted)')}</span>}
                         </td>
                         <td className="py-1">
                           {r.status === 'REJECTED' && !r.accepted && hasPermission(PERMISSIONS.RESULT_VERIFY) && (
                             <button className="text-xs text-primary hover:underline" onClick={() => accept(r.id)}>
-                              Accept
+                              {t('Accept')}
                             </button>
                           )}
                         </td>

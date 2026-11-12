@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Modal } from '@/components/ui/Modal';
+import { useEffect, useMemo, useState } from 'react';
+import { Modal, ModalCancelButton } from '@/components/ui/Modal';
+import { useIsDirty } from '@/hooks/useUnsavedChanges';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -11,6 +12,7 @@ import { ApiError } from '@/types/api';
 import { testCatalogApi } from '@/features/catalog/api';
 import { qcApi } from './api';
 import type { QcMaterial } from './types';
+import { useT } from '@/i18n';
 
 const LEVELS = ['LEVEL_1', 'LEVEL_2', 'LEVEL_3', 'LOW', 'NORMAL', 'HIGH'];
 
@@ -32,6 +34,7 @@ export function QcMaterialModal({
   material: QcMaterial | null;
   onSaved: () => void;
 }) {
+  const t = useT();
   const toast = useToast();
   const tests = useQuery(() => testCatalogApi.list({ activeOnly: true, size: 500 }), [open]);
   const [name, setName] = useState('');
@@ -50,36 +53,52 @@ export function QcMaterialModal({
     [testId],
   );
 
+  /** What the form starts as — the prefill source and the yardstick for "has this been edited?". */
+  const initial = useMemo(
+    () =>
+      material
+        ? {
+            name: material.name,
+            manufacturer: material.manufacturer ?? '',
+            lot: material.lotNumber ?? '',
+            level: material.level as string,
+            testId: String(material.testId),
+            expiry: material.expiryDate ?? '',
+            active: material.active,
+            rows: material.targets.map((t) => ({
+              parameterId: t.parameterId,
+              parameterName: t.parameterName,
+              targetMean: String(t.targetMean),
+              targetSd: String(t.targetSd),
+            })),
+          }
+        : {
+            name: '',
+            manufacturer: '',
+            lot: '',
+            level: 'LEVEL_1',
+            testId: '',
+            expiry: '',
+            active: true,
+            rows: [] as TargetRow[],
+          },
+    [material],
+  );
+
   useEffect(() => {
     if (!open) return;
-    if (material) {
-      setName(material.name);
-      setManufacturer(material.manufacturer ?? '');
-      setLot(material.lotNumber ?? '');
-      setLevel(material.level);
-      setTestId(String(material.testId));
-      setExpiry(material.expiryDate ?? '');
-      setActive(material.active);
-      setRows(
-        material.targets.map((t) => ({
-          parameterId: t.parameterId,
-          parameterName: t.parameterName,
-          targetMean: String(t.targetMean),
-          targetSd: String(t.targetSd),
-        })),
-      );
-    } else {
-      setName('');
-      setManufacturer('');
-      setLot('');
-      setLevel('LEVEL_1');
-      setTestId('');
-      setExpiry('');
-      setActive(true);
-      setRows([]);
-    }
+    setName(initial.name);
+    setManufacturer(initial.manufacturer);
+    setLot(initial.lot);
+    setLevel(initial.level);
+    setTestId(initial.testId);
+    setExpiry(initial.expiry);
+    setActive(initial.active);
+    setRows(initial.rows);
     setError(null);
-  }, [open, material]);
+  }, [open, initial]);
+
+  const isDirty = useIsDirty({ name, manufacturer, lot, level, testId, expiry, active, rows }, initial);
 
   // when the test changes (new material), seed target rows from its numeric params
   useEffect(() => {
@@ -113,11 +132,11 @@ export function QcMaterialModal({
       };
       if (material) await qcApi.updateMaterial(material.id, body);
       else await qcApi.createMaterial(body);
-      toast.success('QC material saved');
+      toast.success(t('QC material saved'));
       onSaved();
       onClose();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Unable to save');
+      setError(e instanceof ApiError ? e.message : t('Unable to save'));
     } finally {
       setBusy(false);
     }
@@ -127,15 +146,14 @@ export function QcMaterialModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={material ? `Edit ${material.name}` : 'New QC material'}
+      title={material ? t('Edit {name}', { name: material.name }) : t('New QC material')}
       size="lg"
+      confirmClose={isDirty && !busy}
       footer={
         <>
-          <Button variant="secondary" type="button" onClick={onClose}>
-            Cancel
-          </Button>
+          <ModalCancelButton />
           <Button type="button" loading={busy} disabled={!name.trim() || !testId} onClick={save}>
-            Save
+            {t('Save')}
           </Button>
         </>
       }
@@ -143,11 +161,11 @@ export function QcMaterialModal({
       <div className="space-y-3">
         {error && <Alert tone="danger">{error}</Alert>}
         <div className="grid gap-3 sm:grid-cols-2">
-          <Input label="Material name" value={name} onChange={(e) => setName(e.target.value)} />
+          <Input label={t('Material name')} value={name} onChange={(e) => setName(e.target.value)} />
           <Select
-            label="Test"
+            label={t('Test')}
             options={[
-              { value: '', label: 'Select…' },
+              { value: '', label: t('Select…') },
               ...(tests.data?.content ?? [])
                 .filter((t) => t.type === 'ANALYTE')
                 .map((t) => ({ value: String(t.id), label: `${t.code} · ${t.name}` })),
@@ -156,24 +174,24 @@ export function QcMaterialModal({
             disabled={!!material}
             onChange={(e) => setTestId(e.target.value)}
           />
-          <Input label="Manufacturer" value={manufacturer} onChange={(e) => setManufacturer(e.target.value)} />
-          <Input label="Lot number" value={lot} onChange={(e) => setLot(e.target.value)} />
-          <Select label="Level" options={LEVELS.map((l) => ({ value: l, label: l.replace('_', ' ') }))} value={level} onChange={(e) => setLevel(e.target.value)} />
-          <Input label="Expiry" type="date" value={expiry} onChange={(e) => setExpiry(e.target.value)} />
+          <Input label={t('Manufacturer')} value={manufacturer} onChange={(e) => setManufacturer(e.target.value)} />
+          <Input label={t('Lot number')} value={lot} onChange={(e) => setLot(e.target.value)} />
+          <Select label={t('Level')} options={LEVELS.map((l) => ({ value: l, label: l.replace('_', ' ') }))} value={level} onChange={(e) => setLevel(e.target.value)} />
+          <Input label={t('Expiry')} type="date" value={expiry} onChange={(e) => setExpiry(e.target.value)} />
         </div>
-        <Checkbox label="Active" checked={active} onChange={(e) => setActive(e.target.checked)} />
+        <Checkbox label={t('Active')} checked={active} onChange={(e) => setActive(e.target.checked)} />
 
         <div>
-          <p className="mb-1 text-sm font-semibold text-foreground">Assigned targets</p>
+          <p className="mb-1 text-sm font-semibold text-foreground">{t('Assigned targets')}</p>
           {rows.length === 0 ? (
-            <p className="text-sm text-muted">Select a test to load its numeric parameters.</p>
+            <p className="text-sm text-muted">{t('Select a test to load its numeric parameters.')}</p>
           ) : (
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase text-muted">
                 <tr>
-                  <th className="py-1">Parameter</th>
-                  <th className="py-1">Mean</th>
-                  <th className="py-1">SD</th>
+                  <th className="py-1">{t('Parameter')}</th>
+                  <th className="py-1">{t('Mean')}</th>
+                  <th className="py-1">{t('SD')}</th>
                 </tr>
               </thead>
               <tbody>

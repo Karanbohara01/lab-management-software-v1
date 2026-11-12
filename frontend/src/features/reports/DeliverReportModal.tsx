@@ -7,6 +7,7 @@ import { Alert } from '@/components/ui/Alert';
 import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
 import { reportsApi } from './api';
+import { useT, useTRich, tOpts } from '@/i18n';
 
 const METHODS = [
   { value: 'SMS', label: 'SMS' },
@@ -30,23 +31,26 @@ export function DeliverReportModal({
   reportId: number;
   onDone: () => void;
 }) {
+  const t = useT();
+  const tRich = useTRich();
   const toast = useToast();
   const [method, setMethod] = useState('SMS');
   const [recipient, setRecipient] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isMessaging = MESSAGING_METHODS.has(method);
+  const methodLabel = method === 'SMS' ? t('SMS') : t('WhatsApp');
 
   const submit = async () => {
     setBusy(true);
     setError(null);
     try {
       await reportsApi.deliver(reportId, method, recipient || undefined);
-      toast.success(isMessaging ? `Sent via ${method === 'SMS' ? 'SMS' : 'WhatsApp'}` : 'Delivery recorded');
+      toast.success(isMessaging ? t('Sent via {method}', { method: methodLabel }) : t('Delivery recorded'));
       onDone();
       onClose();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Unable to record delivery');
+      setError(err instanceof ApiError ? err.message : t('Unable to record delivery'));
     } finally {
       setBusy(false);
     }
@@ -56,14 +60,14 @@ export function DeliverReportModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Deliver report"
+      title={t('Deliver report')}
       footer={
         <>
           <Button variant="secondary" type="button" onClick={onClose} disabled={busy}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button onClick={submit} loading={busy}>
-            {isMessaging ? `Send via ${method === 'SMS' ? 'SMS' : 'WhatsApp'}` : 'Record delivery'}
+            {isMessaging ? t('Send via {method}', { method: methodLabel }) : t('Record delivery')}
           </Button>
         </>
       }
@@ -71,8 +75,8 @@ export function DeliverReportModal({
       <div className="space-y-4">
         {error && <Alert tone="danger">{error}</Alert>}
         <Select
-          label="Method"
-          options={METHODS}
+          label={t('Method')}
+          options={tOpts(METHODS)}
           value={method}
           onChange={(e) => {
             setMethod(e.target.value);
@@ -80,18 +84,20 @@ export function DeliverReportModal({
           }}
         />
         <Input
-          label={isMessaging ? 'Phone number' : 'Recipient (optional)'}
-          placeholder={isMessaging ? 'Leave blank to use the phone on file' : 'e.g. email address, courier ref'}
+          label={isMessaging ? t('Phone number') : t('Recipient (optional)')}
+          placeholder={isMessaging ? t('Leave blank to use the phone on file') : t('e.g. email address, courier ref')}
           value={recipient}
           onChange={(e) => setRecipient(e.target.value)}
         />
         {isMessaging && (
           <p className="text-xs text-muted">
-            Sends a message with a link to this signed report, which the patient (or anyone with
-            the link) can verify at <code className="font-mono">/verify/&lt;token&gt;</code>.
+            {tRich(
+              'Sends a message with a link to this signed report, which the patient (or anyone with the link) can verify at {code}.',
+              { code: <code className="font-mono">/verify/&lt;token&gt;</code> },
+            )}{' '}
             {method === 'SMS'
-              ? ' Requires an SMS gateway to be configured on the server.'
-              : ' Requires a WhatsApp Business API connection to be configured on the server.'}
+              ? t('Requires an SMS gateway to be configured on the server.')
+              : t('Requires a WhatsApp Business API connection to be configured on the server.')}
           </p>
         )}
       </div>

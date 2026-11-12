@@ -8,6 +8,7 @@ import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { useToast } from '@/components/ui/toast';
 import { ApiError } from '@/types/api';
+import { useT } from '@/i18n';
 import { platformBillingApi } from './api';
 
 /**
@@ -16,6 +17,7 @@ import { platformBillingApi } from './api';
  * are entirely separate and only affect that clinic's own patient billing.
  */
 export function PlatformIrdCredentialsCard({ onSaved }: { onSaved?: () => void }) {
+  const t = useT();
   const toast = useToast();
   const { data, loading, error, refetch } = useQuery(() => platformBillingApi.getCredentials(), []);
 
@@ -49,11 +51,11 @@ export function PlatformIrdCredentialsCard({ onSaved }: { onSaved?: () => void }
         password: password || undefined,
       });
       setPassword('');
-      toast.success('IRD credentials saved');
+      toast.success(t('IRD credentials saved'));
       refetch();
       onSaved?.();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to save');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to save'));
     } finally {
       setSaving(false);
     }
@@ -62,30 +64,32 @@ export function PlatformIrdCredentialsCard({ onSaved }: { onSaved?: () => void }
   return (
     <Card>
       <CardHeader
-        title="This deployment's IRD / CBMS credentials"
-        description="The shared taxpayer login used to file subscription invoices (what this deployment charges each clinic) with IRD — separate from any clinic's own patient-billing credentials."
+        title={t("This deployment's IRD / CBMS credentials")}
+        description={t(
+          "The shared taxpayer login used to file subscription invoices (what this deployment charges each clinic) with IRD — separate from any clinic's own patient-billing credentials.",
+        )}
       />
       <CardBody className="space-y-4">
         <div className="flex items-center justify-between">
-          <Checkbox label="Enable IRD e-billing for subscription invoices" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+          <Checkbox label={t('Enable IRD e-billing for subscription invoices')} checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
           <Badge tone={data.passwordConfigured ? 'success' : 'neutral'}>
-            {data.passwordConfigured ? 'Configured' : 'Not configured'}
+            {data.passwordConfigured ? t('Configured') : t('Not configured')}
           </Badge>
         </div>
         {enabled && (
           <div className="grid gap-3 sm:grid-cols-2">
-            <Input label="IRD username" value={username} onChange={(e) => setUsername(e.target.value)} />
-            <Input label="Seller PAN" value={sellerPan} onChange={(e) => setSellerPan(e.target.value)} />
+            <Input label={t('IRD username')} value={username} onChange={(e) => setUsername(e.target.value)} />
+            <Input label={t('Seller PAN')} value={sellerPan} onChange={(e) => setSellerPan(e.target.value)} />
             <Input
-              label="IRD password"
+              label={t('IRD password')}
               type="password"
-              placeholder={data.passwordConfigured ? '•••••••• (leave blank to keep)' : ''}
+              placeholder={data.passwordConfigured ? t('•••••••• (leave blank to keep)') : ''}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
             <Input
-              label="Seller display name"
-              placeholder="Shown on records/print only — not sent to CBMS"
+              label={t('Seller display name')}
+              placeholder={t('Shown on records/print only — not sent to CBMS')}
               value={sellerName}
               onChange={(e) => setSellerName(e.target.value)}
             />
@@ -93,7 +97,7 @@ export function PlatformIrdCredentialsCard({ onSaved }: { onSaved?: () => void }
         )}
         <div className="flex justify-end">
           <Button onClick={save} loading={saving}>
-            Save IRD settings
+            {t('Save IRD settings')}
           </Button>
         </div>
       </CardBody>

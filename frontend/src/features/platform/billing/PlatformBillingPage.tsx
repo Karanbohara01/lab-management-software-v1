@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { FileText, CheckCircle2, AlertTriangle, Settings2, Download, X } from 'lucide-react';
-import { BackLink } from '@/components/BackLink';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -13,9 +11,12 @@ import { Pagination } from '@/components/ui/Pagination';
 import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { StatTileRow, type StatTileData } from '@/features/dashboard/components/StatTile';
 import { useQuery } from '@/hooks/useQuery';
+import { useListParams } from '@/hooks/useListParams';
+import { useBackTarget } from '@/lib/navigation';
 import { useToast } from '@/components/ui/toast';
 import { formatMoney } from '@/lib/money';
 import { exportCsv } from '@/lib/exportData';
+import { useT, getLocale, LOCALE_TAG } from '@/i18n';
 import { CREDIT_NOTE_STATUS_LABEL, CREDIT_NOTE_STATUS_TONE, IRD_STATUS_LABEL, IRD_STATUS_TONE, type IrdStatus } from '@/features/ird/types';
 import { platformBillingApi } from './api';
 import { IrdSubmissionModal } from './IrdSubmissionModal';
@@ -25,10 +26,12 @@ import { SUBSCRIPTION_INVOICE_STATUS_LABEL, SUBSCRIPTION_INVOICE_STATUS_TONE, ty
 const EXPORT_LIMIT = 10_000;
 
 const PAGE_SIZE = 20;
+/** Lives in the URL, so the filters and page survive leaving the page and coming back. */
+const PARAMS = { irdStatus: '', orgId: '', page: 1 };
 const IRD_STATUSES: IrdStatus[] = ['NOT_SUBMITTED', 'PENDING', 'SUBMITTED', 'ACCEPTED', 'FAILED', 'DUPLICATE', 'CANCELLED'];
 
 function dt(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' });
+  return new Date(iso).toLocaleDateString(LOCALE_TAG[getLocale()], { dateStyle: 'medium' });
 }
 
 /**
@@ -37,26 +40,22 @@ function dt(iso: string): string {
  * screen, which shows only that clinic's own invoices without any IRD detail.
  */
 export function PlatformBillingPage() {
+  const t = useT();
   const toast = useToast();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const orgId = searchParams.get('orgId');
-  const orgIdNum = orgId ? Number(orgId) : undefined;
-  const [irdStatus, setIrdStatus] = useState<IrdStatus | ''>('');
-  const [page, setPage] = useState(0);
+  const { back } = useBackTarget();
+  const { params, set } = useListParams(PARAMS);
+  const irdStatus = params.irdStatus as IrdStatus | '';
+  const orgIdNum = params.orgId ? Number(params.orgId) : undefined;
+  const page = params.page - 1;
   const [openInvoiceId, setOpenInvoiceId] = useState<number | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
 
-  const clearOrgFilter = () => {
-    const next = new URLSearchParams(searchParams);
-    next.delete('orgId');
-    setSearchParams(next);
-  };
-
   const configQ = useQuery(() => platformBillingApi.config(), []);
   const { data, loading, error, refetch } = useQuery(
     () => platformBillingApi.list({ irdStatus: irdStatus || undefined, organizationId: orgIdNum, page, size: PAGE_SIZE }),
-    [irdStatus, orgIdNum, page],
+    [params.irdStatus, params.orgId, params.page],
+    { cacheKey: `platform-billing:${params.irdStatus}:${params.orgId}:${params.page}` },
   );
 
   const exportAll = async () => {
@@ -78,22 +77,22 @@ export function PlatformBillingPage() {
           creditNoteStatus: i.creditNoteStatus,
         })),
         [
-          { key: 'invoiceNumber', header: 'Invoice' },
-          { key: 'clinic', header: 'Clinic' },
-          { key: 'plan', header: 'Plan' },
-          { key: 'taxableAmount', header: 'Taxable amount' },
-          { key: 'vat', header: 'VAT' },
-          { key: 'total', header: 'Total' },
-          { key: 'dueAt', header: 'Due' },
-          { key: 'paymentStatus', header: 'Payment status' },
-          { key: 'paidAt', header: 'Paid at' },
-          { key: 'irdStatus', header: 'IRD status' },
-          { key: 'creditNoteStatus', header: 'Credit note status' },
+          { key: 'invoiceNumber', header: t('Invoice') },
+          { key: 'clinic', header: t('Clinic') },
+          { key: 'plan', header: t('Plan') },
+          { key: 'taxableAmount', header: t('Taxable amount') },
+          { key: 'vat', header: t('VAT') },
+          { key: 'total', header: t('Total') },
+          { key: 'dueAt', header: t('Due') },
+          { key: 'paymentStatus', header: t('Payment status') },
+          { key: 'paidAt', header: t('Paid at') },
+          { key: 'irdStatus', header: t('IRD status') },
+          { key: 'creditNoteStatus', header: t('Credit note status') },
         ],
         `subscription-invoices-${new Date().toISOString().slice(0, 10)}.csv`,
       );
     } catch {
-      toast.error('Export failed');
+      toast.error(t('Export failed'));
     } finally {
       setExporting(false);
     }
@@ -101,15 +100,15 @@ export function PlatformBillingPage() {
 
   const stats: StatTileData[] = data
     ? [
-        { label: 'Subscription invoices', value: data.totalElements, icon: FileText },
+        { label: t('Subscription invoices'), value: data.totalElements, icon: FileText },
         {
-          label: 'Needs filing',
+          label: t('Needs filing'),
           value: data.content.filter((i) => i.irdStatus === 'NOT_SUBMITTED' || i.irdStatus === 'FAILED').length,
           icon: AlertTriangle,
           tone: data.content.some((i) => i.irdStatus === 'FAILED') ? 'warning' : 'neutral',
         },
         {
-          label: 'Filed with IRD',
+          label: t('Filed with IRD'),
           value: data.content.filter((i) => i.irdStatus === 'ACCEPTED' || i.irdStatus === 'DUPLICATE' || i.irdStatus === 'SUBMITTED').length,
           icon: CheckCircle2,
         },
@@ -117,24 +116,24 @@ export function PlatformBillingPage() {
     : [];
 
   const columns: Column<PlatformInvoiceListItem>[] = [
-    { key: 'invoiceNumber', header: 'Invoice', cell: (i) => <span className="font-mono text-xs">{i.invoiceNumber}</span> },
-    { key: 'org', header: 'Clinic', cell: (i) => <span className="font-medium">{i.organizationName ?? '—'}</span> },
-    { key: 'plan', header: 'Plan', cell: (i) => i.planName, hideOnMobile: true },
-    { key: 'total', header: 'Total', cell: (i) => formatMoney(i.totalAmount), className: 'text-right' },
-    { key: 'due', header: 'Due', cell: (i) => dt(i.dueAt), hideOnMobile: true },
+    { key: 'invoiceNumber', header: t('Invoice'), cell: (i) => <span className="font-mono text-xs">{i.invoiceNumber}</span> },
+    { key: 'org', header: t('Clinic'), cell: (i) => <span className="font-medium">{i.organizationName ?? '—'}</span> },
+    { key: 'plan', header: t('Plan'), cell: (i) => i.planName, hideOnMobile: true },
+    { key: 'total', header: t('Total'), cell: (i) => formatMoney(i.totalAmount), className: 'text-right' },
+    { key: 'due', header: t('Due'), cell: (i) => dt(i.dueAt), hideOnMobile: true },
     {
       key: 'status',
-      header: 'Payment',
-      cell: (i) => <Badge tone={SUBSCRIPTION_INVOICE_STATUS_TONE[i.status]}>{SUBSCRIPTION_INVOICE_STATUS_LABEL[i.status]}</Badge>,
+      header: t('Payment'),
+      cell: (i) => <Badge tone={SUBSCRIPTION_INVOICE_STATUS_TONE[i.status]}>{t(SUBSCRIPTION_INVOICE_STATUS_LABEL[i.status])}</Badge>,
     },
     {
       key: 'ird',
-      header: 'IRD e-billing',
+      header: t('IRD e-billing'),
       cell: (i) => (
         <div className="flex flex-wrap items-center gap-1.5">
-          <Badge tone={IRD_STATUS_TONE[i.irdStatus]}>{IRD_STATUS_LABEL[i.irdStatus]}</Badge>
+          <Badge tone={IRD_STATUS_TONE[i.irdStatus]}>{t(IRD_STATUS_LABEL[i.irdStatus])}</Badge>
           {i.creditNoteStatus !== 'NOT_NEEDED' && (
-            <Badge tone={CREDIT_NOTE_STATUS_TONE[i.creditNoteStatus]}>CN: {CREDIT_NOTE_STATUS_LABEL[i.creditNoteStatus]}</Badge>
+            <Badge tone={CREDIT_NOTE_STATUS_TONE[i.creditNoteStatus]}>{t('CN: {status}', { status: t(CREDIT_NOTE_STATUS_LABEL[i.creditNoteStatus]) })}</Badge>
           )}
         </div>
       ),
@@ -143,23 +142,23 @@ export function PlatformBillingPage() {
 
   return (
     <>
-      <BackLink to="/app/platform">Back to platform</BackLink>
       <PageHeader
-        title="Subscription billing"
+        back={back}
+        title={t('Subscription billing')}
         description={
           orgIdNum
-            ? `Invoices for ${data?.content[0]?.organizationName ?? 'this clinic'} — its IRD/CBMS e-billing status.`
-            : "What this deployment charges each clinic, and its IRD/CBMS e-billing status — distinct from a clinic's own patient billing."
+            ? t('Invoices for {clinic} — its IRD/CBMS e-billing status.', { clinic: data?.content[0]?.organizationName ?? t('this clinic') })
+            : t("What this deployment charges each clinic, and its IRD/CBMS e-billing status — distinct from a clinic's own patient billing.")
         }
         actions={
           <div className="flex gap-2">
             <Button variant="secondary" loading={exporting} onClick={exportAll}>
               <Download className="h-4 w-4" aria-hidden />
-              Export CSV
+              {t('Export CSV')}
             </Button>
             <Button variant="secondary" onClick={() => setSettingsOpen((v) => !v)}>
               <Settings2 className="h-4 w-4" aria-hidden />
-              IRD settings
+              {t('IRD settings')}
             </Button>
           </div>
         }
@@ -183,21 +182,18 @@ export function PlatformBillingPage() {
         <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
           <div className="sm:w-56">
             <Select
-              options={[{ value: '', label: 'All IRD statuses' }, ...IRD_STATUSES.map((s) => ({ value: s, label: IRD_STATUS_LABEL[s] }))]}
+              options={[{ value: '', label: t('All IRD statuses') }, ...IRD_STATUSES.map((s) => ({ value: s, label: t(IRD_STATUS_LABEL[s]) }))]}
               value={irdStatus}
-              onChange={(e) => {
-                setIrdStatus(e.target.value as IrdStatus | '');
-                setPage(0);
-              }}
+              onChange={(e) => set({ irdStatus: e.target.value })}
             />
           </div>
           {orgIdNum && (
             <button
               type="button"
-              onClick={clearOrgFilter}
+              onClick={() => set({ orgId: '' })}
               className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/15"
             >
-              Filtered to {data?.content[0]?.organizationName ?? 'this clinic'}
+              {t('Filtered to {clinic}', { clinic: data?.content[0]?.organizationName ?? t('this clinic') })}
               <X className="h-3 w-3" aria-hidden />
             </button>
           )}
@@ -209,8 +205,8 @@ export function PlatformBillingPage() {
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.content.length === 0 ? (
           <EmptyState
-            title="No subscription invoices"
-            message={irdStatus ? 'Adjust the filter.' : 'Invoices are issued automatically each billing period.'}
+            title={t('No subscription invoices')}
+            message={irdStatus ? t('Adjust the filter.') : t('Invoices are issued automatically each billing period.')}
           />
         ) : (
           data && (
@@ -221,7 +217,7 @@ export function PlatformBillingPage() {
                 rowKey={(i) => i.id}
                 onRowClick={(i) => setOpenInvoiceId(i.id)}
               />
-              <Pagination page={data.page} totalPages={data.totalPages} totalElements={data.totalElements} onPageChange={setPage} />
+              <Pagination page={data.page} totalPages={data.totalPages} totalElements={data.totalElements} onPageChange={(p) => set({ page: p + 1 })} />
             </>
           )
         )}

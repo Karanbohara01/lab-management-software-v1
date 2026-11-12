@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { SectionHeader } from '../SectionHeader';
+import { useNavigateFrom } from '@/lib/navigation';
+import { useT } from '@/i18n';
 
 /** Shared shell for a role's worklist: title, count badge, loading/error/empty states, "view all" link. */
 export function QueueShell({
@@ -30,16 +31,17 @@ export function QueueShell({
   emptyMessage?: string;
   children: ReactNode;
 }) {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
+  const t = useT();
   return (
     <Card className="min-w-0 p-5">
       <SectionHeader
-        title={count != null ? `${title} (${count})` : title}
+        title={count != null ? `${t(title)} (${count})` : title}
         description={description}
         action={
           viewAllTo ? (
             <Button size="sm" variant="ghost" onClick={() => navigate(viewAllTo)}>
-              View all
+              {t('View all')}
             </Button>
           ) : undefined
         }
@@ -51,7 +53,7 @@ export function QueueShell({
       ) : isEmpty ? (
         <div className="flex items-center gap-2 text-sm text-success">
           <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
-          {emptyMessage}
+          {t(emptyMessage)}
         </div>
       ) : (
         children

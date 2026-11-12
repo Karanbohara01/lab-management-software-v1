@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Minus, Plus } from 'lucide-react';
 import { Section, SectionHeading } from '../components/primitives';
+import { buttonClasses } from '../components/buttonStyles';
 import { Reveal } from '../components/Reveal';
 import { FAQS } from '../data';
 
@@ -54,7 +55,7 @@ export function Faq() {
                         aria-controls={`faq-panel-${i}`}
                         id={`faq-trigger-${i}`}
                         onClick={() => setOpen(isOpen ? null : i)}
-                        className="flex w-full items-center justify-between gap-4 rounded-2xl px-6 py-5 text-left text-lg font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="flex w-full items-center justify-between gap-4 rounded-2xl px-6 py-5 text-left text-body-lg font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         {faq.q}
                         <span
@@ -70,7 +71,7 @@ export function Faq() {
                       role="region"
                       aria-labelledby={`faq-trigger-${i}`}
                       hidden={!isOpen}
-                      className="px-6 pb-5 text-sm leading-relaxed text-muted"
+                      className="px-6 pb-5 text-pretty text-body-sm text-muted"
                     >
                       {faq.a}
                     </div>
@@ -85,7 +86,7 @@ export function Faq() {
                 type="button"
                 aria-expanded={expanded}
                 onClick={toggleExpanded}
-                className="mt-6 inline-flex items-center rounded-full border border-foreground bg-surface/60 px-6 py-2.5 text-base font-semibold text-foreground transition-colors hover:bg-foreground hover:text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className={buttonClasses({ variant: 'secondary', size: 'lg', className: 'mt-6' })}
               >
                 {expanded ? 'Show Less' : `Load More (${hiddenCount})`}
               </button>

@@ -1,4 +1,6 @@
+import { cn } from '@/lib/cn';
 import { MarketingLayout } from '../components/MarketingLayout';
+import { TYPE } from '../components/typography';
 import { PRODUCT_NAME } from '../data';
 import { useSeo } from '../useSeo';
 import { PostGrid } from './PostCard';
@@ -16,11 +18,11 @@ export function BlogIndexPage() {
     <MarketingLayout>
       {/* the navbar is fixed, so the page clears it before its own spacing starts */}
       <div className="mx-auto w-full max-w-page px-4 pb-20 pt-32 sm:px-6 lg:px-8 lg:pt-40">
-        <p className="text-xs font-semibold uppercase tracking-wider text-primary">Blog</p>
-        <h1 className="mt-3 max-w-2xl text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+        <p className={cn(TYPE.label, 'text-primary')}>Blog</p>
+        <h1 className="mt-4 max-w-2xl text-balance text-display-3 text-foreground">
           Guides and updates for laboratory teams.
         </h1>
-        <p className="mt-4 max-w-2xl text-pretty text-base leading-relaxed text-muted sm:text-lg">
+        <p className="mt-5 max-w-2xl text-pretty text-lead text-muted">
           Practical writing on running a modern laboratory — workflow, sample tracking, results, billing and e-Billing.
         </p>
         <div className="mt-12">

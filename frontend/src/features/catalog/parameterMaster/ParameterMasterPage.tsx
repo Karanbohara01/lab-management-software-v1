@@ -8,7 +8,7 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useListParams, useSearchInput } from '@/hooks/useListParams';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { useToast } from '@/components/ui/toast';
@@ -16,6 +16,10 @@ import { ApiError } from '@/types/api';
 import { parameterMasterApi } from './api';
 import { ParameterMasterFormModal } from './ParameterMasterFormModal';
 import { PARAMETER_DATA_TYPE_LABEL, type ParameterMaster } from './types';
+import { useT } from '@/i18n';
+
+/** Lives in the URL, so returning to the list lands on the same search. */
+const PARAMS = { q: '' };
 
 /**
  * This clinic's own reusable analyte dictionary — pick a parameter here once (unit, typical adult
@@ -24,43 +28,45 @@ import { PARAMETER_DATA_TYPE_LABEL, type ParameterMaster } from './types';
  * that already used it — each test owns its own copy from the moment it's added.
  */
 export function ParameterMasterPage() {
+  const t = useT();
   const toast = useToast();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.TEST_CATALOG_WRITE);
-  const [query, setQuery] = useState('');
-  const debouncedQuery = useDebouncedValue(query, 300);
+  const { params, set } = useListParams(PARAMS);
+  const [query, setQuery] = useSearchInput(params.q, (q) => set({ q }, { replace: true }));
   const [editing, setEditing] = useState<ParameterMaster | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
   const { data, loading, error, refetch } = useQuery(
-    () => parameterMasterApi.list({ query: debouncedQuery, activeOnly: false }),
-    [debouncedQuery],
+    () => parameterMasterApi.list({ query: params.q, activeOnly: false }),
+    [params.q],
+    { cacheKey: `parameter-master:${params.q}` },
   );
 
   const toggleActive = async (p: ParameterMaster) => {
     try {
       await (p.active ? parameterMasterApi.deactivate(p.id) : parameterMasterApi.activate(p.id));
-      toast.success(p.active ? 'Parameter deactivated' : 'Parameter activated');
+      toast.success(p.active ? t('Parameter deactivated') : t('Parameter activated'));
       refetch();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to update parameter');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to update parameter'));
     }
   };
 
   const columns: Column<ParameterMaster>[] = [
-    { key: 'name', header: 'Name', cell: (p) => <span className="font-medium">{p.name}</span> },
-    { key: 'code', header: 'Code', cell: (p) => <span className="font-mono text-xs">{p.code ?? '—'}</span>, hideOnMobile: true },
-    { key: 'unit', header: 'Unit', cell: (p) => p.unit ?? '—', hideOnMobile: true },
-    { key: 'type', header: 'Type', cell: (p) => PARAMETER_DATA_TYPE_LABEL[p.dataType] },
+    { key: 'name', header: t('Name'), cell: (p) => <span className="font-medium">{p.name}</span> },
+    { key: 'code', header: t('Code'), cell: (p) => <span className="font-mono text-xs">{p.code ?? '—'}</span>, hideOnMobile: true },
+    { key: 'unit', header: t('Unit'), cell: (p) => p.unit ?? '—', hideOnMobile: true },
+    { key: 'type', header: t('Type'), cell: (p) => t(PARAMETER_DATA_TYPE_LABEL[p.dataType]) },
     {
       key: 'range',
-      header: 'Typical range',
+      header: t('Typical range'),
       cell: (p) => (p.lowValue != null || p.highValue != null ? `${p.lowValue ?? '…'} – ${p.highValue ?? '…'}` : '—'),
       hideOnMobile: true,
     },
     {
       key: 'active',
-      header: 'Status',
+      header: t('Status'),
       cell: (p) => (
         <button
           type="button"
@@ -71,7 +77,7 @@ export function ParameterMasterPage() {
           }}
           className="disabled:cursor-default"
         >
-          <Badge tone={p.active ? 'success' : 'neutral'}>{p.active ? 'Active' : 'Inactive'}</Badge>
+          <Badge tone={p.active ? 'success' : 'neutral'}>{t(p.active ? 'Active' : 'Inactive')}</Badge>
         </button>
       ),
     },
@@ -80,8 +86,8 @@ export function ParameterMasterPage() {
   return (
     <>
       <PageHeader
-        title="Parameter dictionary"
-        description="Reusable analyte defaults offered when adding a parameter to a test."
+        title={t('Parameter dictionary')}
+        description={t('Reusable analyte defaults offered when adding a parameter to a test.')}
         actions={
           canWrite && (
             <Button
@@ -91,7 +97,7 @@ export function ParameterMasterPage() {
               }}
             >
               <Plus className="h-4 w-4" aria-hidden />
-              New parameter
+              {t('New parameter')}
             </Button>
           )
         }
@@ -99,7 +105,7 @@ export function ParameterMasterPage() {
 
       <Card>
         <div className="border-b border-border p-4">
-          <SearchInput value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search parameters…" />
+          <SearchInput value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Search parameters…')} />
         </div>
         {loading && !data ? (
           <TableSkeleton columns={columns.length} />
@@ -107,8 +113,8 @@ export function ParameterMasterPage() {
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.content.length === 0 ? (
           <EmptyState
-            title="No parameters yet"
-            message="Add your first analyte to start building your reusable parameter dictionary."
+            title={t('No parameters yet')}
+            message={t('Add your first analyte to start building your reusable parameter dictionary.')}
           />
         ) : (
           data && (

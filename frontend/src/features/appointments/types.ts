@@ -1,5 +1,14 @@
 export type AppointmentStatus = 'SCHEDULED' | 'CHECKED_IN' | 'CONVERTED' | 'CANCELLED' | 'NO_SHOW';
 
+/** A test the visit is expected to need. Deliberately carries no price — see AppointmentEstimate. */
+export interface AppointmentTestLine {
+  testId: number;
+  testCode: string;
+  testName: string;
+  departmentName: string;
+  quantity: number;
+}
+
 export interface AppointmentListItem {
   id: number;
   appointmentNumber: string;
@@ -12,6 +21,7 @@ export interface AppointmentListItem {
   referringDoctorName: string | null;
   status: AppointmentStatus;
   scheduledAt: string;
+  testCount: number;
 }
 
 export interface AppointmentDetail {
@@ -33,6 +43,7 @@ export interface AppointmentDetail {
   convertedAt: string | null;
   convertedOrderId: number | null;
   convertedOrderNumber: string | null;
+  items: AppointmentTestLine[];
 }
 
 export interface SaveAppointmentPayload {
@@ -41,6 +52,7 @@ export interface SaveAppointmentPayload {
   branchId?: number | null;
   scheduledAt: string;
   reason?: string;
+  items?: { testId: number; quantity: number }[];
 }
 
 export const APPOINTMENT_STATUS_TONE: Record<AppointmentStatus, 'neutral' | 'info' | 'success' | 'danger' | 'warning'> = {

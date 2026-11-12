@@ -19,6 +19,7 @@ import {
   Truck,
   BarChart3,
   ScrollText,
+  TrendingUp,
   Activity,
   HelpCircle,
   ShieldCheck,
@@ -84,6 +85,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     heading: 'Finance',
     items: [
+      { label: 'Revenue', to: '/app/revenue', icon: TrendingUp, anyPermission: [PERMISSIONS.REPORTING_READ] },
       { label: 'Invoices', to: '/app/invoices', icon: Receipt, anyPermission: [PERMISSIONS.INVOICE_READ] },
       { label: 'Refunds', to: '/app/refunds', icon: Undo2, anyPermission: [PERMISSIONS.PAYMENT_READ] },
       { label: 'Sales book', to: '/app/sales-book', icon: BookOpen, anyPermission: [PERMISSIONS.INVOICE_READ] },

@@ -1,5 +1,3 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
@@ -10,44 +8,54 @@ import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
 import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useListParams, useSearchInput } from '@/hooks/useListParams';
+import { useNavigateFrom } from '@/lib/navigation';
 import { formatDate } from '@/features/patients/format';
 import { reportsApi } from './api';
 import { REPORT_STATUS_TONE, type ReportListItem, type ReportStatus } from './types';
+import { useT, tOpts } from '@/i18n';
 
 const PAGE_SIZE = 20;
+/** Lives in the URL, so returning from a report lands on the same filter, search and page. */
+const PARAMS = { status: '', q: '', page: 1 };
 
 export function ReportsPage() {
-  const navigate = useNavigate();
-  const [status, setStatus] = useState<'' | ReportStatus>('');
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(0);
+  const t = useT();
+  const navigate = useNavigateFrom();
+  const { params, set } = useListParams(PARAMS);
+  const [search, setSearch] = useSearchInput(params.q, (q) => set({ q }, { replace: true }));
 
-  const debouncedSearch = useDebouncedValue(search, 300);
   const { data, loading, error, refetch } = useQuery(
-    () => reportsApi.list({ status: status || undefined, query: debouncedSearch || undefined, page, size: PAGE_SIZE }),
-    [status, debouncedSearch, page],
+    () =>
+      reportsApi.list({
+        status: (params.status as ReportStatus) || undefined,
+        query: params.q || undefined,
+        page: params.page - 1,
+        size: PAGE_SIZE,
+      }),
+    [params.status, params.q, params.page],
+    { cacheKey: `reports:${params.status}:${params.q}:${params.page}` },
   );
 
   const columns: Column<ReportListItem>[] = [
-    { key: 'no', header: 'Report', cell: (r) => <span className="font-mono text-xs">{r.reportNumber}</span> },
+    { key: 'no', header: t('Report'), cell: (r) => <span className="font-mono text-xs">{r.reportNumber}</span> },
     {
       key: 'patient',
-      header: 'Patient',
+      header: t('Patient'),
       cell: (r) => (
         <span className="flex items-center gap-2">
-          {r.hasCritical && <AlertTriangle className="h-4 w-4 text-critical" aria-label="Critical" />}
+          {r.hasCritical && <AlertTriangle className="h-4 w-4 text-critical" aria-label={t('Critical')} />}
           <span className="font-medium">{r.patientName}</span>
           <span className="font-mono text-xs text-muted">{r.patientMrn}</span>
         </span>
       ),
     },
-    { key: 'order', header: 'Order', cell: (r) => r.orderNumber, hideOnMobile: true },
-    { key: 'tests', header: 'Tests', cell: (r) => r.testCount, hideOnMobile: true },
-    { key: 'date', header: 'Generated', cell: (r) => formatDate(r.generatedAt), hideOnMobile: true },
+    { key: 'order', header: t('Order'), cell: (r) => r.orderNumber, hideOnMobile: true },
+    { key: 'tests', header: t('Tests'), cell: (r) => r.testCount, hideOnMobile: true },
+    { key: 'date', header: t('Generated'), cell: (r) => formatDate(r.generatedAt), hideOnMobile: true },
     {
       key: 'status',
-      header: 'Status',
+      header: t('Status'),
       cell: (r) => (
         <span className="flex items-center gap-1.5">
           <Badge tone={REPORT_STATUS_TONE[r.status]}>{r.status}</Badge>
@@ -59,33 +67,30 @@ export function ReportsPage() {
 
   return (
     <>
-      <PageHeader title="Reports" description="Consolidated laboratory reports generated from approved results." />
+      <PageHeader
+        title={t('Reports')}
+        description={t('Consolidated laboratory reports generated from approved results.')}
+      />
 
       <Card>
         <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row">
           <div className="sm:max-w-xs sm:flex-1">
             <SearchInput
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(0);
-              }}
-              placeholder="Search report no., patient or MRN"
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t('Search report no., patient or MRN')}
             />
           </div>
           <div className="sm:w-48">
             <Select
-              options={[
+              options={tOpts([
                 { value: '', label: 'All statuses' },
                 { value: 'GENERATED', label: 'Generated' },
                 { value: 'RELEASED', label: 'Released' },
                 { value: 'DELIVERED', label: 'Delivered' },
-              ]}
-              value={status}
-              onChange={(e) => {
-                setStatus(e.target.value as '' | ReportStatus);
-                setPage(0);
-              }}
+              ])}
+              value={params.status}
+              onChange={(e) => set({ status: e.target.value })}
             />
           </div>
         </div>
@@ -96,8 +101,8 @@ export function ReportsPage() {
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.content.length === 0 ? (
           <EmptyState
-            title="No reports"
-            message="Generate a report from a lab order once its results are approved."
+            title={t('No reports')}
+            message={t('Generate a report from a lab order once its results are approved.')}
           />
         ) : (
           data && (
@@ -106,13 +111,14 @@ export function ReportsPage() {
                 columns={columns}
                 rows={data.content}
                 rowKey={(r) => r.id}
+                rowHref={(r) => `/app/reports/${r.id}`}
                 onRowClick={(r) => navigate(`/app/reports/${r.id}`)}
               />
               <Pagination
                 page={data.page}
                 totalPages={data.totalPages}
                 totalElements={data.totalElements}
-                onPageChange={setPage}
+                onPageChange={(p) => set({ page: p + 1 })}
               />
             </>
           )

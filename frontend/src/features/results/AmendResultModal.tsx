@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
+import { useT } from '@/i18n';
 import { resultsApi } from './api';
 import type { ResultDetail, ValueInput } from './types';
 
@@ -21,6 +22,7 @@ export function AmendResultModal({
   onDone: () => void;
 }) {
   const toast = useToast();
+  const t = useT();
   const [values, setValues] = useState<Record<number, string>>(() =>
     Object.fromEntries(
       result.values.map((v) => [v.parameterId, v.valueNumeric != null ? String(v.valueNumeric) : (v.valueText ?? '')]),
@@ -32,7 +34,7 @@ export function AmendResultModal({
 
   const submit = async () => {
     if (!reason.trim()) {
-      setError('An amendment reason is required.');
+      setError(t('An amendment reason is required.'));
       return;
     }
     setBusy(true);
@@ -45,11 +47,11 @@ export function AmendResultModal({
           : { parameterId: v.parameterId, valueText: raw || null };
       });
       await resultsApi.amend(result.id, payload, reason.trim());
-      toast.success('Result amended');
+      toast.success(t('Result amended'));
       onDone();
       onClose();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Unable to amend result');
+      setError(err instanceof ApiError ? err.message : t('Unable to amend result'));
     } finally {
       setBusy(false);
     }
@@ -59,16 +61,16 @@ export function AmendResultModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={`Amend approved result · ${result.testCode}`}
-      description="Changes are recorded in the result history with your reason."
+      title={t('Amend approved result · {code}', { code: result.testCode })}
+      description={t('Changes are recorded in the result history with your reason.')}
       size="lg"
       footer={
         <>
           <Button variant="secondary" type="button" onClick={onClose} disabled={busy}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button variant="danger" onClick={submit} loading={busy}>
-            Amend result
+            {t('Amend result')}
           </Button>
         </>
       }
@@ -93,7 +95,7 @@ export function AmendResultModal({
           ))}
         </div>
         <Textarea
-          label="Reason for amendment"
+          label={t('Reason for amendment')}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
         />

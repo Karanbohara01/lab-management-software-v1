@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Ban, PackageCheck, Pencil, Send } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Ban, PackageCheck, Pencil, Send } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -9,17 +9,29 @@ import { Alert } from '@/components/ui/Alert';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
+import { useBackTarget } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
 import { formatDate } from '@/features/patients/format';
+import { useT } from '@/i18n';
 import { purchaseOrdersApi } from './api';
 import { PurchaseOrderBuilderModal, ReceivePurchaseOrderModal } from './PurchaseOrderModals';
-import { PO_STATUS_TONE } from './types';
+import { PO_STATUS_TONE, type PurchaseOrderStatus } from './types';
+
+const PO_STATUS_LABEL: Record<PurchaseOrderStatus, string> = {
+  DRAFT: 'Draft',
+  SUBMITTED: 'Submitted',
+  PARTIALLY_RECEIVED: 'Partially received',
+  RECEIVED: 'Received',
+  CANCELLED: 'Cancelled',
+};
 
 export function PurchaseOrderDetailPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
+  const { back } = useBackTarget();
   const toast = useToast();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.INVENTORY_WRITE);
@@ -31,7 +43,7 @@ export function PurchaseOrderDetailPage() {
 
   const { data: po, loading, error, refetch } = useQuery(() => purchaseOrdersApi.get(Number(id)), [id]);
 
-  if (loading && !po) return <LoadingState label="Loading purchase order…" />;
+  if (loading && !po) return <LoadingState label={t('Loading purchase order…')} />;
   if (error) return <ErrorState message={error} onRetry={refetch} />;
   if (!po) return null;
 
@@ -42,7 +54,7 @@ export function PurchaseOrderDetailPage() {
       toast.success(msg);
       refetch();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Action failed');
+      toast.error(err instanceof ApiError ? err.message : t('Action failed'));
     } finally {
       setBusy(false);
     }
@@ -52,39 +64,35 @@ export function PurchaseOrderDetailPage() {
 
   return (
     <>
-      <Link to="/app/purchase-orders" className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        Purchase orders
-      </Link>
-
       <PageHeader
+        back={back}
         title={po.poNumber}
-        description={`${po.supplierName}${po.expectedDate ? ` · expected ${formatDate(po.expectedDate)}` : ''}`}
+        description={`${po.supplierName}${po.expectedDate ? ` · ${t('expected {date}', { date: formatDate(po.expectedDate) })}` : ''}`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Badge tone={PO_STATUS_TONE[po.status]}>{po.status.replace(/_/g, ' ')}</Badge>
+            <Badge tone={PO_STATUS_TONE[po.status]}>{t(PO_STATUS_LABEL[po.status])}</Badge>
             {canWrite && po.status === 'DRAFT' && (
               <>
                 <Button variant="secondary" onClick={() => setEditOpen(true)}>
                   <Pencil className="h-4 w-4" aria-hidden />
-                  Edit
+                  {t('Edit')}
                 </Button>
-                <Button loading={busy} onClick={() => act(() => purchaseOrdersApi.submit(po.id), 'Purchase order submitted')}>
+                <Button loading={busy} onClick={() => act(() => purchaseOrdersApi.submit(po.id), t('Purchase order submitted'))}>
                   <Send className="h-4 w-4" aria-hidden />
-                  Submit
+                  {t('Submit')}
                 </Button>
               </>
             )}
             {canWrite && canReceive && (
               <Button onClick={() => setReceiveOpen(true)}>
                 <PackageCheck className="h-4 w-4" aria-hidden />
-                Receive
+                {t('Receive')}
               </Button>
             )}
             {canWrite && po.status !== 'RECEIVED' && po.status !== 'CANCELLED' && (
               <Button variant="danger" onClick={() => setCancelOpen(true)}>
                 <Ban className="h-4 w-4" aria-hidden />
-                Cancel
+                {t('Cancel')}
               </Button>
             )}
           </div>
@@ -93,22 +101,22 @@ export function PurchaseOrderDetailPage() {
 
       {po.status === 'CANCELLED' && (
         <div className="mb-4">
-          <Alert tone="danger" title="Cancelled">
+          <Alert tone="danger" title={t('Cancelled')}>
             {po.cancelReason}
           </Alert>
         </div>
       )}
 
       <Card>
-        <CardHeader title="Lines" />
+        <CardHeader title={t('Lines')} />
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
-                <th className="px-5 py-2">Item</th>
-                <th className="px-5 py-2 text-right">Ordered</th>
-                <th className="px-5 py-2 text-right">Received</th>
-                <th className="px-5 py-2 text-right">Est. cost</th>
+              <tr className="border-b border-border text-left text-label uppercase text-muted">
+                <th className="px-5 py-2">{t('Item')}</th>
+                <th className="px-5 py-2 text-right">{t('Ordered')}</th>
+                <th className="px-5 py-2 text-right">{t('Received')}</th>
+                <th className="px-5 py-2 text-right">{t('Est. cost')}</th>
               </tr>
             </thead>
             <tbody>
@@ -139,12 +147,12 @@ export function PurchaseOrderDetailPage() {
         open={cancelOpen}
         onClose={() => setCancelOpen(false)}
         onConfirm={async (reason) => {
-          await act(() => purchaseOrdersApi.cancel(po.id, reason), 'Purchase order cancelled');
+          await act(() => purchaseOrdersApi.cancel(po.id, reason), t('Purchase order cancelled'));
           setCancelOpen(false);
         }}
-        title="Cancel this purchase order?"
-        message="Already-received stock stays in inventory. Outstanding lines are cancelled."
-        confirmLabel="Cancel PO"
+        title={t('Cancel this purchase order?')}
+        message={t('Already-received stock stays in inventory. Outstanding lines are cancelled.')}
+        confirmLabel={t('Cancel PO')}
         tone="danger"
         reason="required"
       />

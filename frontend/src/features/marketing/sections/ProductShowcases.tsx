@@ -76,7 +76,7 @@ function SamplesMock() {
       <div className="p-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="font-mono text-xs font-semibold text-foreground">S000242</p>
+            <p className="font-mono text-xs font-medium text-foreground">S000242</p>
             <p className="text-[13px] text-muted">Sita Rai · P000242 · Serum</p>
           </div>
           <MockBadge tone="success">Received</MockBadge>
@@ -124,7 +124,7 @@ function SamplesMedia() {
           optional
           className="w-24 shrink-0 rounded-xl sm:w-28"
         />
-        <p className="text-sm leading-relaxed text-muted">
+        <p className="text-pretty text-body-sm text-muted">
           Bench work stays hands-on — LIMS keeps the digital trail for every specimen behind it.
         </p>
       </div>
@@ -203,7 +203,7 @@ function ResultsMedia() {
           objectPosition="72% 42%"
           imgClassName="[filter:saturate(0.9)_contrast(1.02)]"
         />
-        <p className="mt-2.5 text-sm leading-relaxed text-muted">
+        <p className="mt-2.5 text-pretty text-body-sm text-muted">
           Every value is reviewed by a person — a technician verifies, a pathologist approves — before it leaves the lab.
         </p>
       </div>

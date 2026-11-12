@@ -4,6 +4,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RequirePermission } from './RequirePermission';
 import { lazyPage } from './lazyPage';
+import { handleFor } from './appRoutes';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { LoginPage } from '@/pages/LoginPage';
 import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage';
@@ -13,11 +14,16 @@ import { ForbiddenPage, NotFoundPage } from '@/pages/ErrorPages';
 
 const P = PERMISSIONS;
 
-/** A child route whose element is lazily loaded and (optionally) permission-gated. */
+/**
+ * A child route of `/app`, lazily loaded and optionally permission-gated. Each one also carries
+ * its navigation metadata from appRoutes.ts as `handle` — the title and the page it sits under,
+ * which is what the breadcrumbs, the browser tab and the fallback "Back to …" target read.
+ */
 function route(path: string, element: ReactNode, anyOf?: string[]) {
   return {
     path,
     element: anyOf ? <RequirePermission anyOf={anyOf}>{element}</RequirePermission> : element,
+    handle: handleFor(`/app/${path}`),
   };
 }
 
@@ -55,11 +61,12 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <DashboardPage /> },
+      { index: true, element: <DashboardPage />, handle: handleFor('/app') },
       route('help', lazyPage(() => import('@/features/help/HelpPage'), 'HelpPage')),
 
       route('patients', lazyPage(() => import('@/features/patients/PatientsPage'), 'PatientsPage'), [P.PATIENT_READ]),
       route('patients/new', lazyPage(() => import('@/features/patients/RegisterPatientPage'), 'RegisterPatientPage'), [P.PATIENT_WRITE]),
+      route('patients/import', lazyPage(() => import('@/features/patientImport/ImportPatientsPage'), 'ImportPatientsPage'), [P.PATIENT_IMPORT]),
       route('patients/:id', lazyPage(() => import('@/features/patients/PatientDetailPage'), 'PatientDetailPage'), [P.PATIENT_READ]),
       route('patients/:id/edit', lazyPage(() => import('@/features/patients/RegisterPatientPage'), 'RegisterPatientPage'), [P.PATIENT_WRITE]),
       route('doctors', lazyPage(() => import('@/features/doctors/DoctorsPage'), 'DoctorsPage'), [P.DOCTOR_READ]),
@@ -96,6 +103,8 @@ export const router = createBrowserRouter([
       route('master-bill', lazyPage(() => import('@/features/billing/MasterBillPage'), 'MasterBillPage'), [P.INVOICE_READ]),
       route('corrections', lazyPage(() => import('@/features/billing/CorrectionsReportPage'), 'CorrectionsReportPage'), [P.INVOICE_READ]),
       route('commission', lazyPage(() => import('@/features/commission/CommissionPage'), 'CommissionPage'), [P.COMMISSION_READ]),
+      route('revenue', lazyPage(() => import('@/features/revenue/RevenueDashboardPage'), 'RevenueDashboardPage'), [P.REPORTING_READ]),
+      route('revenue/report', lazyPage(() => import('@/features/revenue/RevenueReportPage'), 'RevenueReportPage'), [P.REPORTING_READ]),
 
       route('ird', lazyPage(() => import('@/features/ird/IrdSubmissionsPage'), 'IrdSubmissionsPage'), [P.IRD_SUBMISSION_READ]),
       route('ird/:id', lazyPage(() => import('@/features/ird/IrdSubmissionDetailPage'), 'IrdSubmissionDetailPage'), [P.IRD_SUBMISSION_READ]),

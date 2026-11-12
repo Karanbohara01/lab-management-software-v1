@@ -1,6 +1,8 @@
 import { ChevronRight } from 'lucide-react';
 import { Fragment } from 'react';
+import { cn } from '@/lib/cn';
 import { Section, SectionHeading } from '../components/primitives';
+import { TYPE } from '../components/typography';
 import { Reveal } from '../components/Reveal';
 import { ROLES } from '../data';
 
@@ -38,14 +40,14 @@ export function Roles() {
                   className="h-[5.5rem] w-[5.5rem] shrink-0 select-none object-contain transition-transform duration-200 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                 />
                 <div className="min-w-0">
-                  <h3 className="text-xl font-bold text-foreground">{role.title}</h3>
-                  <p className="mt-1 text-sm leading-snug text-muted">{role.blurb}</p>
+                  <h3 className={TYPE.h3}>{role.title}</h3>
+                  <p className={cn('mt-1.5', TYPE.bodySm)}>{role.blurb}</p>
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap items-center gap-x-1 gap-y-1.5">
                 {role.flow.map((f, j) => (
                   <Fragment key={f}>
-                    <span className="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">{f}</span>
+                    <span className="rounded-md bg-primary/10 px-2 py-0.5 text-caption font-semibold text-primary">{f}</span>
                     {j < role.flow.length - 1 && <ChevronRight className="h-3.5 w-3.5 text-muted" aria-hidden />}
                   </Fragment>
                 ))}

@@ -15,6 +15,7 @@ import { testCatalogApi } from './api';
 import { reflexRulesApi, type ReflexRule, type ReflexTrigger } from './reflexRules';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
+import { useT, tOpts } from '@/i18n';
 
 const TRIGGER_LABEL: Record<ReflexTrigger, string> = {
   ABNORMAL: 'Any abnormal (LOW/HIGH/ABNORMAL, critical included)',
@@ -22,6 +23,7 @@ const TRIGGER_LABEL: Record<ReflexTrigger, string> = {
 };
 
 export function ReflexRulesPage() {
+  const t = useT();
   const toast = useToast();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.TEST_CATALOG_WRITE);
@@ -29,7 +31,7 @@ export function ReflexRulesPage() {
   const rules = useQuery(() => reflexRulesApi.list(), []);
   const tests = useQuery(() => testCatalogApi.list({ size: 1000, activeOnly: true }), []);
   const testOptions = useMemo(
-    () => (tests.data?.content ?? []).map((t) => ({ value: String(t.id), label: `${t.name} (${t.code})` })),
+    () => (tests.data?.content ?? []).map((row) => ({ value: String(row.id), label: `${row.name} (${row.code})` })),
     [tests.data],
   );
 
@@ -56,12 +58,12 @@ export function ReflexRulesPage() {
         targetTestId: Number(targetTestId),
         note: note || undefined,
       });
-      toast.success('Reflex rule added');
+      toast.success(t('Reflex rule added'));
       setShowForm(false);
       setNote('');
       rules.refetch();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to save');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to save'));
     } finally {
       setSaving(false);
     }
@@ -77,30 +79,32 @@ export function ReflexRulesPage() {
       });
       rules.refetch();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to update');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to update'));
     }
   };
 
   const remove = async (rule: ReflexRule) => {
     try {
       await reflexRulesApi.remove(rule.id);
-      toast.success('Reflex rule removed');
+      toast.success(t('Reflex rule removed'));
       rules.refetch();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to delete');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to delete'));
     }
   };
 
   return (
     <>
       <PageHeader
-        title="Reflex testing rules"
-        description="When a test's result comes back abnormal or critical, suggest ordering a follow-up test. Suggestion only — nothing is ever auto-ordered or auto-billed; staff see it as a notification and add the test themselves if appropriate."
+        title={t('Reflex testing rules')}
+        description={t(
+          "When a test's result comes back abnormal or critical, suggest ordering a follow-up test. Suggestion only — nothing is ever auto-ordered or auto-billed; staff see it as a notification and add the test themselves if appropriate.",
+        )}
         actions={
           canWrite && (
             <Button onClick={() => setShowForm((v) => !v)}>
               <Plus className="h-4 w-4" aria-hidden />
-              Add rule
+              {t('Add rule')}
             </Button>
           )
         }
@@ -108,35 +112,45 @@ export function ReflexRulesPage() {
 
       {showForm && (
         <Card className="mb-4">
-          <CardHeader title="New reflex rule" />
+          <CardHeader title={t('New reflex rule')} />
           <CardBody className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <Select
-                label="Source test (the one that was resulted)"
+                label={t('Source test (the one that was resulted)')}
                 value={sourceTestId}
                 onChange={(e) => setSourceTestId(e.target.value)}
                 options={testOptions}
               />
               <Select
-                label="Trigger"
+                label={t('Trigger')}
                 value={trigger}
                 onChange={(e) => setTrigger(e.target.value as ReflexTrigger)}
-                options={(Object.keys(TRIGGER_LABEL) as ReflexTrigger[]).map((t) => ({ value: t, label: TRIGGER_LABEL[t] }))}
+                options={tOpts(
+                  (Object.keys(TRIGGER_LABEL) as ReflexTrigger[]).map((trig) => ({
+                    value: trig,
+                    label: TRIGGER_LABEL[trig],
+                  })),
+                )}
               />
               <Select
-                label="Suggested test"
+                label={t('Suggested test')}
                 value={targetTestId}
                 onChange={(e) => setTargetTestId(e.target.value)}
                 options={testOptions}
               />
-              <Input label="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. reflex to confirm thyroid status" />
+              <Input
+                label={t('Note (optional)')}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder={t('e.g. reflex to confirm thyroid status')}
+              />
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setShowForm(false)}>
-                Cancel
+                {t('Cancel')}
               </Button>
               <Button onClick={create} loading={saving}>
-                Save rule
+                {t('Save rule')}
               </Button>
             </div>
           </CardBody>
@@ -149,18 +163,21 @@ export function ReflexRulesPage() {
         ) : rules.error ? (
           <ErrorState message={rules.error} onRetry={rules.refetch} />
         ) : rules.data && rules.data.length === 0 ? (
-          <EmptyState title="No reflex rules" message="Add a rule to start suggesting follow-up tests automatically." />
+          <EmptyState
+            title={t('No reflex rules')}
+            message={t('Add a rule to start suggesting follow-up tests automatically.')}
+          />
         ) : (
           rules.data && (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
-                    <th className="px-4 py-2">If this test</th>
-                    <th className="px-4 py-2">Comes back</th>
-                    <th className="px-4 py-2">Suggest</th>
-                    <th className="px-4 py-2">Note</th>
-                    <th className="px-4 py-2">Status</th>
+                  <tr className="border-b border-border text-left text-label uppercase text-muted">
+                    <th className="px-4 py-2">{t('If this test')}</th>
+                    <th className="px-4 py-2">{t('Comes back')}</th>
+                    <th className="px-4 py-2">{t('Suggest')}</th>
+                    <th className="px-4 py-2">{t('Note')}</th>
+                    <th className="px-4 py-2">{t('Status')}</th>
                     {canWrite && <th className="px-4 py-2" />}
                   </tr>
                 </thead>
@@ -168,14 +185,14 @@ export function ReflexRulesPage() {
                   {rules.data.map((r) => (
                     <tr key={r.id} className="border-b border-border last:border-0">
                       <td className="px-4 py-2 font-medium">{r.sourceTestName ?? `#${r.sourceTestId}`}</td>
-                      <td className="px-4 py-2">{r.trigger === 'CRITICAL' ? 'Critical' : 'Abnormal'}</td>
+                      <td className="px-4 py-2">{r.trigger === 'CRITICAL' ? t('Critical') : t('Abnormal')}</td>
                       <td className="px-4 py-2">{r.targetTestName ?? `#${r.targetTestId}`}</td>
                       <td className="px-4 py-2 text-muted">{r.note ?? '—'}</td>
                       <td className="px-4 py-2">
                         {canWrite ? (
-                          <Checkbox label={r.active ? 'Active' : 'Inactive'} checked={r.active} onChange={() => toggleActive(r)} />
+                          <Checkbox label={t(r.active ? 'Active' : 'Inactive')} checked={r.active} onChange={() => toggleActive(r)} />
                         ) : (
-                          <Badge tone={r.active ? 'success' : 'neutral'}>{r.active ? 'Active' : 'Inactive'}</Badge>
+                          <Badge tone={r.active ? 'success' : 'neutral'}>{t(r.active ? 'Active' : 'Inactive')}</Badge>
                         )}
                       </td>
                       {canWrite && (
@@ -184,7 +201,7 @@ export function ReflexRulesPage() {
                             type="button"
                             className="text-muted hover:text-danger"
                             onClick={() => remove(r)}
-                            aria-label="Delete rule"
+                            aria-label={t('Delete rule')}
                           >
                             <Trash2 className="h-4 w-4" aria-hidden />
                           </button>

@@ -4,6 +4,7 @@ import { AlertTriangle } from 'lucide-react';
 import type { PatientDetail } from './types';
 import { formatAddress, formatDate } from './format';
 import { bloodGroupLabel, categoryLabel } from './constants';
+import { translate, getLocale } from '@/i18n';
 
 /**
  * Printable patient card + registration slip. Rendered off-screen; `window.print()` plus the
@@ -21,6 +22,7 @@ import { bloodGroupLabel, categoryLabel } from './constants';
  */
 export function PatientCard({ patient, labName }: { patient: PatientDetail; labName?: string }) {
   const [qrDataUri, setQrDataUri] = useState<string | null>(null);
+  const t = (key: string, vars?: Record<string, string | number>) => translate(getLocale(), key, vars);
 
   useEffect(() => {
     /*
@@ -54,26 +56,26 @@ export function PatientCard({ patient, labName }: { patient: PatientDetail; labN
 
   const age =
     patient.ageYears != null
-      ? `${patient.ageYears} yrs`
+      ? t('{age} yrs', { age: patient.ageYears })
       : patient.approximateAgeYears != null
-        ? `~${patient.approximateAgeYears} yrs`
+        ? t('~{age} yrs', { age: patient.approximateAgeYears })
         : null;
 
   return (
     <div id="patient-print" className="hidden print:block">
       <div className="mx-auto max-w-lg p-6 font-sans text-black">
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-          {/* Zone 1 — identity strip. A literal Tailwind shade, never the app's theme-variable
-              `primary` token, so the printed card looks identical regardless of the viewer's
+          {/* Zone 1 — identity strip. The fixed `--brand-*` ramp, never the theme-reactive
+              `--primary` token, so the printed card looks identical regardless of the viewer's
               light/dark mode setting. */}
-          <div className="flex items-center justify-between bg-sky-700 px-5 py-2.5">
-            <p className="text-sm font-bold uppercase tracking-wide text-white">{labName || 'Laboratory'}</p>
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-sky-100">Patient card</span>
+          <div className="flex items-center justify-between bg-[hsl(var(--brand-700))] px-5 py-2.5">
+            <p className="text-sm font-bold uppercase tracking-wide text-white">{labName || t('Laboratory')}</p>
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-[hsl(var(--brand-100))]">{t('Patient card')}</span>
           </div>
 
           <div className="p-5">
             {/* Zone 2 — name, then the one dominant identifier. */}
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Patient</p>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">{t('Patient')}</p>
             <p className="truncate text-xl font-bold leading-tight text-gray-900">
               {patient.salutation ? `${patient.salutation} ` : ''}
               {patient.fullName}
@@ -83,14 +85,14 @@ export function PatientCard({ patient, labName }: { patient: PatientDetail; labN
               {[age, patient.gender, bloodGroupLabel(patient.bloodGroup)].filter(Boolean).join('   ·   ')}
             </p>
 
-            <div className="mt-4 flex items-center justify-between gap-4 rounded-lg bg-sky-50 px-4 py-3">
+            <div className="mt-4 flex items-center justify-between gap-4 rounded-lg bg-[hsl(var(--brand-50))] px-4 py-3">
               <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-sky-700">Medical record no.</p>
-                <p className="truncate font-mono text-2xl font-bold tracking-wider text-sky-900">{patient.mrn}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-[hsl(var(--brand-700))]">{t('Medical record no.')}</p>
+                <p className="truncate font-mono text-2xl font-bold tracking-wider text-[hsl(var(--brand-900))]">{patient.mrn}</p>
               </div>
               {/* QR stays isolated in its own white box with clear padding on every side — a
                   colored fill touching the code's edge is a documented real scan-failure risk
-                  (barcode/QR quiet-zone guidance), so it never sits directly on the sky-50 fill. */}
+                  (barcode/QR quiet-zone guidance), so it never sits directly on the brand-tint fill. */}
               <div className="shrink-0 rounded-md border border-gray-200 bg-white p-1.5">
                 {qrDataUri && (
                   <img
@@ -101,19 +103,19 @@ export function PatientCard({ patient, labName }: { patient: PatientDetail; labN
                 )}
               </div>
             </div>
-            <p className="mt-1 text-right text-xs text-gray-500">Scan to view record</p>
+            <p className="mt-1 text-right text-xs text-gray-500">{t('Scan to view record')}</p>
 
             {/* Zone 3 — secondary fields, visibly subordinate: plain label/value pairs instead of
                 icon-badge rows. */}
             <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 border-t border-gray-200 pt-3 text-xs">
-              <LabelValue label="Phone" value={patient.phone || '—'} />
-              <LabelValue label="Category" value={categoryLabel(patient.category)} />
+              <LabelValue label={t('Phone')} value={patient.phone || '—'} />
+              <LabelValue label={t('Category')} value={categoryLabel(patient.category)} />
               <LabelValue
-                label="Referred by"
-                value={patient.referringDoctorName || patient.referralSourceName || 'Self'}
+                label={t('Referred by')}
+                value={patient.referringDoctorName || patient.referralSourceName || t('Self')}
               />
-              <LabelValue label="Registered" value={formatDate(patient.createdAt)} />
-              <LabelValue label="Address" value={formatAddress(patient.address) || '—'} full />
+              <LabelValue label={t('Registered')} value={formatDate(patient.createdAt)} />
+              <LabelValue label={t('Address')} value={formatAddress(patient.address) || '—'} full />
             </div>
 
             {/* Amber for "needs attention" is already this app's print-document convention (see
@@ -125,7 +127,7 @@ export function PatientCard({ patient, labName }: { patient: PatientDetail; labN
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" strokeWidth={2} />
                 <div className="min-w-0 flex-1">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">
-                    Emergency contact
+                    {t('Emergency contact')}
                   </p>
                   <p className="break-words text-xs font-medium leading-snug text-amber-900">
                     {patient.emergencyContact.name}
@@ -137,7 +139,7 @@ export function PatientCard({ patient, labName }: { patient: PatientDetail; labN
             )}
 
             <p className="mt-3 border-t border-gray-200 pt-2 text-xs leading-snug text-gray-500">
-              Please bring this card on every visit and quote the MRN above for all enquiries.
+              {t('Please bring this card on every visit and quote the MRN above for all enquiries.')}
             </p>
           </div>
         </div>

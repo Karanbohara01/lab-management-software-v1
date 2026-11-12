@@ -5,6 +5,7 @@ import { useQuery } from '@/hooks/useQuery';
 import { formatMoney } from '@/lib/money';
 import { paymentGatewaysApi } from '@/features/payments/api';
 import { PROVIDER_LABEL, type VatRefundReportStatus } from '@/features/payments/types';
+import { useT, translate, getLocale } from '@/i18n';
 
 const STATUS_LABEL: Record<VatRefundReportStatus, string> = {
   SENT: 'Reported',
@@ -27,6 +28,7 @@ const STATUS_TONE: Record<VatRefundReportStatus, 'success' | 'danger' | 'warning
  * cash-only clinic never sees an empty card.
  */
 export function InvoiceVatRefundCard({ invoiceId }: { invoiceId: number }) {
+  const t = useT();
   const { data, loading } = useQuery(() => paymentGatewaysApi.listForInvoice(invoiceId), [invoiceId]);
   const verified = (data ?? []).filter((p) => p.status === 'VERIFIED');
 
@@ -36,8 +38,8 @@ export function InvoiceVatRefundCard({ invoiceId }: { invoiceId: number }) {
   return (
     <Card data-print-hide>
       <CardHeader
-        title="VAT refund reporting"
-        description="10% of VAT on digital-wallet payments, reported to the provider per Anusuchi-8 of the e-invoice procedure."
+        title={t('VAT refund reporting')}
+        description={t('10% of VAT on digital-wallet payments, reported to the provider per Anusuchi-8 of the e-invoice procedure.')}
       />
       <CardBody className="space-y-3">
         {verified.map((p) => (
@@ -47,11 +49,11 @@ export function InvoiceVatRefundCard({ invoiceId }: { invoiceId: number }) {
                 {PROVIDER_LABEL[p.provider]} · {formatMoney(p.amount)}
               </p>
               {p.vatRefundAmount != null && (
-                <p className="text-xs text-muted">Refund amount: {formatMoney(p.vatRefundAmount)}</p>
+                <p className="text-xs text-muted">{t('Refund amount: {amount}', { amount: formatMoney(p.vatRefundAmount) })}</p>
               )}
               {p.vatRefundError && <p className="text-xs text-muted">{p.vatRefundError}</p>}
             </div>
-            <Badge tone={STATUS_TONE[p.vatRefundReportStatus]}>{STATUS_LABEL[p.vatRefundReportStatus]}</Badge>
+            <Badge tone={STATUS_TONE[p.vatRefundReportStatus]}>{translate(getLocale(), STATUS_LABEL[p.vatRefundReportStatus])}</Badge>
           </div>
         ))}
       </CardBody>

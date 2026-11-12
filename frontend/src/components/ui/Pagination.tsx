@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './Button';
+import { useT } from '@/i18n';
 
 export interface PaginationProps {
   page: number; // zero-based
@@ -9,13 +10,13 @@ export interface PaginationProps {
 }
 
 export function Pagination({ page, totalPages, totalElements, onPageChange }: PaginationProps) {
+  const t = useT();
   if (totalElements === 0) return null;
   return (
     <div className="flex items-center justify-between gap-4 border-t border-border px-4 py-3 text-sm">
       <p className="text-muted">
-        Page <span className="font-medium text-foreground">{page + 1}</span> of{' '}
-        <span className="font-medium text-foreground">{Math.max(totalPages, 1)}</span>
-        <span className="hidden sm:inline"> · {totalElements} total</span>
+        {t('Page {page} of {totalPages}', { page: page + 1, totalPages: Math.max(totalPages, 1) })}
+        <span className="hidden sm:inline"> · {t('{total} total', { total: totalElements })}</span>
       </p>
       <div className="flex gap-2">
         <Button
@@ -23,19 +24,19 @@ export function Pagination({ page, totalPages, totalElements, onPageChange }: Pa
           size="sm"
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 0}
-          aria-label="Previous page"
+          aria-label={t('Previous page')}
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
-          Prev
+          {t('Prev')}
         </Button>
         <Button
           variant="secondary"
           size="sm"
           onClick={() => onPageChange(page + 1)}
           disabled={page + 1 >= totalPages}
-          aria-label="Next page"
+          aria-label={t('Next page')}
         >
-          Next
+          {t('Next')}
           <ChevronRight className="h-4 w-4" aria-hidden />
         </Button>
       </div>

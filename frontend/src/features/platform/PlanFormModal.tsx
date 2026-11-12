@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
+import { useT } from '@/i18n';
 import { platformApi } from './api';
 import type { Plan } from './types';
 
@@ -45,6 +46,7 @@ export function PlanFormModal({
   nextDisplayOrder: number;
   onSaved: () => void;
 }) {
+  const t = useT();
   const toast = useToast();
   const {
     register,
@@ -84,7 +86,7 @@ export function PlanFormModal({
   const onSubmit = async (values: FormValues) => {
     try {
       await platformApi.upsertPlan({ ...values, description: values.description || undefined });
-      toast.success(plan ? 'Plan updated' : 'Plan created');
+      toast.success(plan ? t('Plan updated') : t('Plan created'));
       onSaved();
       onClose();
     } catch (err) {
@@ -95,31 +97,31 @@ export function PlanFormModal({
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={plan ? `Edit ${plan.name}` : 'New plan'} size="lg">
+    <Modal open={open} onClose={onClose} title={plan ? t('Edit {name}', { name: plan.name }) : t('New plan')} size="lg">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {errors.root && <Alert tone="danger">{errors.root.message}</Alert>}
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
-            label="Code"
+            label={t('Code')}
             {...register('code')}
             error={errors.code?.message}
             disabled={!!plan}
             data-autofocus={!plan || undefined}
           />
-          <Input label="Name" {...register('name')} error={errors.name?.message} data-autofocus={plan ? true : undefined} />
-          <Input label="Price / month (NPR)" type="number" step="0.01" {...register('priceMonthly')} error={errors.priceMonthly?.message} />
-          <Input label="Display order" type="number" {...register('displayOrder')} error={errors.displayOrder?.message} />
-          <Input label="Max users" type="number" {...register('maxUsers')} error={errors.maxUsers?.message} />
-          <Input label="Max branches" type="number" {...register('maxBranches')} error={errors.maxBranches?.message} />
+          <Input label={t('Name')} {...register('name')} error={errors.name?.message} data-autofocus={plan ? true : undefined} />
+          <Input label={t('Price / month (NPR)')} type="number" step="0.01" {...register('priceMonthly')} error={errors.priceMonthly?.message} />
+          <Input label={t('Display order')} type="number" {...register('displayOrder')} error={errors.displayOrder?.message} />
+          <Input label={t('Max users')} type="number" {...register('maxUsers')} error={errors.maxUsers?.message} />
+          <Input label={t('Max branches')} type="number" {...register('maxBranches')} error={errors.maxBranches?.message} />
         </div>
-        <Textarea label="Description" {...register('description')} error={errors.description?.message} />
-        <Checkbox label="Active (offered when onboarding a new clinic)" {...register('active')} />
+        <Textarea label={t('Description')} {...register('description')} error={errors.description?.message} />
+        <Checkbox label={t('Active (offered when onboarding a new clinic)')} {...register('active')} />
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="secondary" onClick={onClose}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button type="submit" loading={isSubmitting}>
-            {plan ? 'Save changes' : 'Create plan'}
+            {plan ? t('Save changes') : t('Create plan')}
           </Button>
         </div>
       </form>

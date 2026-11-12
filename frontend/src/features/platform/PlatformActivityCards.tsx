@@ -2,11 +2,12 @@ import { Clock, Sparkles, Plug } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { SectionHeader } from '@/features/dashboard/components/SectionHeader';
+import { useT, getLocale, LOCALE_TAG } from '@/i18n';
 import { ORG_STATUS_LABEL, ORG_STATUS_TONE, SUBSCRIPTION_STATUS_LABEL, SUBSCRIPTION_STATUS_TONE } from './types';
 import type { IntegrationAdoption, RecentClinic, UpcomingRenewal } from './types';
 
 function dt(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { dateStyle: 'medium' });
+  return new Date(iso).toLocaleDateString(LOCALE_TAG[getLocale()], { dateStyle: 'medium' });
 }
 
 /** Small coloured initial badge standing in for a clinic logo — avoids the list reading as a bare
@@ -21,13 +22,14 @@ function ClinicAvatar({ name }: { name: string }) {
 }
 
 export function UpcomingRenewalsCard({ renewals }: { renewals: UpcomingRenewal[] }) {
+  const t = useT();
   return (
     <Card>
       <div className="p-5 pb-0">
-        <SectionHeader icon={Clock} title="Renewals due soon" description="Next 30 days" />
+        <SectionHeader icon={Clock} title={t('Renewals due soon')} description={t('Next 30 days')} />
       </div>
       {renewals.length === 0 ? (
-        <p className="px-5 pb-5 text-sm text-muted">Nothing renewing in the next 30 days.</p>
+        <p className="px-5 pb-5 text-sm text-muted">{t('Nothing renewing in the next 30 days.')}</p>
       ) : (
         <ul className="divide-y divide-border">
           {renewals.map((r) => (
@@ -36,10 +38,10 @@ export function UpcomingRenewalsCard({ renewals }: { renewals: UpcomingRenewal[]
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-foreground">{r.organizationName}</p>
                 <p className="truncate text-xs text-muted">
-                  {r.planName} · due {dt(r.currentPeriodEnd)}
+                  {t('{plan} · due {date}', { plan: r.planName, date: dt(r.currentPeriodEnd) })}
                 </p>
               </div>
-              <Badge tone={SUBSCRIPTION_STATUS_TONE[r.status]}>{SUBSCRIPTION_STATUS_LABEL[r.status]}</Badge>
+              <Badge tone={SUBSCRIPTION_STATUS_TONE[r.status]}>{t(SUBSCRIPTION_STATUS_LABEL[r.status])}</Badge>
             </li>
           ))}
         </ul>
@@ -71,18 +73,19 @@ function AdoptionRow({ label, count, total }: { label: string; count: number; to
  * functional — it's simply using the shared fallback, which is fine for a small/early deployment.
  */
 export function IntegrationAdoptionCard({ adoption }: { adoption: IntegrationAdoption }) {
+  const t = useT();
   return (
     <Card>
       <div className="p-5 pb-0">
-        <SectionHeader icon={Plug} title="Integration adoption" description="Clinics using their own gateway credentials" />
+        <SectionHeader icon={Plug} title={t('Integration adoption')} description={t('Clinics using their own gateway credentials')} />
       </div>
       {adoption.totalOrganizations === 0 ? (
-        <p className="px-5 pb-5 text-sm text-muted">No clinics onboarded yet.</p>
+        <p className="px-5 pb-5 text-sm text-muted">{t('No clinics onboarded yet.')}</p>
       ) : (
         <div className="divide-y divide-border">
-          <AdoptionRow label="Payment (eSewa / Khalti)" count={adoption.paymentConfigured} total={adoption.totalOrganizations} />
-          <AdoptionRow label="IRD e-billing" count={adoption.irdConfigured} total={adoption.totalOrganizations} />
-          <AdoptionRow label="SMS" count={adoption.smsConfigured} total={adoption.totalOrganizations} />
+          <AdoptionRow label={t('Payment (eSewa / Khalti)')} count={adoption.paymentConfigured} total={adoption.totalOrganizations} />
+          <AdoptionRow label={t('IRD e-billing')} count={adoption.irdConfigured} total={adoption.totalOrganizations} />
+          <AdoptionRow label={t('SMS')} count={adoption.smsConfigured} total={adoption.totalOrganizations} />
         </div>
       )}
     </Card>
@@ -90,13 +93,14 @@ export function IntegrationAdoptionCard({ adoption }: { adoption: IntegrationAdo
 }
 
 export function RecentClinicsCard({ clinics }: { clinics: RecentClinic[] }) {
+  const t = useT();
   return (
     <Card>
       <div className="p-5 pb-0">
-        <SectionHeader icon={Sparkles} title="Recently onboarded" />
+        <SectionHeader icon={Sparkles} title={t('Recently onboarded')} />
       </div>
       {clinics.length === 0 ? (
-        <p className="px-5 pb-5 text-sm text-muted">No clinics onboarded yet.</p>
+        <p className="px-5 pb-5 text-sm text-muted">{t('No clinics onboarded yet.')}</p>
       ) : (
         <ul className="divide-y divide-border">
           {clinics.map((c) => (
@@ -108,7 +112,7 @@ export function RecentClinicsCard({ clinics }: { clinics: RecentClinic[] }) {
                   {c.planName ?? '—'} · {dt(c.createdAt)}
                 </p>
               </div>
-              <Badge tone={ORG_STATUS_TONE[c.status]}>{ORG_STATUS_LABEL[c.status]}</Badge>
+              <Badge tone={ORG_STATUS_TONE[c.status]}>{t(ORG_STATUS_LABEL[c.status])}</Badge>
             </li>
           ))}
         </ul>

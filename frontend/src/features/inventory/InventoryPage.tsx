@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, Plus } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -10,10 +9,12 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
 import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
+import { useListParams, useSearchInput } from '@/hooks/useListParams';
 import { useQuery } from '@/hooks/useQuery';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useNavigateFrom } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
+import { useT, tOpts } from '@/i18n';
 import { inventoryApi } from './api';
 import { ItemFormModal } from './InventoryModals';
 import {
@@ -25,65 +26,68 @@ import {
 } from './types';
 
 const PAGE_SIZE = 20;
+/** Lives in the URL, so returning from an item lands on the same search, filter and page. */
+const PARAMS = { q: '', category: '', page: 1 };
 
 export function InventoryPage() {
-  const navigate = useNavigate();
+  const t = useT();
+  const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
   const canWrite = hasPermission(PERMISSIONS.INVENTORY_WRITE);
 
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('');
-  const [page, setPage] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
 
+  const { params, set } = useListParams(PARAMS);
+  const [search, setSearch] = useSearchInput(params.q, (q) => set({ q }, { replace: true }));
+
   const summary = useQuery(() => inventoryApi.summary(), []);
-  const debouncedSearch = useDebouncedValue(search, 300);
   const { data, loading, error, refetch } = useQuery(
     () =>
       inventoryApi.list({
-        query: debouncedSearch || undefined,
-        category: (category || undefined) as ItemCategory | undefined,
+        query: params.q || undefined,
+        category: (params.category || undefined) as ItemCategory | undefined,
         activeOnly: true,
-        page,
+        page: params.page - 1,
         size: PAGE_SIZE,
       }),
-    [debouncedSearch, category, page],
+    [params.q, params.category, params.page],
+    { cacheKey: `inventory:${params.q}:${params.category}:${params.page}` },
   );
 
   const alertCount = (summary.data?.alerts ?? []).length;
 
   const columns: Column<InventoryItemListItem>[] = [
-    { key: 'code', header: 'Code', cell: (i) => <span className="font-mono text-xs">{i.code}</span> },
-    { key: 'name', header: 'Item', cell: (i) => <span className="font-medium">{i.name}</span> },
-    { key: 'cat', header: 'Category', cell: (i) => CATEGORY_LABEL[i.category], hideOnMobile: true },
+    { key: 'code', header: t('Code'), cell: (i) => <span className="font-mono text-xs">{i.code}</span> },
+    { key: 'name', header: t('Item'), cell: (i) => <span className="font-medium">{i.name}</span> },
+    { key: 'cat', header: t('Category'), cell: (i) => t(CATEGORY_LABEL[i.category]), hideOnMobile: true },
     {
       key: 'stock',
-      header: 'On hand',
+      header: t('On hand'),
       cell: (i) => (
         <span>
           {i.quantityOnHand} {i.unit}
-          {i.minimumStock > 0 && <span className="ml-1 text-xs text-muted">/ min {i.minimumStock}</span>}
+          {i.minimumStock > 0 && <span className="ml-1 text-xs text-muted">{t('/ min {min}', { min: i.minimumStock })}</span>}
         </span>
       ),
       className: 'text-right',
     },
     {
       key: 'status',
-      header: 'Status',
-      cell: (i) => <Badge tone={STOCK_STATUS_TONE[i.status]}>{STOCK_STATUS_LABEL[i.status]}</Badge>,
+      header: t('Status'),
+      cell: (i) => <Badge tone={STOCK_STATUS_TONE[i.status]}>{t(STOCK_STATUS_LABEL[i.status])}</Badge>,
     },
   ];
 
   return (
     <>
       <PageHeader
-        title="Inventory"
-        description="Reagents, kits and consumables — batches, stock levels and expiry."
+        title={t('Inventory')}
+        description={t('Reagents, kits and consumables — batches, stock levels and expiry.')}
         actions={
           canWrite ? (
             <Button onClick={() => setModalOpen(true)}>
               <Plus className="h-4 w-4" aria-hidden />
-              New item
+              {t('New item')}
             </Button>
           ) : undefined
         }
@@ -94,7 +98,7 @@ export function InventoryPage() {
           <CardBody>
             <div className="flex items-center gap-2 text-sm">
               <AlertTriangle className="h-4 w-4 text-warning" aria-hidden />
-              <span className="font-medium text-foreground">{alertCount} item(s) need attention</span>
+              <span className="font-medium text-foreground">{t('{count} item(s) need attention', { count: alertCount })}</span>
             </div>
             <ul className="mt-2 flex flex-wrap gap-2">
               {(summary.data?.alerts ?? []).slice(0, 12).map((a) => (
@@ -103,7 +107,7 @@ export function InventoryPage() {
                     onClick={() => navigate(`/app/inventory/${a.id}`)}
                     className="rounded-full border border-border px-2 py-0.5 text-xs hover:bg-surface-muted"
                   >
-                    {a.code} · {STOCK_STATUS_LABEL[a.status]}
+                    {a.code} · {t(STOCK_STATUS_LABEL[a.status])}
                   </button>
                 </li>
               ))}
@@ -117,24 +121,18 @@ export function InventoryPage() {
           <div className="sm:max-w-xs sm:flex-1">
             <SearchInput
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(0);
-              }}
-              placeholder="Search by name or code"
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t('Search by name or code')}
             />
           </div>
           <div className="sm:w-48">
             <Select
               options={[
-                { value: '', label: 'All categories' },
-                ...Object.entries(CATEGORY_LABEL).map(([value, label]) => ({ value, label })),
+                { value: '', label: t('All categories') },
+                ...tOpts(Object.entries(CATEGORY_LABEL).map(([value, label]) => ({ value, label }))),
               ]}
-              value={category}
-              onChange={(e) => {
-                setCategory(e.target.value);
-                setPage(0);
-              }}
+              value={params.category}
+              onChange={(e) => set({ category: e.target.value })}
             />
           </div>
         </div>
@@ -145,15 +143,26 @@ export function InventoryPage() {
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.content.length === 0 ? (
           <EmptyState
-            title="No items"
-            message={debouncedSearch || category ? 'Adjust the filters.' : 'Add your first inventory item.'}
-            action={canWrite && !debouncedSearch && !category ? <Button onClick={() => setModalOpen(true)}>New item</Button> : undefined}
+            title={t('No items')}
+            message={params.q || params.category ? t('Adjust the filters.') : t('Add your first inventory item.')}
+            action={canWrite && !params.q && !params.category ? <Button onClick={() => setModalOpen(true)}>{t('New item')}</Button> : undefined}
           />
         ) : (
           data && (
             <>
-              <DataTable columns={columns} rows={data.content} rowKey={(i) => i.id} onRowClick={(i) => navigate(`/app/inventory/${i.id}`)} />
-              <Pagination page={data.page} totalPages={data.totalPages} totalElements={data.totalElements} onPageChange={setPage} />
+              <DataTable
+                columns={columns}
+                rows={data.content}
+                rowKey={(i) => i.id}
+                rowHref={(i) => `/app/inventory/${i.id}`}
+                onRowClick={(i) => navigate(`/app/inventory/${i.id}`)}
+              />
+              <Pagination
+                page={data.page}
+                totalPages={data.totalPages}
+                totalElements={data.totalElements}
+                onPageChange={(p) => set({ page: p + 1 })}
+              />
             </>
           )
         )}

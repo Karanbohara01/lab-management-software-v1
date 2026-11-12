@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { LinkFrom } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { SPECIMEN_LABELS } from '@/features/catalog/types';
 import { SAMPLE_STATUS_LABEL, SAMPLE_STATUS_TONE, type SampleListItem } from '@/features/samples/types';
 import { ReceiveSampleModal } from '@/features/samples/ReceiveSampleModal';
+import { useT } from '@/i18n';
 
 export function OrderSamplesCard({
   samples,
@@ -19,6 +21,7 @@ export function OrderSamplesCard({
   onCollect: (id: number) => void;
   onReload: () => void;
 }) {
+  const t = useT();
   const { hasPermission } = useAuth();
   const [receiving, setReceiving] = useState<SampleListItem | null>(null);
 
@@ -27,30 +30,35 @@ export function OrderSamplesCard({
   return (
     <Card>
       <CardHeader
-        title="Samples"
-        description={`${samples.filter((s) => s.status === 'RECEIVED').length}/${samples.length} received`}
+        title={t('Samples')}
+        description={t('{received}/{total} received', {
+          received: samples.filter((s) => s.status === 'RECEIVED').length,
+          total: samples.length,
+        })}
       />
       <ul className="divide-y divide-border">
         {samples.map((s) => (
           <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm">
             <div className="min-w-0">
-              <span className="font-mono text-xs text-muted">{s.accessionNumber}</span>
-              <span className="ml-2 text-foreground">{SPECIMEN_LABELS[s.specimenType]}</span>
-              <span className="ml-2 text-muted">· {s.testCount} test(s)</span>
+              <LinkFrom to={`/app/samples/${s.id}`} className="font-mono text-xs text-muted hover:underline">
+                {s.accessionNumber}
+              </LinkFrom>
+              <span className="ml-2 text-foreground">{t(SPECIMEN_LABELS[s.specimenType])}</span>
+              <span className="ml-2 text-muted">· {t('{count} test(s)', { count: s.testCount })}</span>
               {s.conditionSummary && (
                 <span className="ml-2 text-xs text-warning">· {s.conditionSummary}</span>
               )}
             </div>
             <div className="flex items-center gap-2">
-              <Badge tone={SAMPLE_STATUS_TONE[s.status]}>{SAMPLE_STATUS_LABEL[s.status]}</Badge>
+              <Badge tone={SAMPLE_STATUS_TONE[s.status]}>{t(SAMPLE_STATUS_LABEL[s.status])}</Badge>
               {s.status === 'AWAITING_COLLECTION' && hasPermission(PERMISSIONS.SAMPLE_COLLECT) && (
                 <Button size="sm" variant="secondary" loading={busyId === s.id} onClick={() => onCollect(s.id)}>
-                  Collect
+                  {t('Collect')}
                 </Button>
               )}
               {s.status === 'COLLECTED' && hasPermission(PERMISSIONS.SAMPLE_RECEIVE) && (
                 <Button size="sm" onClick={() => setReceiving(s)}>
-                  Receive
+                  {t('Receive')}
                 </Button>
               )}
             </div>

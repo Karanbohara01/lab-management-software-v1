@@ -8,6 +8,7 @@ import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
 import { samplesApi } from './api';
 import type { SampleDetail } from './types';
+import { useT } from '@/i18n';
 
 export function CollectSampleModal({
   open,
@@ -20,6 +21,7 @@ export function CollectSampleModal({
   sample: SampleDetail;
   onDone: () => void;
 }) {
+  const t = useT();
   const toast = useToast();
   const [site, setSite] = useState('');
   const [container, setContainer] = useState('');
@@ -39,7 +41,7 @@ export function CollectSampleModal({
         note: note || undefined,
         paymentOverrideReason: paymentBlocked ? overrideReason.trim() || undefined : undefined,
       });
-      toast.success(`Sample ${sample.accessionNumber} collected`);
+      toast.success(t('Sample {accession} collected', { accession: sample.accessionNumber }));
       onDone();
       onClose();
     } catch (err) {
@@ -47,7 +49,7 @@ export function CollectSampleModal({
         setPaymentBlocked(true);
         setError(err.message);
       } else {
-        setError(err instanceof ApiError ? err.message : 'Unable to record collection');
+        setError(err instanceof ApiError ? err.message : t('Unable to record collection'));
       }
     } finally {
       setBusy(false);
@@ -58,19 +60,19 @@ export function CollectSampleModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={`Collect ${sample.accessionNumber}`}
+      title={t('Collect {accession}', { accession: sample.accessionNumber })}
       description={`${sample.patientName} · ${sample.patientMrn}`}
       footer={
         <>
           <Button variant="secondary" type="button" onClick={onClose} disabled={busy}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button
             onClick={submit}
             loading={busy}
             disabled={paymentBlocked && !overrideReason.trim()}
           >
-            {paymentBlocked ? 'Collect anyway' : 'Mark collected'}
+            {t(paymentBlocked ? 'Collect anyway' : 'Mark collected')}
           </Button>
         </>
       }
@@ -79,15 +81,15 @@ export function CollectSampleModal({
         {error && <Alert tone="danger">{error}</Alert>}
         {paymentBlocked && (
           <Input
-            label="Reason to collect without payment"
-            placeholder="e.g. Doctor authorised, payment to follow"
+            label={t('Reason to collect without payment')}
+            placeholder={t('e.g. Doctor authorised, payment to follow')}
             value={overrideReason}
             onChange={(e) => setOverrideReason(e.target.value)}
           />
         )}
-        <Input label="Collection site" placeholder="e.g. Left antecubital vein" value={site} onChange={(e) => setSite(e.target.value)} />
-        <Input label="Container / tube" placeholder="e.g. EDTA (lavender)" value={container} onChange={(e) => setContainer(e.target.value)} />
-        <Textarea label="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} />
+        <Input label={t('Collection site')} placeholder={t('e.g. Left antecubital vein')} value={site} onChange={(e) => setSite(e.target.value)} />
+        <Input label={t('Container / tube')} placeholder={t('e.g. EDTA (lavender)')} value={container} onChange={(e) => setContainer(e.target.value)} />
+        <Textarea label={t('Note (optional)')} value={note} onChange={(e) => setNote(e.target.value)} />
       </div>
     </Modal>
   );

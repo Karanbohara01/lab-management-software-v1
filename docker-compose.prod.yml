@@ -51,7 +51,7 @@ services:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      DB_URL: jdbc:mysql://mysql:3306/lims?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_URL: jdbc:mysql://mysql:3306/lims?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&rewriteBatchedStatements=true
       DB_USERNAME: lims
       DB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env.prod}
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env.prod — see docs/ENVIRONMENT.md}

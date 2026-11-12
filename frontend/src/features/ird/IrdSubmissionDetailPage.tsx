@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Ban, RefreshCw, Send, ClipboardCheck, Receipt, Printer } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Ban, RefreshCw, Send, ClipboardCheck, Receipt, Printer } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -12,10 +12,13 @@ import { Textarea } from '@/components/ui/Textarea';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
+import { LinkFrom, useBackTarget } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
+import { useT, useTRich } from '@/i18n';
+import { formatDateTime } from '@/features/patients/format';
 import { irdApi } from './api';
 import { invoicesApi } from '@/features/billing/api';
 import { CreditNotePrintDocument } from '@/features/billing/CreditNotePrintDocument';
@@ -24,7 +27,10 @@ import { IrdConfigBanner } from './IrdConfigBanner';
 import { CREDIT_NOTE_STATUS_LABEL, CREDIT_NOTE_STATUS_TONE, IRD_STATUS_LABEL, IRD_STATUS_TONE } from './types';
 
 export function IrdSubmissionDetailPage() {
+  const t = useT();
+  const tRich = useTRich();
   const { id } = useParams<{ id: string }>();
+  const { back } = useBackTarget();
   const toast = useToast();
   const { hasPermission } = useAuth();
   const canManage = hasPermission(PERMISSIONS.IRD_SUBMISSION_MANAGE);
@@ -39,7 +45,7 @@ export function IrdSubmissionDetailPage() {
 
   const { data: sub, loading, error, refetch } = useQuery(() => irdApi.get(Number(id)), [id]);
 
-  if (loading && !sub) return <LoadingState label="Loading submission…" />;
+  if (loading && !sub) return <LoadingState label={t('Loading submission…')} />;
   if (error) return <ErrorState message={error} onRetry={refetch} />;
   if (!sub) return null;
 
@@ -50,7 +56,7 @@ export function IrdSubmissionDetailPage() {
       toast.success(msg);
       refetch();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Action failed');
+      toast.error(err instanceof ApiError ? err.message : t('Action failed'));
     } finally {
       setBusy(false);
     }
@@ -58,7 +64,7 @@ export function IrdSubmissionDetailPage() {
 
   const submitManual = async () => {
     if (!manualRef.trim()) return;
-    await act(() => irdApi.markManual(sub.id, manualRef.trim(), manualNote || undefined), 'Recorded as manually filed');
+    await act(() => irdApi.markManual(sub.id, manualRef.trim(), manualNote || undefined), t('Recorded as manually filed'));
     setManualOpen(false);
     setManualRef('');
     setManualNote('');
@@ -76,7 +82,7 @@ export function IrdSubmissionDetailPage() {
       setCreditNoteInvoice(invoice);
       requestAnimationFrame(() => window.print());
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Unable to print credit note');
+      toast.error(err instanceof ApiError ? err.message : t('Unable to print credit note'));
     } finally {
       setPrintingCreditNote(false);
     }
@@ -94,115 +100,119 @@ export function IrdSubmissionDetailPage() {
         </div>
       )}
       <div data-print-hide>
-      <Link
-        to={`/app/invoices/${sub.invoiceId}`}
-        className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        Invoice {sub.invoiceNumber}
-      </Link>
-
       <PageHeader
-        title={`IRD submission · ${sub.invoiceNumber}`}
+        back={back}
+        title={t('IRD submission · {invoiceNumber}', { invoiceNumber: sub.invoiceNumber ?? '' })}
         description={`${sub.patientName} · ${sub.patientMrn}`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Badge tone={IRD_STATUS_TONE[sub.status]}>{IRD_STATUS_LABEL[sub.status]}</Badge>
+            <Badge tone={IRD_STATUS_TONE[sub.status]}>{t(IRD_STATUS_LABEL[sub.status])}</Badge>
             {sub.creditNoteStatus !== 'NOT_NEEDED' && (
               <Badge tone={CREDIT_NOTE_STATUS_TONE[sub.creditNoteStatus]}>
-                {CREDIT_NOTE_STATUS_LABEL[sub.creditNoteStatus]}
+                {t(CREDIT_NOTE_STATUS_LABEL[sub.creditNoteStatus])}
               </Badge>
             )}
             {sub.creditNoteStatus === 'FILED' && (
               <Button variant="secondary" loading={printingCreditNote} onClick={printCreditNote}>
                 <Printer className="h-4 w-4" aria-hidden />
-                Print credit note
+                {t('Print credit note')}
               </Button>
             )}
             {canManage && canFileCreditNote && (
-              <Button disabled={busy} onClick={() => act(() => irdApi.submitCreditNote(sub.id), 'Credit note filed')}>
+              <Button disabled={busy} onClick={() => act(() => irdApi.submitCreditNote(sub.id), t('Credit note filed'))}>
                 <Receipt className="h-4 w-4" aria-hidden />
-                File credit note
+                {t('File credit note')}
               </Button>
             )}
             {canManage && canRetryCreditNote && (
-              <Button disabled={busy} onClick={() => act(() => irdApi.retryCreditNote(sub.id), 'Credit note retry attempted')}>
+              <Button disabled={busy} onClick={() => act(() => irdApi.retryCreditNote(sub.id), t('Credit note retry attempted'))}>
                 <RefreshCw className="h-4 w-4" aria-hidden />
-                Retry credit note
+                {t('Retry credit note')}
               </Button>
             )}
             {canManage && canSubmit && (
-              <Button disabled={busy} onClick={() => act(() => irdApi.submit(sub.invoiceId), 'Submission attempted')}>
+              <Button disabled={busy} onClick={() => act(() => irdApi.submit(sub.invoiceId), t('Submission attempted'))}>
                 <Send className="h-4 w-4" aria-hidden />
-                Submit
+                {t('Submit')}
               </Button>
             )}
             {canManage && canRetry && (
-              <Button disabled={busy} onClick={() => act(() => irdApi.retry(sub.id), 'Retry attempted')}>
+              <Button disabled={busy} onClick={() => act(() => irdApi.retry(sub.id), t('Retry attempted'))}>
                 <RefreshCw className="h-4 w-4" aria-hidden />
-                Retry
+                {t('Retry')}
               </Button>
             )}
             {canManage && sub.status !== 'ACCEPTED' && sub.status !== 'CANCELLED' && (
               <Button variant="secondary" disabled={busy} onClick={() => setManualOpen(true)}>
                 <ClipboardCheck className="h-4 w-4" aria-hidden />
-                Mark filed manually
+                {t('Mark filed manually')}
               </Button>
             )}
             {canManage && sub.status !== 'CANCELLED' && (
               <Button variant="ghost" onClick={() => setCancelOpen(true)}>
                 <Ban className="h-4 w-4" aria-hidden />
-                Cancel
+                {t('Cancel')}
               </Button>
             )}
           </div>
         }
       />
 
+      <p className="mb-4 text-sm text-muted">
+        {tRich('Filed for {link}', {
+          link: (
+            <LinkFrom to={`/app/invoices/${sub.invoiceId}`} className="text-foreground hover:underline">
+              {t('Invoice')} {sub.invoiceNumber}
+            </LinkFrom>
+          ),
+        })}
+      </p>
+
       <IrdConfigBanner />
 
       {sub.lastErrorMessage && sub.status === 'FAILED' && (
         <div className="mb-4">
-          <Alert tone="danger" title={`Submission failed${sub.lastErrorCode ? ` · ${sub.lastErrorCode}` : ''}`}>
+          <Alert tone="danger" title={`${t('Submission failed')}${sub.lastErrorCode ? ` · ${sub.lastErrorCode}` : ''}`}>
             {sub.lastErrorMessage}
           </Alert>
         </div>
       )}
       {sub.manual && (
         <div className="mb-4">
-          <Alert tone="info" title="Filed manually">
-            Reference {sub.manualReference}. {sub.notes}
+          <Alert tone="info" title={t('Filed manually')}>
+            {t('Reference')} {sub.manualReference}. {sub.notes}
           </Alert>
         </div>
       )}
       {sub.creditNoteStatus === 'NEEDED' && (
         <div className="mb-4">
-          <Alert tone="warning" title="Credit note required">
-            This bill was successfully filed with IRD, and the invoice has since been cancelled. IRD still has the
-            original bill on record — file a credit note to reverse it.
+          <Alert tone="warning" title={t('Credit note required')}>
+            {t(
+              'This bill was successfully filed with IRD, and the invoice has since been cancelled. IRD still has the original bill on record — file a credit note to reverse it.',
+            )}
           </Alert>
         </div>
       )}
       {sub.creditNoteStatus === 'FAILED' && (
         <div className="mb-4">
-          <Alert tone="danger" title={`Credit note failed${sub.creditNoteErrorCode ? ` · ${sub.creditNoteErrorCode}` : ''}`}>
+          <Alert tone="danger" title={`${t('Credit note failed')}${sub.creditNoteErrorCode ? ` · ${sub.creditNoteErrorCode}` : ''}`}>
             {sub.creditNoteErrorMessage}
           </Alert>
         </div>
       )}
       {sub.creditNoteStatus === 'FILED' && (
         <div className="mb-4">
-          <Alert tone="success" title="Credit note filed">
-            {sub.creditNoteNumber} — {sub.creditNoteFiledAt ? new Date(sub.creditNoteFiledAt).toLocaleString() : ''}
+          <Alert tone="success" title={t('Credit note filed')}>
+            {sub.creditNoteNumber} — {sub.creditNoteFiledAt ? formatDateTime(sub.creditNoteFiledAt) : ''}
           </Alert>
         </div>
       )}
 
       <Card>
-        <CardHeader title="Attempt log" description="Every submission, retry and manual action is recorded." />
+        <CardHeader title={t('Attempt log')} description={t('Every submission, retry and manual action is recorded.')} />
         <CardBody>
           {sub.attempts.length === 0 ? (
-            <p className="text-sm text-muted">No attempts yet.</p>
+            <p className="text-sm text-muted">{t('No attempts yet.')}</p>
           ) : (
             <ol className="space-y-3">
               {sub.attempts.map((a) => (
@@ -219,9 +229,9 @@ export function IrdSubmissionDetailPage() {
                     )}
                   </div>
                   {a.errorMessage && <p className="mt-1 text-muted">{a.errorCode ? `${a.errorCode}: ` : ''}{a.errorMessage}</p>}
-                  {a.providerReference && <p className="mt-1 text-muted">Reference: {a.providerReference}</p>}
+                  {a.providerReference && <p className="mt-1 text-muted">{t('Reference')}: {a.providerReference}</p>}
                   <p className="mt-1 text-xs text-muted">
-                    {new Date(a.occurredAt).toLocaleString()} · {a.actor}
+                    {formatDateTime(a.occurredAt)} · {a.actor}
                   </p>
                 </li>
               ))}
@@ -233,22 +243,22 @@ export function IrdSubmissionDetailPage() {
       <Modal
         open={manualOpen}
         onClose={() => setManualOpen(false)}
-        title="Record manual IRD filing"
-        description="Use when the bill was filed directly on the IRD portal."
+        title={t('Record manual IRD filing')}
+        description={t('Use when the bill was filed directly on the IRD portal.')}
         footer={
           <>
             <Button variant="secondary" type="button" onClick={() => setManualOpen(false)} disabled={busy}>
-              Cancel
+              {t('Cancel')}
             </Button>
             <Button onClick={submitManual} loading={busy}>
-              Record
+              {t('Record')}
             </Button>
           </>
         }
       >
         <div className="space-y-4">
-          <Input label="IRD reference / bill number" value={manualRef} onChange={(e) => setManualRef(e.target.value)} />
-          <Textarea label="Note" value={manualNote} onChange={(e) => setManualNote(e.target.value)} />
+          <Input label={t('IRD reference / bill number')} value={manualRef} onChange={(e) => setManualRef(e.target.value)} />
+          <Textarea label={t('Note')} value={manualNote} onChange={(e) => setManualNote(e.target.value)} />
         </div>
       </Modal>
 
@@ -256,12 +266,12 @@ export function IrdSubmissionDetailPage() {
         open={cancelOpen}
         onClose={() => setCancelOpen(false)}
         onConfirm={async (reason) => {
-          await act(() => irdApi.cancel(sub.id, reason), 'Submission cancelled');
+          await act(() => irdApi.cancel(sub.id, reason), t('Submission cancelled'));
           setCancelOpen(false);
         }}
-        title="Cancel this IRD submission?"
-        message="This only updates internal tracking. Any IRD-side cancellation must be handled per IRD procedure."
-        confirmLabel="Cancel submission"
+        title={t('Cancel this IRD submission?')}
+        message={t('This only updates internal tracking. Any IRD-side cancellation must be handled per IRD procedure.')}
+        confirmLabel={t('Cancel submission')}
         tone="danger"
         reason="required"
       />

@@ -1,16 +1,16 @@
-import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { formatMoney } from '@/lib/money';
+import { useNavigateFrom } from '@/lib/navigation';
 import { formatDate } from './format';
 import { invoicesApi } from '@/features/billing/api';
 import { INVOICE_STATUS_TONE, PAYMENT_STATUS_TONE, type InvoiceListItem } from '@/features/billing/types';
 
 export function PatientInvoicesTab({ patientId }: { patientId: number }) {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { data, loading, error, refetch } = useQuery(
     () => invoicesApi.list({ patientId, size: 50 }),
     [patientId],

@@ -15,7 +15,7 @@ import java.util.Optional;
 
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
 
-    @EntityGraph(attributePaths = {"patient", "referringDoctor", "branch"})
+    @EntityGraph(attributePaths = {"patient", "referringDoctor", "branch", "items"})
     Optional<Appointment> findDetailedById(Long id);
 
     @Query("""

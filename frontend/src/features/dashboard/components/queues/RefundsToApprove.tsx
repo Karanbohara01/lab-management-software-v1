@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/toast';
 import { useQuery } from '@/hooks/useQuery';
@@ -8,13 +7,16 @@ import { refundsApi } from '@/features/billing/api';
 import { formatMoney } from '@/lib/money';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
+import { useNavigateFrom } from '@/lib/navigation';
 import { QueueShell } from './QueueShell';
+import { useT } from '@/i18n';
 
 /** Accounts worklist: refund requests awaiting the segregated approval step. */
 export function RefundsToApprove() {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
   const toast = useToast();
+  const t = useT();
   const [busyId, setBusyId] = useState<number | null>(null);
   const { data, loading, error, refetch } = useQuery(
     () => refundsApi.list({ status: 'REQUESTED', size: 8 }),
@@ -22,16 +24,16 @@ export function RefundsToApprove() {
   );
 
   const decide = async (id: number, approve: boolean) => {
-    const note = window.prompt(approve ? 'Approval note (optional):' : 'Reason for rejecting this refund:', '');
+    const note = window.prompt(approve ? t('Approval note (optional):') : t('Reason for rejecting this refund:'), '');
     if (note === null || (!approve && !note.trim())) return;
     setBusyId(id);
     try {
       if (approve) await refundsApi.approve(id, note.trim() || undefined);
       else await refundsApi.reject(id, note.trim());
-      toast.success(approve ? 'Refund approved' : 'Refund rejected');
+      toast.success(approve ? t('Refund approved') : t('Refund rejected'));
       refetch();
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : 'Action failed');
+      toast.error(e instanceof ApiError ? e.message : t('Action failed'));
     } finally {
       setBusyId(null);
     }
@@ -61,16 +63,16 @@ export function RefundsToApprove() {
                 {r.patientName} <span className="font-mono text-xs text-muted">{formatMoney(r.amount)}</span>
               </p>
               <p className="truncate text-xs text-muted">
-                {r.reason} · requested by {r.requestedBy}
+                {r.reason} · {t('requested by {name}', { name: r.requestedBy })}
               </p>
             </button>
             {hasPermission(PERMISSIONS.REFUND_APPROVE) && (
               <>
                 <Button size="sm" variant="secondary" loading={busyId === r.id} onClick={() => decide(r.id, false)}>
-                  Reject
+                  {t('Reject')}
                 </Button>
                 <Button size="sm" loading={busyId === r.id} onClick={() => decide(r.id, true)}>
-                  Approve
+                  {t('Approve')}
                 </Button>
               </>
             )}

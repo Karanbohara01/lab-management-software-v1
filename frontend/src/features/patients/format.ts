@@ -1,22 +1,28 @@
 import type { Address, Gender } from './types';
+import { getLocale, LOCALE_TAG, translate } from '@/i18n';
 
 export function formatAge(ageYears: number | null): string {
   if (ageYears == null) return '—';
-  return `${ageYears}y`;
+  return translate(getLocale(), '{age}y', { age: ageYears });
 }
 
 export function formatGender(gender: Gender): string {
   return gender.charAt(0) + gender.slice(1).toLowerCase();
 }
 
+/**
+ * Dates follow the language the screen is in: month names in Nepali when Nepali is showing. The
+ * digits stay Latin in both — a date on screen is read against a printed form or a sample label,
+ * and those are never in Devanagari numerals.
+ */
 export function formatDate(iso: string | null): string {
   if (!iso) return '—';
-  return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  return new Date(iso).toLocaleDateString(LOCALE_TAG[getLocale()], { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 export function formatDateTime(iso: string | null): string {
   if (!iso) return '—';
-  return new Date(iso).toLocaleString(undefined, {
+  return new Date(iso).toLocaleString(LOCALE_TAG[getLocale()], {
     year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
   });
 }
@@ -24,7 +30,7 @@ export function formatDateTime(iso: string | null): string {
 /** Single-line address in the Nepal order: tole, ward, municipality, district, province. */
 export function formatAddress(a: Address | null | undefined): string {
   if (!a) return '';
-  const ward = a.wardNo ? `Ward ${a.wardNo}` : null;
+  const ward = a.wardNo ? `${translate(getLocale(), 'Ward')} ${a.wardNo}` : null;
   return [a.line, a.tole, ward, a.municipality ?? a.city, a.district, a.province, a.country]
     .map((p) => p?.trim())
     .filter(Boolean)

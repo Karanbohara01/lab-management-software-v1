@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/toast';
@@ -8,13 +7,16 @@ import { ApiError } from '@/types/api';
 import { resultsApi } from '@/features/results/api';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
+import { useNavigateFrom } from '@/lib/navigation';
 import { QueueShell } from './QueueShell';
+import { useT } from '@/i18n';
 
 /** Pathologist worklist: verified results ready for final authorization. */
 export function ResultsToAuthorize() {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
   const toast = useToast();
+  const t = useT();
   const [busyId, setBusyId] = useState<number | null>(null);
   const { data, loading, error, refetch } = useQuery(() => resultsApi.list({ status: 'VERIFIED', size: 8 }), []);
 
@@ -22,22 +24,22 @@ export function ResultsToAuthorize() {
     setBusyId(id);
     try {
       await resultsApi.approve(id);
-      toast.success('Result authorized');
+      toast.success(t('Result authorized'));
       refetch();
     } catch (e) {
       if (e instanceof ApiError && e.status === 409) {
-        const reason = window.prompt(`${e.message}\n\nEnter a documented reason to authorize anyway:`);
+        const reason = window.prompt(`${e.message}\n\n${t('Enter a documented reason to authorize anyway:')}`);
         if (reason && reason.trim()) {
           try {
             await resultsApi.approve(id, reason.trim());
-            toast.success('Result authorized with override');
+            toast.success(t('Result authorized with override'));
             refetch();
           } catch (e2) {
-            toast.error(e2 instanceof ApiError ? e2.message : 'Failed');
+            toast.error(e2 instanceof ApiError ? e2.message : t('Failed'));
           }
         }
       } else {
-        toast.error(e instanceof ApiError ? e.message : 'Unable to authorize');
+        toast.error(e instanceof ApiError ? e.message : t('Unable to authorize'));
       }
     } finally {
       setBusyId(null);
@@ -66,8 +68,8 @@ export function ResultsToAuthorize() {
             >
               <p className="flex items-center gap-1.5 truncate text-sm font-medium text-foreground">
                 {r.testName}
-                {r.hasCritical && <Badge tone="critical">Critical</Badge>}
-                {r.hasAbnormal && !r.hasCritical && <Badge tone="warning">Abnormal</Badge>}
+                {r.hasCritical && <Badge tone="critical">{t('Critical')}</Badge>}
+                {r.hasAbnormal && !r.hasCritical && <Badge tone="warning">{t('Abnormal')}</Badge>}
               </p>
               <p className="truncate text-xs text-muted">
                 {r.patientName} <span className="font-mono">{r.patientMrn}</span> · {r.departmentName}
@@ -75,7 +77,7 @@ export function ResultsToAuthorize() {
             </button>
             {hasPermission(PERMISSIONS.RESULT_APPROVE) && (
               <Button size="sm" loading={busyId === r.id} onClick={() => authorize(r.id)}>
-                Authorize
+                {t('Authorize')}
               </Button>
             )}
           </li>

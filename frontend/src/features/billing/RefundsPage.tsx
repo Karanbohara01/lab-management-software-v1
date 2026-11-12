@@ -8,6 +8,7 @@ import { Select } from '@/components/ui/Select';
 import { Pagination } from '@/components/ui/Pagination';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useListParams } from '@/hooks/useListParams';
 import { useQuery } from '@/hooks/useQuery';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
@@ -16,21 +17,30 @@ import { useToast } from '@/components/ui/toast';
 import { formatMoney } from '@/lib/money';
 import { refundsApi } from './api';
 import { REFUND_STATUS_TONE, type RefundEntry, type RefundStatus } from './types';
+import { useT, getLocale, LOCALE_TAG } from '@/i18n';
 
 const PAGE_SIZE = 20;
+/** Lives in the URL, so the filter and page survive leaving the page and coming back. */
+const PARAMS = { status: 'REQUESTED', page: 1 };
 
 export function RefundsPage() {
+  const t = useT();
   const toast = useToast();
   const { hasPermission } = useAuth();
   const canDecide = hasPermission(PERMISSIONS.REFUND_APPROVE);
 
-  const [status, setStatus] = useState<'' | RefundStatus>('REQUESTED');
-  const [page, setPage] = useState(0);
+  const { params, set } = useListParams(PARAMS);
   const [reject, setReject] = useState<RefundEntry | null>(null);
 
   const { data, loading, error, refetch } = useQuery(
-    () => refundsApi.list({ status: status || undefined, page, size: PAGE_SIZE }),
-    [status, page],
+    () =>
+      refundsApi.list({
+        status: (params.status as RefundStatus) || undefined,
+        page: params.page - 1,
+        size: PAGE_SIZE,
+      }),
+    [params.status, params.page],
+    { cacheKey: `refunds:${params.status}:${params.page}` },
   );
 
   const decide = async (fn: () => Promise<unknown>, msg: string) => {
@@ -39,30 +49,27 @@ export function RefundsPage() {
       toast.success(msg);
       refetch();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Action failed');
+      toast.error(err instanceof ApiError ? err.message : t('Action failed'));
       throw err;
     }
   };
 
   return (
     <>
-      <PageHeader title="Refunds" description="Review and approve refund requests raised against invoices." />
+      <PageHeader title={t('Refunds')} description={t('Review and approve refund requests raised against invoices.')} />
 
       <Card>
         <div className="border-b border-border p-4">
           <div className="sm:w-48">
             <Select
               options={[
-                { value: '', label: 'All' },
-                { value: 'REQUESTED', label: 'Awaiting decision' },
-                { value: 'APPROVED', label: 'Approved' },
-                { value: 'REJECTED', label: 'Rejected' },
+                { value: '', label: t('All') },
+                { value: 'REQUESTED', label: t('Awaiting decision') },
+                { value: 'APPROVED', label: t('Approved') },
+                { value: 'REJECTED', label: t('Rejected') },
               ]}
-              value={status}
-              onChange={(e) => {
-                setStatus(e.target.value as '' | RefundStatus);
-                setPage(0);
-              }}
+              value={params.status}
+              onChange={(e) => set({ status: e.target.value })}
             />
           </div>
         </div>
@@ -72,7 +79,7 @@ export function RefundsPage() {
         ) : error ? (
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.content.length === 0 ? (
-          <EmptyState title="Nothing here" message="No refund requests match this filter." />
+          <EmptyState title={t('Nothing here')} message={t('No refund requests match this filter.')} />
         ) : (
           data && (
             <>
@@ -91,7 +98,7 @@ export function RefundsPage() {
                       </p>
                       <p className="text-sm text-muted">{r.reason}</p>
                       <p className="text-xs text-muted">
-                        Requested by {r.requestedBy} · {new Date(r.requestedAt).toLocaleString()}
+                        {t('Requested by {name}', { name: r.requestedBy })} · {new Date(r.requestedAt).toLocaleString(LOCALE_TAG[getLocale()])}
                         {r.decidedBy ? ` · ${r.status.toLowerCase()} by ${r.decidedBy}` : ''}
                       </p>
                     </div>
@@ -104,13 +111,13 @@ export function RefundsPage() {
                             variant="secondary"
                             onClick={() => setReject(r)}
                           >
-                            Reject
+                            {t('Reject')}
                           </Button>
                           <Button
                             size="sm"
-                            onClick={() => decide(() => refundsApi.approve(r.id), 'Refund approved')}
+                            onClick={() => decide(() => refundsApi.approve(r.id), t('Refund approved'))}
                           >
-                            Approve
+                            {t('Approve')}
                           </Button>
                         </>
                       )}
@@ -122,7 +129,7 @@ export function RefundsPage() {
                 page={data.page}
                 totalPages={data.totalPages}
                 totalElements={data.totalElements}
-                onPageChange={setPage}
+                onPageChange={(p) => set({ page: p + 1 })}
               />
             </>
           )
@@ -133,11 +140,11 @@ export function RefundsPage() {
         open={!!reject}
         onClose={() => setReject(null)}
         onConfirm={async (note) => {
-          if (reject) await decide(() => refundsApi.reject(reject.id, note || undefined), 'Refund rejected');
+          if (reject) await decide(() => refundsApi.reject(reject.id, note || undefined), t('Refund rejected'));
         }}
-        title="Reject refund request?"
-        message="The requester will need to raise a new request if a refund is still required."
-        confirmLabel="Reject"
+        title={t('Reject refund request?')}
+        message={t('The requester will need to raise a new request if a refund is still required.')}
+        confirmLabel={t('Reject')}
         tone="danger"
         reason="optional"
       />

@@ -1,20 +1,22 @@
 import type { ReactNode } from 'react';
 import { Inbox, ServerCrash } from 'lucide-react';
+import { translate, getLocale } from '@/i18n';
 import { Button } from './Button';
 import { Spinner } from './Spinner';
 
 /** Standard full-panel states so every page handles loading / empty / error consistently. */
 
-export function LoadingState({ label = 'Loading…' }: { label?: string }) {
+export function LoadingState({ label }: { label?: string }) {
+  const resolved = label ?? translate(getLocale(), 'Loading…');
   return (
     <div className="flex min-h-48 items-center justify-center py-12">
-      <Spinner label={label} />
+      <Spinner label={resolved} />
     </div>
   );
 }
 
 export function ErrorState({
-  title = 'Something went wrong',
+  title,
   message,
   onRetry,
 }: {
@@ -22,16 +24,17 @@ export function ErrorState({
   message?: string;
   onRetry?: () => void;
 }) {
+  const resolvedTitle = title ?? translate(getLocale(), 'Something went wrong');
   return (
     <div className="flex min-h-48 flex-col items-center justify-center gap-3 py-12 text-center">
       <ServerCrash className="h-8 w-8 text-danger" aria-hidden />
       <div>
-        <p className="font-medium text-foreground">{title}</p>
-        {message && <p className="mt-1 text-sm text-muted">{message}</p>}
+        <p className="text-heading-4 text-foreground">{resolvedTitle}</p>
+        {message && <p className="mt-1 text-caption text-muted">{message}</p>}
       </div>
       {onRetry && (
         <Button variant="secondary" size="sm" onClick={onRetry}>
-          Try again
+          {translate(getLocale(), 'Try again')}
         </Button>
       )}
     </div>
@@ -90,8 +93,8 @@ export function EmptyState({
     <div className="flex min-h-48 flex-col items-center justify-center gap-3 py-12 text-center">
       <Inbox className="h-8 w-8 text-muted" aria-hidden />
       <div>
-        <p className="font-medium text-foreground">{title}</p>
-        {message && <p className="mt-1 text-sm text-muted">{message}</p>}
+        <p className="text-heading-4 text-foreground">{title}</p>
+        {message && <p className="mt-1 text-caption text-muted">{message}</p>}
       </div>
       {action}
     </div>

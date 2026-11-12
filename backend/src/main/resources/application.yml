@@ -4,7 +4,11 @@ spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3307/lims?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    # rewriteBatchedStatements: without it MySQL's driver sends a JDBC batch one statement at a
+    # time, and Hibernate's batching (configured below) buys nothing. With it, a batch of updates
+    # or inserts goes as one multi-row statement. Set in the default here so it travels with the
+    # application; a DB_URL override should carry it too.
+    url: ${DB_URL:jdbc:mysql://localhost:3307/lims?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&rewriteBatchedStatements=true}
     username: ${DB_USERNAME:lims}
     password: ${DB_PASSWORD:lims}
   jpa:
@@ -22,6 +26,20 @@ spring:
         format_sql: true
         jdbc:
           time_zone: UTC
+          # Lets Hibernate send inserts in one round trip per batch instead of one per row. Matters
+          # for the bulk patient import and costs nothing elsewhere, since a batch of one is just
+          # the single statement it already sent.
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+  servlet:
+    multipart:
+      # A patient export of a few hundred thousand rows is tens of megabytes; Spring's 1MB default
+      # would reject every real one. Spooled to disk almost immediately rather than buffered, since
+      # the import reads the file as a stream anyway and never wants it in memory.
+      max-file-size: ${IMPORT_MAX_FILE_SIZE:80MB}
+      max-request-size: ${IMPORT_MAX_REQUEST_SIZE:80MB}
+      file-size-threshold: 256KB
   data:
     web:
       pageable:
@@ -69,6 +87,22 @@ management:
       show-components: never
 
 lims:
+  patient-import:
+    # Where uploaded spreadsheets are staged. Same convention as lims.backup.directory.
+    directory: ${PATIENT_IMPORT_DIR:./patient-imports}
+    # Rows created per transaction during the import pass. Each batch holds the per-tenant patient
+    # number sequence for its duration, so a smaller batch keeps ordinary registration responsive
+    # while a large migration runs; a larger one finishes sooner.
+    batch-size: ${PATIENT_IMPORT_BATCH_SIZE:200}
+    # How long an uploaded file is kept after its job finishes. The staged rows and the reports
+    # outlive it; the clinic's original file does not need to.
+    file-retention: ${PATIENT_IMPORT_FILE_RETENTION:P7D}
+    # A job whose worker has not reported in for this long is considered abandoned and is picked up
+    # again — this is what makes a killed server resume rather than strand the import.
+    lease-timeout: ${PATIENT_IMPORT_LEASE_TIMEOUT:PT5M}
+    # Refuses a file with more rows than this rather than accepting one it cannot finish.
+    max-rows: ${PATIENT_IMPORT_MAX_ROWS:500000}
+    worker-cron: ${PATIENT_IMPORT_CRON:*/5 * * * * *}
   app:
     # Public base URL of the frontend, used to build links (e.g. report verification) sent in
     # outbound SMS/WhatsApp messages. Set to the real domain in production.

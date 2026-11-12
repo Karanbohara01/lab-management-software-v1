@@ -1,15 +1,14 @@
-import { ArrowRight, Building2, Check, FlaskConical, Microscope, Star, type LucideIcon } from 'lucide-react';
+import { ArrowRight, Building2, FlaskConical, Microscope, Star, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/cn';
-import { Section, SectionHeading, LinkButton } from '../components/primitives';
+import { CheckBullet, Section, SectionHeading, LinkButton } from '../components/primitives';
+import { TYPE } from '../components/typography';
 import { Reveal } from '../components/Reveal';
 import { PLANS } from '../data';
 
 interface PlanLook {
   icon: LucideIcon;
-  /** the icon tile */
+  /** the icon tile — also the tint of the check tiles in the feature list */
   tile: string;
-  /** the check marks */
-  check: string;
   /** the button, for plans that aren't the highlighted one (that one is a solid primary button) */
   outline: string;
   /** the illustration in the card's top-right corner (`public/marketing/pricing/`) and its size */
@@ -21,21 +20,18 @@ const LOOKS: Record<string, PlanLook> = {
   Starter: {
     icon: FlaskConical,
     tile: 'bg-success/10 text-success',
-    check: 'text-success',
     outline: 'border-2 border-success/50 text-success hover:bg-success/5',
     art: { src: '/marketing/pricing/starter.webp', width: 124, height: 114 },
   },
   Professional: {
     icon: Microscope,
     tile: 'bg-primary/10 text-primary',
-    check: 'text-primary',
     outline: 'border-2 border-primary/50 text-primary hover:bg-primary/5',
     art: { src: '/marketing/pricing/professional.webp', width: 118, height: 118 },
   },
   Enterprise: {
     icon: Building2,
     tile: 'bg-violet-100 text-violet-600',
-    check: 'text-violet-600',
     outline: 'border-2 border-violet-300 text-violet-700 hover:bg-violet-50',
     art: { src: '/marketing/pricing/enterprise.webp', width: 98, height: 114 },
   },
@@ -83,7 +79,12 @@ export function Pricing() {
                 />
 
                 {plan.highlighted && (
-                  <span className="mb-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">
+                  <span
+                    className={cn(
+                      'mb-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-primary-foreground',
+                      TYPE.label,
+                    )}
+                  >
                     <Star className="h-3.5 w-3.5 fill-current" aria-hidden />
                     Most Popular
                   </span>
@@ -94,21 +95,18 @@ export function Pricing() {
                     <Icon className="h-7 w-7" aria-hidden />
                   </span>
                   <div className="min-w-0">
-                    <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
-                    <p className="text-sm leading-snug text-muted">{plan.audience}</p>
+                    <h3 className={TYPE.h3}>{plan.name}</h3>
+                    <p className={cn('mt-1.5', TYPE.bodySm)}>{plan.audience}</p>
                   </div>
                 </div>
 
-                <p className="mt-7 text-[1.75rem] font-extrabold leading-tight tracking-tight text-foreground">
-                  Request pricing
-                </p>
+                <p className="mt-7 text-price tabular-nums text-foreground">Request pricing</p>
 
                 <ul className="mt-5 flex-1 space-y-3">
                   {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-3 text-base text-foreground">
-                      <Check className={cn('mt-0.5 h-5 w-5 shrink-0', look.check)} strokeWidth={2.5} aria-hidden />
+                    <CheckBullet key={f} tileClassName={look.tile}>
                       {f}
-                    </li>
+                    </CheckBullet>
                   ))}
                 </ul>
 
@@ -116,7 +114,7 @@ export function Pricing() {
                   to={`/signup?plan=${plan.name.toUpperCase()}`}
                   variant={plan.highlighted ? 'primary' : 'secondary'}
                   size="lg"
-                  className={cn('mt-8 w-full font-semibold', !plan.highlighted && look.outline)}
+                  className={cn('mt-8 w-full', !plan.highlighted && look.outline)}
                 >
                   Start free trial
                   <ArrowRight className="h-4 w-4" aria-hidden />

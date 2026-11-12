@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -6,6 +5,7 @@ import { Badge } from '@/components/ui/Badge';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
+import { useNavigateFrom } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { formatMoney } from '@/lib/money';
@@ -14,7 +14,7 @@ import { ORDER_STATUS_TONE, type OrderListItem } from '@/features/orders/types';
 import { formatDate } from './format';
 
 export function PatientOrdersTab({ patientId }: { patientId: number }) {
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
   const canOrder = hasPermission(PERMISSIONS.LAB_ORDER_WRITE);
 

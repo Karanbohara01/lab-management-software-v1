@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { ChevronDown, ChevronsLeft, ChevronsRight, Search, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { useT } from '@/i18n';
 import { useAuth } from '@/features/auth/useAuth';
+import { useLeafHandle } from '@/lib/navigation';
+import { handleChain, resolvePattern } from '@/routes/appRoutes';
 import { NAV_SECTIONS } from './navigation';
 import { SidebarBrand } from './SidebarBrand';
 
@@ -34,6 +37,31 @@ export function SidebarContent({
   onToggleCollapse?: () => void;
 }) {
   const { hasAnyPermission } = useAuth();
+  const t = useT();
+  const leaf = useLeafHandle();
+  /**
+   * The current page and everything above it. Several pages live under a section they don't share
+   * a URL prefix with (Users sits under Control center), so a path prefix alone can't say which
+   * item to light — the route's own ancestor chain can.
+   */
+  const ancestorHrefs = useMemo(
+    () =>
+      new Set(
+        leaf ? handleChain(leaf.handle.pattern).map((h) => resolvePattern(h.pattern, leaf.params)) : [],
+      ),
+    [leaf],
+  );
+  const { pathname } = useLocation();
+  /**
+   * Which nav item is "where I am". The route's own chain settles it for every listed page; the
+   * path-prefix fallback covers anything not in appRoutes.ts. Dashboard is exact — it is every
+   * page's last ancestor, and lighting it everywhere would say nothing.
+   */
+  const isItemActive = (to: string) => {
+    if (to === '/app') return pathname === '/app';
+    if (ancestorHrefs.has(to)) return true;
+    return pathname === to || pathname.startsWith(`${to}/`);
+  };
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(readCollapsedSections);
   const [query, setQuery] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
@@ -56,13 +84,13 @@ export function SidebarContent({
     () =>
       NAV_SECTIONS.map((section) => ({
         ...section,
-        items: section.items.filter(
-          (item) =>
-            (item.anyPermission.length === 0 || hasAnyPermission(item.anyPermission)) &&
-            (!isSearching || item.label.toLowerCase().includes(trimmedQuery.toLowerCase())),
-        ),
+        heading: t(section.heading),
+        items: section.items
+          .filter((item) => item.anyPermission.length === 0 || hasAnyPermission(item.anyPermission))
+          .map((item) => ({ ...item, label: t(item.label) }))
+          .filter((item) => !isSearching || item.label.toLowerCase().includes(trimmedQuery.toLowerCase())),
       })).filter((section) => section.items.length > 0),
-    [hasAnyPermission, isSearching, trimmedQuery],
+    [hasAnyPermission, isSearching, trimmedQuery, t],
   );
 
   // "/" focuses the sidebar search, unless the user is already typing somewhere else.
@@ -100,8 +128,8 @@ export function SidebarContent({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search menu…"
-              aria-label="Search navigation menu"
+              placeholder={t('Search menu…')}
+              aria-label={t('Search navigation menu')}
               className="h-8 w-full rounded-md border border-input bg-surface-muted/60 pl-8 pr-7 text-xs text-foreground placeholder:text-muted focus-visible:bg-surface focus-visible:ring-2 focus-visible:ring-ring"
             />
             {query ? (
@@ -109,7 +137,7 @@ export function SidebarContent({
                 type="button"
                 onClick={() => setQuery('')}
                 className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted hover:text-foreground"
-                aria-label="Clear menu search"
+                aria-label={t('Clear menu search')}
               >
                 <X className="h-3.5 w-3.5" aria-hidden />
               </button>
@@ -127,7 +155,9 @@ export function SidebarContent({
         aria-label="Primary"
       >
         {isSearching && visibleSections.length === 0 && (
-          <p className="px-3 py-4 text-center text-sm text-muted">No menu items match "{trimmedQuery}".</p>
+          <p className="px-3 py-4 text-center text-sm text-muted">
+            {t('No menu items match "{query}".', { query: trimmedQuery })}
+          </p>
         )}
         {visibleSections.map((section) => {
           const items = section.items;
@@ -138,7 +168,7 @@ export function SidebarContent({
                 <button
                   type="button"
                   onClick={() => toggleSection(section.heading)}
-                  className="group flex w-full items-center justify-between rounded-md px-3 pb-1.5 pt-1 text-xs font-semibold uppercase tracking-wider text-muted hover:text-muted-foreground"
+                  className="group flex w-full items-center justify-between rounded-md px-3 pb-1.5 pt-1 text-label uppercase text-muted hover:text-muted-foreground"
                 >
                   <span>{section.heading}</span>
                   {!isSearching && (
@@ -156,61 +186,56 @@ export function SidebarContent({
                 <ul className="space-y-0.5">
                   {items.map((item) => {
                     const match = !collapsed ? splitMatch(item.label, trimmedQuery) : null;
+                    const isActive = isItemActive(item.to);
                     return (
                       <li key={item.to}>
-                        <NavLink
+                        <Link
                           to={item.to}
-                          end={item.to === '/app' || item.to === '/app/platform'}
                           onClick={() => {
                             setQuery('');
                             onNavigate?.();
                           }}
                           title={collapsed ? item.label : undefined}
                           aria-disabled={item.upcoming || undefined}
-                          className={({ isActive }) =>
-                            cn(
-                              'group relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-100',
-                              collapsed && 'justify-center px-0',
-                              isActive
-                                ? 'bg-primary/10 text-primary'
-                                : 'text-muted-foreground hover:bg-surface-muted hover:text-foreground',
-                              item.upcoming && 'pointer-events-none opacity-50',
-                            )
-                          }
+                          aria-current={isActive ? 'page' : undefined}
+                          className={cn(
+                            'group relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-100',
+                            collapsed && 'justify-center px-0',
+                            isActive
+                              ? 'bg-primary/10 text-primary'
+                              : 'text-muted-foreground hover:bg-surface-muted hover:text-foreground',
+                            item.upcoming && 'pointer-events-none opacity-50',
+                          )}
                         >
-                          {({ isActive }) => (
+                          <span
+                            className={cn(
+                              'absolute left-0 h-[18px] w-[3px] rounded-full bg-primary transition-opacity duration-100',
+                              isActive ? 'opacity-100' : 'opacity-0',
+                            )}
+                            aria-hidden
+                          />
+                          <item.icon className="h-4 w-4 shrink-0" aria-hidden />
+                          {!collapsed && (
                             <>
-                              <span
-                                className={cn(
-                                  'absolute left-0 h-[18px] w-[3px] rounded-full bg-primary transition-opacity duration-100',
-                                  isActive ? 'opacity-100' : 'opacity-0',
+                              <span className="flex-1 truncate">
+                                {match ? (
+                                  <>
+                                    {match[0]}
+                                    <span className="rounded-sm bg-primary/20 text-foreground">{match[1]}</span>
+                                    {match[2]}
+                                  </>
+                                ) : (
+                                  item.label
                                 )}
-                                aria-hidden
-                              />
-                              <item.icon className="h-4 w-4 shrink-0" aria-hidden />
-                              {!collapsed && (
-                                <>
-                                  <span className="flex-1 truncate">
-                                    {match ? (
-                                      <>
-                                        {match[0]}
-                                        <span className="rounded-sm bg-primary/20 text-foreground">{match[1]}</span>
-                                        {match[2]}
-                                      </>
-                                    ) : (
-                                      item.label
-                                    )}
-                                  </span>
-                                  {item.upcoming && (
-                                    <span className="rounded bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted">
-                                      Soon
-                                    </span>
-                                  )}
-                                </>
+                              </span>
+                              {item.upcoming && (
+                                <span className="rounded bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted">
+                                  {t('Soon')}
+                                </span>
                               )}
                             </>
                           )}
-                        </NavLink>
+                        </Link>
                       </li>
                     );
                   })}
@@ -229,10 +254,10 @@ export function SidebarContent({
             'flex shrink-0 items-center gap-2 border-t border-border px-3 py-3 text-xs font-medium text-muted transition-colors hover:bg-surface-muted hover:text-foreground',
             collapsed && 'justify-center',
           )}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? t('Expand sidebar') : t('Collapse sidebar')}
         >
           {collapsed ? <ChevronsRight className="h-4 w-4" aria-hidden /> : <ChevronsLeft className="h-4 w-4" aria-hidden />}
-          {!collapsed && 'Collapse'}
+          {!collapsed && t('Collapse')}
         </button>
       )}
     </div>

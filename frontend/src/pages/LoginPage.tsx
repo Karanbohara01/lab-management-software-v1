@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/Input';
 import { Alert } from '@/components/ui/Alert';
 import { BackLink } from '@/components/BackLink';
 import { BrandMark } from '@/components/brand/BrandMark';
+import { useT } from '@/i18n';
 
 const schema = z.object({
   username: z.string().min(1, 'Username is required'),
@@ -20,6 +21,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export function LoginPage() {
+  const t = useT();
   const dispatch = useAppDispatch();
   const location = useLocation();
   const { isAuthenticated, loginPending, loginError } = useAuth();
@@ -47,20 +49,20 @@ export function LoginPage() {
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-surface-muted px-4 py-12">
       <BackLink to="/" className="absolute left-4 top-4 mb-0 sm:left-6 sm:top-6">
-        Back to home
+        {t('Back to home')}
       </BackLink>
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <Link
             to="/"
-            aria-label="LIMS home"
+            aria-label={t('LIMS home')}
             className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             <BrandMark className="h-14" />
           </Link>
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Sign in to LIMS</h1>
-            <p className="mt-1 text-sm text-muted">Pathology &amp; Laboratory Management</p>
+            <h1 className="text-xl font-semibold text-foreground">{t('Sign in to LIMS')}</h1>
+            <p className="mt-1 text-sm text-muted">{t('Pathology & Laboratory Management')}</p>
           </div>
         </div>
 
@@ -68,7 +70,7 @@ export function LoginPage() {
           {loginError && <Alert tone="danger">{loginError}</Alert>}
 
           <Input
-            label="Username"
+            label={t('Username')}
             autoComplete="username"
             autoFocus
             error={errors.username?.message}
@@ -77,10 +79,10 @@ export function LoginPage() {
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label htmlFor="password" className="text-sm font-medium text-foreground">
-                Password
+                {t('Password')}
               </label>
               <Link to="/forgot-password" className="text-xs font-medium text-primary hover:underline">
-                Forgot password?
+                {t('Forgot password?')}
               </Link>
             </div>
             <Input
@@ -93,12 +95,12 @@ export function LoginPage() {
           </div>
 
           <Button type="submit" className="w-full" loading={loginPending}>
-            Sign in
+            {t('Sign in')}
           </Button>
         </form>
 
         <p className="mt-4 text-center text-xs text-muted">
-          Trouble signing in? Contact your laboratory administrator.
+          {t('Trouble signing in? Contact your laboratory administrator.')}
         </p>
       </div>
     </div>

@@ -1,16 +1,27 @@
-import { useState } from 'react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Select';
 import { LoadingState, ErrorState } from '@/components/ui/PageState';
+import { useListParams } from '@/hooks/useListParams';
 import { useQuery } from '@/hooks/useQuery';
+import { useT, tOpts } from '@/i18n';
 import { analyticsApi, type AnalyticsPoint as Point } from './api';
 import { RevenueTrendChart } from './RevenueTrendChart';
 
+/** The window lives in the URL, so a view of the figures can be bookmarked or shared. */
+const PARAMS = { days: '30' };
+
+const RANGE_OPTIONS = [
+  { value: '7', label: 'Last 7 days' },
+  { value: '30', label: 'Last 30 days' },
+  { value: '90', label: 'Last 90 days' },
+];
+
 /** Ranked horizontal bar list — value direct-labeled, single hue sized by magnitude. */
 function BarList({ points, format }: { points: Point[]; format?: (n: number) => string }) {
+  const t = useT();
   const max = Math.max(1, ...points.map((p) => p.value));
-  if (points.length === 0) return <p className="px-5 py-4 text-sm text-muted">No data for this period.</p>;
+  if (points.length === 0) return <p className="px-5 py-4 text-sm text-muted">{t('No data for this period.')}</p>;
   return (
     <ul className="space-y-2.5 px-5 py-4">
       {points.map((p) => (
@@ -32,24 +43,25 @@ function BarList({ points, format }: { points: Point[]; format?: (n: number) => 
 }
 
 export function AnalyticsPage() {
-  const [days, setDays] = useState('30');
-  const { data, loading, error, refetch } = useQuery(() => analyticsApi.overview(Number(days)), [days]);
+  const t = useT();
+  const { params, set } = useListParams(PARAMS);
+  const { data, loading, error, refetch } = useQuery(
+    () => analyticsApi.overview(Number(params.days)),
+    [params.days],
+    { cacheKey: `analytics:${params.days}` },
+  );
 
   return (
     <>
       <PageHeader
-        title="Analytics"
-        description="Revenue, workload and referral trends."
+        title={t('Analytics')}
+        description={t('Revenue, workload and referral trends.')}
         actions={
           <div className="w-40">
             <Select
-              options={[
-                { value: '7', label: 'Last 7 days' },
-                { value: '30', label: 'Last 30 days' },
-                { value: '90', label: 'Last 90 days' },
-              ]}
-              value={days}
-              onChange={(e) => setDays(e.target.value)}
+              options={tOpts(RANGE_OPTIONS)}
+              value={params.days}
+              onChange={(e) => set({ days: e.target.value })}
             />
           </div>
         }
@@ -62,19 +74,19 @@ export function AnalyticsPage() {
       ) : data ? (
         <div className="grid gap-4 lg:grid-cols-2">
           <Card className="lg:col-span-2">
-            <CardHeader title="Revenue collected" />
+            <CardHeader title={t('Revenue collected')} />
             <RevenueTrendChart points={data.revenueByDay} />
           </Card>
           <Card>
-            <CardHeader title="Tests by department" />
+            <CardHeader title={t('Tests by department')} />
             <BarList points={data.testsByDepartment} />
           </Card>
           <Card>
-            <CardHeader title="Most ordered tests" />
+            <CardHeader title={t('Most ordered tests')} />
             <BarList points={data.topTests} />
           </Card>
           <Card className="lg:col-span-2">
-            <CardHeader title="Top referring doctors" />
+            <CardHeader title={t('Top referring doctors')} />
             <BarList points={data.topReferrers} />
           </Card>
         </div>

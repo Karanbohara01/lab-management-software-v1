@@ -84,7 +84,7 @@ export function FeaturesMenu({ item, linkClassName }: { item: NavItem; linkClass
                 <Link
                   to={feature.href}
                   onClick={hideNow}
-                  className="group flex items-center gap-3 rounded-lg p-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="group flex items-center gap-3 rounded-lg p-2 text-body-sm font-medium text-foreground transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <FeatureIcon src={feature.image} className="h-10 w-10" imgClassName="h-8 w-8" />
                   {feature.title}

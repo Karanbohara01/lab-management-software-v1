@@ -11,6 +11,7 @@ import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
 import { parameterMasterApi } from './api';
 import { PARAMETER_DATA_TYPE_LABEL, type ParameterMaster } from './types';
+import { useT, tOpts } from '@/i18n';
 
 const numish = z
   .union([z.coerce.number(), z.literal('')])
@@ -64,6 +65,7 @@ export function ParameterMasterFormModal({
   parameter: ParameterMaster | null;
   onSaved: () => void;
 }) {
+  const t = useT();
   const toast = useToast();
   const {
     register,
@@ -121,15 +123,15 @@ export function ParameterMasterFormModal({
       };
       if (parameter) {
         await parameterMasterApi.update(parameter.id, payload);
-        toast.success('Parameter updated');
+        toast.success(t('Parameter updated'));
       } else {
         await parameterMasterApi.create(payload);
-        toast.success('Parameter added to dictionary');
+        toast.success(t('Parameter added to dictionary'));
       }
       onSaved();
       onClose();
     } catch (err) {
-      setError('root', { message: err instanceof ApiError ? err.message : 'Unable to save parameter' });
+      setError('root', { message: err instanceof ApiError ? err.message : t('Unable to save parameter') });
     }
   });
 
@@ -137,14 +139,14 @@ export function ParameterMasterFormModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={parameter ? `Edit parameter · ${parameter.name}` : 'New parameter'}
+      title={parameter ? t('Edit parameter · {name}', { name: parameter.name }) : t('New parameter')}
       footer={
         <>
           <Button variant="secondary" type="button" onClick={onClose}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button type="submit" form="parameter-master-form" loading={isSubmitting}>
-            {parameter ? 'Save changes' : 'Add parameter'}
+            {parameter ? t('Save changes') : t('Add parameter')}
           </Button>
         </>
       }
@@ -152,44 +154,45 @@ export function ParameterMasterFormModal({
       <form id="parameter-master-form" onSubmit={onSubmit} className="space-y-4" noValidate>
         {errors.root && <Alert tone="danger">{errors.root.message}</Alert>}
         <div className="grid gap-3 sm:grid-cols-2">
-          <Input label="Name" data-autofocus error={errors.name?.message} {...register('name')} />
-          <Input label="Code" hint="Optional short code" {...register('code')} />
-          <Input label="Unit" {...register('unit')} />
-          <Select label="Type" options={DATA_TYPE_OPTIONS} {...register('dataType')} />
+          <Input label={t('Name')} data-autofocus error={errors.name?.message} {...register('name')} />
+          <Input label={t('Code')} hint={t('Optional short code')} {...register('code')} />
+          <Input label={t('Unit')} {...register('unit')} />
+          <Select label={t('Type')} options={tOpts(DATA_TYPE_OPTIONS)} {...register('dataType')} />
         </div>
 
         {isNumeric && (
           <fieldset className="rounded-md border border-border p-3">
-            <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted">
-              Typical adult reference range
+            <legend className="px-1 text-label uppercase text-muted">
+              {t('Typical adult reference range')}
             </legend>
             <div className="grid gap-3 sm:grid-cols-4">
-              <Input label="Normal low" type="number" step="any" {...register('lowValue')} />
-              <Input label="Normal high" type="number" step="any" {...register('highValue')} />
-              <Input label="Critical low" type="number" step="any" {...register('criticalLow')} />
-              <Input label="Critical high" type="number" step="any" {...register('criticalHigh')} />
+              <Input label={t('Normal low')} type="number" step="any" {...register('lowValue')} />
+              <Input label={t('Normal high')} type="number" step="any" {...register('highValue')} />
+              <Input label={t('Critical low')} type="number" step="any" {...register('criticalLow')} />
+              <Input label={t('Critical high')} type="number" step="any" {...register('criticalHigh')} />
             </div>
-            <Input label="Decimal places" type="number" min={0} className="mt-3" {...register('decimalPlaces')} />
+            <Input label={t('Decimal places')} type="number" min={0} className="mt-3" {...register('decimalPlaces')} />
           </fieldset>
         )}
 
         {isCategorical && (
           <Input
-            label="Allowed values"
+            label={t('Allowed values')}
             placeholder="Nil | Trace | 1+ | 2+ | 3+"
-            hint="Separate the options with a vertical bar ( | )"
+            hint={t('Separate the options with a vertical bar ( | )')}
             {...register('allowedValues')}
           />
         )}
 
         <div className="grid gap-3 sm:grid-cols-3">
-          <Input label="Group heading" placeholder="e.g. Differential count" {...register('groupHeading')} />
-          <Input label="Method / analyzer" {...register('method')} />
-          <Input label="LOINC code" {...register('loincCode')} />
+          <Input label={t('Group heading')} placeholder="e.g. Differential count" {...register('groupHeading')} />
+          <Input label={t('Method / analyzer')} {...register('method')} />
+          <Input label={t('LOINC code')} {...register('loincCode')} />
         </div>
         <p className="text-xs text-muted">
-          Values entered here are only defaults offered when adding a parameter to a test — editing this later
-          does not change any test that already used it.
+          {t(
+            'Values entered here are only defaults offered when adding a parameter to a test — editing this later does not change any test that already used it.',
+          )}
         </p>
       </form>
     </Modal>

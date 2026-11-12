@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useNavigate, useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { useLocation, useParams } from 'react-router-dom';
+import { Plus, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -20,6 +20,8 @@ import { PERMISSIONS } from '@/features/auth/permissions';
 import { useQuery } from '@/hooks/useQuery';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useScrollToTopOnError } from '@/hooks/useScrollToTopOnError';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
+import { useBackTarget, useNavigateFrom } from '@/lib/navigation';
 import { ApiError } from '@/types/api';
 import { doctorsApi } from '@/features/doctors/api';
 import { patientsApi } from './api';
@@ -37,7 +39,9 @@ import {
   REGISTRATION_CHANNELS,
   RELATIONSHIPS,
   SALUTATIONS,
+  tOpts,
 } from './constants';
+import { useT } from '@/i18n';
 import { normalizePhone } from './format';
 import type {
   BloodGroup,
@@ -183,9 +187,12 @@ function SectionCard({ title, description, children }: { title: string; descript
 }
 
 export function RegisterPatientPage() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const isEdit = !!id;
-  const navigate = useNavigate();
+  const navigate = useNavigateFrom();
+  const location = useLocation();
+  const { back } = useBackTarget();
   const toast = useToast();
   const canConfidential = useAuth().hasPermission(PERMISSIONS.PATIENT_CONFIDENTIAL);
 
@@ -205,11 +212,12 @@ export function RegisterPatientPage() {
     setValue,
     setError,
     control,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: EMPTY,
   });
+  const { allowNextNavigation, dialog: unsavedDialog } = useUnsavedChanges(isDirty);
 
   const idFields = useFieldArray({ control, name: 'identifiers' });
   useScrollToTopOnError(errors.root?.message);
@@ -302,7 +310,7 @@ export function RegisterPatientPage() {
     return (
       <div className="grid gap-4 sm:grid-cols-2">
         <Select
-          label="Province"
+          label={t('Province')}
           options={[{ value: '', label: '—' }, ...PROVINCE_NAMES.map((p) => ({ value: p, label: p }))]}
           {...register(`${prefix}.province` as 'address.province', {
             onChange: () => {
@@ -312,7 +320,7 @@ export function RegisterPatientPage() {
           })}
         />
         <Select
-          label="District"
+          label={t('District')}
           disabled={!prov}
           options={[{ value: '', label: '—' }, ...districtsOf(prov).map((d) => ({ value: d, label: d }))]}
           {...register(`${prefix}.district` as 'address.district', {
@@ -325,13 +333,13 @@ export function RegisterPatientPage() {
 
         {useSelect ? (
           <Select
-            label="Municipality / Rural municipality"
+            label={t('Municipality / Rural municipality')}
             disabled={!dist}
             value={list.includes(muni) ? muni : ''}
             options={[
               { value: '', label: '—' },
               ...list.map((m) => ({ value: m, label: m })),
-              { value: '__other__', label: 'Other / not listed…' },
+              { value: '__other__', label: t('Other / not listed…') },
             ]}
             onChange={(e) => {
               if (e.target.value === '__other__') {
@@ -344,8 +352,8 @@ export function RegisterPatientPage() {
           />
         ) : (
           <Input
-            label="Municipality / Rural municipality"
-            placeholder={dist ? 'Type the local level name' : 'Select district first'}
+            label={t('Municipality / Rural municipality')}
+            placeholder={dist ? t('Type the local level name') : t('Select district first')}
             value={muni}
             onChange={(e) => setField('municipality', e.target.value)}
             hint={
@@ -358,7 +366,7 @@ export function RegisterPatientPage() {
                     setField('municipality', '');
                   }}
                 >
-                  Choose from list instead
+                  {t('Choose from list instead')}
                 </button>
               ) : undefined
             }
@@ -366,13 +374,13 @@ export function RegisterPatientPage() {
         )}
 
         <Select
-          label="Ward no."
+          label={t('Ward no.')}
           disabled={!dist}
           options={[{ value: '', label: '—' }, ...WARD_OPTIONS.map((wd) => ({ value: wd, label: wd }))]}
           {...register(`${prefix}.wardNo` as 'address.wardNo')}
         />
-        <Input label="Tole / street" {...register(`${prefix}.tole` as 'address.tole')} />
-        <Input label="House / address line" {...register(`${prefix}.line` as 'address.line')} />
+        <Input label={t('Tole / street')} {...register(`${prefix}.tole` as 'address.tole')} />
+        <Input label={t('House / address line')} {...register(`${prefix}.line` as 'address.line')} />
       </div>
     );
   };
@@ -437,7 +445,7 @@ export function RegisterPatientPage() {
     async (values) => {
     if (!isEdit && strongDuplicate && !values.duplicateOverrideReason?.trim()) {
       setError('duplicateOverrideReason', {
-        message: 'This looks like an existing patient. Give a reason to register a new record, or open the existing one.',
+        message: t('This looks like an existing patient. Give a reason to register a new record, or open the existing one.'),
       });
       return;
     }
@@ -514,8 +522,12 @@ export function RegisterPatientPage() {
       const saved = isEdit
         ? await patientsApi.update(Number(id), payload)
         : await patientsApi.create(payload);
-      toast.success(isEdit ? 'Patient updated' : `Patient registered · ${saved.mrn}`);
-      navigate(`/app/patients/${saved.id}`);
+      toast.success(isEdit ? t('Patient updated') : t('Patient registered · {mrn}', { mrn: saved.mrn }));
+      // The form is still "dirty" (react-hook-form only clears that on reset) but the data is
+      // saved, so the guard mustn't challenge this navigation. Replace, so Back from the patient
+      // skips this form and returns to wherever the user started.
+      allowNextNavigation();
+      navigate(`/app/patients/${saved.id}`, { replace: true, state: location.state });
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.fieldErrors.length > 0) {
@@ -524,7 +536,7 @@ export function RegisterPatientPage() {
           setError('root', { message: err.message });
         }
       } else {
-        setError('root', { message: 'Unable to save patient' });
+        setError('root', { message: t('Unable to save patient') });
       }
     }
     },
@@ -543,30 +555,25 @@ export function RegisterPatientPage() {
     },
   );
 
-  if (isEdit && existing.loading && !existing.data) return <LoadingState label="Loading patient…" />;
+  if (isEdit && existing.loading && !existing.data) return <LoadingState label={t('Loading patient…')} />;
   if (isEdit && existing.error) return <ErrorState message={existing.error} onRetry={existing.refetch} />;
-
-  const backTo = isEdit ? `/app/patients/${id}` : '/app/patients';
 
   return (
     <>
-      <Link to={backTo} className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" aria-hidden />
-        {isEdit ? 'Back to patient' : 'Back to patients'}
-      </Link>
-
+      {unsavedDialog}
       <PageHeader
-        title={isEdit ? `Edit patient · ${existing.data?.mrn ?? ''}` : 'Register patient'}
+        back={back}
+        title={isEdit ? t('Edit patient · {mrn}', { mrn: existing.data?.mrn ?? '' }) : t('Register patient')}
         description={
           isEdit
-            ? 'Update demographics, contact, referral and consent.'
-            : 'Search first — check the possible-duplicate panel before creating a new record.'
+            ? t('Update demographics, contact, referral and consent.')
+            : t('Search first — check the possible-duplicate panel before creating a new record.')
         }
         actions={
           !isEdit ? (
             <Checkbox
-              label="Quick register"
-              hint="Name, contact & category only"
+              label={t('Quick register')}
+              hint={t('Name, contact & category only')}
               checked={quick}
               onChange={(e) => setQuick(e.target.checked)}
             />
@@ -577,19 +584,19 @@ export function RegisterPatientPage() {
       <form onSubmit={onSubmit} className="space-y-4 pb-24" noValidate>
         {errors.root && <Alert tone="danger">{errors.root.message}</Alert>}
 
-        <SectionCard title="Identity">
+        <SectionCard title={t('Identity')}>
           <div className="grid gap-4 sm:grid-cols-[7rem_1fr]">
-            <Select label="Title" options={[{ value: '', label: '—' }, ...SALUTATIONS.map((s) => ({ value: s, label: s }))]} {...register('salutation')} />
-            <Input label="Full name" placeholder="e.g. Anil Kumar Sharma" error={errors.fullName?.message} {...register('fullName')} />
+            <Select label={t('Title')} options={[{ value: '', label: '—' }, ...SALUTATIONS.map((s) => ({ value: s, label: s }))]} {...register('salutation')} />
+            <Input label={t('Full name')} placeholder={t('e.g. Anil Kumar Sharma')} error={errors.fullName?.message} {...register('fullName')} />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input label="Name in Devanagari (optional)" {...register('nameLocal')} />
-            <Select label="Gender" options={GENDERS} error={errors.gender?.message} {...register('gender')} />
+            <Input label={t('Name in Devanagari (optional)')} {...register('nameLocal')} />
+            <Select label={t('Gender')} options={tOpts(GENDERS)} error={errors.gender?.message} {...register('gender')} />
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
-            <Input label="Date of birth" type="date" error={errors.dateOfBirth?.message} {...register('dateOfBirth')} />
-            <Input label="Approx. age (yrs)" type="number" min={0} hint="If DOB unknown" error={errors.approximateAgeYears?.message} {...register('approximateAgeYears')} />
-            <Select label="Blood group" options={BLOOD_GROUPS} {...register('bloodGroup')} />
+            <Input label={t('Date of birth')} type="date" error={errors.dateOfBirth?.message} {...register('dateOfBirth')} />
+            <Input label={t('Approx. age (yrs)')} type="number" min={0} hint={t('If DOB unknown')} error={errors.approximateAgeYears?.message} {...register('approximateAgeYears')} />
+            <Select label={t('Blood group')} options={tOpts(BLOOD_GROUPS)} {...register('bloodGroup')} />
           </div>
         </SectionCard>
 
@@ -601,61 +608,61 @@ export function RegisterPatientPage() {
           />
         )}
 
-        <SectionCard title="Contact">
+        <SectionCard title={t('Contact')}>
           <div className="grid gap-4 sm:grid-cols-3">
-            <Input label="Phone" inputMode="tel" placeholder="98XXXXXXXX" error={errors.phone?.message} {...register('phone')} />
-            <Input label="Alternate phone" inputMode="tel" {...register('alternatePhone')} />
-            <Input label="Email" type="email" error={errors.email?.message} {...register('email')} />
+            <Input label={t('Phone')} inputMode="tel" placeholder="98XXXXXXXX" error={errors.phone?.message} {...register('phone')} />
+            <Input label={t('Alternate phone')} inputMode="tel" {...register('alternatePhone')} />
+            <Input label={t('Email')} type="email" error={errors.email?.message} {...register('email')} />
           </div>
         </SectionCard>
 
         {!quick && (
           <>
-            <SectionCard title="Permanent address">
+            <SectionCard title={t('Permanent address')}>
               {renderAddress('address')}
-              <Checkbox label="Current address is the same as permanent" {...register('currentSameAsPermanent')} />
+              <Checkbox label={t('Current address is the same as permanent')} {...register('currentSameAsPermanent')} />
             </SectionCard>
 
             {!w.currentSameAsPermanent && (
-              <SectionCard title="Current address">{renderAddress('currentAddress')}</SectionCard>
+              <SectionCard title={t('Current address')}>{renderAddress('currentAddress')}</SectionCard>
             )}
 
             <SectionCard
-              title="Emergency contact / guardian"
-              description={isMinor ? 'This patient is a minor — a guardian contact is strongly recommended.' : undefined}
+              title={t('Emergency contact / guardian')}
+              description={isMinor ? t('This patient is a minor — a guardian contact is strongly recommended.') : undefined}
             >
               <div className="grid gap-4 sm:grid-cols-3">
-                <Input label="Contact name" {...register('emergencyName')} />
-                <Select label="Relationship" options={[{ value: '', label: '—' }, ...RELATIONSHIPS.map((r) => ({ value: r, label: r }))]} {...register('emergencyRelationship')} />
-                <Input label="Contact phone" inputMode="tel" {...register('emergencyPhone')} />
+                <Input label={t('Contact name')} {...register('emergencyName')} />
+                <Select label={t('Relationship')} options={[{ value: '', label: '—' }, ...RELATIONSHIPS.map((r) => ({ value: r, label: t(r) }))]} {...register('emergencyRelationship')} />
+                <Input label={t('Contact phone')} inputMode="tel" {...register('emergencyPhone')} />
               </div>
-              <Checkbox label="This contact is the legal guardian" {...register('emergencyGuardian')} />
+              <Checkbox label={t('This contact is the legal guardian')} {...register('emergencyGuardian')} />
             </SectionCard>
 
-            <SectionCard title="Additional demographics">
+            <SectionCard title={t('Additional demographics')}>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Select label="Marital status" options={MARITAL_STATUSES} {...register('maritalStatus')} />
-                <Input label="Occupation" {...register('occupation')} />
-                <Input label="Nationality" {...register('nationality')} />
-                <Select label="Preferred language" options={LANGUAGES.map((l) => ({ value: l, label: l }))} {...register('preferredLanguage')} />
+                <Select label={t('Marital status')} options={tOpts(MARITAL_STATUSES)} {...register('maritalStatus')} />
+                <Input label={t('Occupation')} {...register('occupation')} />
+                <Input label={t('Nationality')} {...register('nationality')} />
+                <Select label={t('Preferred language')} options={LANGUAGES.map((l) => ({ value: l, label: t(l) }))} {...register('preferredLanguage')} />
               </div>
             </SectionCard>
 
-            <SectionCard title="Registration & referral">
+            <SectionCard title={t('Registration & referral')}>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Select label="Patient category" options={PATIENT_CATEGORIES} {...register('category')} />
-                <Select label="Registration channel" options={REGISTRATION_CHANNELS} {...register('registrationChannel')} />
-                <Input label="Branch / counter" {...register('registrationBranch')} />
-                <Input label="External / hospital MRN" {...register('externalMrn')} />
-                <Select label="Referral source" options={REFERRAL_SOURCE_TYPES} {...register('referralSourceType')} />
+                <Select label={t('Patient category')} options={tOpts(PATIENT_CATEGORIES)} {...register('category')} />
+                <Select label={t('Registration channel')} options={tOpts(REGISTRATION_CHANNELS)} {...register('registrationChannel')} />
+                <Input label={t('Branch / counter')} {...register('registrationBranch')} />
+                <Input label={t('External / hospital MRN')} {...register('externalMrn')} />
+                <Select label={t('Referral source')} options={tOpts(REFERRAL_SOURCE_TYPES)} {...register('referralSourceType')} />
                 {referralType === 'DOCTOR' ? (
                   <Controller
                     control={control}
                     name="referringDoctorId"
                     render={({ field }) => (
                       <Combobox
-                        label="Referring doctor"
-                        placeholder="Search doctors…"
+                        label={t('Referring doctor')}
+                        placeholder={t('Search doctors…')}
                         options={doctorOptions}
                         disabled={doctors.loading}
                         value={field.value ?? ''}
@@ -664,7 +671,7 @@ export function RegisterPatientPage() {
                     )}
                   />
                 ) : referralType !== 'SELF' ? (
-                  <Input label="Referral source name" placeholder="Hospital / camp / organisation" {...register('referralSourceName')} />
+                  <Input label={t('Referral source name')} placeholder={t('Hospital / camp / organisation')} {...register('referralSourceName')} />
                 ) : (
                   <div />
                 )}
@@ -672,28 +679,28 @@ export function RegisterPatientPage() {
             </SectionCard>
 
             <SectionCard
-              title="Identity documents"
-              description="Citizenship, national ID, passport, PAN, insurance — used for lookup and billing."
+              title={t('Identity documents')}
+              description={t('Citizenship, national ID, passport, PAN, insurance — used for lookup and billing.')}
             >
               {idFields.fields.length === 0 && (
-                <p className="text-sm text-muted">No documents recorded.</p>
+                <p className="text-sm text-muted">{t('No documents recorded.')}</p>
               )}
               {idFields.fields.map((f, i) => (
                 <div key={f.id} className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-[10rem_1fr_1fr_auto]">
                   <Select
-                    label="Type"
-                    options={IDENTIFIER_TYPES}
+                    label={t('Type')}
+                    options={tOpts(IDENTIFIER_TYPES)}
                     {...register(`identifiers.${i}.type` as const)}
                   />
-                  <Input label="Number" {...register(`identifiers.${i}.value` as const)} />
-                  <Input label="Issued at / date" placeholder="Place" {...register(`identifiers.${i}.issuedPlace` as const)} />
+                  <Input label={t('Number')} {...register(`identifiers.${i}.value` as const)} />
+                  <Input label={t('Issued at / date')} placeholder={t('Place')} {...register(`identifiers.${i}.issuedPlace` as const)} />
                   <div className="flex items-end gap-3 pb-1">
-                    <Checkbox label="Primary" {...register(`identifiers.${i}.primary` as const)} />
+                    <Checkbox label={t('Primary')} {...register(`identifiers.${i}.primary` as const)} />
                     <button
                       type="button"
                       onClick={() => idFields.remove(i)}
                       className="rounded-md p-2 text-muted hover:bg-surface-muted hover:text-danger"
-                      aria-label="Remove document"
+                      aria-label={t('Remove document')}
                     >
                       <Trash2 className="h-4 w-4" aria-hidden />
                     </button>
@@ -707,57 +714,57 @@ export function RegisterPatientPage() {
                 onClick={() => idFields.append({ type: 'CITIZENSHIP', value: '', issuedPlace: '', issuedDate: '', primary: idFields.fields.length === 0 })}
               >
                 <Plus className="h-4 w-4" aria-hidden />
-                Add document
+                {t('Add document')}
               </Button>
             </SectionCard>
 
-            <SectionCard title="Billing party" description="Who settles this patient's bills.">
-              <Select label="Payer" options={PAYER_TYPES} {...register('payerType')} />
+            <SectionCard title={t('Billing party')} description={t("Who settles this patient's bills.")}>
+              <Select label={t('Payer')} options={tOpts(PAYER_TYPES)} {...register('payerType')} />
               {w.payerType !== 'SELF' && (
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Input label="Payer name" placeholder="Company / insurer / scheme" {...register('payerName')} />
-                  <Input label="Scheme / plan" {...register('payerScheme')} />
-                  <Input label="Policy / member ID" {...register('payerMemberId')} />
-                  <Input label="Authorization / claim ref" {...register('payerAuthorization')} />
-                  <Input label="Coverage valid until" type="date" {...register('payerValidUntil')} />
-                  <Input label="Note" {...register('payerNote')} />
+                  <Input label={t('Payer name')} placeholder={t('Company / insurer / scheme')} {...register('payerName')} />
+                  <Input label={t('Scheme / plan')} {...register('payerScheme')} />
+                  <Input label={t('Policy / member ID')} {...register('payerMemberId')} />
+                  <Input label={t('Authorization / claim ref')} {...register('payerAuthorization')} />
+                  <Input label={t('Coverage valid until')} type="date" {...register('payerValidUntil')} />
+                  <Input label={t('Note')} {...register('payerNote')} />
                 </div>
               )}
             </SectionCard>
 
-            <SectionCard title="Flags">
+            <SectionCard title={t('Flags')}>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Checkbox label="VIP" hint="Prioritised handling" {...register('vip')} />
+                <Checkbox label={t('VIP')} hint={t('Prioritised handling')} {...register('vip')} />
                 {canConfidential && (
-                  <Checkbox label="Confidential" hint="Restrict who can view this record" {...register('confidential')} />
+                  <Checkbox label={t('Confidential')} hint={t('Restrict who can view this record')} {...register('confidential')} />
                 )}
-                <Checkbox label="Test / training record" {...register('testRecord')} />
-                <Checkbox label="Deceased" {...register('deceased')} />
+                <Checkbox label={t('Test / training record')} {...register('testRecord')} />
+                <Checkbox label={t('Deceased')} {...register('deceased')} />
               </div>
               {w.deceased && (
-                <Input label="Date of death" type="date" className="max-w-xs" {...register('deceasedDate')} />
+                <Input label={t('Date of death')} type="date" className="max-w-xs" {...register('deceasedDate')} />
               )}
             </SectionCard>
 
-            <SectionCard title="Consent" description="Recorded with the staff member and time of capture.">
-              <Checkbox label="Consent to store and process personal and health data" {...register('consentStore')} />
-              <Checkbox label="Consent to receive reports by SMS / email / messaging app" {...register('consentShareReports')} />
-              <Checkbox label="Consent to use anonymised data for quality and research" {...register('consentResearch')} />
+            <SectionCard title={t('Consent')} description={t('Recorded with the staff member and time of capture.')}>
+              <Checkbox label={t('Consent to store and process personal and health data')} {...register('consentStore')} />
+              <Checkbox label={t('Consent to receive reports by SMS / email / messaging app')} {...register('consentShareReports')} />
+              <Checkbox label={t('Consent to use anonymised data for quality and research')} {...register('consentResearch')} />
             </SectionCard>
 
-            <SectionCard title="Notes">
-              <Textarea label="Internal notes" rows={3} error={errors.notes?.message} {...register('notes')} />
+            <SectionCard title={t('Notes')}>
+              <Textarea label={t('Internal notes')} rows={3} error={errors.notes?.message} {...register('notes')} />
             </SectionCard>
           </>
         )}
 
         {!isEdit && strongDuplicate && (
-          <SectionCard title="Duplicate override">
+          <SectionCard title={t('Duplicate override')}>
             <Alert tone="warning">
-              A very similar patient already exists. If this really is a different person, record why.
+              {t('A very similar patient already exists. If this really is a different person, record why.')}
             </Alert>
             <Input
-              label="Reason for registering a new record"
+              label={t('Reason for registering a new record')}
               error={errors.duplicateOverrideReason?.message}
               {...register('duplicateOverrideReason')}
             />
@@ -766,11 +773,12 @@ export function RegisterPatientPage() {
 
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface/95 backdrop-blur">
           <div className="mx-auto flex max-w-5xl items-center justify-end gap-3 px-4 py-3">
-            <Button variant="secondary" type="button" onClick={() => navigate(backTo)}>
-              Cancel
+            {/* Leaves to wherever the user came from; the guard asks first if anything was typed. */}
+            <Button variant="secondary" type="button" onClick={() => navigate(back.href)}>
+              {t('Cancel')}
             </Button>
             <Button type="submit" loading={isSubmitting}>
-              {isEdit ? 'Save changes' : 'Register patient'}
+              {isEdit ? t('Save changes') : t('Register patient')}
             </Button>
           </div>
         </div>

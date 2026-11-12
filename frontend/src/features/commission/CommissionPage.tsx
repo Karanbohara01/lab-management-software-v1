@@ -8,11 +8,13 @@ import { useQuery } from '@/hooks/useQuery';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { formatMoney } from '@/lib/money';
+import { useT } from '@/i18n';
 import { commissionApi } from './api';
 import type { DoctorCommissionSummary } from './types';
 import { DoctorCommissionModal } from './DoctorCommissionModal';
 
 export function CommissionPage() {
+  const t = useT();
   const { hasPermission } = useAuth();
   const canManage = hasPermission(PERMISSIONS.COMMISSION_MANAGE);
   const { data, loading, error, refetch } = useQuery(() => commissionApi.summary(), []);
@@ -30,8 +32,10 @@ export function CommissionPage() {
   return (
     <>
       <PageHeader
-        title="Referring doctor commission"
-        description="Commission earned automatically when an invoice from a referred order is issued, as a % of the taxable amount. Payouts are recorded separately as a running balance, not matched invoice-by-invoice."
+        title={t('Referring doctor commission')}
+        description={t(
+          'Commission earned automatically when an invoice from a referred order is issued, as a % of the taxable amount. Payouts are recorded separately as a running balance, not matched invoice-by-invoice.',
+        )}
       />
 
       <Card>
@@ -41,20 +45,20 @@ export function CommissionPage() {
           <ErrorState message={error} onRetry={refetch} />
         ) : data && data.length === 0 ? (
           <EmptyState
-            title="No commission earned yet"
-            message="Set a commission rate on a referring doctor's profile, then issue an invoice from an order they referred."
+            title={t('No commission earned yet')}
+            message={t("Set a commission rate on a referring doctor's profile, then issue an invoice from an order they referred.")}
           />
         ) : (
           data && (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
-                    <th className="px-4 py-2">Doctor</th>
-                    <th className="px-4 py-2">Rate</th>
-                    <th className="px-4 py-2 text-right">Earned</th>
-                    <th className="px-4 py-2 text-right">Paid</th>
-                    <th className="px-4 py-2 text-right">Outstanding</th>
+                  <tr className="border-b border-border text-left text-label uppercase text-muted">
+                    <th className="px-4 py-2">{t('Doctor')}</th>
+                    <th className="px-4 py-2">{t('Rate')}</th>
+                    <th className="px-4 py-2 text-right">{t('Earned')}</th>
+                    <th className="px-4 py-2 text-right">{t('Paid')}</th>
+                    <th className="px-4 py-2 text-right">{t('Outstanding')}</th>
                     <th className="px-4 py-2" />
                   </tr>
                 </thead>
@@ -74,7 +78,7 @@ export function CommissionPage() {
                       </td>
                       <td className="px-4 py-2 text-right">
                         <Button variant="secondary" size="sm" onClick={() => setSelected(d)}>
-                          {canManage ? 'View / Pay' : 'View'}
+                          {canManage ? t('View / Pay') : t('View')}
                         </Button>
                       </td>
                     </tr>
@@ -83,7 +87,7 @@ export function CommissionPage() {
                 <tfoot>
                   <tr className="border-t-2 border-border font-semibold">
                     <td className="px-4 py-2" colSpan={2}>
-                      Total ({data.length} doctor{data.length === 1 ? '' : 's'})
+                      {t(data.length === 1 ? 'Total ({count} doctor)' : 'Total ({count} doctors)', { count: data.length })}
                     </td>
                     <td className="px-4 py-2 text-right">{formatMoney(totals.earned)}</td>
                     <td className="px-4 py-2 text-right">{formatMoney(totals.paid)}</td>

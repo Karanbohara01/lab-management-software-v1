@@ -8,6 +8,7 @@ import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
 import { useToast } from '@/components/ui/toast';
+import { useT } from '@/i18n';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { ApiError } from '@/types/api';
 import { patientsApi } from './api';
@@ -25,6 +26,7 @@ export function MergePatientModal({
   survivor: PatientDetail;
   onMerged: (updated: PatientDetail) => void;
 }) {
+  const t = useT();
   const toast = useToast();
   const [search, setSearch] = useState('');
   const [results, setResults] = useState<PatientListItem[]>([]);
@@ -178,14 +180,14 @@ export function MergePatientModal({
           <>
             <div className="flex items-center justify-between gap-3 rounded-md border border-border p-3 text-sm">
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted">Duplicate (retired)</p>
+                <p className="text-label uppercase text-muted">{t('Duplicate (retired)')}</p>
                 <p className="font-medium">
                   {duplicate.fullName} <span className="font-mono text-xs text-muted">{duplicate.mrn}</span>
                 </p>
               </div>
               <ArrowRight className="h-4 w-4 shrink-0 text-muted" aria-hidden />
               <div className="text-right">
-                <p className="text-xs uppercase tracking-wide text-muted">Survivor</p>
+                <p className="text-label uppercase text-muted">{t('Survivor')}</p>
                 <p className="font-medium">
                   {survivor.fullName} <span className="font-mono text-xs text-muted">{survivor.mrn}</span>
                 </p>

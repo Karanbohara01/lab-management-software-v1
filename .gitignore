@@ -10,6 +10,8 @@ frontend/node_modules/
 frontend/dist/
 frontend/.env
 frontend/vite.log
+frontend/scripts/.verify-shots/
+frontend/scripts/__pycache__/
 
 # IDE / OS
 .idea/
@@ -25,3 +27,6 @@ Thumbs.db
 .env.*
 !.env.example
 !.env.prod.example
+
+# Uploaded patient spreadsheets staged by the bulk import. Patient data: never commit.
+backend/patient-imports/

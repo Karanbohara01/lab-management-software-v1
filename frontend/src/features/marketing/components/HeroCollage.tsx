@@ -108,7 +108,7 @@ function VideoTile({ className }: { className?: string }) {
         </button>
       )}
       {failed && (
-        <p role="status" className="absolute inset-x-0 bottom-3 text-center text-xs font-medium text-muted">
+        <p role="status" className="absolute inset-x-0 bottom-3 text-center text-caption font-medium text-muted">
           Video unavailable right now.
         </p>
       )}

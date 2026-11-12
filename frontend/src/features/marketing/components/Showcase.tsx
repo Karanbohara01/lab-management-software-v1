@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react';
-import { Check } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { Reveal } from './Reveal';
-import { Eyebrow } from './primitives';
+import { CheckBullet, SectionHeading } from './primitives';
 
 /** Alternating text / product-mock layout used by every showcase section. */
 export function Showcase({
@@ -34,20 +33,11 @@ export function Showcase({
         )}
       >
         <Reveal className={cn('min-w-0', flip && 'lg:order-2')}>
-          <Eyebrow>{eyebrow}</Eyebrow>
-          <h2 className="mt-5 text-balance text-3xl font-extrabold leading-[1.1] tracking-tight text-foreground sm:text-4xl xl:text-[2.6rem]">
-            {title}
-          </h2>
-          <p className="mt-5 max-w-2xl text-pretty text-[18px] leading-relaxed text-muted sm:text-[20px]">{lead}</p>
+          <SectionHeading eyebrow={eyebrow} title={title} lead={lead} size="lg" />
           {points && (
-            <ul className="mt-7 space-y-3.5">
+            <ul className="mt-8 space-y-3.5">
               {points.map((p) => (
-                <li key={p} className="flex items-start gap-3 text-[17px] font-medium leading-snug text-foreground">
-                  <span className="mt-px flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />
-                  </span>
-                  {p}
-                </li>
+                <CheckBullet key={p}>{p}</CheckBullet>
               ))}
             </ul>
           )}
