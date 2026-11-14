@@ -1,10 +1,8 @@
 import type { ComponentType, SVGProps } from 'react';
-import { FcGlobe, FcApproval, FcCollaboration } from 'react-icons/fc';
 import { cn } from '@/lib/cn';
 import { initials } from '@/lib/initials';
 import { Section, SectionHeading } from '../components/primitives';
-import { TYPE } from '../components/typography';
-import { Reveal, staggerDelay } from '../components/Reveal';
+import { Reveal } from '../components/Reveal';
 import { FacebookGlyph, InstagramGlyph, LinkedInGlyph, ThreadsGlyph } from '../components/SocialIcons';
 import { PRODUCT_NAME } from '../data';
 import '../components/orbit.css';
@@ -162,24 +160,6 @@ function LeaderSkeleton() {
   );
 }
 
-const PRINCIPLES = [
-  {
-    icon: FcGlobe,
-    title: 'Made for Nepal',
-    body: 'Billing in NPR, Bikram Sambat invoice dates and an e-Billing workflow built around the IRD submission process — not bolted on afterwards.',
-  },
-  {
-    icon: FcApproval,
-    title: 'Honest by design',
-    body: 'A bill is never shown as submitted, or a report as released, unless it really was. Every status, attempt and change stays on the record.',
-  },
-  {
-    icon: FcCollaboration,
-    title: 'Built for the whole team',
-    body: 'Receptionists, technicians, pathologists, accountants and administrators each get the screens and permissions their job needs.',
-  },
-] as const;
-
 export function About() {
   const { status, leaders } = useLeadership();
 
@@ -213,18 +193,6 @@ export function About() {
           ))}
         </ul>
       )}
-
-      <div className="mt-12 grid gap-4 md:grid-cols-3">
-        {PRINCIPLES.map((p, i) => (
-          <Reveal key={p.title} delay={staggerDelay(i)} as="div">
-            <div className="h-full rounded-xl border border-border bg-surface p-5">
-              <p.icon className="h-10 w-10" aria-hidden />
-              <h3 className={cn('mt-4', TYPE.h4)}>{p.title}</h3>
-              <p className={cn('mt-1.5', TYPE.bodySm)}>{p.body}</p>
-            </div>
-          </Reveal>
-        ))}
-      </div>
     </Section>
   );
 }
