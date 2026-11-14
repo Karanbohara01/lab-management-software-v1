@@ -25,6 +25,14 @@ export interface Branding {
   logoDataUri: string | null;
 }
 
+/** One named signature line printed on released reports, in print order. */
+export interface ReportSignatory {
+  id: number;
+  title: string;
+  signatureDataUri: string | null;
+  displayOrder: number;
+}
+
 export interface PaymentCredentials {
   esewaEnabled: boolean;
   esewaMerchantCode: string | null;
@@ -62,6 +70,19 @@ export const settingsApi = {
 
   updateLaboratory: (payload: LaboratoryProfile) =>
     httpClient.put<LaboratoryProfile>('/settings/laboratory', payload).then((r) => r.data),
+
+  getReportSignatories: () =>
+    httpClient.get<ReportSignatory[]>('/settings/report-signatories').then((r) => r.data),
+
+  createReportSignatory: (payload: { title: string; signatureDataUri: string | null; displayOrder: number }) =>
+    httpClient.post<ReportSignatory>('/settings/report-signatories', payload).then((r) => r.data),
+
+  updateReportSignatory: (
+    id: number,
+    payload: { title: string; signatureDataUri: string | null; displayOrder: number },
+  ) => httpClient.put<ReportSignatory>(`/settings/report-signatories/${id}`, payload).then((r) => r.data),
+
+  deleteReportSignatory: (id: number) => httpClient.delete(`/settings/report-signatories/${id}`),
 
   getPaymentCredentials: () =>
     httpClient.get<PaymentCredentials>('/settings/payment-credentials').then((r) => r.data),

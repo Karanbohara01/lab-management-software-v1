@@ -108,6 +108,11 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
           Preliminary — not all requested tests are reported yet. A final report will follow.
         </p>
       )}
+      {report.tests.some((test) => test.parameters.some((p) => p.value == null)) && (
+        <p className="mt-2 border border-amber-600 bg-amber-50 px-2 py-1 text-center text-[11px] font-semibold text-amber-800">
+          Some parameters in this report were not performed — they are marked “Not performed” below.
+        </p>
+      )}
 
       <section className="mt-3 grid grid-cols-2 gap-x-8 gap-y-1 bg-gray-50 p-2.5 text-xs">
         <Line label="Patient" value={report.patientName} />
@@ -193,11 +198,15 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
                     <tr className="break-inside-avoid border-b border-gray-200">
                       <td className={`py-1 ${p.groupHeading ? 'pl-3' : ''}`}>{p.name}</td>
                       <td className="py-1 font-semibold">
-                        {p.value ?? '—'}
+                        {/* A parameter only reaches a report without a value through a documented
+                            incomplete-result override — say so explicitly, since a bare dash
+                            beside a reference range reads like a normal finding. */}
+                        {p.value ?? <span className="font-normal italic text-gray-500">Not performed</span>}
                         {mark && <span className={`ml-1 ${mark.className}`}>{mark.text}</span>}
                       </td>
                       <td className="py-1">{p.unit ?? ''}</td>
-                      <td className="py-1">{p.referenceText ?? ''}</td>
+                      {/* No range beside a parameter that wasn't performed — it only invites a comparison. */}
+                      <td className="py-1">{p.value == null ? '' : (p.referenceText ?? '')}</td>
                     </tr>
                     {p.comment && (
                       <tr className="break-inside-avoid">
@@ -221,16 +230,20 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
       ))}
 
       <footer className="mt-6 break-inside-avoid border-t border-[hsl(var(--brand-700))] pt-3 text-[11px] text-gray-700">
-        <div className="mb-6 flex justify-end gap-16">
-          <div className="text-center">
-            <div className="h-8 w-40 border-b border-gray-500" />
-            <p>Lab Technician</p>
+        {report.signatories.length > 0 && (
+          <div className="mb-6 flex flex-wrap justify-end gap-x-16 gap-y-4">
+            {report.signatories.map((s, i) => (
+              <div key={`${s.title}-${i}`} className="text-center">
+                <div className="flex h-8 w-40 items-end justify-center border-b border-gray-500">
+                  {s.signatureDataUri && (
+                    <img src={s.signatureDataUri} alt="Signature" className="max-h-8 max-w-full object-contain" />
+                  )}
+                </div>
+                <p>{s.title}</p>
+              </div>
+            ))}
           </div>
-          <div className="text-center">
-            <div className="h-8 w-40 border-b border-gray-500" />
-            <p>Consultant Pathologist</p>
-          </div>
-        </div>
+        )}
         {report.signedBy && (
           <p className="mt-1">
             Electronically signed by <span className="font-semibold">{report.signedBy}</span>

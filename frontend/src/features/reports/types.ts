@@ -15,6 +15,11 @@ export interface LabHeader {
   printLetterhead: boolean;
 }
 
+export interface ReportSignatoryLine {
+  title: string;
+  signatureDataUri: string | null;
+}
+
 export interface ReportParameterLine {
   name: string;
   unit: string | null;
@@ -86,6 +91,7 @@ export interface ReportDetail {
   deliveryMethod: string | null;
   deliveryRecipient: string | null;
   laboratory: LabHeader;
+  signatories: ReportSignatoryLine[];
   tests: ReportTestBlock[];
 }
 

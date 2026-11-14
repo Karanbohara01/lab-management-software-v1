@@ -22,6 +22,7 @@ import { PaymentCredentialsCard } from './PaymentCredentialsCard';
 import { IrdCredentialsCard } from './IrdCredentialsCard';
 import { SmsCredentialsCard } from './SmsCredentialsCard';
 import { WhatsAppCredentialsCard } from './WhatsAppCredentialsCard';
+import { ReportSignatoriesCard } from './ReportSignatoriesCard';
 import { useT, useTRich } from '@/i18n';
 
 const MAX_LOGO_BYTES = 400_000;
@@ -269,6 +270,8 @@ export function LaboratorySettingsPage() {
               <p className="text-xs text-muted">{t('PNG, JPEG or SVG, under 400 KB. Shown on generated report letterheads.')}</p>
             </CardBody>
           </Card>
+
+          <ReportSignatoriesCard canWrite={canWrite} />
 
           <Card>
             <CardHeader title={t('Letterhead preview')} />

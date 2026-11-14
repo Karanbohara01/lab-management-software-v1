@@ -53,6 +53,13 @@ public final class ReportDtos {
         }
     }
 
+    /** One named signature line printed in the report footer, in the lab's configured order. */
+    public record SignatoryLine(String title, String signatureDataUri) {
+        static SignatoryLine from(np.com.lims.settings.entity.ReportSignatory s) {
+            return new SignatoryLine(s.getTitle(), s.getSignatureDataUri());
+        }
+    }
+
     public record ParameterLine(
             String name, String unit, String value, ResultFlag flag, String referenceText, String comment,
             String groupHeading
@@ -99,9 +106,10 @@ public final class ReportDtos {
             Instant releasedAt, String releasedBy,
             Instant deliveredAt, String deliveredBy, String deliveryMethod, String deliveryRecipient,
             LabHeader laboratory,
+            List<SignatoryLine> signatories,
             List<TestBlock> tests
     ) {
-        public static Detail from(Report r, LaboratoryProfile lab) {
+        public static Detail from(Report r, LaboratoryProfile lab, List<np.com.lims.settings.entity.ReportSignatory> signatories) {
             return new Detail(
                     r.getId(), r.getReportNumber(), r.getOrder().getId(), r.getOrder().getOrderNumber(),
                     r.getPatient().getId(), PatientPrivacy.displayName(r.getPatient()), r.getPatient().getMrn(),
@@ -113,6 +121,7 @@ public final class ReportDtos {
                     r.getReleasedAt(), r.getReleasedBy(),
                     r.getDeliveredAt(), r.getDeliveredBy(), r.getDeliveryMethod(), r.getDeliveryRecipient(),
                     LabHeader.from(lab),
+                    signatories.stream().map(SignatoryLine::from).toList(),
                     r.getTests().stream().map(TestBlock::from).toList());
         }
     }

@@ -8,6 +8,7 @@ import np.com.lims.common.web.CurrentUser;
 import np.com.lims.common.exception.ErrorCode;
 import np.com.lims.common.sequence.SequenceService;
 import np.com.lims.common.tenant.TenantGuard;
+import np.com.lims.communication.SmsAutomationTriggerService;
 import np.com.lims.messaging.PatientMessagingService;
 import np.com.lims.order.LabOrderRepository;
 import np.com.lims.order.entity.LabOrder;
@@ -24,6 +25,7 @@ import np.com.lims.result.entity.ResultStatus;
 import np.com.lims.result.entity.ResultValue;
 import np.com.lims.result.entity.TestResult;
 import np.com.lims.settings.LaboratoryProfileService;
+import np.com.lims.settings.ReportSignatoryRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -47,26 +49,38 @@ public class ReportService {
     private final TestResultRepository resultRepository;
     private final LabTestRepository testRepository;
     private final LaboratoryProfileService laboratoryProfileService;
+    private final ReportSignatoryRepository signatoryRepository;
     private final SequenceService sequenceService;
     private final AuditService auditService;
     private final PatientMessagingService messagingService;
+    private final SmsAutomationTriggerService smsAutomationTriggerService;
 
     public ReportService(ReportRepository reportRepository,
                          LabOrderRepository orderRepository,
                          TestResultRepository resultRepository,
                          LabTestRepository testRepository,
                          LaboratoryProfileService laboratoryProfileService,
+                         ReportSignatoryRepository signatoryRepository,
                          SequenceService sequenceService,
                          AuditService auditService,
-                         PatientMessagingService messagingService) {
+                         PatientMessagingService messagingService,
+                         SmsAutomationTriggerService smsAutomationTriggerService) {
         this.reportRepository = reportRepository;
         this.orderRepository = orderRepository;
         this.resultRepository = resultRepository;
         this.testRepository = testRepository;
         this.laboratoryProfileService = laboratoryProfileService;
+        this.signatoryRepository = signatoryRepository;
         this.messagingService = messagingService;
         this.sequenceService = sequenceService;
         this.auditService = auditService;
+        this.smsAutomationTriggerService = smsAutomationTriggerService;
+    }
+
+    /** Every {@link Detail} needs the same two cross-cutting reads — the letterhead and the
+     * lab's configured signature lines — alongside the report itself. */
+    private Detail toDetail(Report report) {
+        return Detail.from(report, laboratoryProfileService.require(), signatoryRepository.findAllByOrderByDisplayOrderAscIdAsc());
     }
 
     @Transactional(readOnly = true)
@@ -81,14 +95,14 @@ public class ReportService {
     public Detail get(Long id) {
         Report report = reportRepository.findDetailedById(id)
                 .orElseThrow(() -> ApiException.notFound("Report", id));
-        return Detail.from(guardDoctorScope(report), laboratoryProfileService.require());
+        return toDetail(guardDoctorScope(report));
     }
 
     @Transactional(readOnly = true)
     public Detail getByOrder(Long orderId) {
         Report report = reportRepository.findByOrderId(orderId)
                 .orElseThrow(() -> ApiException.notFound("Report for order", orderId));
-        return Detail.from(guardDoctorScope(report), laboratoryProfileService.require());
+        return toDetail(guardDoctorScope(report));
     }
 
     /**
@@ -166,7 +180,7 @@ public class ReportService {
                 (fresh ? "Generated" : "Regenerated (v" + saved.getReportVersion() + ")")
                         + " report " + saved.getReportNumber() + " covering " + approved.size() + " test(s)",
                 null, null);
-        return Detail.from(saved, laboratoryProfileService.require());
+        return toDetail(saved);
     }
 
     @Transactional
@@ -178,7 +192,8 @@ public class ReportService {
         auditService.record(MODULE, "RELEASE", "Report", id,
                 "Released " + report.getReportType() + " report " + report.getReportNumber()
                         + " (signed by " + CurrentUser.username() + ")", null, null);
-        return Detail.from(report, laboratoryProfileService.require());
+        smsAutomationTriggerService.reportReady(report);
+        return toDetail(report);
     }
 
     @Transactional(readOnly = true)
@@ -247,13 +262,13 @@ public class ReportService {
                             + finalRecipient
                             + (result.providerReference() != null ? " (ref " + result.providerReference() + ")" : ""),
                     null, null);
-            return Detail.from(report, laboratoryProfileService.require());
+            return toDetail(report);
         }
 
         report.markDelivered(CurrentUser.username(), normalizedMethod, finalRecipient);
         auditService.record(MODULE, "DELIVER", "Report", id,
                 "Delivered report " + report.getReportNumber() + " via " + normalizedMethod, null, null);
-        return Detail.from(report, laboratoryProfileService.require());
+        return toDetail(report);
     }
 
     private Report load(Long id) {
@@ -314,11 +329,17 @@ public class ReportService {
                 .collect(java.util.stream.Collectors.joining(", "));
     }
 
+    /**
+     * Null — not a dash — when a parameter was never resulted. A parameter can only reach a report
+     * without a value through a documented incomplete-result override, and a bare "—" beside a
+     * reference range reads exactly like a normal finding; the renderer prints an explicit
+     * "Not performed" for null instead.
+     */
     private static String displayValue(ResultValue value) {
         BigDecimal numeric = value.getValueNumeric();
         if (numeric != null) {
             return numeric.stripTrailingZeros().toPlainString();
         }
-        return StringUtils.hasText(value.getValueText()) ? value.getValueText() : "—";
+        return StringUtils.hasText(value.getValueText()) ? value.getValueText() : null;
     }
 }
