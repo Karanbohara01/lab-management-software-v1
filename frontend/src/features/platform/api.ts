@@ -18,7 +18,35 @@ export interface PlatformRole {
   permissions: string[];
 }
 
+/** One of the leadership profiles on the public "About us" section, as the platform admin edits it. */
+export interface LeadershipProfile {
+  id: number;
+  name: string;
+  title: string;
+  description: string | null;
+  photoDataUri: string | null;
+  linkedinUrl: string | null;
+  facebookUrl: string | null;
+  instagramUrl: string | null;
+  threadsUrl: string | null;
+  displayOrder: number;
+  /** Shown on the public site — i.e. it has been given a name. */
+  published: boolean;
+}
+
+export type LeadershipUpdate = Pick<
+  LeadershipProfile,
+  'name' | 'title' | 'description' | 'photoDataUri' | 'linkedinUrl' | 'facebookUrl' | 'instagramUrl' | 'threadsUrl'
+>;
+
 export const platformApi = {
+  leadership: () => httpClient.get<LeadershipProfile[]>('/platform/leadership').then((r) => r.data),
+  createLeadership: (payload: LeadershipUpdate) =>
+    httpClient.post<LeadershipProfile>('/platform/leadership', payload).then((r) => r.data),
+  updateLeadership: (id: LeadershipProfile['id'], payload: LeadershipUpdate) =>
+    httpClient.put<LeadershipProfile>(`/platform/leadership/${id}`, payload).then((r) => r.data),
+  deleteLeadership: (id: LeadershipProfile['id']) => httpClient.delete(`/platform/leadership/${id}`).then(() => undefined),
+
   summary: () => httpClient.get<PlatformSummary>('/platform/summary').then((r) => r.data),
   dashboard: () => httpClient.get<PlatformDashboard>('/platform/dashboard').then((r) => r.data),
 

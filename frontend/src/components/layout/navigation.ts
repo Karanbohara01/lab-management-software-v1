@@ -27,6 +27,7 @@ import {
   Rocket,
   CreditCard,
   Library,
+  Crown,
   type LucideIcon,
 } from 'lucide-react';
 import { PERMISSIONS } from '@/features/auth/permissions';
@@ -55,6 +56,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: 'Master catalogue', to: '/app/platform/master-tests', icon: Library, anyPermission: [PERMISSIONS.PLATFORM_MANAGE] },
       { label: 'Billing', to: '/app/platform/billing', icon: Receipt, anyPermission: [PERMISSIONS.PLATFORM_MANAGE] },
       { label: 'Roles & permissions', to: '/app/platform/roles', icon: ShieldCheck, anyPermission: [PERMISSIONS.PLATFORM_MANAGE] },
+      { label: 'Leadership', to: '/app/platform/leadership', icon: Crown, anyPermission: [PERMISSIONS.PLATFORM_MANAGE] },
     ],
   },
   {

@@ -188,7 +188,7 @@ export function AnalyticsSection() {
         />
       </Reveal>
       <Reveal delay={80}>
-        <div className="mx-auto mt-14 grid max-w-5xl gap-5 sm:grid-cols-2">
+        <div className="mt-14 grid gap-5 sm:grid-cols-2">
           <div className="rounded-2xl border border-border bg-background p-6">
             <h3 className={TYPE.h4}>Test volume by department</h3>
             <ul className="mt-5 space-y-4">

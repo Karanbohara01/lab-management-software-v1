@@ -38,6 +38,8 @@ public class SecurityConfig {
             // is a separate path rather than exempting one method under /platform/**.
             "/public/plans",
             "/public/signup",
+            // The landing page's leadership profiles — read-only, and only named profiles.
+            "/public/leadership",
             // Patient-facing report verification link (SMS/WhatsApp) — no LabOS login exists for
             // the person opening it. See ReportController.verify's javadoc for why this is safe.
             "/reports/verify/**",
