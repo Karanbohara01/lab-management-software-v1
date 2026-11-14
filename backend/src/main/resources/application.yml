@@ -154,6 +154,32 @@ lims:
     base-url: ${SMS_BASE_URL:https://api.sparrowsms.com/v2/sms/}
     api-key: ${SMS_API_KEY:}
     from: ${SMS_FROM:}
+    samaya:
+      # Samaya SMS (samayasms.com.np) — the Communication Hub's preferred provider when
+      # configured, tried before Sparrow (see SmsGatewayRegistry#effective). Disabled by default
+      # — nothing is transmitted until enabled=true AND base-url/api-key/sender-id are all set.
+      # No public API reference exists; built against the only concrete artifact found, an
+      # unofficial 2018 PHP client library — see SamayaSmsGateway's javadoc for the full research
+      # trail and what is NOT confirmed (bulk-send, delivery reports, exact balance response
+      # shape). base-url is per-customer (Samaya is self-hosted per install), so there is no
+      # sensible shared default the way Sparrow/eSewa have one.
+      enabled: ${SAMAYA_SMS_ENABLED:false}
+      base-url: ${SAMAYA_SMS_BASE_URL:}
+      api-key: ${SAMAYA_SMS_API_KEY:}
+      sender-id: ${SAMAYA_SMS_SENDER_ID:}
+    campaign:
+      # SmsCampaignWorker's lease/batch settings — mirrors lims.patient-import's shape. Samaya
+      # documents no bulk-send endpoint, so one message is one real HTTP request; send-delay-ms
+      # is a deliberate small pause between them within a batch so a large campaign doesn't
+      # hammer the gateway in a tight loop.
+      batch-size: ${SMS_CAMPAIGN_BATCH_SIZE:50}
+      send-delay-ms: ${SMS_CAMPAIGN_SEND_DELAY_MS:200}
+      stale-lease-timeout: ${SMS_CAMPAIGN_LEASE_TIMEOUT:PT5M}
+      worker-cron: ${SMS_CAMPAIGN_CRON:*/5 * * * * *}
+    # APPOINTMENT_REMINDER / FOLLOW_UP_DUE automation — see SmsReminderSweep. Runs every 15
+    # minutes by default; only ever does anything for an organization that has enabled one of
+    # those two rules (SmsAutomationRuleRepository#findEnabledOrganizationIds).
+    reminder-sweep-cron: ${SMS_REMINDER_SWEEP_CRON:0 */15 * * * *}
   whatsapp:
     # Meta WhatsApp Business Cloud API (WhatsAppCloudApiGateway). Disabled by default — nothing is
     # transmitted until enabled=true AND phone-number-id/access-token are both set. Unlike

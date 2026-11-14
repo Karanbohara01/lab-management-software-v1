@@ -27,6 +27,7 @@ public interface LabOrderRepository extends JpaRepository<LabOrder, Long> {
                    OR LOWER(o.orderNumber) LIKE LOWER(CONCAT('%', :search, '%'))
                    OR LOWER(o.patient.fullName) LIKE LOWER(CONCAT('%', :search, '%'))
                    OR LOWER(o.patient.mrn) LIKE LOWER(CONCAT('%', :search, '%')))
+            ORDER BY CASE o.priority WHEN 'STAT' THEN 0 WHEN 'URGENT' THEN 1 ELSE 2 END
             """)
     Page<LabOrder> search(@Param("patientId") Long patientId,
                           @Param("status") OrderStatus status,

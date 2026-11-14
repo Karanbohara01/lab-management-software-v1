@@ -15,6 +15,7 @@ import np.com.lims.report.dto.ReportDtos;
 import np.com.lims.report.entity.Report;
 import np.com.lims.report.entity.ReportStatus;
 import np.com.lims.settings.LaboratoryProfileService;
+import np.com.lims.settings.ReportSignatoryRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +40,7 @@ public class PatientPortalService {
     private final ReportRepository reportRepository;
     private final InvoiceRepository invoiceRepository;
     private final LaboratoryProfileService laboratoryProfileService;
+    private final ReportSignatoryRepository signatoryRepository;
     private final String publicUrl;
 
     private static final EnumSet<ReportStatus> VISIBLE_REPORT_STATUSES =
@@ -46,11 +48,13 @@ public class PatientPortalService {
 
     public PatientPortalService(PatientRepository patientRepository, ReportRepository reportRepository,
                                 InvoiceRepository invoiceRepository, LaboratoryProfileService laboratoryProfileService,
+                                ReportSignatoryRepository signatoryRepository,
                                 @Value("${lims.app.public-url}") String publicUrl) {
         this.patientRepository = patientRepository;
         this.reportRepository = reportRepository;
         this.invoiceRepository = invoiceRepository;
         this.laboratoryProfileService = laboratoryProfileService;
+        this.signatoryRepository = signatoryRepository;
         this.publicUrl = publicUrl;
     }
 
@@ -90,7 +94,7 @@ public class PatientPortalService {
         if (!patient.getId().equals(report.getPatient().getId()) || !VISIBLE_REPORT_STATUSES.contains(report.getStatus())) {
             throw ApiException.notFound("Report", reportId);
         }
-        return ReportDtos.Detail.from(report, laboratoryProfile(patient));
+        return ReportDtos.Detail.from(report, laboratoryProfile(patient), reportSignatories(patient));
     }
 
     @Transactional(readOnly = true)
@@ -121,6 +125,16 @@ public class PatientPortalService {
         np.com.lims.common.tenant.TenantContext.set(patient.getOrganizationId());
         try {
             return laboratoryProfileService.require();
+        } finally {
+            np.com.lims.common.tenant.TenantContext.clear();
+        }
+    }
+
+    /** Same manual tenant-scoping as {@link #laboratoryProfile}, for the report's signature lines. */
+    private List<np.com.lims.settings.entity.ReportSignatory> reportSignatories(Patient patient) {
+        np.com.lims.common.tenant.TenantContext.set(patient.getOrganizationId());
+        try {
+            return signatoryRepository.findAllByOrderByDisplayOrderAscIdAsc();
         } finally {
             np.com.lims.common.tenant.TenantContext.clear();
         }

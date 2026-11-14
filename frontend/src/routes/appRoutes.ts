@@ -66,6 +66,18 @@ export const APP_ROUTE_HANDLES: Record<string, RouteHandle> = {
   '/app/purchase-orders/:id': { title: 'Purchase order', parent: '/app/purchase-orders' },
   '/app/analytics': { title: 'Analytics' },
 
+  '/app/communication': { title: 'Communication' },
+  '/app/communication/send': { title: 'Send SMS', parent: '/app/communication' },
+  '/app/communication/campaigns': { title: 'SMS campaigns', parent: '/app/communication' },
+  '/app/communication/campaigns/new': { title: 'New SMS campaign', parent: '/app/communication/campaigns' },
+  '/app/communication/campaigns/:id': { title: 'SMS campaign', parent: '/app/communication/campaigns' },
+  '/app/communication/templates': { title: 'SMS templates', parent: '/app/communication' },
+  '/app/communication/automation': { title: 'Automated notifications', parent: '/app/communication' },
+  '/app/communication/history': { title: 'SMS history', parent: '/app/communication' },
+  '/app/communication/delivery-reports': { title: 'Delivery reports', parent: '/app/communication' },
+  '/app/communication/opt-outs': { title: 'Opted-out numbers', parent: '/app/communication' },
+  '/app/communication/config': { title: 'SMS configuration', parent: '/app/communication' },
+
   '/app/admin': { title: 'Control center' },
   '/app/users': { title: 'Users', parent: '/app/admin' },
   '/app/roles': { title: 'Roles', parent: '/app/admin' },

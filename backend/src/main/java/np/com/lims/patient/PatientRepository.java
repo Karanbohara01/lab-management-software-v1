@@ -96,4 +96,54 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
             """)
     List<Patient> findForImportMatchByName(@Param("orgId") Long orgId,
                                            @Param("names") java.util.Collection<String> names);
+
+    // ----- Communication Hub: bulk SMS recipient resolution ---------------------------------
+    // Each excludes merged-away records and anyone with no phone on file; all are capped by the
+    // caller's Pageable (SmsRecipientQueryService) rather than running unbounded.
+
+    @Query("""
+            SELECT p FROM Patient p
+            WHERE p.active = TRUE AND p.mergedIntoId IS NULL AND p.phone IS NOT NULL AND p.phone <> ''
+            ORDER BY p.id
+            """)
+    List<Patient> findRecipientsAll(Pageable limit);
+
+    @Query("""
+            SELECT p FROM Patient p
+            WHERE p.active = TRUE AND p.mergedIntoId IS NULL AND p.phone IS NOT NULL AND p.phone <> ''
+              AND p.createdAt >= :from AND p.createdAt <= :to
+            ORDER BY p.id
+            """)
+    List<Patient> findRecipientsRegisteredBetween(@Param("from") java.time.Instant from,
+                                                   @Param("to") java.time.Instant to, Pageable limit);
+
+    @Query("""
+            SELECT DISTINCT p FROM Patient p JOIN LabOrder o ON o.patient = p
+            WHERE p.active = TRUE AND p.mergedIntoId IS NULL AND p.phone IS NOT NULL AND p.phone <> ''
+              AND o.orderedAt >= :from AND o.orderedAt <= :to
+            ORDER BY p.id
+            """)
+    List<Patient> findRecipientsVisitedBetween(@Param("from") java.time.Instant from,
+                                               @Param("to") java.time.Instant to, Pageable limit);
+
+    @Query("""
+            SELECT p FROM Patient p
+            WHERE p.active = TRUE AND p.mergedIntoId IS NULL AND p.phone IS NOT NULL AND p.phone <> ''
+              AND p.id NOT IN (SELECT DISTINCT o.patient.id FROM LabOrder o WHERE o.orderedAt >= :since)
+            ORDER BY p.id
+            """)
+    List<Patient> findRecipientsNotVisitedSince(@Param("since") java.time.Instant since, Pageable limit);
+
+    @Query("""
+            SELECT DISTINCT p FROM Patient p JOIN LabOrder o ON o.patient = p JOIN o.items i
+            WHERE p.active = TRUE AND p.mergedIntoId IS NULL AND p.phone IS NOT NULL AND p.phone <> ''
+              AND i.departmentName = :departmentName
+              AND (:from IS NULL OR o.orderedAt >= :from) AND (:to IS NULL OR o.orderedAt <= :to)
+            ORDER BY p.id
+            """)
+    List<Patient> findRecipientsByDepartment(@Param("departmentName") String departmentName,
+                                             @Param("from") java.time.Instant from,
+                                             @Param("to") java.time.Instant to, Pageable limit);
+
+    List<Patient> findByIdInAndActiveTrueAndMergedIntoIdIsNull(java.util.Collection<Long> ids);
 }

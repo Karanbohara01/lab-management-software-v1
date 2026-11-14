@@ -22,6 +22,7 @@ import { MergePatientModal } from './MergePatientModal';
 import { PatientOrdersTab } from './PatientOrdersTab';
 import { PatientReportsTab } from './PatientReportsTab';
 import { PatientInvoicesTab } from './PatientInvoicesTab';
+import { PatientCommunicationTab } from './PatientCommunicationTab';
 import { formatAddress, formatDate, formatDateTime, formatGender } from './format';
 import {
   bloodGroupLabel,
@@ -33,12 +34,13 @@ import {
   referralSourceLabel,
 } from './constants';
 
-type Tab = 'overview' | 'orders' | 'invoices' | 'reports';
+type Tab = 'overview' | 'orders' | 'invoices' | 'reports' | 'communication';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview (tab)' },
   { id: 'orders', label: 'Lab orders (tab)' },
   { id: 'invoices', label: 'Invoices (tab)' },
   { id: 'reports', label: 'Reports (tab)' },
+  { id: 'communication', label: 'Communication (tab)' },
 ];
 
 function Field({ label, value }: { label: string; value: ReactNode }) {
@@ -330,6 +332,9 @@ export function PatientDetailPage() {
       {tab === 'orders' && <PatientOrdersTab patientId={patient.id} />}
       {tab === 'reports' && <PatientReportsTab patientId={patient.id} />}
       {tab === 'invoices' && <PatientInvoicesTab patientId={patient.id} />}
+      {tab === 'communication' && (
+        <PatientCommunicationTab patientId={patient.id} phone={patient.phone} fullName={patient.fullName} />
+      )}
 
       <PatientCard patient={patient} />
 

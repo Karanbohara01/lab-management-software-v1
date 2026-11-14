@@ -16,6 +16,7 @@ import np.com.lims.common.exception.ErrorCode;
 import np.com.lims.common.sequence.SequenceService;
 import np.com.lims.common.tenant.TenantGuard;
 import np.com.lims.common.web.CurrentUser;
+import np.com.lims.communication.SmsAutomationTriggerService;
 import np.com.lims.doctor.DoctorRepository;
 import np.com.lims.doctor.entity.Doctor;
 import np.com.lims.notification.NotificationService;
@@ -50,6 +51,7 @@ public class AppointmentService {
     private final SequenceService sequenceService;
     private final AuditService auditService;
     private final NotificationService notificationService;
+    private final SmsAutomationTriggerService smsAutomationTriggerService;
 
     public AppointmentService(AppointmentRepository appointmentRepository,
                               PatientRepository patientRepository,
@@ -59,7 +61,8 @@ public class AppointmentService {
                               LabTestService labTestService,
                               SequenceService sequenceService,
                               AuditService auditService,
-                              NotificationService notificationService) {
+                              NotificationService notificationService,
+                              SmsAutomationTriggerService smsAutomationTriggerService) {
         this.appointmentRepository = appointmentRepository;
         this.patientRepository = patientRepository;
         this.doctorRepository = doctorRepository;
@@ -69,6 +72,7 @@ public class AppointmentService {
         this.sequenceService = sequenceService;
         this.auditService = auditService;
         this.notificationService = notificationService;
+        this.smsAutomationTriggerService = smsAutomationTriggerService;
     }
 
     @Transactional(readOnly = true)
@@ -110,6 +114,7 @@ public class AppointmentService {
         Appointment saved = appointmentRepository.save(appointment);
         auditService.record(MODULE, "CREATE", "Appointment", saved.getId(),
                 "Booked appointment " + number + " for " + patient.getFullName(), null, Detail.from(saved));
+        smsAutomationTriggerService.appointmentBooked(saved);
         return Detail.from(saved);
     }
 
@@ -125,6 +130,7 @@ public class AppointmentService {
 
         auditService.record(MODULE, "UPDATE", "Appointment", id,
                 "Rescheduled appointment " + appointment.getAppointmentNumber(), before, Detail.from(appointment));
+        smsAutomationTriggerService.appointmentRescheduled(appointment);
         return Detail.from(appointment);
     }
 
@@ -148,6 +154,7 @@ public class AppointmentService {
                 "Appointment cancelled",
                 appointment.getAppointmentNumber() + " for " + appointment.getPatient().getFullName() + " was cancelled",
                 "/appointments/" + id, "APPOINTMENT_READ", "appointment:" + id);
+        smsAutomationTriggerService.appointmentCancelled(appointment);
         return Detail.from(appointment);
     }
 

@@ -9,11 +9,13 @@ import np.com.lims.billing.dto.BillingDtos.SalesBookRow;
 import np.com.lims.billing.entity.Invoice;
 import np.com.lims.billing.entity.InvoiceItem;
 import np.com.lims.billing.entity.InvoiceStatus;
+import np.com.lims.billing.entity.PaymentStatus;
 import np.com.lims.commission.CommissionService;
 import np.com.lims.common.audit.AuditService;
 import np.com.lims.common.exception.ApiException;
 import np.com.lims.common.sequence.SequenceService;
 import np.com.lims.common.web.CurrentUser;
+import np.com.lims.communication.SmsAutomationTriggerService;
 import np.com.lims.ird.IrdSubmissionRepository;
 import np.com.lims.ird.IrdSubmissionService;
 import np.com.lims.ird.entity.IrdSubmission;
@@ -48,6 +50,7 @@ public class InvoiceService {
     private final IrdSubmissionService irdSubmissionService;
     private final IrdSubmissionRepository irdSubmissionRepository;
     private final CommissionService commissionService;
+    private final SmsAutomationTriggerService smsAutomationTriggerService;
 
     public InvoiceService(InvoiceRepository invoiceRepository,
                           LabOrderRepository orderRepository,
@@ -57,7 +60,8 @@ public class InvoiceService {
                           AuditService auditService,
                           IrdSubmissionService irdSubmissionService,
                           IrdSubmissionRepository irdSubmissionRepository,
-                          CommissionService commissionService) {
+                          CommissionService commissionService,
+                          SmsAutomationTriggerService smsAutomationTriggerService) {
         this.invoiceRepository = invoiceRepository;
         this.orderRepository = orderRepository;
         this.pricingCalculator = pricingCalculator;
@@ -67,6 +71,7 @@ public class InvoiceService {
         this.irdSubmissionService = irdSubmissionService;
         this.irdSubmissionRepository = irdSubmissionRepository;
         this.commissionService = commissionService;
+        this.smsAutomationTriggerService = smsAutomationTriggerService;
     }
 
     @Transactional(readOnly = true)
@@ -234,6 +239,9 @@ public class InvoiceService {
                 "Recorded " + request.method() + " payment of " + request.amount()
                         + " against invoice " + invoice.getInvoiceNumber()
                         + " (balance now " + invoice.balance() + ")", null, detail(invoice));
+        if (invoice.paymentStatus() == PaymentStatus.PAID) {
+            smsAutomationTriggerService.paymentCompleted(invoice);
+        }
         return detail(invoice);
     }
 

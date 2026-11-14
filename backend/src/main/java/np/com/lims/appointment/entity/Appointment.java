@@ -80,6 +80,10 @@ public class Appointment extends BaseEntity {
     @OrderBy("id ASC")
     private List<AppointmentTest> items = new ArrayList<>();
 
+    /** Idempotency for the Communication Hub's reminder sweep — a reminder fires at most once per appointment. */
+    @Column(name = "reminder_sent_at")
+    private Instant reminderSentAt;
+
     protected Appointment() {
     }
 
@@ -136,6 +140,10 @@ public class Appointment extends BaseEntity {
 
     public void markNoShow() {
         transitionTo(AppointmentStatus.NO_SHOW);
+    }
+
+    public void markReminderSent() {
+        this.reminderSentAt = Instant.now();
     }
 
     public void convert(LabOrder order) {
@@ -213,5 +221,9 @@ public class Appointment extends BaseEntity {
 
     public List<AppointmentTest> getItems() {
         return items;
+    }
+
+    public Instant getReminderSentAt() {
+        return reminderSentAt;
     }
 }

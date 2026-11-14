@@ -6,6 +6,7 @@ import np.com.lims.common.exception.ErrorCode;
 import np.com.lims.common.sequence.SequenceService;
 import np.com.lims.common.web.CurrentUser;
 import np.com.lims.common.tenant.TenantGuard;
+import np.com.lims.communication.SmsAutomationTriggerService;
 import np.com.lims.doctor.DoctorRepository;
 import np.com.lims.doctor.entity.Doctor;
 import np.com.lims.patient.dto.PatientDtos.AddressDto;
@@ -52,17 +53,20 @@ public class PatientService {
     private final DoctorRepository doctorRepository;
     private final SequenceService sequenceService;
     private final AuditService auditService;
+    private final SmsAutomationTriggerService smsAutomationTriggerService;
 
     public PatientService(PatientRepository patientRepository,
                           PatientIdentifierRepository identifierRepository,
                           DoctorRepository doctorRepository,
                           SequenceService sequenceService,
-                          AuditService auditService) {
+                          AuditService auditService,
+                          SmsAutomationTriggerService smsAutomationTriggerService) {
         this.patientRepository = patientRepository;
         this.identifierRepository = identifierRepository;
         this.doctorRepository = doctorRepository;
         this.sequenceService = sequenceService;
         this.auditService = auditService;
+        this.smsAutomationTriggerService = smsAutomationTriggerService;
     }
 
     private List<IdentifierDto> identifiersOf(Long patientId) {
@@ -173,6 +177,7 @@ public class PatientService {
         }
         Detail after = Detail.from(saved, null, identifiersOf(saved.getId()));
         auditService.record(MODULE, "REGISTER", "Patient", saved.getId(), summary, null, after);
+        smsAutomationTriggerService.patientRegistered(saved);
         return after;
     }
 

@@ -115,6 +115,18 @@ export const router = createBrowserRouter([
       route('purchase-orders', lazyPage(() => import('@/features/inventory/PurchaseOrdersPage'), 'PurchaseOrdersPage'), [P.INVENTORY_READ]),
       route('purchase-orders/:id', lazyPage(() => import('@/features/inventory/PurchaseOrderDetailPage'), 'PurchaseOrderDetailPage'), [P.INVENTORY_READ]),
 
+      route('communication', lazyPage(() => import('@/features/communication/CommunicationDashboardPage'), 'CommunicationDashboardPage'), [P.COMMUNICATION_READ]),
+      route('communication/send', lazyPage(() => import('@/features/communication/SendSmsPage'), 'SendSmsPage'), [P.COMMUNICATION_SEND]),
+      route('communication/campaigns', lazyPage(() => import('@/features/communication/SmsCampaignsPage'), 'SmsCampaignsPage'), [P.COMMUNICATION_CAMPAIGN_MANAGE]),
+      route('communication/campaigns/new', lazyPage(() => import('@/features/communication/CampaignBuilderPage'), 'CampaignBuilderPage'), [P.COMMUNICATION_CAMPAIGN_MANAGE]),
+      route('communication/campaigns/:id', lazyPage(() => import('@/features/communication/CampaignDetailPage'), 'CampaignDetailPage'), [P.COMMUNICATION_CAMPAIGN_MANAGE]),
+      route('communication/templates', lazyPage(() => import('@/features/communication/SmsTemplatesPage'), 'SmsTemplatesPage'), [P.COMMUNICATION_TEMPLATE_MANAGE]),
+      route('communication/automation', lazyPage(() => import('@/features/communication/AutomationRulesPage'), 'AutomationRulesPage'), [P.COMMUNICATION_AUTOMATION_MANAGE]),
+      route('communication/history', lazyPage(() => import('@/features/communication/SmsHistoryPage'), 'SmsHistoryPage'), [P.COMMUNICATION_READ]),
+      route('communication/delivery-reports', lazyPage(() => import('@/features/communication/DeliveryReportsPage'), 'DeliveryReportsPage'), [P.COMMUNICATION_READ]),
+      route('communication/opt-outs', lazyPage(() => import('@/features/communication/OptOutsPage'), 'OptOutsPage'), [P.COMMUNICATION_SEND]),
+      route('communication/config', lazyPage(() => import('@/features/communication/SmsConfigPage'), 'SmsConfigPage'), [P.COMMUNICATION_CONFIG_MANAGE]),
+
       route('admin', lazyPage(() => import('@/features/admin/ControlCenterPage'), 'ControlCenterPage'), [P.SETTINGS_READ]),
       route('platform', lazyPage(() => import('@/features/platform/PlatformPage'), 'PlatformPage'), [P.PLATFORM_MANAGE]),
       route('platform/plans', lazyPage(() => import('@/features/platform/PlansPage'), 'PlansPage'), [P.PLATFORM_MANAGE]),

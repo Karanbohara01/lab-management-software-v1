@@ -10,6 +10,7 @@ import np.com.lims.common.exception.ErrorCode;
 import np.com.lims.common.sequence.SequenceService;
 import np.com.lims.common.tenant.TenantGuard;
 import np.com.lims.common.web.CurrentUser;
+import np.com.lims.communication.SmsAutomationTriggerService;
 import np.com.lims.doctor.DoctorRepository;
 import np.com.lims.doctor.entity.Doctor;
 import np.com.lims.order.dto.OrderDtos.Detail;
@@ -48,6 +49,7 @@ public class LabOrderService {
     private final SequenceService sequenceService;
     private final AuditService auditService;
     private final SampleService sampleService;
+    private final SmsAutomationTriggerService smsAutomationTriggerService;
 
     public LabOrderService(LabOrderRepository orderRepository,
                            PatientRepository patientRepository,
@@ -57,7 +59,8 @@ public class LabOrderService {
                            OrderPricingCalculator pricingCalculator,
                            SequenceService sequenceService,
                            AuditService auditService,
-                           SampleService sampleService) {
+                           SampleService sampleService,
+                           SmsAutomationTriggerService smsAutomationTriggerService) {
         this.orderRepository = orderRepository;
         this.patientRepository = patientRepository;
         this.doctorRepository = doctorRepository;
@@ -67,6 +70,7 @@ public class LabOrderService {
         this.sequenceService = sequenceService;
         this.auditService = auditService;
         this.sampleService = sampleService;
+        this.smsAutomationTriggerService = smsAutomationTriggerService;
     }
 
     @Transactional(readOnly = true)
@@ -123,6 +127,9 @@ public class LabOrderService {
         }
         auditService.record(MODULE, request.confirm() ? "CREATE_CONFIRMED" : "CREATE", "LabOrder", saved.getId(),
                 "Created order " + number + " for " + patient.getFullName(), null, Detail.from(saved));
+        if (request.confirm()) {
+            smsAutomationTriggerService.labOrderConfirmed(saved);
+        }
         return Detail.from(saved);
     }
 
@@ -145,6 +152,9 @@ public class LabOrderService {
         }
         auditService.record(MODULE, "UPDATE", "LabOrder", id,
                 "Updated order " + order.getOrderNumber(), before, Detail.from(order));
+        if (request.confirm()) {
+            smsAutomationTriggerService.labOrderConfirmed(order);
+        }
         return Detail.from(order);
     }
 
@@ -155,6 +165,7 @@ public class LabOrderService {
         sampleService.generateForOrder(order);
         auditService.record(MODULE, "CONFIRM", "LabOrder", id,
                 "Confirmed order " + order.getOrderNumber(), null, Detail.from(order));
+        smsAutomationTriggerService.labOrderConfirmed(order);
         return Detail.from(order);
     }
 

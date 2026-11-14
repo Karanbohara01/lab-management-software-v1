@@ -39,6 +39,14 @@ import java.time.Duration;
  * situation as Khalti's dead shared test key before its sandbox was properly set up — resolve by
  * signing up for a real account at sparrowsms.com and confirming the exact working URL from their
  * own dashboard/examples before flipping {@code lims.sms.enabled=true} in production.
+ *
+ * <p>{@code @Primary}: {@code np.com.lims.communication.gateway.SamayaSmsGateway} registers a
+ * second {@code SmsGateway} bean alongside this one (both coexist — see
+ * {@code np.com.lims.communication.gateway.SmsGatewayRegistry}, which resolves between them for
+ * the new Communication Hub). Every pre-existing {@code @Autowired SmsGateway} injection point
+ * (just {@link np.com.lims.messaging.PatientMessagingService} today) has no opinion about which
+ * provider it wants, so marking this one {@code @Primary} keeps it resolving here, unchanged,
+ * exactly as before Samaya was added.
  */
 @Configuration
 @EnableConfigurationProperties(SmsProperties.class)
@@ -48,6 +56,7 @@ public class SparrowSmsGateway {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Bean
+    @org.springframework.context.annotation.Primary
     public SmsGateway smsGateway(SmsProperties properties, RestClient.Builder restClientBuilder,
                                  SmsCredentialsRepository credentialsRepository, CryptoService cryptoService) {
         org.springframework.http.client.SimpleClientHttpRequestFactory requestFactory =

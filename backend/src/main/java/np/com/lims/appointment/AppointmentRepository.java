@@ -43,4 +43,20 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     List<Appointment> findByPatientIdOrderByScheduledAtDesc(Long patientId);
 
     long countByScheduledAtBetween(Instant from, Instant to);
+
+    /** Appointments due within a window and not already settled — the reminder sweep's claim pool. */
+    List<Appointment> findByStatusInAndScheduledAtBetweenAndReminderSentAtIsNull(
+            List<AppointmentStatus> statuses, Instant from, Instant to);
+
+    /** Communication Hub bulk-SMS recipient filter: patients with an upcoming, still-active appointment. */
+    @Query("""
+            SELECT DISTINCT a.patient FROM Appointment a
+            WHERE a.status IN :statuses AND a.scheduledAt >= :from AND a.scheduledAt <= :to
+              AND a.patient.active = TRUE AND a.patient.mergedIntoId IS NULL
+              AND a.patient.phone IS NOT NULL AND a.patient.phone <> ''
+            ORDER BY a.patient.id
+            """)
+    List<np.com.lims.patient.entity.Patient> findRecipientsWithUpcomingAppointment(
+            @Param("statuses") List<AppointmentStatus> statuses, @Param("from") Instant from,
+            @Param("to") Instant to, Pageable limit);
 }
