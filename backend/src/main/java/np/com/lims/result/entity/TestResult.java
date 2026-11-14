@@ -176,6 +176,35 @@ public class TestResult extends BaseEntity {
         return values.stream().anyMatch(ResultValue::isDeltaBreach);
     }
 
+    /**
+     * Every slot with no value — including a calculated (formula) one. A blank calculated
+     * parameter usually just means one of its inputs is blank (which is <em>also</em> in this
+     * list, so the actionable gap is still named), but a formula can leave a slot blank for other
+     * reasons even when every input it reads is present — division by zero, a malformed
+     * expression, or a formula referencing a code that doesn't match any sibling parameter (see
+     * {@code FormulaEvaluator}'s own javadoc: "any missing variable, division by zero or
+     * malformed expression makes evaluate return null"). That case has no other blank parameter
+     * to point to, so excluding calculated slots here would let it through the completeness gate
+     * silently — exactly the "blank value reaches a report with no override" failure this class
+     * exists to prevent. A culture result has no parameter slots to be missing; its completeness
+     * is {@link #isComplete()}'s growth-outcome check instead.
+     */
+    public List<ResultValue> missingValues() {
+        if (isCulture()) {
+            return List.of();
+        }
+        return values.stream().filter(v -> !v.hasValue()).toList();
+    }
+
+    /**
+     * Every result the lab is expected to report is actually present. Auto-verification requires
+     * this outright, and a human verifier/approver must document a reason to proceed without it —
+     * a partial panel must never slip through to a report looking complete.
+     */
+    public boolean isComplete() {
+        return isCulture() ? cultureGrowth != null : missingValues().isEmpty();
+    }
+
     public void markAutoVerified() {
         this.autoVerified = true;
     }
@@ -265,6 +294,9 @@ public class TestResult extends BaseEntity {
         this.status = ResultStatus.ENTERED;
         this.verifiedAt = null;
         this.verifiedBy = null;
+        // Whatever verified it before no longer stands — the re-entered values go through
+        // auto-verify (or a person) afresh, so the old badge must not linger on the list.
+        this.autoVerified = false;
         this.rejectionReason = reason;
         recordChange("—", null, null, "Sent back for correction: " + reason, actor);
     }

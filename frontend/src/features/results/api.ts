@@ -10,6 +10,17 @@ import type {
   ValueInput,
 } from './types';
 
+/** Each field answers a different 409 from the verify endpoint — see the backend VerifyRequest. */
+export interface VerifyOverrides {
+  selfVerifyOverrideReason?: string;
+  incompleteOverrideReason?: string;
+}
+
+export interface ApproveOverrides {
+  qcOverrideReason?: string;
+  incompleteOverrideReason?: string;
+}
+
 export interface ResultQuery {
   status?: ResultStatus;
   departmentId?: number;
@@ -46,8 +57,8 @@ export const resultsApi = {
   saveCulture: (id: number, body: CultureRequest) =>
     httpClient.put<ResultDetail>(`/results/${id}/culture`, body).then((r) => r.data),
 
-  verify: (id: number, selfVerifyOverrideReason?: string) =>
-    httpClient.post<ResultDetail>(`/results/${id}/verify`, { selfVerifyOverrideReason }).then((r) => r.data),
+  verify: (id: number, overrides: VerifyOverrides = {}) =>
+    httpClient.post<ResultDetail>(`/results/${id}/verify`, overrides).then((r) => r.data),
 
   logCriticalCallback: (
     id: number,
@@ -63,12 +74,14 @@ export const resultsApi = {
   waiveCriticalCallback: (id: number, reason: string) =>
     httpClient.post<ResultDetail>(`/results/${id}/critical-callback/waive`, { reason }).then((r) => r.data),
 
-  approve: (id: number, qcOverrideReason?: string) =>
-    httpClient.post<ResultDetail>(`/results/${id}/approve`, { qcOverrideReason }).then((r) => r.data),
+  approve: (id: number, overrides: ApproveOverrides = {}) =>
+    httpClient.post<ResultDetail>(`/results/${id}/approve`, overrides).then((r) => r.data),
 
   reject: (id: number, reason: string) =>
     httpClient.post<ResultDetail>(`/results/${id}/reject`, { reason }).then((r) => r.data),
 
-  amend: (id: number, values: ValueInput[], reason: string, comment?: string) =>
-    httpClient.post<ResultDetail>(`/results/${id}/amend`, { values, reason, comment }).then((r) => r.data),
+  amend: (id: number, values: ValueInput[], reason: string, comment?: string, incompleteOverrideReason?: string) =>
+    httpClient
+      .post<ResultDetail>(`/results/${id}/amend`, { values, reason, comment, incompleteOverrideReason })
+      .then((r) => r.data),
 };

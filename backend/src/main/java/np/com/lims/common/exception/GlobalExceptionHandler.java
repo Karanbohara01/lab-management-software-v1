@@ -75,6 +75,21 @@ public class GlobalExceptionHandler {
                 code.status().value(), req.getRequestURI()));
     }
 
+    /**
+     * A domain entity's own state-machine guard (e.g. {@code SmsCampaign#requestCancel} rejecting
+     * an already-finished campaign) — these are thrown as plain {@code IllegalStateException} from
+     * entity methods, which stay framework-agnostic and don't construct an {@code ApiException}
+     * themselves (no entity in this codebase does). Without this handler such a guard fell through
+     * to the catch-all below and was reported as a 500 "unexpected error" instead of the 409
+     * conflict it actually is.
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiError> handleIllegalState(IllegalStateException ex, HttpServletRequest req) {
+        ErrorCode code = ErrorCode.RESOURCE_CONFLICT;
+        return ResponseEntity.status(code.status())
+                .body(ApiError.of(code.name(), ex.getMessage(), code.status().value(), req.getRequestURI()));
+    }
+
     @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
     public ResponseEntity<ApiError> handleUnreadable(org.springframework.http.converter.HttpMessageNotReadableException ex,
                                                      HttpServletRequest req) {

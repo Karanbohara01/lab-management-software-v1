@@ -25,6 +25,7 @@ import { useToast } from '@/components/ui/toast';
 import { useT, LOCALE_TAG, getLocale } from '@/i18n';
 import { formatGender } from '@/features/patients/format';
 import { resultsApi } from './api';
+import { approveWithPrompts, verifyWithPrompts } from './overrides';
 import {
   RESULT_STATUS_LABEL,
   RESULT_STATUS_TONE,
@@ -66,6 +67,7 @@ export function ResultEntryPage() {
   const [rejectOpen, setRejectOpen] = useState(false);
   const [amendOpen, setAmendOpen] = useState(false);
   const [callbackOpen, setCallbackOpen] = useState(false);
+  const [incompleteAction, setIncompleteAction] = useState<'verify' | 'approve' | null>(null);
 
   useEffect(() => {
     if (result) {
@@ -164,61 +166,80 @@ export function ResultEntryPage() {
     }
   };
 
-  const verifyResult = async () => {
+  /**
+   * Returns whether it actually went through. A declined or failed secondary prompt (self-verify,
+   * QC override) resolves {@code {ok: false}} from verifyWithPrompts/approveWithPrompts rather
+   * than throwing — this still reports that honestly to the caller, rather than only toasting it,
+   * so a caller driving a ConfirmDialog (which closes unconditionally once its onConfirm resolves)
+   * can tell the difference and keep the dialog open instead of closing as if it had succeeded.
+   */
+  const runVerify = async (initial: { incompleteOverrideReason?: string } = {}) => {
     setBusyAction(true);
     try {
-      await resultsApi.verify(result.id);
-      toast.success(t('Result verified'));
-      refetch();
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
-        const reason = window.prompt(
-          `${err.message}\n\n${t('Enter a documented reason to verify it yourself:')}`,
-        );
-        if (reason && reason.trim()) {
-          try {
-            await resultsApi.verify(result.id, reason.trim());
-            toast.success(t('Result verified with override'));
-            refetch();
-          } catch (e2) {
-            toast.error(e2 instanceof ApiError ? e2.message : t('Action failed'));
-          }
-        }
-      } else {
-        toast.error(err instanceof ApiError ? err.message : t('Action failed'));
+      const outcome = await verifyWithPrompts(
+        result.id,
+        {
+          incomplete: t('Enter a documented reason to verify this result as partial:'),
+          other: t('Enter a documented reason to verify it yourself:'),
+        },
+        initial,
+      );
+      if (outcome.ok) {
+        toast.success(outcome.overridden ? t('Result verified with override') : t('Result verified'));
+        refetch();
       }
+      return outcome.ok;
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : t('Action failed'));
+      return false;
     } finally {
       setBusyAction(false);
     }
   };
 
-  const approveResult = async () => {
+  const runApprove = async (initial: { incompleteOverrideReason?: string } = {}) => {
     setBusyAction(true);
     try {
-      await resultsApi.approve(result.id);
-      toast.success(t('Result approved'));
-      refetch();
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
-        const reason = window.prompt(
-          `${err.message}\n\n${t('Enter a documented reason to approve despite the QC failure:')}`,
-        );
-        if (reason && reason.trim()) {
-          try {
-            await resultsApi.approve(result.id, reason.trim());
-            toast.success(t('Result approved with QC override'));
-            refetch();
-          } catch (e2) {
-            toast.error(e2 instanceof ApiError ? e2.message : t('Action failed'));
-          }
-        }
-      } else {
-        toast.error(err instanceof ApiError ? err.message : t('Action failed'));
+      const outcome = await approveWithPrompts(
+        result.id,
+        {
+          incomplete: t('Enter a documented reason to approve this result as partial:'),
+          other: t('Enter a documented reason to approve despite the QC failure:'),
+        },
+        initial,
+      );
+      if (outcome.ok) {
+        toast.success(outcome.overridden ? t('Result approved with override') : t('Result approved'));
+        refetch();
       }
+      return outcome.ok;
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : t('Action failed'));
+      return false;
     } finally {
       setBusyAction(false);
     }
   };
+
+  // An incomplete panel is challenged up front, in a proper dialog that names the blank
+  // parameters, rather than discovered as a 409 after the click — the person must see exactly
+  // what's missing before deciding to report it as partial.
+  const verifyResult = () => (result.complete ? runVerify() : setIncompleteAction('verify'));
+  const approveResult = () => (result.complete ? runApprove() : setIncompleteAction('approve'));
+
+  const enterable = result.values.filter((v) => !v.calculated);
+  // While editing, only what the technician can actually type into is checked — a calculated
+  // value isn't resolved until the server recomputes it on save. Once saved, the server's own
+  // completeness (result.missingParameters) is authoritative and does include a calculated slot
+  // that failed to compute (e.g. a formula dividing by zero) — that's a real gap with nothing
+  // else to point to, not noise, so it isn't filtered back out here.
+  const blank = editable
+    ? enterable.filter((v) => (draft[v.parameterId] ?? '').trim() === '')
+    : result.values.filter((v) => v.valueNumeric == null && !(v.valueText ?? '').trim());
+  const totalForBanner = editable ? enterable.length : result.values.length;
+  // Nothing to warn about on a fresh, untouched panel — only once something has been entered.
+  const showIncomplete =
+    result.resultMode !== 'CULTURE' && blank.length > 0 && (result.status !== 'PENDING' || blank.length < totalForBanner);
 
   const doReject = async (reason: string) => {
     try {
@@ -287,6 +308,22 @@ export function ResultEntryPage() {
         <div className="mb-4">
           <Alert tone="warning" title={t('Delta check flagged')}>
             {t("One or more values changed sharply from this patient's previous result. Review before verifying.")}
+          </Alert>
+        </div>
+      )}
+      {showIncomplete && (
+        <div className="mb-4">
+          <Alert tone="warning" title={t('Incomplete result')}>
+            {t('{missing} of {total} parameters have no value: {names}.', {
+              missing: blank.length,
+              total: totalForBanner,
+              names: blank.map((v) => v.parameterName).join(', '),
+            })}{' '}
+            {result.status === 'APPROVED'
+              ? t('They print as "Not performed" on the report.')
+              : editable
+                ? t('It will not auto-verify, and a verifier will have to document a reason to accept it as partial.')
+                : t('Verifying or approving it will require a documented reason, and the report will print them as "Not performed".')}
           </Alert>
         </div>
       )}
@@ -413,10 +450,14 @@ export function ResultEntryPage() {
                                 aria-label={v.parameterName}
                               />
                             )
-                          ) : (
+                          ) : v.valueNumeric != null || (v.valueText ?? '').trim() ? (
                             <span className={v.calculated ? 'font-medium text-muted' : 'font-medium text-foreground'}>
-                              {v.valueNumeric != null ? v.valueNumeric : v.valueText || '—'}
+                              {v.valueNumeric != null ? v.valueNumeric : v.valueText}
                             </span>
+                          ) : v.calculated ? (
+                            <span className="italic text-warning">{t('Could not compute')}</span>
+                          ) : (
+                            <span className="italic text-warning">{t('Not resulted')}</span>
                           )}
                           {editable && !v.calculated ? (
                             revealedNotes[v.parameterId] || (notes[v.parameterId] ?? '').trim() ? (
@@ -603,6 +644,27 @@ export function ResultEntryPage() {
         title={t('Send back for correction?')}
         message={t('The result returns to the technician for re-entry.')}
         confirmLabel={t('Send back')}
+        reason="required"
+      />
+      <ConfirmDialog
+        open={incompleteAction !== null}
+        onClose={() => setIncompleteAction(null)}
+        onConfirm={async (reason) => {
+          const ok =
+            incompleteAction === 'approve'
+              ? await runApprove({ incompleteOverrideReason: reason })
+              : await runVerify({ incompleteOverrideReason: reason });
+          // A declined/failed secondary prompt (self-verify, QC override) already toasted why —
+          // throwing here keeps this dialog open instead of closing as though it had gone through.
+          if (!ok) throw new Error(t('Not completed — see the notification, then try again.'));
+        }}
+        title={incompleteAction === 'approve' ? t('Approve an incomplete result?') : t('Verify an incomplete result?')}
+        message={t(
+          '{count} parameter(s) have no value: {names}. Going ahead reports this panel as partial — they will print as "Not performed". The reason is recorded in the audit trail.',
+          { count: result.missingParameters.length, names: result.missingParameters.join(', ') },
+        )}
+        confirmLabel={incompleteAction === 'approve' ? t('Approve as partial') : t('Verify as partial')}
+        tone="danger"
         reason="required"
       />
       <CriticalCallbackModal

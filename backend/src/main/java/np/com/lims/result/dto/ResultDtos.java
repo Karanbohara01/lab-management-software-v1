@@ -48,10 +48,17 @@ public final class ResultDtos {
     public record RejectRequest(@NotBlank @Size(max = 500) String reason) {
     }
 
-    public record VerifyRequest(@Size(max = 300) String selfVerifyOverrideReason) {
+    /**
+     * Each override reason answers a different 409 from the same endpoint: {@code selfVerifyOverrideReason}
+     * for verifying one's own entry (RESOURCE_CONFLICT), {@code incompleteOverrideReason} for a result
+     * whose parameters aren't all filled in (RESULT_INCOMPLETE). Both are audited separately.
+     */
+    public record VerifyRequest(@Size(max = 300) String selfVerifyOverrideReason,
+                                @Size(max = 300) String incompleteOverrideReason) {
     }
 
-    public record ApproveRequest(@Size(max = 300) String qcOverrideReason) {
+    public record ApproveRequest(@Size(max = 300) String qcOverrideReason,
+                                 @Size(max = 300) String incompleteOverrideReason) {
     }
 
     public record CriticalCallbackRequest(
@@ -78,7 +85,9 @@ public final class ResultDtos {
     public record AmendRequest(
             @Valid @NotNull List<ValueInput> values,
             @NotBlank @Size(max = 500) String reason,
-            @Size(max = 2000) String comment
+            @Size(max = 2000) String comment,
+            /** Required only if this amendment would leave a previously-resulted parameter blank. */
+            @Size(max = 300) String incompleteOverrideReason
     ) {
     }
 
@@ -230,6 +239,7 @@ public final class ResultDtos {
             boolean criticalAckRequired,
             boolean hasAbnormal,
             boolean hasCritical,
+            boolean complete,
             Instant createdAt
     ) {
         public static ListItem from(TestResult r) {
@@ -238,7 +248,7 @@ public final class ResultDtos {
                     r.getPatient().getId(), PatientPrivacy.displayName(r.getPatient()), r.getPatient().getMrn(),
                     r.getTestCode(), r.getTestName(), r.getDepartmentName(), r.getResultMode().name(), r.getStatus(),
                     r.getPriority().name(), r.getDueAt(), r.isOverdue(), r.isAutoVerified(),
-                    r.isCriticalAckRequired(), r.isHasAbnormal(), r.isHasCritical(), r.getCreatedAt());
+                    r.isCriticalAckRequired(), r.isHasAbnormal(), r.isHasCritical(), r.isComplete(), r.getCreatedAt());
         }
     }
 
@@ -269,6 +279,10 @@ public final class ResultDtos {
             String comment,
             boolean hasAbnormal,
             boolean hasCritical,
+            /** False while any non-calculated parameter is still blank — see {@code TestResult#isComplete}. */
+            boolean complete,
+            /** Names of the blank parameters, in display order; empty when complete. */
+            List<String> missingParameters,
             String rejectionReason,
             Instant enteredAt, String enteredBy,
             Instant verifiedAt, String verifiedBy,
@@ -296,7 +310,9 @@ public final class ResultDtos {
                     r.getResultMode().name(),
                     r.getStatus(), r.getPriority().name(), r.getDueAt(), r.isOverdue(), r.isAutoVerified(),
                     sampleCondSummary(r), r.isCriticalAckRequired(), callbacks,
-                    r.getComment(), r.isHasAbnormal(), r.isHasCritical(), r.getRejectionReason(),
+                    r.getComment(), r.isHasAbnormal(), r.isHasCritical(),
+                    r.isComplete(), r.missingValues().stream().map(ResultValue::getParameterName).toList(),
+                    r.getRejectionReason(),
                     r.getEnteredAt(), r.getEnteredBy(), r.getVerifiedAt(), r.getVerifiedBy(),
                     r.getApprovedAt(), r.getApprovedBy(), r.getAmendedAt(), r.getAmendedBy(),
                     r.getValues().stream()

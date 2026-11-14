@@ -268,11 +268,18 @@ public class TestResultService {
      * Maker-checker: the person who entered a result may not also verify it. Verifying as the
      * same person who entered it is blocked with a 409 unless a documented override reason is
      * supplied (audited). Auto-verification bypasses this — it never runs as a human actor.
+     *
+     * <p>An incomplete result (a parameter still blank) is likewise blocked — with its own
+     * {@link ErrorCode#RESULT_INCOMPLETE} — unless the verifier documents why the panel is being
+     * reported partial. Checked first: a blank panel is the more fundamental problem, and the
+     * client needs to ask one question at a time.
      */
     @Transactional
     public Detail verify(Long id, VerifyRequest request) {
         TestResult result = load(id);
         String actor = CurrentUser.username();
+        String incompleteReason = request == null ? null : trimToNull(request.incompleteOverrideReason());
+        List<ResultValue> missing = requireCompleteOrOverride(result, incompleteReason, "verify");
         boolean selfVerify = result.getEnteredBy() != null && result.getEnteredBy().equalsIgnoreCase(actor);
         String overrideReason = request == null ? null : trimToNull(request.selfVerifyOverrideReason());
         if (selfVerify && overrideReason == null) {
@@ -281,6 +288,10 @@ public class TestResultService {
                             + "Provide a documented reason to verify it yourself.");
         }
         result.verify(actor);
+        if (!missing.isEmpty()) {
+            audit(result, "INCOMPLETE_VERIFY_OVERRIDE", "Verified " + result.getTestCode() + " with "
+                    + missing.size() + " parameter(s) not resulted (" + names(missing) + ") — " + incompleteReason);
+        }
         if (selfVerify) {
             audit(result, "SELF_VERIFY_OVERRIDE",
                     "Verified own entry for " + result.getTestCode() + " — " + overrideReason);
@@ -293,6 +304,10 @@ public class TestResultService {
     @Transactional
     public Detail approve(Long id, ApproveRequest request) {
         TestResult result = load(id);
+        // The pathologist's sign-off is the last gate before a report, so an incomplete panel is
+        // re-challenged here even if the verifier already overrode it — their reason was theirs.
+        String incompleteReason = request == null ? null : trimToNull(request.incompleteOverrideReason());
+        List<ResultValue> missing = requireCompleteOrOverride(result, incompleteReason, "approve");
         if (qcService.isLocked(result.getTestId())
                 && (request == null || request.qcOverrideReason() == null || request.qcOverrideReason().isBlank())) {
             throw new ApiException(np.com.lims.common.exception.ErrorCode.RESOURCE_CONFLICT,
@@ -300,6 +315,10 @@ public class TestResultService {
                             + "Resolve the QC failure, or approve with a documented override reason.");
         }
         result.approve(CurrentUser.username());
+        if (!missing.isEmpty()) {
+            audit(result, "INCOMPLETE_APPROVE_OVERRIDE", "Approved " + result.getTestCode() + " with "
+                    + missing.size() + " parameter(s) not resulted (" + names(missing) + ") — " + incompleteReason);
+        }
         if (request != null && request.qcOverrideReason() != null && !request.qcOverrideReason().isBlank()) {
             audit(result, "QC_OVERRIDE", "Approved " + result.getTestCode()
                     + " despite out-of-control QC - reason: " + request.qcOverrideReason().trim());
@@ -324,6 +343,13 @@ public class TestResultService {
         return detail(result);
     }
 
+    /**
+     * An amendment can legitimately touch an already-partial result (e.g. correcting a typo in a
+     * test that was verified/approved as partial) without re-litigating the blanks nobody has
+     * fixed yet — only requeries the person when the amendment itself newly blanks something that
+     * had a value before. Without this, a fully-resulted, approved result could be made silently
+     * incomplete through this one screen alone, bypassing every other guard in this class.
+     */
     @Transactional
     public Detail amend(Long id, AmendRequest request) {
         TestResult result = load(id);
@@ -331,13 +357,28 @@ public class TestResultService {
             throw ApiException.invalidTransition("Only approved results can be amended");
         }
         String actor = CurrentUser.username();
+        List<String> missingBefore = result.missingValues().stream().map(ResultValue::getParameterName).toList();
         applyValues(result, request.values(), actor, request.reason().trim());
+        List<ResultValue> newlyMissing = result.missingValues().stream()
+                .filter(v -> !missingBefore.contains(v.getParameterName())).toList();
+        String incompleteReason = trimToNull(request.incompleteOverrideReason());
+        if (!newlyMissing.isEmpty() && incompleteReason == null) {
+            throw new ApiException(ErrorCode.RESULT_INCOMPLETE,
+                    "This amendment would leave " + newlyMissing.size() + " parameter(s) with no value that had one "
+                            + "before (" + names(newlyMissing) + "). Enter a value, or amend with a documented reason "
+                            + "to report this result as partial.");
+        }
         if (request.comment() != null) {
             result.setComment(trimToNull(request.comment()));
         }
         result.amend(actor);
         result.recomputeAbnormalFlags();
         audit(result, "AMEND", "Amended approved results for " + result.getTestCode() + " – " + request.reason());
+        if (!newlyMissing.isEmpty()) {
+            audit(result, "INCOMPLETE_AMEND_OVERRIDE", "Amendment left " + newlyMissing.size()
+                    + " previously-resulted parameter(s) with no value on " + result.getTestCode()
+                    + " (" + names(newlyMissing) + ") — " + incompleteReason);
+        }
         return detail(result);
     }
 
@@ -419,8 +460,14 @@ public class TestResultService {
     }
 
     /**
-     * Verifies a result automatically when its test allows it and every value is normal, in range,
-     * with no delta breach. Runs after ENTER; a technician still approves at the pathologist step.
+     * Verifies a result automatically when its test allows it, every parameter has been resulted,
+     * and every value is normal, in range, with no delta breach. Runs after ENTER; a pathologist
+     * still approves.
+     *
+     * <p>Completeness is a hard requirement here, not an override-able one: there is no human in
+     * this path to document why a blank parameter is acceptable. An earlier version only looked at
+     * the values that <em>were</em> filled in, so a panel with most of its parameters still blank
+     * sailed through to approval and printed as dashes on the report.
      */
     private void maybeAutoVerify(TestResult result) {
         if (result.getStatus() != ResultStatus.ENTERED) {
@@ -431,21 +478,41 @@ public class TestResultService {
         if (test == null || !test.isAutoVerifyEnabled()) {
             return;
         }
+        if (!result.isComplete()) {
+            return;
+        }
         if (result.isHasAbnormal() || result.isHasCritical() || result.hasDeltaBreach()) {
             return;
         }
-        boolean anyValue = result.getValues().stream().anyMatch(ResultValue::hasValue);
         boolean allNumericInterpreted = result.getValues().stream()
-                .filter(v -> v.getDataType() == ParameterDataType.NUMERIC
-                        && !v.getParameter().isCalculated() && v.hasValue())
+                .filter(v -> v.getDataType() == ParameterDataType.NUMERIC && !v.getParameter().isCalculated())
                 .allMatch(v -> v.getFlag() != ResultFlag.NONE);
-        if (!anyValue || !allNumericInterpreted) {
+        if (!allNumericInterpreted) {
             return;
         }
         result.verify("auto-verify");
         result.markAutoVerified();
-        audit(result, "AUTO_VERIFY",
-                "Auto-verified " + result.getTestCode() + " — all values normal and in range, no delta breach");
+        audit(result, "AUTO_VERIFY", "Auto-verified " + result.getTestCode()
+                + " — every parameter resulted, all values normal and in range, no delta breach");
+    }
+
+    /**
+     * The parameters still without a value (empty when the result is complete). Throws
+     * {@link ErrorCode#RESULT_INCOMPLETE} when there are any and no override reason was given, naming
+     * them so the person can either go fill them in or decide, knowingly, to report a partial panel.
+     */
+    private static List<ResultValue> requireCompleteOrOverride(TestResult result, String overrideReason, String action) {
+        List<ResultValue> missing = result.missingValues();
+        if (missing.isEmpty() || overrideReason != null) {
+            return missing;
+        }
+        throw new ApiException(ErrorCode.RESULT_INCOMPLETE,
+                missing.size() + " of " + result.getValues().size() + " parameters have no value (" + names(missing) + "). "
+                        + "Enter them, or " + action + " with a documented reason to report this result as partial.");
+    }
+
+    private static String names(List<ResultValue> values) {
+        return values.stream().map(ResultValue::getParameterName).collect(java.util.stream.Collectors.joining(", "));
     }
 
     /**

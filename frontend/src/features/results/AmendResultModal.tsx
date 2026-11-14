@@ -31,10 +31,18 @@ export function AmendResultModal({
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Set only after the server refuses because this amendment newly blanks a previously-resulted
+  // parameter — asked for separately from the amendment reason, since "why am I amending" and
+  // "why is it OK to leave this blank" are different questions.
+  const [incompleteReason, setIncompleteReason] = useState<string | null>(null);
 
   const submit = async () => {
     if (!reason.trim()) {
       setError(t('An amendment reason is required.'));
+      return;
+    }
+    if (incompleteReason !== null && !incompleteReason.trim()) {
+      setError(t('Enter a reason to leave this result partial, or restore the value(s).'));
       return;
     }
     setBusy(true);
@@ -46,12 +54,19 @@ export function AmendResultModal({
           ? { parameterId: v.parameterId, valueNumeric: raw === '' ? null : Number(raw) }
           : { parameterId: v.parameterId, valueText: raw || null };
       });
-      await resultsApi.amend(result.id, payload, reason.trim());
+      await resultsApi.amend(result.id, payload, reason.trim(), undefined, incompleteReason?.trim() || undefined);
       toast.success(t('Result amended'));
       onDone();
       onClose();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : t('Unable to amend result'));
+      if (err instanceof ApiError && err.code === 'RESULT_INCOMPLETE' && incompleteReason === null) {
+        // First refusal: reveal the second reason field rather than failing the whole dialog —
+        // the person's edits and amendment reason stay exactly as they typed them.
+        setIncompleteReason('');
+        setError(err.message);
+      } else {
+        setError(err instanceof ApiError ? err.message : t('Unable to amend result'));
+      }
     } finally {
       setBusy(false);
     }
@@ -99,6 +114,13 @@ export function AmendResultModal({
           value={reason}
           onChange={(e) => setReason(e.target.value)}
         />
+        {incompleteReason !== null && (
+          <Textarea
+            label={t('Reason to leave this result partial')}
+            value={incompleteReason}
+            onChange={(e) => setIncompleteReason(e.target.value)}
+          />
+        )}
       </div>
     </Modal>
   );

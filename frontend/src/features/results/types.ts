@@ -129,6 +129,8 @@ export interface ResultListItem {
   criticalAckRequired: boolean;
   hasAbnormal: boolean;
   hasCritical: boolean;
+  /** False while any non-calculated parameter is still blank (always false for a PENDING result). */
+  complete: boolean;
   createdAt: string;
 }
 
@@ -159,6 +161,9 @@ export interface ResultDetail {
   comment: string | null;
   hasAbnormal: boolean;
   hasCritical: boolean;
+  complete: boolean;
+  /** Names of the blank non-calculated parameters, in display order; empty when complete. */
+  missingParameters: string[];
   rejectionReason: string | null;
   enteredAt: string | null;
   enteredBy: string | null;

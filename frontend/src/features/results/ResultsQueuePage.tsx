@@ -111,6 +111,9 @@ export function ResultsQueuePage() {
         <span className="flex items-center gap-1.5">
           <Badge tone={RESULT_STATUS_TONE[r.status]}>{t(RESULT_STATUS_LABEL[r.status])}</Badge>
           {r.hasAbnormal && !r.hasCritical && <Badge tone="warning">{t('Abn')}</Badge>}
+          {!r.complete && r.status !== 'PENDING' && r.resultMode !== 'CULTURE' && (
+            <Badge tone="warning">{t('Incomplete')}</Badge>
+          )}
           {r.overdue && <Badge tone="danger">{t('Overdue')}</Badge>}
           {r.criticalAckRequired && <Badge tone="critical">{t('Callback due')}</Badge>}
           {r.autoVerified && <Badge tone="neutral">{t('Auto')}</Badge>}
