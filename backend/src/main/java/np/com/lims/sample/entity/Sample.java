@@ -16,6 +16,7 @@ import jakarta.persistence.Table;
 import np.com.lims.catalog.entity.SpecimenType;
 import np.com.lims.common.audit.BaseEntity;
 import np.com.lims.common.exception.ApiException;
+import np.com.lims.common.model.Priority;
 import np.com.lims.common.tenant.TenantContext;
 import np.com.lims.order.entity.LabOrder;
 import np.com.lims.order.entity.LabOrderItem;
@@ -55,6 +56,12 @@ public class Sample extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     private SampleStatus status = SampleStatus.AWAITING_COLLECTION;
+
+    /** Snapshotted from the order at creation, the way {@code TestResult.priority} is — a STAT
+     *  order's priority shouldn't change retroactively for a sample already in the pipeline. */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 12)
+    private Priority priority = Priority.ROUTINE;
 
     @Column(length = 120)
     private String container;
@@ -108,6 +115,7 @@ public class Sample extends BaseEntity {
         sample.patient = order.getPatient();
         sample.specimenType = specimenType;
         sample.status = SampleStatus.AWAITING_COLLECTION;
+        sample.priority = order.getPriority();
         sample.events.add(new SampleEvent(sample, SampleEvent.Type.CREATED, null,
                 SampleStatus.AWAITING_COLLECTION, actor, "Sample generated on order confirmation"));
         return sample;
@@ -210,6 +218,10 @@ public class Sample extends BaseEntity {
 
     public SampleStatus getStatus() {
         return status;
+    }
+
+    public Priority getPriority() {
+        return priority;
     }
 
     public String getContainer() {

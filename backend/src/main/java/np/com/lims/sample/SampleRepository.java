@@ -39,6 +39,7 @@ public interface SampleRepository extends JpaRepository<Sample, Long> {
                    OR LOWER(s.patient.mrn) LIKE LOWER(CONCAT('%', :search, '%')))
               AND (:departmentId IS NULL
                    OR EXISTS (SELECT 1 FROM SampleItem si WHERE si.sample = s AND si.departmentId = :departmentId))
+            ORDER BY CASE s.priority WHEN 'STAT' THEN 0 WHEN 'URGENT' THEN 1 ELSE 2 END
             """)
     Page<Sample> search(@Param("status") SampleStatus status,
                         @Param("orderId") Long orderId,
