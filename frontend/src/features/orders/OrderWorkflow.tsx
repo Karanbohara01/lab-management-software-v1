@@ -9,7 +9,7 @@ import type { ResultListItem } from '@/features/results/types';
 import type { ReportStatus } from '@/features/reports/types';
 import type { OrderDetail } from './types';
 
-const STEPS = ['Draft', 'Confirmed', 'Collection', 'In lab', 'Results', 'Authorized', 'Report', 'Delivered'];
+const STEPS = ['Draft', 'Confirmed', 'Collection', 'In lab', 'Results', 'Approved', 'Report', 'Delivered'];
 
 export type WorkflowAction =
   | 'confirm'
@@ -94,7 +94,7 @@ export function computeStage(
       index: 4,
       next: {
         action: 'approve',
-        label: tr('Authorize results ({count})', { count: count('VERIFIED') }),
+        label: tr('Approve results ({count})', { count: count('VERIFIED') }),
         permission: PERMISSIONS.RESULT_APPROVE,
       },
     };

@@ -30,7 +30,7 @@ function buildSections(t: Translate, tRich: TranslateRich): Section[] {
           </p>
           <p>
             {tRich(
-              "What you can see and do is controlled by your {role} (Receptionist, Sample Collection Staff, Lab Technician, Pathologist, Accountant, Doctor, Lab Administrator, or Super Admin). Your dashboard after signing in is tailored to your role — a receptionist sees draft orders and outstanding invoices; a pathologist sees results awaiting authorization and critical results. If a button or page you expect isn't visible, you likely need a different permission — ask your lab administrator.",
+              "What you can see and do is controlled by your {role} (Receptionist, Sample Collection Staff, Lab Technician, Pathologist, Accountant, Doctor, Lab Administrator, or Super Admin). Your dashboard after signing in is tailored to your role — a receptionist sees draft orders and outstanding invoices; a pathologist sees results awaiting approval and critical results. If a button or page you expect isn't visible, you likely need a different permission — ask your lab administrator.",
               { role: <b>{t('role')}</b> },
             )}
           </p>
@@ -85,7 +85,7 @@ function buildSections(t: Translate, tRich: TranslateRich): Section[] {
           <p>
             The order detail page is the hub for everything that happens to that order: a status stepper across the
             top shows where it is, and the highlighted "Next step" button does the next action for you (collect →
-            receive → enter results → verify → authorize → generate report → release → deliver) without you needing to
+            receive → enter results → verify → approve → generate report → release → deliver) without you needing to
             jump between separate screens.
           </p>
         </>
@@ -115,7 +115,7 @@ function buildSections(t: Translate, tRich: TranslateRich): Section[] {
     },
     {
       id: 'results',
-      title: t('Results — entry, verification, authorization'),
+      title: t('Results — entry, verification, approval'),
       body: (
         <>
           <p>
@@ -130,7 +130,7 @@ function buildSections(t: Translate, tRich: TranslateRich): Section[] {
             <b>Maker-checker verification</b>: the person who entered a result cannot verify their own entry — that
             attempt is blocked with a 409 unless a documented override reason is supplied, and the override is
             audited separately from a normal verification. A different person verifying someone else's entry needs no
-            special step. After verification, a pathologist authorizes the result before it can appear on a released
+            special step. After verification, a pathologist approves the result before it can appear on a released
             report.
           </p>
           <p>
@@ -147,7 +147,7 @@ function buildSections(t: Translate, tRich: TranslateRich): Section[] {
       body: (
         <>
           <p>
-            Once every test on an order is authorized, generate the report from the order's detail page. A pathologist
+            Once every test on an order is approved, generate the report from the order's detail page. A pathologist
             signs and releases it; a released report becomes a real PDF-style document with the lab's letterhead, and
             gets a verification link/QR the patient (or anyone with the link) can use to confirm authenticity without
             logging in.

@@ -79,6 +79,9 @@ export function SampleDetailPage() {
         description={`${sample.patientName} · ${sample.patientMrn} · ${t(SPECIMEN_LABELS[sample.specimenType])}`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            {sample.priority !== 'ROUTINE' && (
+              <Badge tone={sample.priority === 'STAT' ? 'critical' : 'warning'}>{sample.priority}</Badge>
+            )}
             <Badge tone={SAMPLE_STATUS_TONE[sample.status]}>{t(SAMPLE_STATUS_LABEL[sample.status])}</Badge>
             <Button variant="secondary" onClick={printLabel}>
               <Printer className="h-4 w-4" aria-hidden />
@@ -197,13 +200,24 @@ export function SampleDetailPage() {
         </div>
       </div>
 
-      <CollectSampleModal open={collectOpen} onClose={() => setCollectOpen(false)} sample={sample} onDone={refetch} />
+      <CollectSampleModal
+        open={collectOpen}
+        onClose={() => setCollectOpen(false)}
+        sample={sample}
+        onDone={() => {
+          setCollectOpen(false);
+          refetch();
+        }}
+      />
       <ReceiveSampleModal
         open={receiveOpen}
         onClose={() => setReceiveOpen(false)}
         sampleId={sample.id}
         accession={sample.accessionNumber}
-        onReceived={refetch}
+        onReceived={() => {
+          setReceiveOpen(false);
+          refetch();
+        }}
       />
       <ConfirmDialog
         open={rejectOpen}

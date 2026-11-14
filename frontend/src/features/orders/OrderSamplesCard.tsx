@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -7,23 +6,24 @@ import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { SPECIMEN_LABELS } from '@/features/catalog/types';
 import { SAMPLE_STATUS_LABEL, SAMPLE_STATUS_TONE, type SampleListItem } from '@/features/samples/types';
-import { ReceiveSampleModal } from '@/features/samples/ReceiveSampleModal';
 import { useT } from '@/i18n';
 
+/**
+ * Collect / Receive hand the whole sample up to the page, which owns the capture modals (so the
+ * workflow bar's "Collect samples" and these row buttons share exactly one path — the same
+ * modals the Sample page uses — and container, site and specimen condition are always recorded).
+ */
 export function OrderSamplesCard({
   samples,
-  busyId,
   onCollect,
-  onReload,
+  onReceive,
 }: {
   samples: SampleListItem[];
-  busyId: number | null;
-  onCollect: (id: number) => void;
-  onReload: () => void;
+  onCollect: (sample: SampleListItem) => void;
+  onReceive: (sample: SampleListItem) => void;
 }) {
   const t = useT();
   const { hasPermission } = useAuth();
-  const [receiving, setReceiving] = useState<SampleListItem | null>(null);
 
   if (samples.length === 0) return null;
 
@@ -52,12 +52,12 @@ export function OrderSamplesCard({
             <div className="flex items-center gap-2">
               <Badge tone={SAMPLE_STATUS_TONE[s.status]}>{t(SAMPLE_STATUS_LABEL[s.status])}</Badge>
               {s.status === 'AWAITING_COLLECTION' && hasPermission(PERMISSIONS.SAMPLE_COLLECT) && (
-                <Button size="sm" variant="secondary" loading={busyId === s.id} onClick={() => onCollect(s.id)}>
+                <Button size="sm" variant="secondary" onClick={() => onCollect(s)}>
                   {t('Collect')}
                 </Button>
               )}
               {s.status === 'COLLECTED' && hasPermission(PERMISSIONS.SAMPLE_RECEIVE) && (
-                <Button size="sm" onClick={() => setReceiving(s)}>
+                <Button size="sm" onClick={() => onReceive(s)}>
                   {t('Receive')}
                 </Button>
               )}
@@ -65,19 +65,6 @@ export function OrderSamplesCard({
           </li>
         ))}
       </ul>
-
-      {receiving && (
-        <ReceiveSampleModal
-          open
-          onClose={() => setReceiving(null)}
-          sampleId={receiving.id}
-          accession={receiving.accessionNumber}
-          onReceived={() => {
-            setReceiving(null);
-            onReload();
-          }}
-        />
-      )}
     </Card>
   );
 }

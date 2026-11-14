@@ -17,8 +17,13 @@ import { useToast } from '@/components/ui/toast';
 import { formatMoney } from '@/lib/money';
 import { formatDate } from '@/features/patients/format';
 import { samplesApi } from '@/features/samples/api';
+import type { SampleListItem } from '@/features/samples/types';
+import { CollectSampleModal } from '@/features/samples/CollectSampleModal';
+import { ReceiveSampleModal } from '@/features/samples/ReceiveSampleModal';
 import { resultsApi } from '@/features/results/api';
+import { approveWithPrompts, verifyWithPrompts } from '@/features/results/overrides';
 import { reportsApi } from '@/features/reports/api';
+import { DeliverReportModal } from '@/features/reports/DeliverReportModal';
 import { useT } from '@/i18n';
 import { ordersApi } from './api';
 import { ORDER_STATUS_TONE, type OrderStatus } from './types';
@@ -47,8 +52,24 @@ export function OrderDetailPage() {
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  // Owned here, not by OrderReportCard, so the workflow bar's "Deliver report" and the card's own
+  // button open the exact same modal instead of one of them navigating away to a different screen.
+  const [deliverOpen, setDeliverOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [busyRow, setBusyRow] = useState<number | null>(null);
+  // Collecting and receiving go through the same capture modals the Sample page uses — never a
+  // bare API call — so container, collection site and specimen condition are actually recorded.
+  // Held as a run (remaining items + original total) so the workflow bar's "Collect samples" /
+  // "Receive into lab" walk every eligible sample one modal at a time; cancelling stops the run.
+  const [collectRun, setCollectRun] = useState<SampleListItem[]>([]);
+  const [receiveRun, setReceiveRun] = useState<SampleListItem[]>([]);
+  const [runTotal, setRunTotal] = useState(0);
+  const startRun = (setter: typeof setCollectRun, items: SampleListItem[]) => {
+    setRunTotal(items.length);
+    setter(items);
+  };
+  const progressOf = (remaining: SampleListItem[]) =>
+    runTotal > 1 ? { current: runTotal - remaining.length + 1, total: runTotal } : undefined;
 
   const { data: order, loading, error, refetch } = useQuery(() => ordersApi.get(Number(id)), [id]);
   const confirmed = !!order && order.status === 'CONFIRMED';
@@ -112,30 +133,34 @@ export function OrderDetailPage() {
       case 'confirm':
         return setConfirmOpen(true);
       case 'collect':
-        return bulk(
-          t('Samples collected'),
-          samples.filter((s) => s.status === 'AWAITING_COLLECTION').map((s) => samplesApi.collect(s.id, {})),
-        );
+        return startRun(setCollectRun, samples.filter((s) => s.status === 'AWAITING_COLLECTION'));
       case 'receive':
-        return bulk(
-          t('Samples received into the lab'),
-          samples.filter((s) => s.status === 'COLLECTED').map((s) => samplesApi.receive(s.id)),
-        );
+        return startRun(setReceiveRun, samples.filter((s) => s.status === 'COLLECTED'));
       case 'enter': {
         const first = results.find((r) => r.status === 'PENDING');
         if (first) navigate(`/app/results/${first.id}`);
         return;
       }
-      case 'verify':
-        return bulk(
-          t('Results verified'),
-          results.filter((r) => r.status === 'ENTERED').map((r) => resultsApi.verify(r.id)),
-        );
-      case 'approve':
-        return bulk(
-          t('Results authorized'),
-          results.filter((r) => r.status === 'VERIFIED').map((r) => resultsApi.approve(r.id)),
-        );
+      // Bulk never overrides: an incomplete panel needs a documented reason, given one result at
+      // a time on its own page, so those are skipped here and said so rather than failing the lot.
+      case 'verify': {
+        const ready = results.filter((r) => r.status === 'ENTERED');
+        const complete = ready.filter((r) => r.complete);
+        if (complete.length < ready.length) {
+          toast.info(t('{count} incomplete result(s) skipped — open each to verify it as partial.', { count: ready.length - complete.length }));
+        }
+        if (complete.length === 0) return;
+        return bulk(t('Results verified'), complete.map((r) => resultsApi.verify(r.id)));
+      }
+      case 'approve': {
+        const ready = results.filter((r) => r.status === 'VERIFIED');
+        const complete = ready.filter((r) => r.complete);
+        if (complete.length < ready.length) {
+          toast.info(t('{count} incomplete result(s) skipped — open each to approve it as partial.', { count: ready.length - complete.length }));
+        }
+        if (complete.length === 0) return;
+        return bulk(t('Results approved'), complete.map((r) => resultsApi.approve(r.id)));
+      }
       case 'report':
         return bulk(t('Report generated'), [reportsApi.generate(order.id, false)]);
       case 'release': {
@@ -143,65 +168,25 @@ export function OrderDetailPage() {
         if (creds === null || !report) return;
         return bulk(t('Report signed & released'), [reportsApi.release(report.id, creds.trim() || undefined)]);
       }
-      case 'deliver': {
+      case 'deliver':
         if (!report) return;
-        // Delivery needs a method + recipient — hand off to the report page's proper dialog
-        // (SMS/WhatsApp there surface a clear error if no gateway is configured) instead of a prompt.
-        navigate(`/app/reports/${report.id}`);
-        return;
-      }
-    }
-  };
-
-  const rowCollect = async (sid: number) => {
-    setBusyRow(sid);
-    try {
-      await samplesApi.collect(sid, {});
-      toast.success(t('Sample collected'));
-      reload();
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 409) {
-        const reason = window.prompt(t('{message}\n\nEnter a reason to collect without payment:', { message: e.message }));
-        if (reason && reason.trim()) {
-          try {
-            await samplesApi.collect(sid, { paymentOverrideReason: reason.trim() });
-            toast.success(t('Sample collected without payment'));
-            reload();
-          } catch (e2) {
-            toast.error(e2 instanceof ApiError ? e2.message : t('Failed'));
-          }
-        }
-      } else {
-        toast.error(e instanceof ApiError ? e.message : t('Unable to collect sample'));
-      }
-    } finally {
-      setBusyRow(null);
+        return setDeliverOpen(true);
     }
   };
 
   const rowVerify = async (rid: number) => {
     setBusyRow(rid);
     try {
-      await resultsApi.verify(rid);
-      toast.success(t('Result verified'));
-      reload();
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 409) {
-        const reason = window.prompt(
-          t('{message}\n\nEnter a documented reason to verify it yourself:', { message: e.message }),
-        );
-        if (reason && reason.trim()) {
-          try {
-            await resultsApi.verify(rid, reason.trim());
-            toast.success(t('Result verified with override'));
-            reload();
-          } catch (e2) {
-            toast.error(e2 instanceof ApiError ? e2.message : t('Failed'));
-          }
-        }
-      } else {
-        toast.error(e instanceof ApiError ? e.message : t('Unable to verify'));
+      const outcome = await verifyWithPrompts(rid, {
+        incomplete: t('Enter a documented reason to verify this result as partial:'),
+        other: t('Enter a documented reason to verify it yourself:'),
+      });
+      if (outcome.ok) {
+        toast.success(outcome.overridden ? t('Result verified with override') : t('Result verified'));
+        reload();
       }
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : t('Unable to verify'));
     } finally {
       setBusyRow(null);
     }
@@ -210,26 +195,16 @@ export function OrderDetailPage() {
   const rowApprove = async (rid: number) => {
     setBusyRow(rid);
     try {
-      await resultsApi.approve(rid);
-      toast.success(t('Result authorized'));
-      reload();
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 409) {
-        const reason = window.prompt(
-          t('{message}\n\nEnter a documented reason to authorize anyway:', { message: e.message }),
-        );
-        if (reason && reason.trim()) {
-          try {
-            await resultsApi.approve(rid, reason.trim());
-            toast.success(t('Result authorized with override'));
-            reload();
-          } catch (e2) {
-            toast.error(e2 instanceof ApiError ? e2.message : t('Failed'));
-          }
-        }
-      } else {
-        toast.error(e instanceof ApiError ? e.message : t('Unable to authorize'));
+      const outcome = await approveWithPrompts(rid, {
+        incomplete: t('Enter a documented reason to approve this result as partial:'),
+        other: t('Enter a documented reason to approve despite the QC failure:'),
+      });
+      if (outcome.ok) {
+        toast.success(outcome.overridden ? t('Result approved with override') : t('Result approved'));
+        reload();
       }
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : t('Unable to approve'));
     } finally {
       setBusyRow(null);
     }
@@ -269,6 +244,9 @@ export function OrderDetailPage() {
         })}
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            {order.priority !== 'ROUTINE' && (
+              <Badge tone={order.priority === 'STAT' ? 'critical' : 'warning'}>{order.priority}</Badge>
+            )}
             <Badge tone={ORDER_STATUS_TONE[order.status]}>{t(ORDER_STATUS_LABEL[order.status])}</Badge>
             {canWrite && order.status === 'DRAFT' && (
               <Button variant="secondary" onClick={() => navigate(`/app/orders/${order.id}/edit`)}>
@@ -337,9 +315,8 @@ export function OrderDetailPage() {
             <>
               <OrderSamplesCard
                 samples={samples}
-                busyId={busyRow}
-                onCollect={rowCollect}
-                onReload={reload}
+                onCollect={(s) => startRun(setCollectRun, [s])}
+                onReceive={(s) => startRun(setReceiveRun, [s])}
               />
               <OrderResultsCard
                 results={results}
@@ -393,12 +370,43 @@ export function OrderDetailPage() {
                 loading={reportQ.loading && !reportQ.data}
                 hasApprovedResults={results.some((r) => r.status === 'APPROVED')}
                 onChange={reload}
+                onDeliver={() => setDeliverOpen(true)}
               />
             </>
           )}
         </div>
       </div>
 
+      {collectRun[0] && (
+        <CollectSampleModal
+          key={collectRun[0].id}
+          open
+          sample={collectRun[0]}
+          progress={progressOf(collectRun)}
+          onClose={() => setCollectRun([])}
+          onDone={() => {
+            reload();
+            setCollectRun((r) => r.slice(1));
+          }}
+        />
+      )}
+      {receiveRun[0] && (
+        <ReceiveSampleModal
+          key={receiveRun[0].id}
+          open
+          sampleId={receiveRun[0].id}
+          accession={receiveRun[0].accessionNumber}
+          progress={progressOf(receiveRun)}
+          onClose={() => setReceiveRun([])}
+          onReceived={() => {
+            reload();
+            setReceiveRun((r) => r.slice(1));
+          }}
+        />
+      )}
+      {report && (
+        <DeliverReportModal open={deliverOpen} onClose={() => setDeliverOpen(false)} reportId={report.id} onDone={reload} />
+      )}
       <ConfirmDialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}

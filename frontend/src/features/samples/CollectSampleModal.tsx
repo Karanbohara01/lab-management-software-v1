@@ -10,16 +10,27 @@ import { samplesApi } from './api';
 import type { SampleDetail } from './types';
 import { useT } from '@/i18n';
 
+/** The minimum a caller needs to supply — both SampleDetail and SampleListItem satisfy it. */
+export type CollectableSample = Pick<SampleDetail, 'id' | 'accessionNumber' | 'patientName' | 'patientMrn'>;
+
+/**
+ * The one place a collection is recorded, from every screen that offers it. On success it calls
+ * {@code onDone} only — the parent decides whether to close or move on to the next sample — and
+ * {@code onClose} means the person dismissed it without collecting.
+ */
 export function CollectSampleModal({
   open,
   onClose,
   sample,
   onDone,
+  progress,
 }: {
   open: boolean;
   onClose: () => void;
-  sample: SampleDetail;
+  sample: CollectableSample;
   onDone: () => void;
+  /** Shown in the title when this modal is one of a run over several samples. */
+  progress?: { current: number; total: number };
 }) {
   const t = useT();
   const toast = useToast();
@@ -43,7 +54,6 @@ export function CollectSampleModal({
       });
       toast.success(t('Sample {accession} collected', { accession: sample.accessionNumber }));
       onDone();
-      onClose();
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         setPaymentBlocked(true);
@@ -60,7 +70,10 @@ export function CollectSampleModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={t('Collect {accession}', { accession: sample.accessionNumber })}
+      title={
+        t('Collect {accession}', { accession: sample.accessionNumber }) +
+        (progress ? ` ${t('({current} of {total})', progress)}` : '')
+      }
       description={`${sample.patientName} · ${sample.patientMrn}`}
       footer={
         <>

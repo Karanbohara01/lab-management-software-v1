@@ -11,6 +11,7 @@ import {
 } from 'react-router-dom';
 import { useCurrentPageTitle } from '@/components/layout/PageTitleContext';
 import { handleChain, resolvePattern, type MatchedHandle } from '@/routes/appRoutes';
+import { useT } from '@/i18n';
 
 /** Where a "Back to …" link goes and what it's called. */
 export interface BackTarget {
@@ -33,10 +34,11 @@ export function useLeafHandle(): { handle: MatchedHandle; params: Record<string,
 
 /** What a link leaving the current page should record as its origin. */
 export function useOrigin(): BackTarget {
+  const t = useT();
   const location = useLocation();
   const title = useCurrentPageTitle();
   const leaf = useLeafHandle();
-  const label = title ?? leaf?.handle.title ?? 'previous page';
+  const label = title ?? (leaf ? t(leaf.handle.title) : t('previous page'));
   const href = location.pathname + location.search;
   return useMemo(() => ({ href, label }), [href, label]);
 }
@@ -68,6 +70,7 @@ export function LinkFrom(props: LinkProps) {
  * parent — the breadcrumb's notion of "up", which can differ from "back".
  */
 export function useBackTarget(): { back: BackTarget; canonical: BackTarget } {
+  const t = useT();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const leaf = useLeafHandle();
@@ -76,16 +79,16 @@ export function useBackTarget(): { back: BackTarget; canonical: BackTarget } {
     const chain = leaf ? handleChain(leaf.handle.pattern) : [];
     const parent = chain[1];
     const canonical: BackTarget = parent
-      ? { href: resolvePattern(parent.pattern, leaf!.params), label: parent.title }
-      : { href: '/app', label: 'Dashboard' };
+      ? { href: resolvePattern(parent.pattern, leaf!.params), label: t(parent.title) }
+      : { href: '/app', label: t('Dashboard') };
 
     const from = (location.state as FromState | null)?.from;
     if (from?.href && from.label) return { back: from, canonical };
 
     const legacy = searchParams.get('from');
     if (legacy?.startsWith('order:')) {
-      return { back: { href: `/app/orders/${legacy.slice('order:'.length)}`, label: 'Order' }, canonical };
+      return { back: { href: `/app/orders/${legacy.slice('order:'.length)}`, label: t('Order') }, canonical };
     }
     return { back: canonical, canonical };
-  }, [leaf, location.state, searchParams]);
+  }, [leaf, location.state, searchParams, t]);
 }

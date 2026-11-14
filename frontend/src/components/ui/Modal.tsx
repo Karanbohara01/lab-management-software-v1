@@ -125,7 +125,11 @@ export function Modal({
   return createPortal(
     <RequestCloseContext.Provider value={requestClose}>
       <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-        <div className="absolute inset-0 bg-foreground/40 animate-fade-in" onClick={requestClose} aria-hidden />
+        <div
+          className="absolute inset-0 bg-foreground/40 backdrop-blur-sm animate-fade-in"
+          onClick={requestClose}
+          aria-hidden
+        />
         <div
           ref={dialogRef}
           role="dialog"

@@ -9,7 +9,7 @@ import { ResultsToAuthorize } from '../components/queues/ResultsToAuthorize';
 import { ReportsToRelease } from '../components/queues/ReportsToRelease';
 import type { RoleDashboardProps } from './types';
 
-/** Clinical oversight: critical results, authorizations and report sign-off. */
+/** Clinical oversight: critical results, approvals and report sign-off. */
 export function PathologistDashboard({ summary, lastUpdated, refreshing, onRefresh }: RoleDashboardProps) {
   const resultsSummaryQ = useQuery(() => resultsApi.summary(), []);
   const resultCounts = resultsSummaryQ.data ?? {};
@@ -18,7 +18,7 @@ export function PathologistDashboard({ summary, lastUpdated, refreshing, onRefre
   return (
     <>
       <DashboardHeader
-        subtitle="Critical results, pending authorizations and reports to sign."
+        subtitle="Critical results, pending approvals and reports to sign."
         lastUpdated={lastUpdated}
         refreshing={refreshing}
         onRefresh={onRefresh}
@@ -33,7 +33,7 @@ export function PathologistDashboard({ summary, lastUpdated, refreshing, onRefre
             tone: criticalPending > 0 ? 'warning' : 'neutral',
           },
           {
-            label: 'Awaiting authorization',
+            label: 'Awaiting approval',
             value: summary.resultsPendingApproval,
             icon: FileCheck,
             tone: summary.resultsPendingApproval > 0 ? 'warning' : 'neutral',

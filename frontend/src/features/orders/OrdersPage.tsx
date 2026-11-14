@@ -61,7 +61,18 @@ export function OrdersPage() {
   );
 
   const columns: Column<OrderListItem>[] = [
-    { key: 'no', header: t('Order number'), cell: (o) => <span className="font-mono text-xs">{o.orderNumber}</span> },
+    {
+      key: 'no',
+      header: t('Order number'),
+      cell: (o) => (
+        <span className="flex items-center gap-2">
+          {o.priority !== 'ROUTINE' && (
+            <Badge tone={o.priority === 'STAT' ? 'critical' : 'warning'}>{o.priority}</Badge>
+          )}
+          <span className="font-mono text-xs">{o.orderNumber}</span>
+        </span>
+      ),
+    },
     {
       key: 'patient',
       header: t('Patient'),

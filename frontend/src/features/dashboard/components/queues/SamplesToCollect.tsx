@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { useToast } from '@/components/ui/toast';
+import { Badge } from '@/components/ui/Badge';
 import { useQuery } from '@/hooks/useQuery';
-import { ApiError } from '@/types/api';
 import { samplesApi } from '@/features/samples/api';
+import { byPriorityThenAge, type SampleListItem } from '@/features/samples/types';
 import { SPECIMEN_LABELS } from '@/features/catalog/types';
 import { formatDateTime } from '@/features/patients/format';
+import { CollectSampleModal } from '@/features/samples/CollectSampleModal';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { useNavigateFrom } from '@/lib/navigation';
@@ -16,39 +17,15 @@ import { useT } from '@/i18n';
 export function SamplesToCollect() {
   const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
-  const toast = useToast();
   const t = useT();
-  const [busyId, setBusyId] = useState<number | null>(null);
+  const [collecting, setCollecting] = useState<SampleListItem | null>(null);
+  // Fetched deeper than the 8 shown so a STAT draw ordered seconds ago can still surface above
+  // older routine ones once sorted — size:8 would never even see it if it landed on page 2.
   const { data, loading, error, refetch } = useQuery(
-    () => samplesApi.list({ status: 'AWAITING_COLLECTION', size: 8 }),
+    () => samplesApi.list({ status: 'AWAITING_COLLECTION', size: 25 }),
     [],
   );
-
-  const collect = async (id: number) => {
-    setBusyId(id);
-    try {
-      await samplesApi.collect(id, {});
-      toast.success(t('Sample marked collected'));
-      refetch();
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 409) {
-        const reason = window.prompt(`${e.message}\n\n${t('Enter a reason to collect without payment:')}`);
-        if (reason && reason.trim()) {
-          try {
-            await samplesApi.collect(id, { paymentOverrideReason: reason.trim() });
-            toast.success(t('Sample collected without payment'));
-            refetch();
-          } catch (e2) {
-            toast.error(e2 instanceof ApiError ? e2.message : t('Failed'));
-          }
-        }
-      } else {
-        toast.error(e instanceof ApiError ? e.message : t('Unable to collect sample'));
-      }
-    } finally {
-      setBusyId(null);
-    }
-  };
+  const visible = [...(data?.content ?? [])].sort(byPriorityThenAge).slice(0, 8);
 
   return (
     <QueueShell
@@ -63,16 +40,21 @@ export function SamplesToCollect() {
       emptyMessage="Every ordered sample has been collected."
     >
       <ul className="divide-y divide-border">
-        {data?.content.map((s) => (
+        {visible.map((s) => (
           <li key={s.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
             <button
               type="button"
               onClick={() => navigate(`/app/samples/${s.id}`)}
               className="min-w-0 flex-1 text-left hover:underline"
             >
-              <p className="truncate text-sm font-medium text-foreground">
-                {s.patientName} <span className="font-mono text-xs text-muted">{s.patientMrn}</span>
-              </p>
+              <span className="flex min-w-0 items-center gap-1.5">
+                {s.priority !== 'ROUTINE' && (
+                  <Badge tone={s.priority === 'STAT' ? 'critical' : 'warning'}>{s.priority}</Badge>
+                )}
+                <p className="min-w-0 truncate text-sm font-medium text-foreground">
+                  {s.patientName} <span className="font-mono text-xs text-muted">{s.patientMrn}</span>
+                </p>
+              </span>
               <p className="truncate text-xs text-muted">
                 {t('{specimen} · {count} test(s) · ordered {time}', {
                   specimen: t(SPECIMEN_LABELS[s.specimenType]),
@@ -82,13 +64,26 @@ export function SamplesToCollect() {
               </p>
             </button>
             {hasPermission(PERMISSIONS.SAMPLE_COLLECT) && (
-              <Button size="sm" loading={busyId === s.id} onClick={() => collect(s.id)}>
+              <Button size="sm" onClick={() => setCollecting(s)}>
                 {t('Collect')}
               </Button>
             )}
           </li>
         ))}
       </ul>
+
+      {collecting && (
+        <CollectSampleModal
+          key={collecting.id}
+          open
+          sample={collecting}
+          onClose={() => setCollecting(null)}
+          onDone={() => {
+            setCollecting(null);
+            refetch();
+          }}
+        />
+      )}
     </QueueShell>
   );
 }

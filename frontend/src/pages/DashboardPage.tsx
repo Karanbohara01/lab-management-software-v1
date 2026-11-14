@@ -16,7 +16,7 @@ import type { RoleDashboardProps } from '@/features/dashboard/roles/types';
 
 /**
  * The dashboard is role-based: each staff role lands on a worklist shaped for their part of the
- * pipeline (collect → receive → enter → verify → authorize → report → bill) instead of one
+ * pipeline (collect → receive → enter → verify → approve → report → bill) instead of one
  * generic screen. SUPER_ADMIN / LAB_ADMINISTRATOR — and anyone whose role isn't recognised — get
  * the full enterprise overview, which already hides any section they lack permission for.
  */

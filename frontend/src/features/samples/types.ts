@@ -1,4 +1,5 @@
 import type { SpecimenType } from '@/features/catalog/types';
+import type { OrderPriority } from '@/features/orders/types';
 
 export type SampleStatus = 'AWAITING_COLLECTION' | 'COLLECTED' | 'RECEIVED' | 'REJECTED';
 
@@ -40,6 +41,7 @@ export interface SampleListItem {
   patientMrn: string;
   specimenType: SpecimenType;
   status: SampleStatus;
+  priority: OrderPriority;
   testCount: number;
   departments: string[];
   conditionSummary: string | null;
@@ -57,6 +59,7 @@ export interface SampleDetail {
   patientMrn: string;
   specimenType: SpecimenType;
   status: SampleStatus;
+  priority: OrderPriority;
   container: string | null;
   collectionSite: string | null;
   rejectionReason: string | null;
@@ -104,3 +107,15 @@ export const SAMPLE_STATUS_TONE: Record<SampleStatus, 'neutral' | 'info' | 'warn
   RECEIVED: 'success',
   REJECTED: 'danger',
 };
+
+const PRIORITY_RANK: Record<OrderPriority, number> = { STAT: 0, URGENT: 1, ROUTINE: 2 };
+
+/**
+ * STAT first, then URGENT, then ROUTINE — oldest first within the same priority (`createdAt` is
+ * an ISO string, so a plain lexicographic compare is also a chronological one). For the
+ * collector/receiver dashboard queues, which are otherwise FIFO: without this, a STAT draw
+ * ordered seconds ago has no way to surface above a routine one from hours earlier.
+ */
+export function byPriorityThenAge(a: SampleListItem, b: SampleListItem): number {
+  return PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority] || a.createdAt.localeCompare(b.createdAt);
+}

@@ -25,12 +25,15 @@ export function ReceiveSampleModal({
   sampleId,
   accession,
   onReceived,
+  progress,
 }: {
   open: boolean;
   onClose: () => void;
   sampleId: number;
   accession: string;
   onReceived: () => void;
+  /** Shown in the title when this modal is one of a run over several samples. */
+  progress?: { current: number; total: number };
 }) {
   const t = useT();
   const toast = useToast();
@@ -45,9 +48,8 @@ export function ReceiveSampleModal({
     try {
       await samplesApi.receive(sampleId, { condition: anyFlag ? condition : undefined });
       toast.success(t('{accession} received into the lab', { accession }));
-      onReceived();
-      onClose();
       setCondition(EMPTY);
+      onReceived();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : t('Unable to receive sample'));
     } finally {
@@ -59,7 +61,7 @@ export function ReceiveSampleModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={t('Receive {accession}', { accession })}
+      title={t('Receive {accession}', { accession }) + (progress ? ` ${t('({current} of {total})', progress)}` : '')}
       footer={
         <>
           <Button variant="secondary" type="button" onClick={onClose}>

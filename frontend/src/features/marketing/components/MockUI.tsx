@@ -4,16 +4,21 @@ import { cn } from '@/lib/cn';
 
 type Tone = 'neutral' | 'info' | 'success' | 'warning' | 'critical';
 const TONE: Record<Tone, string> = {
-  neutral: 'bg-slate-100 text-slate-600 ring-slate-200',
-  info: 'bg-primary/10 text-primary ring-primary/20',
-  success: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-  warning: 'bg-amber-50 text-amber-700 ring-amber-200',
-  critical: 'bg-red-50 text-red-700 ring-red-200',
+  neutral: 'bg-slate-500 text-white',
+  info: 'bg-primary text-primary-foreground',
+  success: 'bg-[hsl(152_35%_38%)] text-white',
+  warning: 'bg-[hsl(32_55%_44%)] text-white',
+  critical: 'bg-[hsl(350_50%_44%)] text-white',
 };
 
 export function MockBadge({ tone = 'neutral', children }: { tone?: Tone; children: ReactNode }) {
   return (
-    <span className={cn('inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[13px] font-medium ring-1 ring-inset', TONE[tone])}>
+    <span
+      className={cn(
+        'inline-flex items-center whitespace-nowrap rounded px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.035em]',
+        TONE[tone],
+      )}
+    >
       {children}
     </span>
   );

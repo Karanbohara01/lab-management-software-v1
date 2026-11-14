@@ -11,7 +11,6 @@ import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
 import { reportsApi } from '@/features/reports/api';
 import { REPORT_STATUS_TONE, type ReportDetail, type ReportStatus } from '@/features/reports/types';
-import { DeliverReportModal } from '@/features/reports/DeliverReportModal';
 import { useT } from '@/i18n';
 
 /** ReportStatus has no shared label map (just a tone map) — the raw value doubles as the label. */
@@ -27,6 +26,7 @@ export function OrderReportCard({
   loading,
   hasApprovedResults,
   onChange,
+  onDeliver,
 }: {
   orderId: number;
   /** Already fetched by the parent (OrderDetailPage) — this card never re-fetches it itself, to avoid a duplicate GET /reports/by-order/{id} (and a 404 in the console) on every order-detail page load. */
@@ -34,6 +34,9 @@ export function OrderReportCard({
   loading: boolean;
   hasApprovedResults: boolean;
   onChange: () => void;
+  /** Opens the one DeliverReportModal the parent owns — the workflow bar's own "Deliver report"
+   * action triggers the exact same modal, so there's only one delivery path, not two. */
+  onDeliver: () => void;
 }) {
   const t = useT();
   const toast = useToast();
@@ -41,7 +44,6 @@ export function OrderReportCard({
   const canGenerate = hasPermission(PERMISSIONS.REPORT_GENERATE);
   const canDeliver = hasPermission(PERMISSIONS.REPORT_DELIVER);
   const [busy, setBusy] = useState(false);
-  const [deliverOpen, setDeliverOpen] = useState(false);
 
   const run = async (fn: () => Promise<unknown>, ok: string) => {
     setBusy(true);
@@ -79,7 +81,7 @@ export function OrderReportCard({
             </Button>
           )}
           {report.status === 'RELEASED' && canDeliver && (
-            <Button className="w-full" onClick={() => setDeliverOpen(true)}>
+            <Button className="w-full" onClick={onDeliver}>
               {t('Deliver report')}
             </Button>
           )}
@@ -104,7 +106,7 @@ export function OrderReportCard({
       ) : (
         <CardBody className="space-y-2">
           {!hasApprovedResults ? (
-            <p className="text-sm text-muted">{t('A report can be generated once results are authorized.')}</p>
+            <p className="text-sm text-muted">{t('A report can be generated once results are approved.')}</p>
           ) : canGenerate ? (
             <>
               <Button
@@ -125,13 +127,9 @@ export function OrderReportCard({
               </Button>
             </>
           ) : (
-            <p className="text-sm text-muted">{t('Results are authorized — a pathologist can generate the report.')}</p>
+            <p className="text-sm text-muted">{t('Results are approved — a pathologist can generate the report.')}</p>
           )}
         </CardBody>
-      )}
-
-      {report && (
-        <DeliverReportModal open={deliverOpen} onClose={() => setDeliverOpen(false)} reportId={report.id} onDone={onChange} />
       )}
     </Card>
   );

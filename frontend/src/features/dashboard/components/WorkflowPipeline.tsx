@@ -66,7 +66,7 @@ export function WorkflowPipeline({
     },
     {
       key: 'approve',
-      label: 'Result authorization',
+      label: 'Result approval',
       value: resultCounts.VERIFIED ?? summary.resultsPendingApproval,
       to: '/app/results?status=VERIFIED',
       permission: PERMISSIONS.RESULT_READ,

@@ -88,7 +88,18 @@ export function SamplesPage() {
   };
 
   const columns: Column<SampleListItem>[] = [
-    { key: 'acc', header: t('Accession'), cell: (s) => <span className="font-mono text-xs">{s.accessionNumber}</span> },
+    {
+      key: 'acc',
+      header: t('Accession'),
+      cell: (s) => (
+        <span className="flex items-center gap-2">
+          {s.priority !== 'ROUTINE' && (
+            <Badge tone={s.priority === 'STAT' ? 'critical' : 'warning'}>{s.priority}</Badge>
+          )}
+          <span className="font-mono text-xs">{s.accessionNumber}</span>
+        </span>
+      ),
+    },
     {
       key: 'patient',
       header: t('Patient'),

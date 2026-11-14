@@ -32,6 +32,15 @@
     --critical: 350 84% 44%;
     --critical-foreground: 0 0% 100%;
 
+    /* Desaturated solid fills for Badge's status tag — reads as a device/LIS readout rather than
+       a pastel pill. White text in both themes: a small filled tag doesn't need to invert with
+       the page the way background/foreground tokens do, so there's no `.dark` override below. */
+    --success-muted: 152 35% 38%;
+    --warning-muted: 32 55% 44%;
+    --danger-muted: 0 45% 40%;
+    --critical-muted: 350 50% 44%;
+    --neutral-muted: 215 14% 40%;
+
     --radius: 0.625rem;
 
     /* Fixed brand-navy shade ramp — NOT theme-reactive (defined only here, never in `.dark`), for

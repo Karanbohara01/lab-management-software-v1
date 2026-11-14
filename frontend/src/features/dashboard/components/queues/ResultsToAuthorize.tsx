@@ -5,13 +5,14 @@ import { useToast } from '@/components/ui/toast';
 import { useQuery } from '@/hooks/useQuery';
 import { ApiError } from '@/types/api';
 import { resultsApi } from '@/features/results/api';
+import { approveWithPrompts } from '@/features/results/overrides';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { useNavigateFrom } from '@/lib/navigation';
 import { QueueShell } from './QueueShell';
 import { useT } from '@/i18n';
 
-/** Pathologist worklist: verified results ready for final authorization. */
+/** Pathologist worklist: verified results ready for final approval. */
 export function ResultsToAuthorize() {
   const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
@@ -20,27 +21,19 @@ export function ResultsToAuthorize() {
   const [busyId, setBusyId] = useState<number | null>(null);
   const { data, loading, error, refetch } = useQuery(() => resultsApi.list({ status: 'VERIFIED', size: 8 }), []);
 
-  const authorize = async (id: number) => {
+  const approve = async (id: number) => {
     setBusyId(id);
     try {
-      await resultsApi.approve(id);
-      toast.success(t('Result authorized'));
-      refetch();
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 409) {
-        const reason = window.prompt(`${e.message}\n\n${t('Enter a documented reason to authorize anyway:')}`);
-        if (reason && reason.trim()) {
-          try {
-            await resultsApi.approve(id, reason.trim());
-            toast.success(t('Result authorized with override'));
-            refetch();
-          } catch (e2) {
-            toast.error(e2 instanceof ApiError ? e2.message : t('Failed'));
-          }
-        }
-      } else {
-        toast.error(e instanceof ApiError ? e.message : t('Unable to authorize'));
+      const outcome = await approveWithPrompts(id, {
+        incomplete: t('Enter a documented reason to approve this result as partial:'),
+        other: t('Enter a documented reason to approve despite the QC failure:'),
+      });
+      if (outcome.ok) {
+        toast.success(outcome.overridden ? t('Result approved with override') : t('Result approved'));
+        refetch();
       }
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : t('Unable to approve'));
     } finally {
       setBusyId(null);
     }
@@ -48,7 +41,7 @@ export function ResultsToAuthorize() {
 
   return (
     <QueueShell
-      title="Results to authorize"
+      title="Results to approve"
       description="Verified and ready for your final sign-off."
       count={data?.totalElements}
       viewAllTo="/app/results?status=VERIFIED"
@@ -56,7 +49,7 @@ export function ResultsToAuthorize() {
       error={error}
       onRetry={refetch}
       isEmpty={!!data && data.content.length === 0}
-      emptyMessage="Nothing is waiting on authorization."
+      emptyMessage="Nothing is waiting on approval."
     >
       <ul className="divide-y divide-border">
         {data?.content.map((r) => (
@@ -70,14 +63,15 @@ export function ResultsToAuthorize() {
                 {r.testName}
                 {r.hasCritical && <Badge tone="critical">{t('Critical')}</Badge>}
                 {r.hasAbnormal && !r.hasCritical && <Badge tone="warning">{t('Abnormal')}</Badge>}
+                {!r.complete && r.resultMode !== 'CULTURE' && <Badge tone="warning">{t('Incomplete')}</Badge>}
               </p>
               <p className="truncate text-xs text-muted">
                 {r.patientName} <span className="font-mono">{r.patientMrn}</span> · {r.departmentName}
               </p>
             </button>
             {hasPermission(PERMISSIONS.RESULT_APPROVE) && (
-              <Button size="sm" loading={busyId === r.id} onClick={() => authorize(r.id)}>
-                {t('Authorize')}
+              <Button size="sm" loading={busyId === r.id} onClick={() => approve(r.id)}>
+                {t('Approve')}
               </Button>
             )}
           </li>

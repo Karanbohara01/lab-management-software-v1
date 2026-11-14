@@ -9,7 +9,7 @@ import { DataTable, type Column } from '@/components/ui/DataTable';
 import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
 import { StatTileRow, type StatTileData } from '@/features/dashboard/components/StatTile';
 import { useQuery } from '@/hooks/useQuery';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useListParams, useSearchInput } from '@/hooks/useListParams';
 import { useT } from '@/i18n';
 import { platformApi } from './api';
 import { OrganizationFormModal } from './OrganizationFormModal';
@@ -18,6 +18,8 @@ import { SignupsTrend } from './SignupsTrend';
 import { PlanDistributionCard } from './PlanDistributionCard';
 import { UpcomingRenewalsCard, RecentClinicsCard, IntegrationAdoptionCard } from './PlatformActivityCards';
 import { ORG_STATUS_LABEL, ORG_STATUS_TONE, SUBSCRIPTION_STATUS_LABEL, SUBSCRIPTION_STATUS_TONE, type OrganizationListItem } from './types';
+
+const PARAMS = { q: '' };
 
 /**
  * Platform-level super admin: onboard clinics, watch signups/plan mix/renewals/usage/integration
@@ -30,15 +32,19 @@ import { ORG_STATUS_LABEL, ORG_STATUS_TONE, SUBSCRIPTION_STATUS_LABEL, SUBSCRIPT
  */
 export function PlatformPage() {
   const t = useT();
-  const [query, setQuery] = useState('');
-  const debouncedQuery = useDebouncedValue(query, 300);
+  const { params, set } = useListParams(PARAMS);
+  const [search, setSearch] = useSearchInput(params.q, (q) => set({ q }, { replace: true }));
   const [createOpen, setCreateOpen] = useState(false);
   const [detailId, setDetailId] = useState<number | null>(null);
 
   const summaryQ = useQuery(() => platformApi.summary(), []);
   const dashboardQ = useQuery(() => platformApi.dashboard(), []);
   const plansQ = useQuery(() => platformApi.plans(), []);
-  const orgsQ = useQuery(() => platformApi.organizations({ query: debouncedQuery, size: 50 }), [debouncedQuery]);
+  const orgsQ = useQuery(
+    () => platformApi.organizations({ query: params.q || undefined, size: 50 }),
+    [params.q],
+    { cacheKey: `platform-orgs:${params.q}` },
+  );
 
   const refreshAll = () => {
     summaryQ.refetch();
@@ -135,7 +141,7 @@ export function PlatformPage() {
             </div>
           </div>
           <div className="sm:w-72">
-            <SearchInput value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('Search clinics…')} />
+            <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('Search clinics…')} />
           </div>
         </div>
         {orgsQ.loading && !orgsQ.data ? (

@@ -28,7 +28,7 @@ export function OrderResultsCard({
     <Card>
       <CardHeader
         title={t('Results')}
-        description={t('{approved}/{total} authorized', {
+        description={t('{approved}/{total} approved', {
           approved: results.filter((r) => r.status === 'APPROVED').length,
           total: results.length,
         })}
@@ -41,6 +41,9 @@ export function OrderResultsCard({
               <span className="ml-2 font-mono text-xs text-muted">{r.testCode}</span>
               {r.hasCritical && <Badge tone="critical" >{t('Critical')}</Badge>}
               {r.resultMode === 'CULTURE' && <Badge tone="info">{t('Culture')}</Badge>}
+              {!r.complete && r.status !== 'PENDING' && r.resultMode !== 'CULTURE' && (
+                <Badge tone="warning">{t('Incomplete')}</Badge>
+              )}
             </LinkFrom>
             <Badge tone={RESULT_STATUS_TONE[r.status]}>{t(RESULT_STATUS_LABEL[r.status])}</Badge>
             {r.status === 'PENDING' && hasPermission(PERMISSIONS.RESULT_ENTER) && (
@@ -55,7 +58,7 @@ export function OrderResultsCard({
             )}
             {r.status === 'VERIFIED' && hasPermission(PERMISSIONS.RESULT_APPROVE) && (
               <Button size="sm" loading={busyId === r.id} onClick={() => onApprove(r.id)}>
-                {t('Authorize')}
+                {t('Approve')}
               </Button>
             )}
           </li>

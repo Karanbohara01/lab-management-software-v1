@@ -5,6 +5,7 @@ import { useToast } from '@/components/ui/toast';
 import { useQuery } from '@/hooks/useQuery';
 import { ApiError } from '@/types/api';
 import { resultsApi } from '@/features/results/api';
+import { verifyWithPrompts } from '@/features/results/overrides';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { useNavigateFrom } from '@/lib/navigation';
@@ -23,24 +24,16 @@ export function ResultsToVerify() {
   const verify = async (id: number) => {
     setBusyId(id);
     try {
-      await resultsApi.verify(id);
-      toast.success(t('Result verified'));
-      refetch();
-    } catch (e) {
-      if (e instanceof ApiError && e.status === 409) {
-        const reason = window.prompt(`${e.message}\n\n${t('Enter a documented reason to verify it yourself:')}`);
-        if (reason && reason.trim()) {
-          try {
-            await resultsApi.verify(id, reason.trim());
-            toast.success(t('Result verified with override'));
-            refetch();
-          } catch (e2) {
-            toast.error(e2 instanceof ApiError ? e2.message : t('Failed'));
-          }
-        }
-      } else {
-        toast.error(e instanceof ApiError ? e.message : t('Unable to verify'));
+      const outcome = await verifyWithPrompts(id, {
+        incomplete: t('Enter a documented reason to verify this result as partial:'),
+        other: t('Enter a documented reason to verify it yourself:'),
+      });
+      if (outcome.ok) {
+        toast.success(outcome.overridden ? t('Result verified with override') : t('Result verified'));
+        refetch();
       }
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : t('Unable to verify'));
     } finally {
       setBusyId(null);
     }
@@ -70,6 +63,7 @@ export function ResultsToVerify() {
                 {r.testName}
                 {r.hasCritical && <Badge tone="critical">{t('Critical')}</Badge>}
                 {r.hasAbnormal && !r.hasCritical && <Badge tone="warning">{t('Abnormal')}</Badge>}
+                {!r.complete && r.resultMode !== 'CULTURE' && <Badge tone="warning">{t('Incomplete')}</Badge>}
               </p>
               <p className="truncate text-xs text-muted">
                 {r.patientName} <span className="font-mono">{r.patientMrn}</span> · {r.departmentName}
