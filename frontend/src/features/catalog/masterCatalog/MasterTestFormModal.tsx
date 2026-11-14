@@ -290,7 +290,13 @@ export function MasterTestFormModal({
         </datalist>
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Input label={t('Code')} error={errors.code?.message} {...register('code')} />
+          <Input
+            label={t('Code')}
+            placeholder={t('e.g. CBC, LFT, TSH')}
+            hint={t('Unique across the master catalogue — uppercased automatically')}
+            error={errors.code?.message}
+            {...register('code')}
+          />
           <Input label={t('Name')} className="col-span-2" error={errors.name?.message} {...register('name')} />
           <Input
             label={t('Department')}
@@ -299,11 +305,26 @@ export function MasterTestFormModal({
             error={errors.departmentName?.message}
             {...register('departmentName')}
           />
-          <Input label={t('Category')} {...register('category')} />
+          <Input
+            label={t('Category')}
+            placeholder={t('e.g. Renal panel, Diabetes workup')}
+            hint={t("Carried into each clinic's own copy when imported")}
+            {...register('category')}
+          />
           <Select label={t('Specimen type')} options={tOpts(SPECIMEN_OPTIONS)} {...register('specimenType')} />
           <Input label={t('Suggested price')} type="number" step="0.01" {...register('suggestedPrice')} />
-          <Input label={t('Turnaround (hrs)')} type="number" {...register('turnaroundHours')} />
-          <Input label={t('Display order')} type="number" {...register('displayOrder')} />
+          <Input
+            label={t('Turnaround (hrs)')}
+            type="number"
+            hint={t("Carried into each clinic's copy when imported — leave blank for no turnaround deadline")}
+            {...register('turnaroundHours')}
+          />
+          <Input
+            label={t('Display order')}
+            type="number"
+            hint={t('Where this test sorts when clinics browse the catalogue')}
+            {...register('displayOrder')}
+          />
         </div>
         <Checkbox label={t('Active (visible to clinics for import)')} {...register('active')} />
 

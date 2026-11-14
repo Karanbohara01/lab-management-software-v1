@@ -1,5 +1,6 @@
 package np.com.lims.catalog;
 
+import np.com.lims.catalog.dto.TestDtos.CatalogFieldsUpdate;
 import np.com.lims.catalog.dto.TestDtos.CreateRequest;
 import np.com.lims.catalog.dto.TestDtos.Detail;
 import np.com.lims.catalog.dto.TestDtos.ListItem;
@@ -95,6 +96,35 @@ public class LabTestService {
         auditService.record(MODULE, "UPDATE", "LabTest", id,
                 "Updated test " + test.getCode(), before, Detail.from(test));
         return Detail.from(test);
+    }
+
+    /**
+     * Updates only the catalog-level fields a CSV import row can express. Deliberately leaves
+     * {@code type} forced to ANALYTE and never touches parameters/profile members — see
+     * {@link CatalogFieldsUpdate}'s javadoc. Callers must check {@code type} themselves first: this
+     * method has no way to refuse an existing PROFILE test, it will just misclassify it.
+     */
+    @Transactional
+    public Detail updateCatalogFields(Long id, CatalogFieldsUpdate fields) {
+        LabTest test = load(id);
+        Detail before = Detail.from(test);
+        Department department = department(fields.departmentId());
+        test.updateDetails(fields.name().trim(), TestType.ANALYTE, department, trimToNull(fields.category()),
+                fields.specimenType(), trimToNull(fields.specimenRequirements()),
+                trimToNull(fields.method()), fields.price(), fields.turnaroundHours(),
+                trimToNull(fields.loincCode()));
+        applyHandling(test, fields.specimenHandling());
+        test.setResultMode(fields.resultMode());
+        test.setAutoVerifyEnabled(fields.autoVerifyEnabled());
+        auditService.record(MODULE, "UPDATE", "LabTest", id,
+                "Updated test " + test.getCode() + " (CSV import)", before, Detail.from(test));
+        return Detail.from(test);
+    }
+
+    /** The lab's full catalog, for CSV export — sorted for a stable, diffable file. */
+    @Transactional(readOnly = true)
+    public List<LabTest> listAllForCsv() {
+        return testRepository.findAllByOrderByNameAsc();
     }
 
     private void applyHandling(LabTest test, SpecimenHandling h) {

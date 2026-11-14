@@ -98,6 +98,29 @@ public final class TestDtos {
     ) {
     }
 
+    /**
+     * The subset of a test's fields a CSV import row can express — deliberately excludes
+     * {@code parameters}/{@code memberTestIds}: a CSV row carries neither, and
+     * {@link LabTest}'s parameter tree is a full-replace-on-every-save structure (see
+     * {@code LabTestService.replaceParameters}), so routing a CSV-driven price update through the
+     * same path as the catalog editor would silently wipe out an existing analyte's parameters.
+     */
+    public record CatalogFieldsUpdate(
+            String name,
+            Long departmentId,
+            String category,
+            SpecimenType specimenType,
+            String specimenRequirements,
+            String method,
+            String loincCode,
+            BigDecimal price,
+            Integer turnaroundHours,
+            ResultMode resultMode,
+            boolean autoVerifyEnabled,
+            SpecimenHandling specimenHandling
+    ) {
+    }
+
     public record UpdateRequest(
             @NotBlank @Size(max = 160) String name,
             @NotNull TestType type,

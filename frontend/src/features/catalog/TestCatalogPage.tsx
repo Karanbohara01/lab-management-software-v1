@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Library, Plus } from 'lucide-react';
+import { Download, Library, Plus, Upload } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -18,6 +18,7 @@ import { testCatalogApi } from './api';
 import { SPECIMEN_LABELS, type TestDetail, type TestListItem } from './types';
 import { TestFormModal } from './TestFormModal';
 import { ImportMasterTestsModal } from './masterCatalog/ImportMasterTestsModal';
+import { ImportTestsCsvModal } from './ImportTestsCsvModal';
 import { useT } from '@/i18n';
 
 const PAGE_SIZE = 20;
@@ -36,6 +37,7 @@ export function TestCatalogPage() {
   const [editing, setEditing] = useState<TestDetail | null>(null);
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [importCsvOpen, setImportCsvOpen] = useState(false);
 
   const departments = useQuery(() => departmentsApi.list(false), []);
   const { data, loading, error, refetch } = useQuery(
@@ -88,7 +90,15 @@ export function TestCatalogPage() {
         description={t('Configure tests, their specimen requirements, pricing and result parameters.')}
         actions={
           canWrite ? (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" onClick={() => testCatalogApi.exportCsv()}>
+                <Download className="h-4 w-4" aria-hidden />
+                {t('Export CSV')}
+              </Button>
+              <Button variant="secondary" onClick={() => setImportCsvOpen(true)}>
+                <Upload className="h-4 w-4" aria-hidden />
+                {t('Import CSV')}
+              </Button>
               <Button variant="secondary" onClick={() => setImportOpen(true)}>
                 <Library className="h-4 w-4" aria-hidden />
                 {t('Import from master catalogue')}
@@ -164,6 +174,15 @@ export function TestCatalogPage() {
       <ImportMasterTestsModal
         open={importOpen}
         onClose={() => setImportOpen(false)}
+        onImported={() => {
+          refetch();
+          departments.refetch();
+        }}
+      />
+
+      <ImportTestsCsvModal
+        open={importCsvOpen}
+        onClose={() => setImportCsvOpen(false)}
         onImported={() => {
           refetch();
           departments.refetch();

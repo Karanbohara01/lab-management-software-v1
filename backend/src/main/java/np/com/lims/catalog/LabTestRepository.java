@@ -15,6 +15,8 @@ public interface LabTestRepository extends JpaRepository<LabTest, Long> {
 
     boolean existsByCodeIgnoreCase(String code);
 
+    Optional<LabTest> findByCodeIgnoreCase(String code);
+
     long countByActiveTrue();
 
     // Only one collection level in the graph — Hibernate cannot join-fetch two List collections at once.
@@ -24,6 +26,8 @@ public interface LabTestRepository extends JpaRepository<LabTest, Long> {
 
     @EntityGraph(attributePaths = {"department", "parameters"})
     List<LabTest> findByIdInAndActiveTrue(List<Long> ids);
+
+    List<LabTest> findAllByOrderByNameAsc();
 
     @Query("""
             SELECT t FROM LabTest t

@@ -198,3 +198,15 @@ export const AGE_UNIT_LABELS: Record<AgeUnit, string> = {
   MONTHS: 'months',
   DAYS: 'days',
 };
+
+export interface TestCsvRowError {
+  rowNumber: number;
+  code: string | null;
+  message: string;
+}
+
+export interface TestCsvImportResult {
+  created: string[];
+  updated: string[];
+  errors: TestCsvRowError[];
+}

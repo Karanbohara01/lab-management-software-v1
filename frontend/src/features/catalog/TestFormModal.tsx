@@ -613,7 +613,14 @@ export function TestFormModal({
 
         <h3 className="text-label uppercase text-muted">{t('Test details')}</h3>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label={t('Code')} disabled={!!test} error={errors.code?.message} {...register('code')} />
+          <Input
+            label={t('Code')}
+            placeholder={t('e.g. CBC, LFT, TSH')}
+            hint={t("Unique — letters, digits, . - _ only. Can't be changed later.")}
+            disabled={!!test}
+            error={errors.code?.message}
+            {...register('code')}
+          />
           <Input label={t('Test name')} data-autofocus error={errors.name?.message} {...register('name')} />
           <Select
             label={t('Type')}
@@ -634,12 +641,28 @@ export function TestFormModal({
             />
           )}
           <Select label={t('Department')} options={deptOptions} placeholder={t('Select…')} error={errors.departmentId?.message} {...register('departmentId')} />
-          <Input label={t('Category')} {...register('category')} />
+          <Input
+            label={t('Category')}
+            placeholder={t('e.g. Renal panel, Diabetes workup')}
+            hint={t('Optional grouping label for your own reference')}
+            {...register('category')}
+          />
           <Select label={t('Specimen type')} options={tOpts(specimenOptions)} {...register('specimenType')} />
-          <Input label={t('Method')} {...register('method')} />
-          <Input label={t('LOINC code')} {...register('loincCode')} />
+          <Input label={t('Method')} placeholder={t('e.g. ELISA, Flow cytometry, Automated analyser')} {...register('method')} />
+          <Input
+            label={t('LOINC code')}
+            placeholder={t('e.g. 2345-7')}
+            hint={t('Standard lab-test identifier (loinc.org) — optional')}
+            {...register('loincCode')}
+          />
           <Input label={t('Price (NPR)')} type="number" step="0.01" min={0} error={errors.price?.message} {...register('price')} />
-          <Input label={t('Turnaround (hours)')} type="number" min={0} {...register('turnaroundHours')} />
+          <Input
+            label={t('Turnaround (hours)')}
+            type="number"
+            min={0}
+            hint={t('Leave blank for no turnaround deadline on results')}
+            {...register('turnaroundHours')}
+          />
         </div>
 
         <details className="rounded-md border border-border p-3">
