@@ -3,16 +3,25 @@ import {
   MapPin,
   Building2,
   TestTubes,
-  ScrollText,
-  CreditCard,
-  MessageSquare,
   Database,
-  ShieldCheck,
-  UserCog,
-  Settings,
-  Boxes,
   RefreshCw,
 } from 'lucide-react';
+import {
+  FcManager,
+  FcLock,
+  FcGlobe,
+  FcFactory,
+  FcBiotech,
+  FcPackage,
+  FcSurvey,
+  FcSettings,
+  FcDatabase,
+  FcDiploma1,
+  FcMoneyTransfer,
+  FcSms,
+  FcCellPhone,
+} from 'react-icons/fc';
+import type { IconType } from 'react-icons';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -52,16 +61,16 @@ export function ControlCenterPage() {
     { label: t('Active tests'), value: status.activeTests, icon: TestTubes, to: '/app/tests' },
   ];
 
-  const managementCards = [
-    { label: t('Users'), description: t('Accounts, roles, enable/disable, reset password'), icon: UserCog, to: '/app/users' },
-    { label: t('Roles'), description: t('Review permissions granted per role'), icon: ShieldCheck, to: '/app/roles' },
-    { label: t('Branches'), description: t('Locations, contact details, active status'), icon: MapPin, to: '/app/branches' },
-    { label: t('Departments'), description: t('Lab departments backing the test catalog'), icon: Building2, to: '/app/departments' },
-    { label: t('Test catalog'), description: t('Analytes, profiles, reference ranges'), icon: TestTubes, to: '/app/tests' },
-    { label: t('Inventory'), description: t('Stock, suppliers, purchase orders'), icon: Boxes, to: '/app/inventory' },
-    { label: t('Audit log'), description: t('Every change, before/after, who and when'), icon: ScrollText, to: '/app/audit' },
-    { label: t('Laboratory settings'), description: t('Letterhead, fiscal year, tax, branding'), icon: Settings, to: '/app/settings' },
-    { label: t('Backups'), description: t('Run and download database backups'), icon: Database, to: '/app/backups' },
+  const managementCards: { label: string; description: string; icon: IconType; to: string }[] = [
+    { label: t('Users'), description: t('Accounts, roles, enable/disable, reset password'), icon: FcManager, to: '/app/users' },
+    { label: t('Roles'), description: t('Review permissions granted per role'), icon: FcLock, to: '/app/roles' },
+    { label: t('Branches'), description: t('Locations, contact details, active status'), icon: FcGlobe, to: '/app/branches' },
+    { label: t('Departments'), description: t('Lab departments backing the test catalog'), icon: FcFactory, to: '/app/departments' },
+    { label: t('Test catalog'), description: t('Analytes, profiles, reference ranges'), icon: FcBiotech, to: '/app/tests' },
+    { label: t('Inventory'), description: t('Stock, suppliers, purchase orders'), icon: FcPackage, to: '/app/inventory' },
+    { label: t('Audit log'), description: t('Every change, before/after, who and when'), icon: FcSurvey, to: '/app/audit' },
+    { label: t('Laboratory settings'), description: t('Letterhead, fiscal year, tax, branding'), icon: FcSettings, to: '/app/settings' },
+    { label: t('Backups'), description: t('Run and download database backups'), icon: FcDatabase, to: '/app/backups' },
   ];
 
   return (
@@ -87,7 +96,7 @@ export function ControlCenterPage() {
           />
           <CardBody className="space-y-3">
             <IntegrationRow
-              icon={ScrollText}
+              icon={FcDiploma1}
               label={t('IRD / CBMS e-billing')}
               configured={status.irdConfigured}
               detail={status.irdEnvironment ?? undefined}
@@ -96,19 +105,19 @@ export function ControlCenterPage() {
             {status.paymentProviders.map((p) => (
               <IntegrationRow
                 key={p.name}
-                icon={CreditCard}
+                icon={FcMoneyTransfer}
                 label={t('{name} online payment', { name: p.name })}
                 configured={p.configured}
                 onClick={() => navigate('/app/invoices')}
               />
             ))}
             <IntegrationRow
-              icon={MessageSquare}
+              icon={FcSms}
               label={t('SMS report delivery')}
               configured={status.smsConfigured}
               detail={status.smsConfigured ? (status.smsProvider ?? undefined) : undefined}
             />
-            <IntegrationRow icon={MessageSquare} label={t('WhatsApp report delivery')} configured={status.whatsappConfigured} />
+            <IntegrationRow icon={FcCellPhone} label={t('WhatsApp report delivery')} configured={status.whatsappConfigured} />
           </CardBody>
         </Card>
 
@@ -148,7 +157,7 @@ export function ControlCenterPage() {
                 onClick={() => navigate(c.to)}
                 className="flex items-start gap-3 rounded-lg border border-border p-4 text-left transition-colors hover:border-primary/30 hover:bg-surface-muted"
               >
-                <c.icon className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden />
+                <c.icon className="mt-0.5 h-6 w-6 shrink-0" aria-hidden />
                 <span>
                   <span className="block text-sm font-semibold text-foreground">{c.label}</span>
                   <span className="block text-xs text-muted">{c.description}</span>
@@ -169,7 +178,7 @@ function IntegrationRow({
   detail,
   onClick,
 }: {
-  icon: typeof ScrollText;
+  icon: IconType;
   label: string;
   configured: boolean;
   detail?: string;
@@ -179,7 +188,7 @@ function IntegrationRow({
   const content = (
     <>
       <div className="flex items-center gap-2">
-        <Icon className="h-4 w-4 text-muted" aria-hidden />
+        <Icon className="h-4 w-4" aria-hidden />
         <span className="text-sm text-foreground">{label}</span>
         {detail && <span className="text-xs text-muted">({detail})</span>}
       </div>

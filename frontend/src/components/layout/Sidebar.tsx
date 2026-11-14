@@ -52,33 +52,11 @@ export function SidebarContent({
     [leaf],
   );
   const { pathname } = useLocation();
-  /**
-   * Which nav item is "where I am". The route's own chain settles it for every listed page; the
-   * path-prefix fallback covers anything not in appRoutes.ts. Dashboard is exact — it is every
-   * page's last ancestor, and lighting it everywhere would say nothing.
-   */
-  const isItemActive = (to: string) => {
-    if (to === '/app') return pathname === '/app';
-    if (ancestorHrefs.has(to)) return true;
-    return pathname === to || pathname.startsWith(`${to}/`);
-  };
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(readCollapsedSections);
   const [query, setQuery] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
   const trimmedQuery = query.trim();
   const isSearching = trimmedQuery.length > 0;
-
-  const toggleSection = (heading: string) => {
-    setCollapsedSections((prev) => {
-      const next = { ...prev, [heading]: !prev[heading] };
-      try {
-        localStorage.setItem(SECTION_COLLAPSE_KEY, JSON.stringify(next));
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
-  };
 
   const visibleSections = useMemo(
     () =>
@@ -92,6 +70,45 @@ export function SidebarContent({
       })).filter((section) => section.items.length > 0),
     [hasAnyPermission, isSearching, trimmedQuery, t],
   );
+
+  /**
+   * Which nav item is "where I am" — exactly one, even when a section has its own "Overview" page
+   * (its route is a genuine breadcrumb ancestor of every page under it, e.g. Communication is an
+   * ancestor of Communication → Send SMS, so both would otherwise match at once). Among every
+   * visible item whose route matches the current page — via its own declared ancestor chain, or
+   * the path-prefix fallback for anything not registered in appRoutes.ts — only the most specific
+   * one (the longest `to`) wins; Dashboard is exact, since it's every page's last ancestor and
+   * lighting it everywhere would say nothing.
+   */
+  const activeTo = useMemo(() => {
+    const matches = (to: string) => {
+      if (to === '/app') return pathname === '/app';
+      if (ancestorHrefs.has(to)) return true;
+      return pathname === to || pathname.startsWith(`${to}/`);
+    };
+    let winner: string | null = null;
+    for (const section of visibleSections) {
+      for (const item of section.items) {
+        if (matches(item.to) && (winner === null || item.to.length > winner.length)) {
+          winner = item.to;
+        }
+      }
+    }
+    return winner;
+  }, [ancestorHrefs, pathname, visibleSections]);
+  const isItemActive = (to: string) => to === activeTo;
+
+  const toggleSection = (heading: string) => {
+    setCollapsedSections((prev) => {
+      const next = { ...prev, [heading]: !prev[heading] };
+      try {
+        localStorage.setItem(SECTION_COLLAPSE_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
 
   // "/" focuses the sidebar search, unless the user is already typing somewhere else.
   useEffect(() => {

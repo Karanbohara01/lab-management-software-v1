@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { useBackTarget } from '@/lib/navigation';
-import { Card, CardBody, CardHeader } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
+import { Card } from '@/components/ui/Card';
+import { DataTable } from '@/components/ui/DataTable';
+import { PermissionGroupList } from '@/features/auth/components/PermissionGroupList';
+import { groupAllPermissions, groupGrantedPermissions } from '@/features/auth/permissionGroups';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Alert } from '@/components/ui/Alert';
@@ -21,6 +23,11 @@ import { platformApi, type PlatformRole } from './api';
  * a clinic's own SUPER_ADMIN: a per-clinic admin can already view this matrix read-only from
  * Admin → Roles, but changing it here would change what an ACCOUNTANT (or any role) can do in
  * every other clinic too.
+ *
+ * A role list rather than nine permission cards side by side — see RolesPage for why. Viewing a
+ * role's breakdown and editing it are kept as two separate modals: viewing is read-heavy
+ * (grouped chips, scan the whole thing), editing is write-heavy (every permission as a checkbox,
+ * grouped the same way so the two stay recognisable as the same data).
  */
 export function PlatformRolesPage() {
   const t = useT();
@@ -28,6 +35,7 @@ export function PlatformRolesPage() {
   const toast = useToast();
   const rolesQ = useQuery(() => platformApi.roles(), []);
   const permsQ = useQuery(() => platformApi.permissions(), []);
+  const [viewing, setViewing] = useState<PlatformRole | null>(null);
   const [editing, setEditing] = useState<PlatformRole | null>(null);
 
   return (
@@ -42,13 +50,35 @@ export function PlatformRolesPage() {
       ) : rolesQ.error ? (
         <ErrorState message={rolesQ.error} onRetry={rolesQ.refetch} />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
-          {(rolesQ.data ?? []).map((role) => (
-            <Card key={role.id}>
-              <CardHeader
-                title={role.name.replace(/_/g, ' ')}
-                description={role.description ?? undefined}
-                action={
+        <Card>
+          <DataTable
+            columns={[
+              {
+                key: 'role',
+                header: t('Role'),
+                cell: (role) => (
+                  <div>
+                    <p className="font-medium text-foreground">{role.name.replace(/_/g, ' ')}</p>
+                    {role.description && <p className="text-xs text-muted">{role.description}</p>}
+                  </div>
+                ),
+              },
+              {
+                key: 'resources',
+                header: t('Resources'),
+                cell: (role) => groupGrantedPermissions(role.permissions).length,
+                hideOnMobile: true,
+              },
+              {
+                key: 'permissions',
+                header: t('Permissions'),
+                cell: (role) => role.permissions.length,
+              },
+              {
+                key: 'edit',
+                header: '',
+                className: 'w-10',
+                cell: (role) => (
                   <button
                     onClick={() => setEditing(role)}
                     className="rounded p-1.5 text-muted hover:bg-surface-muted"
@@ -56,26 +86,35 @@ export function PlatformRolesPage() {
                   >
                     <Pencil className="h-4 w-4" aria-hidden />
                   </button>
-                }
-              />
-              <CardBody>
-                <p className="mb-2 text-xs text-muted">{t('{count} permissions', { count: role.permissions.length })}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {role.permissions.length === 0 ? (
-                    <span className="text-xs text-muted">{t('No permissions granted.')}</span>
-                  ) : (
-                    role.permissions.map((p) => (
-                      <Badge key={p} tone="neutral">
-                        {p}
-                      </Badge>
-                    ))
-                  )}
-                </div>
-              </CardBody>
-            </Card>
-          ))}
-        </div>
+                ),
+              },
+            ]}
+            rows={rolesQ.data ?? []}
+            rowKey={(role) => role.id}
+            onRowClick={setViewing}
+          />
+        </Card>
       )}
+
+      <Modal
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title={viewing ? t('Permissions · {role}', { role: viewing.name.replace(/_/g, ' ') }) : ''}
+        size="xl"
+      >
+        {viewing && (
+          <>
+            <p className="mb-4 text-sm text-muted">
+              {viewing.description && <span>{viewing.description} · </span>}
+              {t('{permissions} permissions across {resources} resources', {
+                permissions: viewing.permissions.length,
+                resources: groupGrantedPermissions(viewing.permissions).length,
+              })}
+            </p>
+            <PermissionGroupList permissions={viewing.permissions} />
+          </>
+        )}
+      </Modal>
 
       <EditRolePermissionsModal
         role={editing}
@@ -151,17 +190,27 @@ function EditRolePermissionsModal({
         <p className="text-xs text-muted">
           {t('This changes what every user with this role can do, on every clinic on this platform — not just one.')}
         </p>
-        <div className="grid max-h-96 gap-2 overflow-y-auto sm:grid-cols-2">
-          {allPermissions.map((p) => (
-            <label key={p} className="flex items-center gap-2 text-sm text-foreground">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-input"
-                checked={selected.includes(p)}
-                onChange={() => toggle(p)}
-              />
-              <span className="font-mono text-xs">{p}</span>
-            </label>
+        <div className="max-h-96 space-y-4 overflow-y-auto pr-1">
+          {groupAllPermissions(allPermissions).map((group) => (
+            <div key={group.label}>
+              <p className="flex items-center gap-1.5 text-label uppercase text-muted">
+                <group.icon className="h-4 w-4" aria-hidden />
+                {t(group.label)}
+              </p>
+              <div className="mt-1.5 grid gap-1.5 sm:grid-cols-2">
+                {group.entries.map((e) => (
+                  <label key={e.permission} className="flex items-center gap-2 text-sm text-foreground">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-input"
+                      checked={selected.includes(e.permission)}
+                      onChange={() => toggle(e.permission)}
+                    />
+                    {t(e.action)}
+                  </label>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </div>
