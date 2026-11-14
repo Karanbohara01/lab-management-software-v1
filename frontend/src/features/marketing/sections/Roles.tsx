@@ -3,7 +3,7 @@ import { Fragment } from 'react';
 import { cn } from '@/lib/cn';
 import { Section, SectionHeading } from '../components/primitives';
 import { TYPE } from '../components/typography';
-import { Reveal } from '../components/Reveal';
+import { Reveal, staggerDelay } from '../components/Reveal';
 import { ROLES } from '../data';
 
 export function Roles() {
@@ -23,11 +23,18 @@ export function Roles() {
         {ROLES.map((role, i) => (
           <Reveal
             key={role.title}
-            delay={(i % 3) * 60}
+            delay={staggerDelay(i)}
             as="div"
             className="w-full md:w-[calc((100%-1.25rem)/2)] xl:w-[calc((100%-2.5rem)/3)]"
           >
-            <div className="group h-full rounded-2xl bg-surface p-5 shadow-[0_6px_20px_-10px_rgb(15_23_42/0.22)]">
+            <div
+              className={cn(
+                'group h-full rounded-2xl bg-surface p-5 shadow-[0_6px_20px_-10px_rgb(15_23_42/0.22)]',
+                'transition-[transform,box-shadow] duration-200 ease-premium',
+                'hover:-translate-y-1 hover:shadow-[0_14px_32px_-12px_rgb(15_23_42/0.28)]',
+                'motion-reduce:transition-none motion-reduce:hover:translate-y-0',
+              )}
+            >
               <div className="flex items-center gap-4">
                 <img
                   src={role.image}

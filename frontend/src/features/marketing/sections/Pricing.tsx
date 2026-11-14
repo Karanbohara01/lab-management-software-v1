@@ -1,12 +1,14 @@
-import { ArrowRight, Building2, FlaskConical, Microscope, Star, type LucideIcon } from 'lucide-react';
+import { ArrowRight, Star } from 'lucide-react';
+import { FcBiohazard, FcBiotech, FcOrganization } from 'react-icons/fc';
+import type { IconType } from 'react-icons';
 import { cn } from '@/lib/cn';
 import { CheckBullet, Section, SectionHeading, LinkButton } from '../components/primitives';
 import { TYPE } from '../components/typography';
-import { Reveal } from '../components/Reveal';
+import { Reveal, staggerDelay } from '../components/Reveal';
 import { PLANS } from '../data';
 
 interface PlanLook {
-  icon: LucideIcon;
+  icon: IconType;
   /** the icon tile — also the tint of the check tiles in the feature list */
   tile: string;
   /** the button, for plans that aren't the highlighted one (that one is a solid primary button) */
@@ -18,19 +20,19 @@ interface PlanLook {
 /** Each plan has its own accent: the logo's teal and navy, and violet for the top tier. */
 const LOOKS: Record<string, PlanLook> = {
   Starter: {
-    icon: FlaskConical,
+    icon: FcBiohazard,
     tile: 'bg-success/10 text-success',
     outline: 'border-2 border-success/50 text-success hover:bg-success/5',
     art: { src: '/marketing/pricing/starter.webp', width: 124, height: 114 },
   },
   Professional: {
-    icon: Microscope,
+    icon: FcBiotech,
     tile: 'bg-primary/10 text-primary',
     outline: 'border-2 border-primary/50 text-primary hover:bg-primary/5',
     art: { src: '/marketing/pricing/professional.webp', width: 118, height: 118 },
   },
   Enterprise: {
-    icon: Building2,
+    icon: FcOrganization,
     tile: 'bg-violet-100 text-violet-600',
     outline: 'border-2 border-violet-300 text-violet-700 hover:bg-violet-50',
     art: { src: '/marketing/pricing/enterprise.webp', width: 98, height: 114 },
@@ -56,7 +58,7 @@ export function Pricing() {
           const Icon = look.icon;
           return (
             // The highlighted card is lifted: its negative top margin makes it grow upward, so all three end on the same line.
-            <Reveal key={plan.name} delay={i * 70} as="div" className={cn(plan.highlighted && 'lg:-mt-4')}>
+            <Reveal key={plan.name} delay={staggerDelay(i, 70)} as="div" className={cn(plan.highlighted && 'lg:-mt-4')}>
               <div
                 className={cn(
                   'relative flex h-full flex-col rounded-3xl border bg-surface p-6 sm:p-7',
@@ -91,9 +93,7 @@ export function Pricing() {
                 )}
 
                 <div className="flex items-center gap-4 xl:min-h-[4.25rem] xl:pr-24 2xl:min-h-0 2xl:pr-28">
-                  <span className={cn('flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl', look.tile)}>
-                    <Icon className="h-7 w-7" aria-hidden />
-                  </span>
+                  <Icon className="h-14 w-14 shrink-0" aria-hidden />
                   <div className="min-w-0">
                     <h3 className={TYPE.h3}>{plan.name}</h3>
                     <p className={cn('mt-1.5', TYPE.bodySm)}>{plan.audience}</p>
@@ -101,6 +101,7 @@ export function Pricing() {
                 </div>
 
                 <p className="mt-7 text-price tabular-nums text-foreground">Request pricing</p>
+                <p className={cn('mt-1', TYPE.bodySm)}>{plan.tagline}</p>
 
                 <ul className="mt-5 flex-1 space-y-3">
                   {plan.features.map((f) => (

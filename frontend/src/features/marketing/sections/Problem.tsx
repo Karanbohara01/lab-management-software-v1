@@ -1,15 +1,6 @@
-import {
-  ArrowRight,
-  Check,
-  CreditCard,
-  Database,
-  EyeOff,
-  FileText,
-  FolderCog,
-  ShieldCheck,
-  X,
-  type LucideIcon,
-} from 'lucide-react';
+import { ArrowRight, Check, X } from 'lucide-react';
+import { FcDocument, FcMoneyTransfer, FcBinoculars, FcApproval, FcOpenedFolder, FcDatabase } from 'react-icons/fc';
+import type { IconType } from 'react-icons';
 import { cn } from '@/lib/cn';
 import { Section } from '../components/primitives';
 import { TYPE } from '../components/typography';
@@ -17,14 +8,14 @@ import { Reveal } from '../components/Reveal';
 import { Photo } from '../components/Photo';
 import { CONNECTED_WORKFLOW, IMAGES, TRADITIONAL_WORKFLOW } from '../data';
 
-/** Each pain point gets its own icon, as a round tile on its card — alternating the logo's navy and teal. */
-const PAIN_POINTS: { text: string; icon: LucideIcon; tone: string }[] = [
-  { text: 'Paper-heavy workflows and duplicate data entry', icon: FileText, tone: 'bg-primary/10 text-primary' },
-  { text: 'Billing disconnected from the laboratory', icon: CreditCard, tone: 'bg-success/10 text-success' },
-  { text: 'No clear view of where a sample is', icon: EyeOff, tone: 'bg-primary/10 text-primary' },
-  { text: 'Result verification that slips through the cracks', icon: ShieldCheck, tone: 'bg-success/10 text-success' },
-  { text: 'Reports scattered across machines and folders', icon: FolderCog, tone: 'bg-primary/10 text-primary' },
-  { text: 'Financial records that never quite reconcile', icon: Database, tone: 'bg-success/10 text-success' },
+/** Each pain point gets its own icon. */
+const PAIN_POINTS: { text: string; icon: IconType }[] = [
+  { text: 'Paper-heavy workflows and duplicate data entry', icon: FcDocument },
+  { text: 'Billing disconnected from the laboratory', icon: FcMoneyTransfer },
+  { text: 'No clear view of where a sample is', icon: FcBinoculars },
+  { text: 'Result verification that slips through the cracks', icon: FcApproval },
+  { text: 'Reports scattered across machines and folders', icon: FcOpenedFolder },
+  { text: 'Financial records that never quite reconcile', icon: FcDatabase },
 ];
 
 export function Problem() {
@@ -59,14 +50,12 @@ export function Problem() {
 
         <Reveal delay={120}>
           <ul className="space-y-3.5">
-            {PAIN_POINTS.map(({ text, icon: Icon, tone }) => (
+            {PAIN_POINTS.map(({ text, icon: Icon }) => (
               <li
                 key={text}
                 className="flex items-center gap-4 rounded-2xl bg-surface px-4 py-3.5 shadow-[0_6px_20px_-10px_rgb(15_23_42/0.22)]"
               >
-                <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${tone}`}>
-                  <Icon className="h-6 w-6" aria-hidden />
-                </span>
+                <Icon className="h-12 w-12 shrink-0" aria-hidden />
                 <span className="flex-1 text-body font-medium text-foreground">{text}</span>
                 <X className="h-5 w-5 shrink-0 text-red-500" aria-hidden />
               </li>

@@ -22,22 +22,27 @@ export default {
         muted: {
           DEFAULT: 'hsl(var(--muted) / <alpha-value>)',
           foreground: 'hsl(var(--muted-foreground) / <alpha-value>)',
+          solid: 'hsl(var(--neutral-muted) / <alpha-value>)',
         },
         success: {
           DEFAULT: 'hsl(var(--success) / <alpha-value>)',
           foreground: 'hsl(var(--success-foreground) / <alpha-value>)',
+          muted: 'hsl(var(--success-muted) / <alpha-value>)',
         },
         warning: {
           DEFAULT: 'hsl(var(--warning) / <alpha-value>)',
           foreground: 'hsl(var(--warning-foreground) / <alpha-value>)',
+          muted: 'hsl(var(--warning-muted) / <alpha-value>)',
         },
         danger: {
           DEFAULT: 'hsl(var(--danger) / <alpha-value>)',
           foreground: 'hsl(var(--danger-foreground) / <alpha-value>)',
+          muted: 'hsl(var(--danger-muted) / <alpha-value>)',
         },
         critical: {
           DEFAULT: 'hsl(var(--critical) / <alpha-value>)',
           foreground: 'hsl(var(--critical-foreground) / <alpha-value>)',
+          muted: 'hsl(var(--critical-muted) / <alpha-value>)',
         },
       },
       borderRadius: {
@@ -89,6 +94,11 @@ export default {
       boxShadow: {
         card: '0 1px 2px 0 hsl(220 43% 11% / 0.04), 0 1px 3px 0 hsl(220 43% 11% / 0.06)',
         popover: '0 8px 24px -4px hsl(220 43% 11% / 0.12), 0 2px 8px -2px hsl(220 43% 11% / 0.08)',
+      },
+      transitionTimingFunction: {
+        // "Expo-out" — a tasteful, slightly-decelerating curve shared by every hand-built motion
+        // touch on the marketing page, instead of Tailwind's flatter default `ease-out`.
+        premium: 'cubic-bezier(0.16, 1, 0.3, 1)',
       },
       keyframes: {
         'fade-in': { from: { opacity: '0' }, to: { opacity: '1' } },

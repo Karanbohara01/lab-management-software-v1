@@ -155,6 +155,8 @@ export const ROLES: Role[] = [
 export interface Plan {
   name: string;
   audience: string;
+  /** One line under "Request pricing" — what the quote is actually based on, since the headline is otherwise identical across every card. */
+  tagline: string;
   features: string[];
   highlighted?: boolean;
 }
@@ -163,6 +165,7 @@ export const PLANS: Plan[] = [
   {
     name: 'Starter',
     audience: 'For small laboratories',
+    tagline: 'Flat monthly rate — no per-report fees, ever.',
     features: [
       'Patients, orders & results',
       'Sample tracking with barcodes',
@@ -174,6 +177,7 @@ export const PLANS: Plan[] = [
   {
     name: 'Professional',
     audience: 'For growing diagnostic centers',
+    tagline: 'Scoped to your test volume, locked in for 12 months.',
     highlighted: true,
     features: [
       'Everything in Starter',
@@ -187,6 +191,7 @@ export const PLANS: Plan[] = [
   {
     name: 'Enterprise',
     audience: 'For hospitals & multi-branch labs',
+    tagline: 'Custom multi-branch pricing, billed centrally.',
     features: [
       'Everything in Professional',
       'Multi-branch support',

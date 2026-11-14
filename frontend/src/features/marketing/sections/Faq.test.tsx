@@ -72,4 +72,12 @@ describe('Faq', () => {
     expect(screen.getByRole('button', { name: FAQS[2]!.q })).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('button', { name: FAQS[0]!.q })).toHaveAttribute('aria-expanded', 'false');
   });
+
+  it('hides a collapsed answer from the accessibility tree, and exposes the open one', () => {
+    const { container } = render(<Faq />);
+    // question 0 opens by default; the id scheme (`faq-panel-<i>`) is stable, so address panels
+    // directly rather than by accessible name — a hidden region's computed name is itself empty.
+    expect(container.querySelector('#faq-panel-0')).toHaveAttribute('aria-hidden', 'false');
+    expect(container.querySelector('#faq-panel-1')).toHaveAttribute('aria-hidden', 'true');
+  });
 });

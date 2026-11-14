@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Minus, Plus } from 'lucide-react';
+import { cn } from '@/lib/cn';
 import { Section, SectionHeading } from '../components/primitives';
 import { buttonClasses } from '../components/buttonStyles';
 import { Reveal } from '../components/Reveal';
@@ -60,20 +61,45 @@ export function Faq() {
                         {faq.q}
                         <span
                           aria-hidden
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
+                          className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"
                         >
-                          {isOpen ? <Minus className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                          {/* Both icons stay mounted and crossfade — a rotate+opacity swap reads as one
+                              continuous motion instead of Plus/Minus hard-swapping on toggle. */}
+                          <Plus
+                            className={cn(
+                              'absolute h-4 w-4 transition-[opacity,transform] duration-200 ease-premium motion-reduce:transition-none',
+                              isOpen ? 'rotate-45 opacity-0' : 'rotate-0 opacity-100',
+                            )}
+                          />
+                          <Minus
+                            className={cn(
+                              'absolute h-4 w-4 transition-[opacity,transform] duration-200 ease-premium motion-reduce:transition-none',
+                              isOpen ? 'rotate-0 opacity-100' : '-rotate-45 opacity-0',
+                            )}
+                          />
                         </span>
                       </button>
                     </h3>
+                    {/* `grid-template-rows: 0fr → 1fr` is the dependency-free way to animate to the
+                        content's natural height. `aria-hidden` stands in for the `hidden` attribute
+                        this replaced, since a zero-height row alone doesn't pull collapsed content
+                        out of the accessibility tree. */}
                     <div
-                      id={`faq-panel-${i}`}
-                      role="region"
-                      aria-labelledby={`faq-trigger-${i}`}
-                      hidden={!isOpen}
-                      className="px-6 pb-5 text-pretty text-body-sm text-muted"
+                      style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
+                      className="grid transition-[grid-template-rows] duration-300 ease-premium motion-reduce:transition-none"
                     >
-                      {faq.a}
+                      <div
+                        id={`faq-panel-${i}`}
+                        role="region"
+                        aria-labelledby={`faq-trigger-${i}`}
+                        aria-hidden={!isOpen}
+                        className={cn(
+                          'overflow-hidden px-6 pb-5 text-pretty text-body-sm text-muted transition-opacity duration-200 ease-premium motion-reduce:transition-none',
+                          isOpen ? 'opacity-100' : 'opacity-0',
+                        )}
+                      >
+                        {faq.a}
+                      </div>
                     </div>
                   </li>
                 );
