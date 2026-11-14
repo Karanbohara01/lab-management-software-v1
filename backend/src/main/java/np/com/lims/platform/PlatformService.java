@@ -177,10 +177,12 @@ public class PlatformService {
     @Transactional(readOnly = true)
     public DashboardResponse dashboard() {
         List<Organization> all = organizationRepository.findAll();
-        Map<Long, Subscription> currentByOrgId = all.stream()
-                .collect(java.util.stream.Collectors.toMap(Organization::getId,
-                        o -> subscriptionRepository.findFirstByOrganizationIdOrderByStartedAtDesc(o.getId()).orElse(null),
-                        (a, b) -> a));
+        // A plain HashMap, not Collectors.toMap: a clinic with no subscription yet maps to a real
+        // null here (relied on below), and Collectors.toMap's internal HashMap.merge throws NPE
+        // the moment any value is null — regardless of the merge function.
+        Map<Long, Subscription> currentByOrgId = new java.util.HashMap<>();
+        all.forEach(o -> currentByOrgId.put(o.getId(),
+                subscriptionRepository.findFirstByOrganizationIdOrderByStartedAtDesc(o.getId()).orElse(null)));
 
         // Real monthly signup counts for the last 6 months, oldest first.
         java.time.YearMonth thisMonth = java.time.YearMonth.now(java.time.ZoneOffset.UTC);
@@ -203,8 +205,10 @@ public class PlatformService {
 
         Instant now = Instant.now();
         Instant in30Days = now.plus(java.time.Duration.ofDays(30));
+        // A mutable SimpleEntry, not Map.entry: the latter also rejects a null value the same way
+        // Collectors.toMap did above, and a clinic with no subscription yet is exactly that null.
         List<UpcomingRenewal> upcomingRenewals = all.stream()
-                .map(o -> Map.entry(o, currentByOrgId.get(o.getId())))
+                .map(o -> new java.util.AbstractMap.SimpleEntry<>(o, currentByOrgId.get(o.getId())))
                 .filter(e -> e.getValue() != null && e.getValue().getCurrentPeriodEnd() != null
                         && e.getValue().getStatus().isBillable()
                         && !e.getValue().getCurrentPeriodEnd().isBefore(now)
