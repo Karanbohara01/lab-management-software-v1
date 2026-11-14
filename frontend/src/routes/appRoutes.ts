@@ -82,6 +82,7 @@ export const APP_ROUTE_HANDLES: Record<string, RouteHandle> = {
   '/app/platform/master-tests': { title: 'Master catalogue', parent: '/app/platform' },
   '/app/platform/billing': { title: 'Platform billing', parent: '/app/platform' },
   '/app/platform/roles': { title: 'Roles & permissions', parent: '/app/platform' },
+  '/app/platform/leadership': { title: 'Leadership', parent: '/app/platform' },
 };
 
 /** The handle router.tsx attaches to the route for `pattern` (undefined for unlisted routes like the 404). */

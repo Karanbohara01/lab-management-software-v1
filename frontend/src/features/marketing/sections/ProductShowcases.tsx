@@ -225,6 +225,7 @@ export function ResultsShowcase() {
         'Every change kept in the result history',
       ]}
       media={<ResultsMedia />}
+      wideText
     />
   );
 }

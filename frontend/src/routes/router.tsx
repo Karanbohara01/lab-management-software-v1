@@ -121,6 +121,7 @@ export const router = createBrowserRouter([
       route('platform/master-tests', lazyPage(() => import('@/features/catalog/masterCatalog/MasterCatalogPage'), 'MasterCatalogPage'), [P.PLATFORM_MANAGE]),
       route('platform/billing', lazyPage(() => import('@/features/platform/billing/PlatformBillingPage'), 'PlatformBillingPage'), [P.PLATFORM_MANAGE]),
       route('platform/roles', lazyPage(() => import('@/features/platform/PlatformRolesPage'), 'PlatformRolesPage'), [P.PLATFORM_MANAGE]),
+      route('platform/leadership', lazyPage(() => import('@/features/platform/LeadershipPage'), 'LeadershipPage'), [P.PLATFORM_MANAGE]),
       route('users', lazyPage(() => import('@/features/admin/UsersPage'), 'UsersPage'), [P.USER_READ]),
       route('roles', lazyPage(() => import('@/features/admin/RolesPage'), 'RolesPage'), [P.ROLE_READ]),
       route('audit', lazyPage(() => import('@/features/admin/AuditPage'), 'AuditPage'), [P.AUDIT_READ]),

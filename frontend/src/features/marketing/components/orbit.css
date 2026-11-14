@@ -1,0 +1,42 @@
+/*
+ * The social buttons revolve slowly round a leader's photo.
+ *
+ * `.orbit-ring` covers the photo and turns once every 24s. Each button hangs off a point on that
+ * ring, inside an `.orbit-counter` that turns the opposite way at the same speed — so the buttons
+ * travel round the circle while their icons stay upright. Both only animate `transform`, so it
+ * runs on the compositor and costs nothing to scroll past.
+ *
+ * It pauses while the pointer is over the photo or a button inside it has keyboard focus (so a
+ * moving target is easy to click), and does not move at all for visitors who ask for reduced motion.
+ */
+@keyframes orbit-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes orbit-unspin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+
+.orbit-ring,
+.orbit-counter {
+  animation-duration: 24s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.orbit-ring { animation-name: orbit-spin; }
+.orbit-counter { animation-name: orbit-unspin; transform-origin: 0 0; }
+
+.orbit-group:hover .orbit-ring,
+.orbit-group:hover .orbit-counter,
+.orbit-group:focus-within .orbit-ring,
+.orbit-group:focus-within .orbit-counter {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbit-ring,
+  .orbit-counter { animation: none; }
+}

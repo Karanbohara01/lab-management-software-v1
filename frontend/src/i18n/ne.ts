@@ -22,6 +22,47 @@ export const ne: Readonly<Record<string, string>> = {
   'Master catalogue': 'मुख्य सूची',
   Billing: 'बिलिङ',
   'Roles & permissions': 'भूमिका र अनुमतिहरू',
+
+  // ---- platform: leadership profiles (the public "About us" section) ----------------------
+  Leadership: 'नेतृत्व',
+  'The people shown in the About us section of the public website. A profile appears there once it has a name.':
+    'सार्वजनिक वेबसाइटको “हाम्रो बारेमा” खण्डमा देखाइने व्यक्तिहरू। नाम राखेपछि मात्र प्रोफाइल त्यहाँ देखिन्छ।',
+  'View on website': 'वेबसाइटमा हेर्नुहोस्',
+  'Leader {n}': 'नेतृत्वकर्ता {n}',
+  'Add leader': 'नेतृत्वकर्ता थप्नुहोस्',
+  'Remove leader': 'नेतृत्वकर्ता हटाउनुहोस्',
+  'New — not added yet': 'नयाँ — अझै थपिएको छैन',
+  'No leaders yet': 'अहिलेसम्म कुनै नेतृत्वकर्ता छैनन्',
+  'Add the people you want to show in the About us section of the website.':
+    'वेबसाइटको “हाम्रो बारेमा” खण्डमा देखाउन चाहेका व्यक्तिहरू थप्नुहोस्।',
+  'You have added the most leaders that can be shown ({max}). Remove one to add another.':
+    'देखाउन सकिने अधिकतम नेतृत्वकर्ता ({max}) थपिसकेका छन्। अर्को थप्न एकजना हटाउनुहोस्।',
+  'Remove {name} from the leadership profiles? They will no longer appear on the website.':
+    '{name} लाई नेतृत्व प्रोफाइलबाट हटाउने? यो प्रोफाइल अब वेबसाइटमा देखिने छैन।',
+  'this leader': 'यो नेतृत्वकर्ता',
+  'Leader added': 'नेतृत्वकर्ता थपियो',
+  'Leader removed': 'नेतृत्वकर्ता हटाइयो',
+  'Shown on website': 'वेबसाइटमा देखिन्छ',
+  'Hidden — add a name': 'लुकेको — नाम थप्नुहोस्',
+  'Choose a photo': 'फोटो छान्नुहोस्',
+  'Upload photo': 'फोटो अपलोड गर्नुहोस्',
+  'Change photo': 'फोटो फेर्नुहोस्',
+  'Remove photo': 'फोटो हटाउनुहोस्',
+  'Square works best. It is cropped to the centre and shrunk automatically.':
+    'वर्गाकार फोटो उत्तम हुन्छ। यसलाई बीचबाट काटेर आफैँ सानो बनाइन्छ।',
+  'Job title': 'पद',
+  'A job title is required': 'पद अनिवार्य छ',
+  'Short description': 'छोटो विवरण',
+  'With the name cleared, this profile will be hidden from the website.':
+    'नाम हटाएपछि यो प्रोफाइल वेबसाइटबाट लुकाइनेछ।',
+  'Social profiles': 'सामाजिक सञ्जाल प्रोफाइलहरू',
+  'LinkedIn, Facebook and Instagram buttons are always on the photo and open the link you add here. Threads appears only if you add its link.':
+    'LinkedIn, Facebook र Instagram बटनहरू फोटोमा सधैँ हुन्छन् र यहाँ थपेको लिङ्क खोल्छन्। Threads को लिङ्क थपेमा मात्र देखिन्छ।',
+  'Profile saved': 'प्रोफाइल सुरक्षित भयो',
+  'Unable to save the profile': 'प्रोफाइल सुरक्षित गर्न सकिएन',
+  'Choose a JPEG, PNG or WebP photo.': 'JPEG, PNG वा WebP फोटो छान्नुहोस्।',
+  'That photo is too large — choose one under 8 MB.': 'यो फोटो धेरै ठूलो छ — 8 MB भन्दा सानो छान्नुहोस्।',
+  'That photo could not be read. Try a different file.': 'यो फोटो पढ्न सकिएन। अर्को फाइल प्रयास गर्नुहोस्।',
   Dashboard: 'ड्यासबोर्ड',
   Patients: 'बिरामीहरू',
   'Referring doctors': 'रेफर गर्ने डाक्टरहरू',
