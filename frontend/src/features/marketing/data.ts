@@ -64,12 +64,17 @@ export interface TeamContact {
   digits: string;
   /** Portrait under `public/marketing/team/`; until that file exists the row shows the person's initials. */
   avatar: string;
+  /**
+   * First name of the Leadership profile whose uploaded photo this person uses (the one managed at
+   * Platform > Leadership). When that profile has a photo it is shown instead of `avatar`.
+   */
+  leader?: string;
 }
 
 /** Listed under "More" in the navbar's top strip. The same number serves for both WhatsApp and calls. */
 export const TEAM_CONTACTS: TeamContact[] = [
-  { name: 'Mr. Karan', display: '+977 970-6127862', digits: '9779706127862', avatar: '/marketing/team/karan.webp' },
-  { name: 'Ms. Namita', display: '+977 981-7253042', digits: '9779817253042', avatar: '/marketing/team/namita.webp' },
+  { name: 'Mr. Karan', display: '+977 970-6127862', digits: '9779706127862', avatar: '/marketing/team/karan.webp', leader: 'Karan' },
+  { name: 'Ms. Namita', display: '+977 981-7253042', digits: '9779817253042', avatar: '/marketing/team/namita.webp', leader: 'Namita' },
   {
     name: 'Neural Software Solutions Nepal',
     display: '+977 974-7214634',
