@@ -200,17 +200,27 @@
   @page {
     margin: 12mm;
   }
+  html,
+  body {
+    overflow: visible !important;
+    height: auto !important;
+    background: #fff !important;
+  }
   body * {
     visibility: hidden;
   }
   #report-print,
   #report-print *,
   #patient-print,
-  #patient-print * {
-    visibility: visible;
+  #patient-print *,
+  #pharmacy-receipt-print,
+  #pharmacy-receipt-print * {
+    visibility: visible !important;
   }
   #report-print,
-  #patient-print {
+  #patient-print,
+  #pharmacy-receipt-print {
+    display: block !important;
     position: absolute;
     inset: 0;
     margin: 0;
@@ -224,7 +234,9 @@
   #report-print,
   #report-print *,
   #patient-print,
-  #patient-print * {
+  #patient-print *,
+  #pharmacy-receipt-print,
+  #pharmacy-receipt-print * {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
@@ -234,14 +246,17 @@
      blank. Instead: repeat each test's column headers on every page (thead), and never split a
      single parameter row/comment/group-heading across a page break (tr) — a test's table can
      break mid-panel, but never mid-row, and never separates a column header from its data. */
-  #report-print thead {
+  #report-print thead,
+  #pharmacy-receipt-print thead {
     display: table-header-group;
   }
-  #report-print tr {
+  #report-print tr,
+  #pharmacy-receipt-print tr {
     break-inside: avoid;
     page-break-inside: avoid;
   }
-  [data-print-hide] {
+  [data-print-hide],
+  [role="dialog"] {
     display: none !important;
   }
 }
