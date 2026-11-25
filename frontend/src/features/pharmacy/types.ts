@@ -208,6 +208,7 @@ export interface CreateDispenseRequest {
 }
 
 export interface SaleReceiptItem {
+  id?: number;
   itemId: number;
   itemName: string;
   genericName?: string;
@@ -215,6 +216,7 @@ export interface SaleReceiptItem {
   expiryDate: string;
   unitType: string;
   quantity: number;
+  returnedQuantity?: number;
   unitsDeducted: number;
   unitPrice: number;
   isVatApplicable: boolean;
@@ -242,12 +244,107 @@ export interface SaleReceipt {
   netTotal: number;
   paidAmount: number;
   changeAmount: number;
+  returnedAmount?: number;
+  returnStatus?: 'NONE' | 'PARTIAL' | 'FULL';
   paymentMethod: string;
   status: string;
   refillReminderDays?: number;
   notes?: string;
   createdAt: string;
   items: SaleReceiptItem[];
+}
+
+export interface ReturnLineItemRequest {
+  saleItemId: number;
+  returnQuantity: number;
+  reason?: string;
+}
+
+export interface CreateSaleReturnRequest {
+  saleId: number;
+  refundMethod: 'CASH' | 'ORIGINAL_PAYMENT' | 'STORE_CREDIT' | 'IPD_LEDGER';
+  returnReason: string;
+  notes?: string;
+  items: ReturnLineItemRequest[];
+}
+
+export interface SaleReturnItem {
+  id: number;
+  saleItemId: number;
+  itemId: number;
+  itemName: string;
+  batchNumber: string;
+  expiryDate: string;
+  unitType: string;
+  returnQuantity: number;
+  unitPrice: number;
+  taxableRefund: number;
+  vatRefund: number;
+  totalRefund: number;
+  reason?: string;
+}
+
+export interface SaleReturn {
+  id: number;
+  creditNoteNumber: string;
+  saleId: number;
+  originalInvoiceNumber: string;
+  customerName: string;
+  customerPhone?: string;
+  subtotalRefund: number;
+  taxableAmount: number;
+  nonTaxableAmount: number;
+  vatAmount: number;
+  netRefundAmount: number;
+  refundMethod: string;
+  returnReason: string;
+  notes?: string;
+  createdAt: string;
+  items: SaleReturnItem[];
+}
+
+export interface SupplierReturnItemRequest {
+  batchId: number;
+  returnPacks: number;
+  reason?: string;
+}
+
+export interface CreateSupplierReturnRequest {
+  wholesalerId: number;
+  originalBillNumber?: string;
+  returnReason: string;
+  notes?: string;
+  items: SupplierReturnItemRequest[];
+}
+
+export interface SupplierReturnItem {
+  id: number;
+  batchId: number;
+  itemId: number;
+  itemName: string;
+  batchNumber: string;
+  expiryDate: string;
+  returnPacks: number;
+  unitPurchasePrice: number;
+  totalRefund: number;
+  reason?: string;
+}
+
+export interface SupplierReturn {
+  id: number;
+  debitNoteNumber: string;
+  wholesalerId: number;
+  wholesalerName: string;
+  originalBillNumber?: string;
+  subtotalRefund: number;
+  taxableAmount: number;
+  nonTaxableAmount: number;
+  vatAmount: number;
+  netRefundAmount: number;
+  returnReason: string;
+  notes?: string;
+  createdAt: string;
+  items: SupplierReturnItem[];
 }
 
 export interface PharmacyDashboardStats {

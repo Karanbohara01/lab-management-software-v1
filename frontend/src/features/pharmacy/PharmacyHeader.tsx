@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, Pill, Truck, Building2, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { ShoppingCart, Pill, Truck, Building2, AlertTriangle, ShieldCheck, RotateCcw } from 'lucide-react';
 import { useT } from '@/i18n';
 
 interface NavItem {
@@ -39,6 +39,11 @@ export function PharmacyHeader() {
       to: '/app/pharmacy/expiry',
       label: t('Expiry & FEFO Tracker'),
       icon: AlertTriangle,
+    },
+    {
+      to: '/app/pharmacy/returns',
+      label: t('Returns & Credit Notes'),
+      icon: RotateCcw,
     },
   ];
 

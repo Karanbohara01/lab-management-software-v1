@@ -122,6 +122,7 @@ export const router = createBrowserRouter([
       route('pharmacy/purchases', lazyPage(() => import('@/features/pharmacy/PharmacyPurchasesPage'), 'PharmacyPurchasesPage')),
       route('pharmacy/wholesalers', lazyPage(() => import('@/features/pharmacy/PharmacyWholesalersPage'), 'PharmacyWholesalersPage')),
       route('pharmacy/expiry', lazyPage(() => import('@/features/pharmacy/PharmacyExpiryPage'), 'PharmacyExpiryPage')),
+      route('pharmacy/returns', lazyPage(() => import('@/features/pharmacy/PharmacyReturnsPage'), 'PharmacyReturnsPage')),
 
       route('communication', lazyPage(() => import('@/features/communication/CommunicationDashboardPage'), 'CommunicationDashboardPage'), [P.COMMUNICATION_READ]),
       route('communication/send', lazyPage(() => import('@/features/communication/SendSmsPage'), 'SendSmsPage'), [P.COMMUNICATION_SEND]),

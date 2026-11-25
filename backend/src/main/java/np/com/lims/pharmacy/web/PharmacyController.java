@@ -1,24 +1,14 @@
 package np.com.lims.pharmacy.web;
 
 import jakarta.validation.Valid;
-import np.com.lims.pharmacy.dto.PharmacyDtos.BatchDto;
-import np.com.lims.pharmacy.dto.PharmacyDtos.CreateDispenseRequest;
-import np.com.lims.pharmacy.dto.PharmacyDtos.CreateItemRequest;
-import np.com.lims.pharmacy.dto.PharmacyDtos.CreatePurchaseRequest;
-import np.com.lims.pharmacy.dto.PharmacyDtos.CreateResellerRequest;
-import np.com.lims.pharmacy.dto.PharmacyDtos.CreateWholesalerRequest;
-import np.com.lims.pharmacy.dto.PharmacyDtos.ItemDto;
-import np.com.lims.pharmacy.dto.PharmacyDtos.PharmacyDashboardStats;
-import np.com.lims.pharmacy.dto.PharmacyDtos.PurchaseSummaryDto;
-import np.com.lims.pharmacy.dto.PharmacyDtos.ResellerDto;
-import np.com.lims.pharmacy.dto.PharmacyDtos.SaleReceiptDto;
-import np.com.lims.pharmacy.dto.PharmacyDtos.WholesalerDto;
+import np.com.lims.pharmacy.dto.PharmacyDtos.*;
 import np.com.lims.pharmacy.service.PharmacyBatchService;
 import np.com.lims.pharmacy.service.PharmacyDashboardService;
 import np.com.lims.pharmacy.service.PharmacyDispenseService;
 import np.com.lims.pharmacy.service.PharmacyItemService;
 import np.com.lims.pharmacy.service.PharmacyPurchaseService;
 import np.com.lims.pharmacy.service.PharmacyResellerService;
+import np.com.lims.pharmacy.service.PharmacyReturnService;
 import np.com.lims.pharmacy.service.PharmacyWholesalerService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -49,6 +39,7 @@ public class PharmacyController {
     private final PharmacyPurchaseService purchaseService;
     private final PharmacyDispenseService dispenseService;
     private final PharmacyDashboardService dashboardService;
+    private final PharmacyReturnService returnService;
 
     public PharmacyController(PharmacyItemService itemService,
                               PharmacyBatchService batchService,
@@ -56,7 +47,8 @@ public class PharmacyController {
                               PharmacyResellerService resellerService,
                               PharmacyPurchaseService purchaseService,
                               PharmacyDispenseService dispenseService,
-                              PharmacyDashboardService dashboardService) {
+                              PharmacyDashboardService dashboardService,
+                              PharmacyReturnService returnService) {
         this.itemService = itemService;
         this.batchService = batchService;
         this.wholesalerService = wholesalerService;
@@ -64,6 +56,7 @@ public class PharmacyController {
         this.purchaseService = purchaseService;
         this.dispenseService = dispenseService;
         this.dashboardService = dashboardService;
+        this.returnService = returnService;
     }
 
     // --- Statistics ---
@@ -197,9 +190,43 @@ public class PharmacyController {
         return dispenseService.getSaleById(id);
     }
 
+    @GetMapping("/sales/by-invoice")
+    public SaleReceiptDto getSaleByInvoice(@RequestParam String invoiceNumber) {
+        return dispenseService.getSaleByInvoiceNumber(invoiceNumber);
+    }
+
     @PostMapping("/dispense")
     @ResponseStatus(HttpStatus.CREATED)
     public SaleReceiptDto dispense(@Valid @RequestBody CreateDispenseRequest req) {
         return dispenseService.dispense(req);
+    }
+
+    // --- Customer Sales Returns / IRD Credit Notes (फिर्ता बिल) ---
+    @GetMapping("/returns/sales")
+    public Page<SaleReturnDto> listSaleReturns(@PageableDefault(size = 20) Pageable pageable) {
+        return returnService.listSaleReturns(pageable);
+    }
+
+    @GetMapping("/returns/sales/{id}")
+    public SaleReturnDto getSaleReturn(@PathVariable Long id) {
+        return returnService.getSaleReturn(id);
+    }
+
+    @PostMapping("/returns/sales")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SaleReturnDto createSaleReturn(@Valid @RequestBody CreateSaleReturnRequest req) {
+        return returnService.createSaleReturn(req);
+    }
+
+    // --- Supplier Expiry / Debit Notes ---
+    @GetMapping("/returns/suppliers")
+    public Page<SupplierReturnDto> listSupplierReturns(@PageableDefault(size = 20) Pageable pageable) {
+        return returnService.listSupplierReturns(pageable);
+    }
+
+    @PostMapping("/returns/suppliers")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SupplierReturnDto createSupplierReturn(@Valid @RequestBody CreateSupplierReturnRequest req) {
+        return returnService.createSupplierReturn(req);
     }
 }

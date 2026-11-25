@@ -84,6 +84,12 @@ public class PharmacySale extends BaseEntity {
     @Column(nullable = false, length = 30)
     private String status = "COMPLETED";
 
+    @Column(name = "returned_amount", nullable = false, precision = 12, scale = 2)
+    private BigDecimal returnedAmount = BigDecimal.ZERO;
+
+    @Column(name = "return_status", nullable = false, length = 30)
+    private String returnStatus = "NONE";
+
     @Column(name = "refill_reminder_days")
     private Integer refillReminderDays;
 
@@ -252,6 +258,22 @@ public class PharmacySale extends BaseEntity {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public BigDecimal getReturnedAmount() {
+        return returnedAmount;
+    }
+
+    public void setReturnedAmount(BigDecimal returnedAmount) {
+        this.returnedAmount = returnedAmount;
+    }
+
+    public String getReturnStatus() {
+        return returnStatus;
+    }
+
+    public void setReturnStatus(String returnStatus) {
+        this.returnStatus = returnStatus;
     }
 
     public Integer getRefillReminderDays() {

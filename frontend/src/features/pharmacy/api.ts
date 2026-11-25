@@ -66,7 +66,20 @@ export const pharmacyApi = {
     listSales: (params?: { page?: number; size?: number }) =>
       httpClient.get<PageResponse<SaleReceipt>>('/pharmacy/sales', { params }).then((r) => r.data),
     getSale: (id: number) => httpClient.get<SaleReceipt>(`/pharmacy/sales/${id}`).then((r) => r.data),
+    getByInvoice: (invoiceNumber: string) =>
+      httpClient.get<SaleReceipt>(`/pharmacy/sales/by-invoice`, { params: { invoiceNumber } }).then((r) => r.data),
     checkout: (payload: CreateDispenseRequest) =>
       httpClient.post<SaleReceipt>('/pharmacy/dispense', payload).then((r) => r.data),
+  },
+
+  returns: {
+    createSaleReturn: (payload: import('./types').CreateSaleReturnRequest) =>
+      httpClient.post<import('./types').SaleReturn>('/pharmacy/returns/sales', payload).then((r) => r.data),
+    listSaleReturns: (params?: { page?: number; size?: number }) =>
+      httpClient.get<PageResponse<import('./types').SaleReturn>>('/pharmacy/returns/sales', { params }).then((r) => r.data),
+    createSupplierReturn: (payload: import('./types').CreateSupplierReturnRequest) =>
+      httpClient.post<import('./types').SupplierReturn>('/pharmacy/returns/suppliers', payload).then((r) => r.data),
+    listSupplierReturns: (params?: { page?: number; size?: number }) =>
+      httpClient.get<PageResponse<import('./types').SupplierReturn>>('/pharmacy/returns/suppliers', { params }).then((r) => r.data),
   },
 };

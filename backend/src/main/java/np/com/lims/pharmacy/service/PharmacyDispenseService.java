@@ -210,8 +210,16 @@ public class PharmacyDispenseService {
         return toReceiptDto(saved);
     }
 
-    private SaleReceiptDto toReceiptDto(PharmacySale s) {
+    @Transactional(readOnly = true)
+    public SaleReceiptDto getSaleByInvoiceNumber(String invoiceNumber) {
+        PharmacySale sale = saleRepository.findByInvoiceNumber(invoiceNumber.trim())
+                .orElseThrow(() -> ApiException.notFound("Sale receipt not found for invoice: " + invoiceNumber));
+        return toReceiptDto(sale);
+    }
+
+    public SaleReceiptDto toReceiptDto(PharmacySale s) {
         List<SaleReceiptItemDto> items = s.getItems().stream().map(i -> new SaleReceiptItemDto(
+                i.getId(),
                 i.getItem().getId(),
                 i.getItem().getName(),
                 i.getItem().getGenericName(),
@@ -220,6 +228,7 @@ public class PharmacyDispenseService {
                 i.getUnitType(),
                 i.getQuantity(),
                 i.getUnitsDeducted(),
+                i.getReturnedQuantity(),
                 i.getUnitPrice(),
                 i.getIsVatApplicable(),
                 i.getVatAmount(),
@@ -246,6 +255,8 @@ public class PharmacyDispenseService {
                 s.getNetTotal(),
                 s.getPaidAmount(),
                 s.getChangeAmount(),
+                s.getReturnedAmount(),
+                s.getReturnStatus(),
                 s.getPaymentMethod(),
                 s.getStatus(),
                 s.getRefillReminderDays(),

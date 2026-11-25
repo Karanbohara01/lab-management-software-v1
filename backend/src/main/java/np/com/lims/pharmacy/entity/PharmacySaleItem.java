@@ -41,6 +41,12 @@ public class PharmacySaleItem {
     @Column(name = "units_deducted", nullable = false)
     private Integer unitsDeducted;
 
+    @Column(name = "returned_quantity", nullable = false)
+    private Integer returnedQuantity = 0;
+
+    @Column(name = "returned_units", nullable = false)
+    private Integer returnedUnits = 0;
+
     @Column(name = "unit_price", nullable = false, precision = 12, scale = 2)
     private BigDecimal unitPrice;
 
@@ -112,6 +118,22 @@ public class PharmacySaleItem {
 
     public void setUnitsDeducted(Integer unitsDeducted) {
         this.unitsDeducted = unitsDeducted;
+    }
+
+    public Integer getReturnedQuantity() {
+        return returnedQuantity != null ? returnedQuantity : 0;
+    }
+
+    public void setReturnedQuantity(Integer returnedQuantity) {
+        this.returnedQuantity = returnedQuantity;
+    }
+
+    public Integer getReturnedUnits() {
+        return returnedUnits != null ? returnedUnits : 0;
+    }
+
+    public void setReturnedUnits(Integer returnedUnits) {
+        this.returnedUnits = returnedUnits;
     }
 
     public BigDecimal getUnitPrice() {

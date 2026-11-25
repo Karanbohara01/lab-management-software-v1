@@ -10,9 +10,12 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface PharmacySaleRepository extends JpaRepository<PharmacySale, Long> {
+
+    Optional<PharmacySale> findByInvoiceNumber(String invoiceNumber);
 
     Page<PharmacySale> findAllByOrderByCreatedAtDesc(Pageable pageable);
 

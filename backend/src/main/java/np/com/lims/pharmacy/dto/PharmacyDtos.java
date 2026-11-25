@@ -1,5 +1,6 @@
 package np.com.lims.pharmacy.dto;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import np.com.lims.pharmacy.entity.PharmacyDosageForm;
@@ -200,6 +201,7 @@ public final class PharmacyDtos {
     ) {}
 
     public record SaleReceiptItemDto(
+            Long id,
             Long itemId,
             String itemName,
             String genericName,
@@ -208,6 +210,7 @@ public final class PharmacyDtos {
             String unitType,
             Integer quantity,
             Integer unitsDeducted,
+            Integer returnedQuantity,
             BigDecimal unitPrice,
             Boolean isVatApplicable,
             BigDecimal vatAmount,
@@ -234,12 +237,100 @@ public final class PharmacyDtos {
             BigDecimal netTotal,
             BigDecimal paidAmount,
             BigDecimal changeAmount,
+            BigDecimal returnedAmount,
+            String returnStatus,
             String paymentMethod,
             String status,
             Integer refillReminderDays,
             String notes,
             Instant createdAt,
             List<SaleReceiptItemDto> items
+    ) {}
+
+    public record ReturnLineItemRequest(
+            @NotNull Long saleItemId,
+            @NotNull @Min(1) Integer returnQuantity
+    ) {}
+
+    public record CreateSaleReturnRequest(
+            @NotNull Long saleId,
+            @NotBlank String returnReason,
+            String refundMethod,
+            String notes,
+            @NotNull List<ReturnLineItemRequest> items
+    ) {}
+
+    public record SaleReturnItemDto(
+            Long id,
+            Long saleItemId,
+            Long itemId,
+            String itemName,
+            String batchNumber,
+            LocalDate expiryDate,
+            String unitType,
+            Integer returnQuantity,
+            Integer unitsRestored,
+            BigDecimal unitPrice,
+            Boolean isVatApplicable,
+            BigDecimal vatAmount,
+            BigDecimal totalRefund
+    ) {}
+
+    public record SaleReturnDto(
+            Long id,
+            String creditNoteNumber,
+            Long saleId,
+            String originalInvoiceNumber,
+            String customerName,
+            String customerPhone,
+            Long patientId,
+            String returnReason,
+            String refundMethod,
+            BigDecimal subtotal,
+            BigDecimal taxableAmount,
+            BigDecimal nonTaxableAmount,
+            BigDecimal vatAmount,
+            BigDecimal netRefundAmount,
+            String notes,
+            Instant createdAt,
+            List<SaleReturnItemDto> items
+    ) {}
+
+    public record SupplierReturnItemRequest(
+            @NotNull Long batchId,
+            @NotNull @Min(1) Integer packQuantity
+    ) {}
+
+    public record CreateSupplierReturnRequest(
+            @NotNull Long wholesalerId,
+            @NotBlank String reason,
+            String notes,
+            @NotNull List<SupplierReturnItemRequest> items
+    ) {}
+
+    public record SupplierReturnItemDto(
+            Long id,
+            Long itemId,
+            String itemName,
+            Long batchId,
+            String batchNumber,
+            LocalDate expiryDate,
+            Integer packQuantity,
+            BigDecimal ratePerPack,
+            BigDecimal lineTotal
+    ) {}
+
+    public record SupplierReturnDto(
+            Long id,
+            String debitNoteNumber,
+            Long wholesalerId,
+            String wholesalerName,
+            LocalDate returnDate,
+            String reason,
+            BigDecimal totalAmount,
+            String notes,
+            Instant createdAt,
+            List<SupplierReturnItemDto> items
     ) {}
 
     public record PharmacyDashboardStats(
