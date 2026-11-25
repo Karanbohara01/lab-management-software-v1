@@ -98,6 +98,16 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
+    heading: 'Pharmacy',
+    items: [
+      { label: 'Counter POS', to: '/app/pharmacy/pos', icon: FcShop, anyPermission: [] },
+      { label: 'Medicines & products', to: '/app/pharmacy/medicines', icon: FcPackage, anyPermission: [] },
+      { label: 'Stock inward (GRN)', to: '/app/pharmacy/purchases', icon: FcInTransit, anyPermission: [] },
+      { label: 'Wholesalers & resellers', to: '/app/pharmacy/wholesalers', icon: FcShipped, anyPermission: [] },
+      { label: 'Expiry tracker', to: '/app/pharmacy/expiry', icon: FcTimeline, anyPermission: [] },
+    ],
+  },
+  {
     heading: 'Finance',
     items: [
       { label: 'Revenue', to: '/app/revenue', icon: FcSalesPerformance, anyPermission: [PERMISSIONS.REPORTING_READ] },

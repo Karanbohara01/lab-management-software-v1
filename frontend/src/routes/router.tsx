@@ -117,6 +117,12 @@ export const router = createBrowserRouter([
       route('purchase-orders', lazyPage(() => import('@/features/inventory/PurchaseOrdersPage'), 'PurchaseOrdersPage'), [P.INVENTORY_READ]),
       route('purchase-orders/:id', lazyPage(() => import('@/features/inventory/PurchaseOrderDetailPage'), 'PurchaseOrderDetailPage'), [P.INVENTORY_READ]),
 
+      route('pharmacy/pos', lazyPage(() => import('@/features/pharmacy/PharmacyPosPage'), 'PharmacyPosPage')),
+      route('pharmacy/medicines', lazyPage(() => import('@/features/pharmacy/PharmacyMedicinesPage'), 'PharmacyMedicinesPage')),
+      route('pharmacy/purchases', lazyPage(() => import('@/features/pharmacy/PharmacyPurchasesPage'), 'PharmacyPurchasesPage')),
+      route('pharmacy/wholesalers', lazyPage(() => import('@/features/pharmacy/PharmacyWholesalersPage'), 'PharmacyWholesalersPage')),
+      route('pharmacy/expiry', lazyPage(() => import('@/features/pharmacy/PharmacyExpiryPage'), 'PharmacyExpiryPage')),
+
       route('communication', lazyPage(() => import('@/features/communication/CommunicationDashboardPage'), 'CommunicationDashboardPage'), [P.COMMUNICATION_READ]),
       route('communication/send', lazyPage(() => import('@/features/communication/SendSmsPage'), 'SendSmsPage'), [P.COMMUNICATION_SEND]),
       route('communication/campaigns', lazyPage(() => import('@/features/communication/SmsCampaignsPage'), 'SmsCampaignsPage'), [P.COMMUNICATION_CAMPAIGN_MANAGE]),

@@ -18,6 +18,14 @@ public class ApiException extends RuntimeException {
         return new ApiException(ErrorCode.RESOURCE_NOT_FOUND, "%s not found: %s".formatted(resource, id));
     }
 
+    public static ApiException notFound(String message) {
+        return new ApiException(ErrorCode.RESOURCE_NOT_FOUND, message);
+    }
+
+    public static ApiException badRequest(String message) {
+        return new ApiException(ErrorCode.VALIDATION_FAILED, message);
+    }
+
     public static ApiException conflict(String message) {
         return new ApiException(ErrorCode.RESOURCE_CONFLICT, message);
     }

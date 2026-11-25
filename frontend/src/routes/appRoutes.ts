@@ -63,6 +63,11 @@ export const APP_ROUTE_HANDLES: Record<string, RouteHandle> = {
 
   '/app/inventory': { title: 'Inventory' },
   '/app/inventory/:id': { title: 'Inventory item', parent: '/app/inventory' },
+  '/app/pharmacy/pos': { title: 'Pharmacy counter (POS)' },
+  '/app/pharmacy/medicines': { title: 'Medicines & products' },
+  '/app/pharmacy/purchases': { title: 'Wholesale purchases (GRN)' },
+  '/app/pharmacy/wholesalers': { title: 'Wholesalers & resellers' },
+  '/app/pharmacy/expiry': { title: 'Expiry tracker' },
   '/app/suppliers': { title: 'Suppliers' },
   '/app/purchase-orders': { title: 'Purchase orders' },
   '/app/purchase-orders/:id': { title: 'Purchase order', parent: '/app/purchase-orders' },
