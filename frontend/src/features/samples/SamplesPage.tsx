@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
-import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
+import { ErrorState, EmptyState } from '@/components/ui/PageState';
 import { cn } from '@/lib/cn';
 import { useQuery } from '@/hooks/useQuery';
 import { useListParams, useSearchInput } from '@/hooks/useListParams';
@@ -23,6 +23,7 @@ import { SPECIMEN_LABELS } from '@/features/catalog/types';
 import { formatDate } from '@/features/patients/format';
 import { samplesApi } from './api';
 import { SAMPLE_STATUS_LABEL, SAMPLE_STATUS_TONE, type SampleListItem, type SampleStatus } from './types';
+import { StatusStepper } from '@/components/ui/StatusStepper';
 import { useT, tOpts } from '@/i18n';
 
 const PAGE_SIZE = 20;
@@ -116,7 +117,27 @@ export function SamplesPage() {
     {
       key: 'status',
       header: t('Status'),
-      cell: (s) => <Badge tone={SAMPLE_STATUS_TONE[s.status]}>{t(SAMPLE_STATUS_LABEL[s.status])}</Badge>,
+      cell: (s) => (
+        <span className="flex items-center gap-2">
+          <Badge
+            tone={SAMPLE_STATUS_TONE[s.status]}
+            variant="subtle"
+            dot={s.status !== 'REJECTED'}
+          >
+            {t(SAMPLE_STATUS_LABEL[s.status])}
+          </Badge>
+          <StatusStepper
+            steps={[
+              { id: 'AWAITING_COLLECTION', label: t('Awaiting collection') },
+              { id: 'COLLECTED', label: t('Collected') },
+              { id: 'RECEIVED', label: t('Received') },
+            ]}
+            currentStepId={s.status}
+            isFailed={s.status === 'REJECTED'}
+            compact
+          />
+        </span>
+      ),
     },
   ];
 
@@ -190,33 +211,33 @@ export function SamplesPage() {
           )}
         </div>
 
-        {loading && !data ? (
-          <TableSkeleton columns={columns.length} />
-        ) : error ? (
+        {error ? (
           <ErrorState message={error} onRetry={refetch} />
-        ) : data && data.content.length === 0 ? (
-          <EmptyState
-            title={t('No samples')}
-            message={t('Samples are generated automatically when a lab order is confirmed.')}
-          />
         ) : (
-          data && (
-            <>
-              <DataTable
-                columns={columns}
-                rows={data.content}
-                rowKey={(s) => s.id}
-                rowHref={(s) => `/app/samples/${s.id}`}
-                onRowClick={(s) => navigate(`/app/samples/${s.id}`)}
-              />
+          <>
+            <DataTable
+              columns={columns}
+              rows={data?.content ?? []}
+              rowKey={(s) => s.id}
+              loading={loading && !data}
+              emptyState={
+                <EmptyState
+                  title={t('No samples')}
+                  message={t('Samples are generated automatically when a lab order is confirmed.')}
+                />
+              }
+              rowHref={(s) => `/app/samples/${s.id}`}
+              onRowClick={(s) => navigate(`/app/samples/${s.id}`)}
+            />
+            {data && data.totalPages > 1 && (
               <Pagination
                 page={data.page}
                 totalPages={data.totalPages}
                 totalElements={data.totalElements}
                 onPageChange={(p) => set({ page: p + 1 })}
               />
-            </>
-          )
+            )}
+          </>
         )}
       </Card>
     </>

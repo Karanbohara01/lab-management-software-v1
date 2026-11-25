@@ -9,9 +9,10 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    host: '0.0.0.0',
     proxy: {
       '/api': {
-        target: process.env.VITE_PROXY_TARGET ?? 'http://localhost:8080',
+        target: process.env.VITE_PROXY_TARGET ?? 'http://127.0.0.1:8080',
         changeOrigin: true,
       },
     },
@@ -23,6 +24,7 @@ export default defineConfig({
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           redux: ['@reduxjs/toolkit', 'react-redux'],
           forms: ['react-hook-form', '@hookform/resolvers', 'zod'],
+          motion: ['framer-motion'],
         },
       },
     },

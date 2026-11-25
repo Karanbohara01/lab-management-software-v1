@@ -34,7 +34,7 @@ public class Notification {
 
     public enum Type {
         CRITICAL_RESULT, RESULT_BACKLOG, TAT_BREACH, REFLEX_SUGGESTED, IRD_FAILED, LOW_STOCK, EXPIRING_STOCK, EXPIRED_STOCK,
-        APPOINTMENT_CANCELLED, SMS_LOW_BALANCE, SYSTEM
+        APPOINTMENT_CANCELLED, SMS_LOW_BALANCE, SYSTEM, SUPPORT_INQUIRY
     }
 
     public enum Severity { INFO, WARNING, CRITICAL }
@@ -80,6 +80,12 @@ public class Notification {
     private Set<String> readBy = new HashSet<>();
 
     protected Notification() {
+    }
+
+    public Notification(Long organizationId, Type type, Severity severity, String title, String message, String linkPath,
+                        String targetPermission, String reference) {
+        this(type, severity, title, message, linkPath, targetPermission, reference);
+        this.organizationId = organizationId;
     }
 
     public Notification(Type type, Severity severity, String title, String message, String linkPath,

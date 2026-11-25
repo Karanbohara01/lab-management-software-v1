@@ -1,6 +1,8 @@
-import { useMemo, useRef, useState } from 'react';
+import { useId, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { formatMoney } from '@/lib/money';
 import { useT, getLocale, LOCALE_TAG } from '@/i18n';
+import { AnimatedNumber, EASE_OUT_EXPO, SPRING_SNAPPY, isTestEnv } from '@/components/ui/motion';
 import type { AnalyticsPoint as Point } from './api';
 
 const WIDTH = 640;
@@ -23,15 +25,15 @@ function shortDate(iso: string): string {
 }
 
 /**
- * A real (if hand-rolled, no chart library — matching this codebase's existing convention)
- * line/area chart with a hover crosshair + tooltip, y-axis gridlines, and sparse x-axis date
- * labels — replaces a plain CSS bar strip with something an accountant can actually read
- * exact daily values from.
+ * Interactive line/area chart with Framer Motion path-drawing choreography, gradient area fade,
+ * spring-tracked hover crosshair, and animated currency counter.
  */
 export function RevenueTrendChart({ points }: { points: Point[] }) {
   const t = useT();
   const [hover, setHover] = useState<number | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const skipMotion = isTestEnv();
+  const gradientId = `analytics-rev-fill-${useId().replace(/:/g, '')}`;
 
   const max = Math.max(1, ...points.map((p) => p.value));
   const innerW = WIDTH - PAD_LEFT - PAD_RIGHT;
@@ -75,12 +77,36 @@ export function RevenueTrendChart({ points }: { points: Point[] }) {
 
   const hovered = hover != null ? points[hover] : null;
   const total = points.reduce((s, p) => s + p.value, 0);
+  const seriesKey = `${points.length}-${points[0]?.label ?? ''}-${points[points.length - 1]?.label ?? ''}`;
 
   return (
     <div className="px-5 py-4">
-      <p className="mb-2 text-sm text-muted">
-        {t('Total collected')}: <span className="font-medium text-foreground">{formatMoney(total)}</span>
-      </p>
+      <div className="mb-2 flex items-center justify-between text-sm">
+        <p className="text-muted">
+          {t('Total collected')}:{' '}
+          <AnimatedNumber
+            value={total}
+            format={formatMoney}
+            className="font-semibold tabular-nums text-foreground"
+          />
+        </p>
+        <AnimatePresence mode="wait">
+          {hovered && (
+            <motion.div
+              key={hovered.label}
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 }}
+              className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/[0.07] px-2.5 py-0.5 text-xs"
+            >
+              <span className="font-medium text-foreground">{shortDate(hovered.label)}</span>
+              <span className="font-semibold tabular-nums text-primary">{formatMoney(hovered.value)}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
       <svg
         ref={svgRef}
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
@@ -90,6 +116,13 @@ export function RevenueTrendChart({ points }: { points: Point[] }) {
         onMouseMove={onMove}
         onMouseLeave={() => setHover(null)}
       >
+        <defs>
+          <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" className="[stop-color:hsl(var(--primary))]" stopOpacity={0.26} />
+            <stop offset="100%" className="[stop-color:hsl(var(--primary))]" stopOpacity={0.01} />
+          </linearGradient>
+        </defs>
+
         {gridlines.map(({ f, y }) => (
           <g key={f}>
             <line x1={PAD_LEFT} y1={y} x2={WIDTH - PAD_RIGHT} y2={y} className="stroke-border" strokeWidth={1} />
@@ -99,14 +132,25 @@ export function RevenueTrendChart({ points }: { points: Point[] }) {
           </g>
         ))}
 
-        <path d={areaPath} className="fill-primary/10" />
-        <path
+        <motion.path
+          key={`area-${seriesKey}`}
+          d={areaPath}
+          fill={`url(#${gradientId})`}
+          initial={skipMotion ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.65, ease: 'easeOut' }}
+        />
+        <motion.path
+          key={`line-${seriesKey}`}
           d={linePath}
           fill="none"
           className="stroke-primary"
-          strokeWidth={2}
+          strokeWidth={2.25}
           strokeLinecap="round"
           strokeLinejoin="round"
+          initial={skipMotion ? false : { pathLength: 0, opacity: 0.4 }}
+          animate={{ pathLength: 1, opacity: 1 }}
+          transition={EASE_OUT_EXPO}
         />
 
         {tickIndexes.map((i) => {
@@ -120,27 +164,35 @@ export function RevenueTrendChart({ points }: { points: Point[] }) {
         })}
 
         {hover != null && points[hover] && (
-          <>
-            <line
-              x1={xAt(hover)}
+          <g>
+            <motion.line
+              initial={false}
+              animate={{ x1: xAt(hover), x2: xAt(hover) }}
+              transition={SPRING_SNAPPY}
               y1={PAD_TOP}
-              x2={xAt(hover)}
               y2={PAD_TOP + innerH}
-              className="stroke-muted"
+              className="stroke-primary/50"
               strokeWidth={1}
               strokeDasharray="3 3"
             />
-            <circle cx={xAt(hover)} cy={yAt(points[hover]!.value)} r={3.5} className="fill-primary" />
-          </>
+            <motion.circle
+              initial={false}
+              animate={{ cx: xAt(hover), cy: yAt(points[hover]!.value) }}
+              transition={SPRING_SNAPPY}
+              r={6}
+              className="fill-primary/20"
+            />
+            <motion.circle
+              initial={false}
+              animate={{ cx: xAt(hover), cy: yAt(points[hover]!.value) }}
+              transition={SPRING_SNAPPY}
+              r={3.5}
+              className="fill-primary stroke-surface"
+              strokeWidth={1.5}
+            />
+          </g>
         )}
       </svg>
-
-      {hovered && (
-        <div className="mt-1 flex items-center justify-between rounded-md bg-surface-muted px-3 py-1.5 text-xs">
-          <span className="font-medium text-foreground">{shortDate(hovered.label)}</span>
-          <span className="text-muted">{formatMoney(hovered.value)}</span>
-        </div>
-      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { AlertTriangle } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { DataTable, type Column } from '@/components/ui/DataTable';
-import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
+import { ErrorState, EmptyState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { useNavigateFrom } from '@/lib/navigation';
 import { formatDate } from './format';
@@ -26,7 +26,7 @@ export function PatientReportsTab({ patientId }: { patientId: number }) {
       cell: (r) => (
         <span className="flex items-center gap-1.5">
           {r.hasCritical && <AlertTriangle className="h-4 w-4 text-critical" aria-label="Critical" />}
-          <Badge tone={REPORT_STATUS_TONE[r.status]}>{r.status}</Badge>
+          <Badge tone={REPORT_STATUS_TONE[r.status]} variant="subtle" dot={r.hasCritical}>{r.status}</Badge>
         </span>
       ),
     },
@@ -34,21 +34,20 @@ export function PatientReportsTab({ patientId }: { patientId: number }) {
 
   return (
     <Card>
-      {loading && !data ? (
-        <TableSkeleton columns={columns.length} rows={3} />
-      ) : error ? (
+      {error ? (
         <ErrorState message={error} onRetry={refetch} />
-      ) : data && data.content.length === 0 ? (
-        <EmptyState title="No reports" message="Reports appear here once generated from approved results." />
       ) : (
-        data && (
-          <DataTable
-            columns={columns}
-            rows={data.content}
-            rowKey={(r) => r.id}
-            onRowClick={(r) => navigate(`/app/reports/${r.id}`)}
-          />
-        )
+        <DataTable
+          columns={columns}
+          rows={data?.content ?? []}
+          rowKey={(r) => r.id}
+          loading={loading && !data}
+          emptyState={
+            <EmptyState title="No reports" message="Reports appear here once generated from approved results." />
+          }
+          rowHref={(r) => `/app/reports/${r.id}`}
+          onRowClick={(r) => navigate(`/app/reports/${r.id}`)}
+        />
       )}
     </Card>
   );

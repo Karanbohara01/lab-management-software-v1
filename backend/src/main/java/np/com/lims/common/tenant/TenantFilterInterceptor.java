@@ -51,6 +51,10 @@ public class TenantFilterInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull Object handler) {
+        String path = request.getRequestURI();
+        if (path.contains("/platform")) {
+            return true;
+        }
         Long organizationId = currentOrganizationId();
         if (organizationId != null) {
             assertNotSuspended(organizationId, request);

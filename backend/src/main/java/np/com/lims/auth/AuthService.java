@@ -102,6 +102,9 @@ public class AuthService {
         loginAttemptLimiter.assertNotLocked(request.username());
 
         List<User> candidates = userRepository.findAllByUsernameIgnoreCase(request.username());
+        if (candidates.isEmpty()) {
+            userRepository.findByEmailIgnoreCase(request.username()).ifPresent(candidates::add);
+        }
         User user = candidates.stream()
                 .filter(u -> u.isEnabled() && passwordEncoder.matches(request.password(), u.getPasswordHash()))
                 .findFirst()

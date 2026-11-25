@@ -1,9 +1,36 @@
 import type { Address, Gender } from './types';
 import { getLocale, LOCALE_TAG, translate } from '@/i18n';
+import { getDetailedAge } from '@/lib/nepaliDate';
 
-export function formatAge(ageYears: number | null): string {
+export function formatAge(ageYears: number | null, dateOfBirth?: string | null): string {
+  if (dateOfBirth) {
+    const detailed = getDetailedAge(dateOfBirth);
+    if (detailed && detailed.years < 2) {
+      return detailed.formatted;
+    }
+  }
   if (ageYears == null) return '—';
   return translate(getLocale(), '{age}y', { age: ageYears });
+}
+
+export function formatPreciseAge(
+  dateOfBirth: string | null | undefined,
+  ageYears: number | null | undefined,
+  isMinor?: boolean,
+): string {
+  const locale = getLocale();
+  if (dateOfBirth) {
+    const detailed = getDetailedAge(dateOfBirth);
+    if (detailed && detailed.years < 2) {
+      return `${detailed.formatted} (${translate(locale, 'pediatric')})`;
+    }
+  }
+  if (ageYears != null) {
+    return isMinor
+      ? translate(locale, '{age} years (minor)', { age: ageYears })
+      : translate(locale, '{age} years', { age: ageYears });
+  }
+  return '—';
 }
 
 export function formatGender(gender: Gender): string {

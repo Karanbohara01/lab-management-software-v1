@@ -1,13 +1,19 @@
 import { ArrowDownRight, ArrowUpRight, Ban, Banknote, FileText, Minus, Percent, Receipt, Undo2, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/Card';
 import { Tooltip } from '@/components/ui/Tooltip';
+import {
+  AnimatedNumber,
+  isTestEnv,
+  staggerContainerVariants,
+  staggerItemVariants,
+} from '@/components/ui/motion';
 import { cn } from '@/lib/cn';
 import { formatMoney } from '@/lib/money';
 import { getLocale, LOCALE_TAG, useT } from '@/i18n';
 import type { RevenueSummary } from '../types';
 
-/** Change against the previous window of equal length. Null when there is no base to compare to. */
 function delta(current: number, previous: number): { pct: number; up: boolean } | null {
   if (previous === 0) return null;
   const pct = ((current - previous) / Math.abs(previous)) * 100;
@@ -25,7 +31,6 @@ function Trend({ current, previous, invert }: { current: number; previous: numbe
       </span>
     );
   }
-  // "Good" is usually up, but not for refunds or outstanding balances.
   const good = invert ? !d.up : d.up;
   const Icon = d.up ? ArrowUpRight : ArrowDownRight;
   const percent = new Intl.NumberFormat(LOCALE_TAG[getLocale()], { maximumFractionDigits: 1 });
@@ -40,72 +45,85 @@ function Trend({ current, previous, invert }: { current: number; previous: numbe
 
 function Kpi({
   label,
-  value,
+  rawValue,
+  format = (n) => String(Math.round(n)),
   icon: Icon,
   hint,
   footer,
   emphasis,
 }: {
   label: string;
-  value: string;
+  rawValue: number;
+  format?: (n: number) => string;
   icon: LucideIcon;
   hint: string;
   footer?: React.ReactNode;
   emphasis?: boolean;
 }) {
+  const formattedTitle = format(rawValue);
   return (
-    <Card className={cn('min-w-0 p-4', emphasis && 'border-primary/40 bg-primary/[0.03]')}>
-      <div className="flex items-start justify-between gap-2">
-        <Tooltip content={hint}>
-          <span className="cursor-help text-label text-muted underline decoration-dotted decoration-from-font underline-offset-2">
-            {label}
+    <motion.div variants={staggerItemVariants} className="min-w-0">
+      <Card
+        className={cn(
+          'group h-full min-w-0 p-4 transition-colors hover:border-primary/30',
+          emphasis && 'border-primary/40 bg-primary/[0.03]',
+        )}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <Tooltip content={hint}>
+            <span className="cursor-help text-label text-muted underline decoration-dotted decoration-from-font underline-offset-2">
+              {label}
+            </span>
+          </Tooltip>
+          <span
+            className={cn(
+              'flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-transform duration-200 group-hover:scale-110',
+              emphasis ? 'bg-primary/15' : 'bg-surface-muted',
+            )}
+          >
+            <Icon className={cn('h-3.5 w-3.5', emphasis ? 'text-primary' : 'text-muted')} aria-hidden />
           </span>
-        </Tooltip>
-        <span
-          className={cn(
-            'flex h-7 w-7 shrink-0 items-center justify-center rounded-full',
-            emphasis ? 'bg-primary/15' : 'bg-surface-muted',
-          )}
-        >
-          <Icon className={cn('h-3.5 w-3.5', emphasis ? 'text-primary' : 'text-muted')} aria-hidden />
-        </span>
-      </div>
-      <p className="mt-1.5 truncate text-price tabular-nums text-foreground" title={value}>
-        {value}
-      </p>
-      {footer && <div className="mt-1">{footer}</div>}
-    </Card>
+        </div>
+        <p className="mt-1.5 truncate text-price tabular-nums text-foreground" title={formattedTitle}>
+          <AnimatedNumber value={rawValue} format={format} />
+        </p>
+        {footer && <div className="mt-1">{footer}</div>}
+      </Card>
+    </motion.div>
   );
 }
 
-/**
- * The eight headline figures. Billed and collected are deliberately separate tiles with their own
- * explanations: this system records a sale when an invoice is issued and cash when a payment is
- * taken, and the two will never be the same number for the same days. Net collections is the one
- * figure that reconciles to the cash drawer.
- */
 export function RevenueKpis({ summary }: { summary: RevenueSummary }) {
   const t = useT();
+  const skipMotion = isTestEnv();
   const { billing, collections, refunds, previous, cancelled } = summary;
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <motion.div
+      variants={staggerContainerVariants}
+      initial={skipMotion ? false : 'hidden'}
+      animate="show"
+      className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+    >
       <Kpi
         label={t('Total billed')}
-        value={formatMoney(billing.totalBilled)}
+        rawValue={billing.totalBilled}
+        format={formatMoney}
         icon={Receipt}
         hint={t('Invoices issued in this period, VAT included. Cancelled invoices are excluded. This is what was sold, not what was received.')}
         footer={<Trend current={billing.totalBilled} previous={previous.totalBilled} />}
       />
       <Kpi
         label={t('Total collected')}
-        value={formatMoney(collections.grossCollected)}
+        rawValue={collections.grossCollected}
+        format={formatMoney}
         icon={Banknote}
         hint={t('Every payment received in this period, by the date it was taken — whatever invoice it settles. Refunds are not deducted here.')}
         footer={<Trend current={collections.grossCollected} previous={previous.grossCollected} />}
       />
       <Kpi
         label={t('Net collections')}
-        value={formatMoney(summary.netCollected)}
+        rawValue={summary.netCollected}
+        format={formatMoney}
         icon={Wallet}
         emphasis
         hint={t('Collected less refunds approved in this period. This is the figure that should reconcile against the cash actually in hand.')}
@@ -113,7 +131,8 @@ export function RevenueKpis({ summary }: { summary: RevenueSummary }) {
       />
       <Kpi
         label={t('Outstanding')}
-        value={formatMoney(billing.outstanding)}
+        rawValue={billing.outstanding}
+        format={formatMoney}
         icon={FileText}
         hint={t('What the invoices issued in this period are still owed, as they stand today. Not a historical balance — it moves as those invoices get paid.')}
         footer={
@@ -127,7 +146,8 @@ export function RevenueKpis({ summary }: { summary: RevenueSummary }) {
       />
       <Kpi
         label={t('Total discounts')}
-        value={formatMoney(billing.totalDiscounts)}
+        rawValue={billing.totalDiscounts}
+        format={formatMoney}
         icon={Percent}
         hint={t('Per-test discounts plus whole-invoice discounts on the invoices issued in this period.')}
         footer={
@@ -141,14 +161,15 @@ export function RevenueKpis({ summary }: { summary: RevenueSummary }) {
       />
       <Kpi
         label={t('Total refunds')}
-        value={formatMoney(refunds.amount)}
+        rawValue={refunds.amount}
+        format={formatMoney}
         icon={Undo2}
         hint={t('Refunds approved in this period, by their approval date. Requested and rejected refunds move no money and are not counted.')}
         footer={<Trend current={refunds.amount} previous={previous.refunds} invert />}
       />
       <Kpi
         label={t('Invoices issued')}
-        value={String(billing.invoiceCount)}
+        rawValue={billing.invoiceCount}
         icon={Receipt}
         hint={t('Invoices issued in this period, excluding cancelled ones. Drafts are not invoices and are never counted.')}
         footer={
@@ -159,7 +180,7 @@ export function RevenueKpis({ summary }: { summary: RevenueSummary }) {
       />
       <Kpi
         label={t('Payment transactions')}
-        value={String(collections.paymentCount)}
+        rawValue={collections.paymentCount}
         icon={Banknote}
         hint={t('Individual payments received in this period. One invoice can be settled by several, so this is usually higher than the invoice count.')}
         footer={
@@ -176,6 +197,6 @@ export function RevenueKpis({ summary }: { summary: RevenueSummary }) {
           )
         }
       />
-    </div>
+    </motion.div>
   );
 }

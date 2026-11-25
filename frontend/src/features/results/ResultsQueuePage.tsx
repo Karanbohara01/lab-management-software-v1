@@ -6,7 +6,7 @@ import { Select } from '@/components/ui/Select';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
-import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
+import { ErrorState, EmptyState } from '@/components/ui/PageState';
 import { cn } from '@/lib/cn';
 import { useQuery } from '@/hooks/useQuery';
 import { useListParams, useSearchInput } from '@/hooks/useListParams';
@@ -108,15 +108,21 @@ export function ResultsQueuePage() {
       key: 'status',
       header: t('Status'),
       cell: (r) => (
-        <span className="flex items-center gap-1.5">
-          <Badge tone={RESULT_STATUS_TONE[r.status]}>{t(RESULT_STATUS_LABEL[r.status])}</Badge>
-          {r.hasAbnormal && !r.hasCritical && <Badge tone="warning">{t('Abn')}</Badge>}
+        <span className="flex flex-wrap items-center gap-1.5">
+          <Badge
+            tone={RESULT_STATUS_TONE[r.status]}
+            variant="subtle"
+            dot={r.status === 'PENDING' || r.hasCritical}
+          >
+            {t(RESULT_STATUS_LABEL[r.status])}
+          </Badge>
+          {r.hasAbnormal && !r.hasCritical && <Badge tone="warning" variant="subtle">{t('Abn')}</Badge>}
           {!r.complete && r.status !== 'PENDING' && r.resultMode !== 'CULTURE' && (
-            <Badge tone="warning">{t('Incomplete')}</Badge>
+            <Badge tone="warning" variant="subtle">{t('Incomplete')}</Badge>
           )}
-          {r.overdue && <Badge tone="danger">{t('Overdue')}</Badge>}
-          {r.criticalAckRequired && <Badge tone="critical">{t('Callback due')}</Badge>}
-          {r.autoVerified && <Badge tone="neutral">{t('Auto')}</Badge>}
+          {r.overdue && <Badge tone="danger" variant="subtle">{t('Overdue')}</Badge>}
+          {r.criticalAckRequired && <Badge tone="critical" dot>{t('Callback due')}</Badge>}
+          {r.autoVerified && <Badge tone="neutral" variant="subtle">{t('Auto')}</Badge>}
         </span>
       ),
     },
@@ -210,33 +216,33 @@ export function ResultsQueuePage() {
           </label>
         </div>
 
-        {loading && !data ? (
-          <TableSkeleton columns={columns.length} />
-        ) : error ? (
+        {error ? (
           <ErrorState message={error} onRetry={refetch} />
-        ) : data && data.content.length === 0 ? (
-          <EmptyState
-            title={t('Nothing in this queue')}
-            message={t('Results appear here once a sample is received into the lab.')}
-          />
         ) : (
-          data && (
-            <>
-              <DataTable
-                columns={columns}
-                rows={data.content}
-                rowKey={(r) => r.id}
-                rowHref={(r) => `/app/results/${r.id}`}
-                onRowClick={(r) => navigate(`/app/results/${r.id}`)}
-              />
+          <>
+            <DataTable
+              columns={columns}
+              rows={data?.content ?? []}
+              rowKey={(r) => r.id}
+              loading={loading && !data}
+              emptyState={
+                <EmptyState
+                  title={t('Nothing in this queue')}
+                  message={t('Results appear here once a sample is received into the lab.')}
+                />
+              }
+              rowHref={(r) => `/app/results/${r.id}`}
+              onRowClick={(r) => navigate(`/app/results/${r.id}`)}
+            />
+            {data && data.totalPages > 1 && (
               <Pagination
                 page={data.page}
                 totalPages={data.totalPages}
                 totalElements={data.totalElements}
                 onPageChange={(p) => set({ page: p + 1 })}
               />
-            </>
-          )
+            )}
+          </>
         )}
       </Card>
     </>

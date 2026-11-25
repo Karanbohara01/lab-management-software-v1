@@ -1,6 +1,8 @@
 import { CheckCircle2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { SPRING_SMOOTH, isTestEnv } from '@/components/ui/motion';
 import { useNavigateFrom } from '@/lib/navigation';
 import { SectionHeader } from './SectionHeader';
 import { useT } from '@/i18n';
@@ -9,6 +11,7 @@ import { useT } from '@/i18n';
 export function TurnaroundPanel({ resultCounts }: { resultCounts: Record<string, number> }) {
   const navigate = useNavigateFrom();
   const t = useT();
+  const skipMotion = isTestEnv();
   const active = (resultCounts.PENDING ?? 0) + (resultCounts.ENTERED ?? 0) + (resultCounts.VERIFIED ?? 0);
   const overdue = resultCounts.OVERDUE ?? 0;
   const onTrack = Math.max(0, active - overdue);
@@ -35,8 +38,20 @@ export function TurnaroundPanel({ resultCounts }: { resultCounts: Record<string,
       ) : (
         <>
           <div className="flex h-2.5 overflow-hidden rounded-full bg-surface-muted">
-            <div className="h-full bg-success" style={{ width: `${100 - overduePct}%` }} />
-            {overdue > 0 && <div className="h-full bg-danger" style={{ width: `${overduePct}%` }} />}
+            <motion.div
+              className="h-full bg-success"
+              initial={skipMotion ? false : { width: 0 }}
+              animate={{ width: `${100 - overduePct}%` }}
+              transition={SPRING_SMOOTH}
+            />
+            {overdue > 0 && (
+              <motion.div
+                className="h-full bg-danger"
+                initial={skipMotion ? false : { width: 0 }}
+                animate={{ width: `${overduePct}%` }}
+                transition={{ ...SPRING_SMOOTH, delay: skipMotion ? 0 : 0.08 }}
+              />
+            )}
           </div>
           <div className="mt-3 flex items-center justify-between text-sm">
             <span className="flex items-center gap-1.5 text-muted">

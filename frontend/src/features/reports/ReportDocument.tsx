@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import type { ReportDetail, ReportParameterLine } from './types';
+import { adToBs } from '@/lib/nepaliDate';
 
 /**
  * Renders the report's verification URL as a scannable QR code, generated entirely client-side
@@ -121,9 +122,12 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
         <Line label="Order no." value={report.orderNumber} />
         <Line
           label="Age / Sex"
-          value={`${report.patientAgeYears != null ? `${report.patientAgeYears} yrs` : '—'} / ${report.patientGender}`}
+          value={`${report.patientAgeYears != null ? (report.patientAgeYears === 0 ? 'Infant (<1 yr)' : `${report.patientAgeYears} yrs`) : '—'} / ${report.patientGender}`}
         />
-        <Line label="Report date" value={dt(report.generatedAt)} />
+        <Line
+          label="Report date"
+          value={`${dt(report.generatedAt)}${adToBs(report.generatedAt) ? ` (${adToBs(report.generatedAt)!.formatted} BS)` : ''}`}
+        />
       </section>
 
       {report.hasCritical && (
@@ -150,8 +154,10 @@ export function ReportDocument({ report }: { report: ReportDetail }) {
           {(test.collectedAt || test.receivedAt) && (
             <p className="break-after-avoid text-[11px] text-gray-600">
               {[
-                test.collectedAt && `Collected: ${dt(test.collectedAt)}`,
-                test.receivedAt && `Received: ${dt(test.receivedAt)}`,
+                test.collectedAt &&
+                  `Collected: ${dt(test.collectedAt)}${adToBs(test.collectedAt) ? ` (${adToBs(test.collectedAt)!.formatted} BS)` : ''}`,
+                test.receivedAt &&
+                  `Received: ${dt(test.receivedAt)}${adToBs(test.receivedAt) ? ` (${adToBs(test.receivedAt)!.formatted} BS)` : ''}`,
               ]
                 .filter(Boolean)
                 .join('   ')}

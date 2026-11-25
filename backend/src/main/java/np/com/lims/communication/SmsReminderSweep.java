@@ -71,7 +71,7 @@ public class SmsReminderSweep {
         for (Long orgId : ruleRepository.findEnabledOrganizationIds(SmsAutomationEvent.APPOINTMENT_REMINDER.name())) {
             TenantContext.set(orgId);
             try {
-                self.sweepAppointmentRemindersForOrg();
+                self.sweepAppointmentRemindersForOrg(orgId);
             } catch (RuntimeException e) {
                 log.warn("Appointment reminder sweep failed for organization {}: {}", orgId, e.toString());
             } finally {
@@ -81,8 +81,8 @@ public class SmsReminderSweep {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void sweepAppointmentRemindersForOrg() {
-        SmsAutomationRule rule = ruleRepository.findByEventType(SmsAutomationEvent.APPOINTMENT_REMINDER).orElse(null);
+    public void sweepAppointmentRemindersForOrg(Long orgId) {
+        SmsAutomationRule rule = ruleRepository.findByOrganizationIdAndEventType(orgId, SmsAutomationEvent.APPOINTMENT_REMINDER).orElse(null);
         if (rule == null || !rule.isEnabled() || rule.getTemplate() == null) {
             return;
         }
@@ -101,7 +101,7 @@ public class SmsReminderSweep {
         for (Long orgId : ruleRepository.findEnabledOrganizationIds(SmsAutomationEvent.FOLLOW_UP_DUE.name())) {
             TenantContext.set(orgId);
             try {
-                self.sweepFollowUpsForOrg();
+                self.sweepFollowUpsForOrg(orgId);
             } catch (RuntimeException e) {
                 log.warn("Follow-up reminder sweep failed for organization {}: {}", orgId, e.toString());
             } finally {
@@ -111,8 +111,8 @@ public class SmsReminderSweep {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void sweepFollowUpsForOrg() {
-        SmsAutomationRule rule = ruleRepository.findByEventType(SmsAutomationEvent.FOLLOW_UP_DUE).orElse(null);
+    public void sweepFollowUpsForOrg(Long orgId) {
+        SmsAutomationRule rule = ruleRepository.findByOrganizationIdAndEventType(orgId, SmsAutomationEvent.FOLLOW_UP_DUE).orElse(null);
         if (rule == null || !rule.isEnabled() || rule.getTemplate() == null) {
             return;
         }

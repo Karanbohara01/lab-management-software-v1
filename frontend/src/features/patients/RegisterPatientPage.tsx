@@ -9,6 +9,8 @@ import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
+import { NepaliDateInput } from '@/components/ui/NepaliDateInput';
+import { adToBs, bsToAd, calculateAgeFromDob, getDetailedAge, parseBsDate } from '@/lib/nepaliDate';
 import { Combobox } from '@/components/ui/Combobox';
 import { Textarea } from '@/components/ui/Textarea';
 import { Checkbox } from '@/components/ui/Checkbox';
@@ -203,6 +205,8 @@ export function RegisterPatientPage() {
   const [candidates, setCandidates] = useState<MatchCandidate[]>([]);
   const [matching, setMatching] = useState(false);
   const [dismissed, setDismissed] = useState<Set<number>>(new Set());
+  const [bsDob, setBsDob] = useState('');
+  const [bsError, setBsError] = useState<string | null>(null);
 
   const {
     register,
@@ -225,14 +229,29 @@ export function RegisterPatientPage() {
   useEffect(() => {
     const p = existing.data;
     if (!p) return;
+    const initialDob = p.dateOfBirth ?? '';
+    let initialAge: number | '' = '';
+    if (initialDob) {
+      const calculated = calculateAgeFromDob(initialDob);
+      initialAge = calculated != null ? calculated : (p.ageYears ?? '');
+      const bs = adToBs(initialDob);
+      setBsDob(bs?.formatted ?? '');
+    } else if (p.approximateAgeYears != null) {
+      initialAge = p.approximateAgeYears;
+      setBsDob('');
+    } else {
+      setBsDob('');
+    }
+    setBsError(null);
+
     reset({
       ...EMPTY,
       salutation: p.salutation ?? '',
       fullName: p.fullName,
       nameLocal: p.nameLocal ?? '',
       gender: p.gender,
-      dateOfBirth: p.dateOfBirth ?? '',
-      approximateAgeYears: p.dateOfBirth ? '' : (p.approximateAgeYears ?? ''),
+      dateOfBirth: initialDob,
+      approximateAgeYears: initialAge,
       bloodGroup: p.bloodGroup ?? 'UNKNOWN',
       maritalStatus: p.maritalStatus ?? 'UNKNOWN',
       occupation: p.occupation ?? '',
@@ -298,6 +317,60 @@ export function RegisterPatientPage() {
   const w = watch();
   const referralType = w.referralSourceType;
   const [manualMuni, setManualMuni] = useState<Record<string, boolean>>({});
+
+  const handleAdDobChange = (adVal: string) => {
+    setValue('dateOfBirth', adVal, { shouldValidate: true, shouldDirty: true });
+    if (!adVal) {
+      setBsDob('');
+      setBsError(null);
+      return;
+    }
+    const bs = adToBs(adVal);
+    if (bs) {
+      setBsDob(bs.formatted);
+      setBsError(null);
+    } else {
+      setBsDob('');
+    }
+    const age = calculateAgeFromDob(adVal);
+    if (age != null) {
+      setValue('approximateAgeYears', age, { shouldValidate: true, shouldDirty: true });
+    }
+  };
+
+  const handleBsDobChange = (bsVal: string) => {
+    setBsDob(bsVal);
+    if (!bsVal.trim()) {
+      setValue('dateOfBirth', '', { shouldValidate: true, shouldDirty: true });
+      setBsError(null);
+      return;
+    }
+    const parsed = parseBsDate(bsVal);
+    if (!parsed) {
+      if (bsVal.length >= 10) {
+        setBsError(t('Invalid B.S. date (YYYY-MM-DD)'));
+      } else {
+        setBsError(null);
+      }
+      return;
+    }
+    const ad = bsToAd(parsed.year, parsed.month, parsed.day);
+    if (!ad) {
+      setBsError(t('Invalid B.S. date'));
+      return;
+    }
+    const todayAd = new Date().toISOString().split('T')[0] ?? '';
+    if (ad.formatted > todayAd) {
+      setBsError(t('Date of birth cannot be in the future'));
+      return;
+    }
+    setBsError(null);
+    setValue('dateOfBirth', ad.formatted, { shouldValidate: true, shouldDirty: true });
+    const age = calculateAgeFromDob(ad.formatted);
+    if (age != null) {
+      setValue('approximateAgeYears', age, { shouldValidate: true, shouldDirty: true });
+    }
+  };
 
   const renderAddress = (prefix: 'address' | 'currentAddress') => {
     const val = (prefix === 'address' ? w.address : w.currentAddress) ?? {};
@@ -385,6 +458,7 @@ export function RegisterPatientPage() {
     );
   };
   const dob = w.dateOfBirth ?? '';
+  const detailedAge = useMemo(() => getDetailedAge(dob), [dob]);
   const approxAge = typeof w.approximateAgeYears === 'number' ? w.approximateAgeYears : Number(w.approximateAgeYears);
   const isMinor = useMemo(() => {
     if (dob) {
@@ -593,9 +667,59 @@ export function RegisterPatientPage() {
             <Input label={t('Name in Devanagari (optional)')} {...register('nameLocal')} />
             <Select label={t('Gender')} options={tOpts(GENDERS)} error={errors.gender?.message} {...register('gender')} />
           </div>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Input label={t('Date of birth')} type="date" error={errors.dateOfBirth?.message} {...register('dateOfBirth')} />
-            <Input label={t('Approx. age (yrs)')} type="number" min={0} hint={t('If DOB unknown')} error={errors.approximateAgeYears?.message} {...register('approximateAgeYears')} />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Input
+              label={t('Date of birth (A.D.)')}
+              type="date"
+              max={new Date().toISOString().split('T')[0] ?? ''}
+              error={errors.dateOfBirth?.message}
+              {...register('dateOfBirth', {
+                onChange: (e) => handleAdDobChange(e.target.value),
+              })}
+            />
+            <NepaliDateInput
+              label={t('Date of birth (B.S.)')}
+              value={bsDob}
+              onChange={handleBsDobChange}
+              error={bsError ?? undefined}
+              hint={t('e.g. 2050-04-15')}
+            />
+            <div>
+              <Input
+                label={t('Approx. age (yrs)')}
+                type="number"
+                min={0}
+                max={150}
+                hint={
+                  w.dateOfBirth
+                    ? detailedAge && detailedAge.years < 2
+                      ? `${t('Pediatric')}: ${detailedAge.formatted}`
+                      : t('Calculated from DOB')
+                    : t('If DOB unknown')
+                }
+                error={errors.approximateAgeYears?.message}
+                {...register('approximateAgeYears')}
+              />
+              {!w.dateOfBirth && approxAge > 0 && approxAge <= 130 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const estYear = new Date().getFullYear() - approxAge;
+                    const estAd = `${estYear}-07-01`;
+                    handleAdDobChange(estAd);
+                  }}
+                  className="mt-1 text-xs text-primary hover:underline flex items-center gap-1"
+                >
+                  <span>💡 {t('Estimate DOB:')}</span>
+                  <span className="font-medium">
+                    ~{new Date().getFullYear() - approxAge}-07-01
+                    {adToBs(`${new Date().getFullYear() - approxAge}-07-01`)
+                      ? ` (${adToBs(`${new Date().getFullYear() - approxAge}-07-01`)!.year} BS)`
+                      : ''}
+                  </span>
+                </button>
+              )}
+            </div>
             <Select label={t('Blood group')} options={tOpts(BLOOD_GROUPS)} {...register('bloodGroup')} />
           </div>
         </SectionCard>

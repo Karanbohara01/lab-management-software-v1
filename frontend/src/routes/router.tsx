@@ -63,6 +63,8 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <DashboardPage />, handle: handleFor('/app') },
       route('help', lazyPage(() => import('@/features/help/HelpPage'), 'HelpPage')),
+      route('support', lazyPage(() => import('@/features/inquiries/ClinicSupportPage'), 'ClinicSupportPage')),
+      route('support/:id', lazyPage(() => import('@/features/inquiries/ClinicTicketDetailPage'), 'ClinicTicketDetailPage')),
 
       route('patients', lazyPage(() => import('@/features/patients/PatientsPage'), 'PatientsPage'), [P.PATIENT_READ]),
       route('patients/new', lazyPage(() => import('@/features/patients/RegisterPatientPage'), 'RegisterPatientPage'), [P.PATIENT_WRITE]),
@@ -134,6 +136,7 @@ export const router = createBrowserRouter([
       route('platform/billing', lazyPage(() => import('@/features/platform/billing/PlatformBillingPage'), 'PlatformBillingPage'), [P.PLATFORM_MANAGE]),
       route('platform/roles', lazyPage(() => import('@/features/platform/PlatformRolesPage'), 'PlatformRolesPage'), [P.PLATFORM_MANAGE]),
       route('platform/leadership', lazyPage(() => import('@/features/platform/LeadershipPage'), 'LeadershipPage'), [P.PLATFORM_MANAGE]),
+      route('platform/inquiries', lazyPage(() => import('@/features/inquiries/PlatformInquiriesPage'), 'PlatformInquiriesPage'), [P.PLATFORM_MANAGE]),
       route('users', lazyPage(() => import('@/features/admin/UsersPage'), 'UsersPage'), [P.USER_READ]),
       route('roles', lazyPage(() => import('@/features/admin/RolesPage'), 'RolesPage'), [P.ROLE_READ]),
       route('audit', lazyPage(() => import('@/features/admin/AuditPage'), 'AuditPage'), [P.AUDIT_READ]),

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { FileText, CheckCircle2, AlertTriangle, Settings2, Download, X } from 'lucide-react';
+import { Settings2, Download, X } from 'lucide-react';
+import { FcFinePrint, FcHighPriority, FcApproval } from 'react-icons/fc';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -100,17 +101,17 @@ export function PlatformBillingPage() {
 
   const stats: StatTileData[] = data
     ? [
-        { label: t('Subscription invoices'), value: data.totalElements, icon: FileText },
+        { label: t('Subscription invoices'), value: data.totalElements, icon: FcFinePrint },
         {
           label: t('Needs filing'),
           value: data.content.filter((i) => i.irdStatus === 'NOT_SUBMITTED' || i.irdStatus === 'FAILED').length,
-          icon: AlertTriangle,
+          icon: FcHighPriority,
           tone: data.content.some((i) => i.irdStatus === 'FAILED') ? 'warning' : 'neutral',
         },
         {
           label: t('Filed with IRD'),
           value: data.content.filter((i) => i.irdStatus === 'ACCEPTED' || i.irdStatus === 'DUPLICATE' || i.irdStatus === 'SUBMITTED').length,
-          icon: CheckCircle2,
+          icon: FcApproval,
         },
       ]
     : [];

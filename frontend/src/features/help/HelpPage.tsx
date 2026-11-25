@@ -1,6 +1,9 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Headphones } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/cn';
 import { useT, useTRich, type Translate, type TranslateRich } from '@/i18n';
 
@@ -342,6 +345,21 @@ export function HelpPage() {
               </button>
             ))}
           </nav>
+
+          <div className="p-3 m-2 rounded-lg bg-primary/5 border border-primary/20 space-y-2">
+            <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+              <Headphones className="w-4 h-4" />
+              <span>{t('Need Technical Help?')}</span>
+            </div>
+            <p className="text-xs text-muted leading-relaxed">
+              {t('Have a specific question, encountered a bug, or need analyzer integration support?')}
+            </p>
+            <Link to="/app/support" className="block pt-1">
+              <Button variant="secondary" size="sm" className="w-full justify-center text-xs">
+                {t('Open Support Ticket')}
+              </Button>
+            </Link>
+          </div>
         </Card>
         <Card className="lg:col-span-3">
           <CardHeader title={active.title} />

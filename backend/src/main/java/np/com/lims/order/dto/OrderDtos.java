@@ -1,6 +1,7 @@
 package np.com.lims.order.dto;
 
 import np.com.lims.patient.PatientPrivacy;
+import np.com.lims.patient.entity.Gender;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
@@ -39,6 +40,7 @@ public final class OrderDtos {
             @NotNull Long patientId,
             Long referringDoctorId,
             Long branchId,
+            Long prescriptionDocumentId,
             @Size(max = 1000) String clinicalNotes,
             Priority priority,
             @NotEmpty @Valid List<ItemRequest> items,
@@ -47,6 +49,10 @@ public final class OrderDtos {
             @PositiveOrZero @DecimalMin("0.0") BigDecimal taxRate,
             boolean confirm
     ) {
+        public SaveRequest(Long patientId, Long referringDoctorId, Long branchId, String clinicalNotes, Priority priority,
+                           List<ItemRequest> items, DiscountType discountType, BigDecimal discountValue, BigDecimal taxRate, boolean confirm) {
+            this(patientId, referringDoctorId, branchId, null, clinicalNotes, priority, items, discountType, discountValue, taxRate, confirm);
+        }
     }
 
     public record PreviewRequest(
@@ -104,6 +110,31 @@ public final class OrderDtos {
         }
     }
 
+    public record PrescriptionSummary(
+            Long id,
+            String title,
+            String fileName,
+            String fileType,
+            long fileSizeBytes,
+            String documentType,
+            String documentDate,
+            String doctorOrFacility
+    ) {
+        public static PrescriptionSummary from(np.com.lims.patient.entity.PatientDocument doc) {
+            if (doc == null) return null;
+            return new PrescriptionSummary(
+                    doc.getId(),
+                    doc.getTitle(),
+                    doc.getFileName(),
+                    doc.getFileType(),
+                    doc.getFileSizeBytes(),
+                    doc.getDocumentType() == null ? null : doc.getDocumentType().name(),
+                    doc.getDocumentDate() == null ? null : doc.getDocumentDate().toString(),
+                    doc.getDoctorOrFacility()
+            );
+        }
+    }
+
     public record ListItem(
             Long id,
             String orderNumber,
@@ -114,6 +145,7 @@ public final class OrderDtos {
             String branchName,
             OrderStatus status,
             String priority,
+            boolean hasPrescription,
             int itemCount,
             BigDecimal totalAmount,
             Instant orderedAt
@@ -122,7 +154,8 @@ public final class OrderDtos {
             return new ListItem(o.getId(), o.getOrderNumber(), o.getPatient().getId(), PatientPrivacy.displayName(o.getPatient()),
                     o.getPatient().getMrn(), o.getBranch() == null ? null : o.getBranch().getId(),
                     o.getBranch() == null ? null : o.getBranch().getName(),
-                    o.getStatus(), o.getPriority().name(), o.getItems().size(), o.getTotalAmount(), o.getOrderedAt());
+                    o.getStatus(), o.getPriority().name(), o.getPrescriptionDocument() != null,
+                    o.getItems().size(), o.getTotalAmount(), o.getOrderedAt());
         }
     }
 
@@ -132,10 +165,14 @@ public final class OrderDtos {
             Long patientId,
             String patientName,
             String patientMrn,
+            Gender patientGender,
+            Integer patientAgeYears,
+            String patientPhone,
             Long branchId,
             String branchName,
             Long referringDoctorId,
             String referringDoctorName,
+            PrescriptionSummary prescription,
             OrderStatus status,
             String priority,
             String clinicalNotes,
@@ -150,10 +187,12 @@ public final class OrderDtos {
             return new Detail(
                     o.getId(), o.getOrderNumber(), o.getPatient().getId(), PatientPrivacy.displayName(o.getPatient()),
                     o.getPatient().getMrn(),
+                    o.getPatient().getGender(), o.getPatient().ageYears(), o.getPatient().getPhone(),
                     o.getBranch() == null ? null : o.getBranch().getId(),
                     o.getBranch() == null ? null : o.getBranch().getName(),
                     o.getReferringDoctor() == null ? null : o.getReferringDoctor().getId(),
                     o.getReferringDoctor() == null ? null : o.getReferringDoctor().getFullName(),
+                    PrescriptionSummary.from(o.getPrescriptionDocument()),
                     o.getStatus(), o.getPriority().name(), o.getClinicalNotes(), o.getOrderedAt(), o.getConfirmedAt(),
                     o.getCancelledAt(), o.getCancelReason(),
                     o.getItems().stream().map(ItemResponse::from).toList(),

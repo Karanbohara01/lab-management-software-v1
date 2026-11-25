@@ -1,4 +1,5 @@
 import { httpClient } from '@/api/client';
+import { tokenStorage } from '@/features/auth/tokenStorage';
 import type { PageResponse } from '@/types/api';
 import type {
   MatchCandidate,
@@ -6,8 +7,10 @@ import type {
   MergePreview,
   PatientCategory,
   PatientDetail,
+  PatientDocument,
   PatientListItem,
   PatientUpsertPayload,
+  UploadPatientDocumentRequest,
 } from './types';
 
 export interface PatientQuery {
@@ -47,4 +50,54 @@ export const patientsApi = {
   /** Generates (on first call) and returns this patient's self-service portal link, to share manually. */
   portalLink: (id: number) =>
     httpClient.get<{ url: string }>(`/patients/${id}/portal-link`).then((r) => r.data),
+
+  documents: {
+    list: (patientId: number) =>
+      httpClient.get<PatientDocument[]>(`/patients/${patientId}/documents`).then((r) => r.data),
+
+    upload: (patientId: number, data: UploadPatientDocumentRequest, file: File) => {
+      const formData = new FormData();
+      formData.append(
+        'data',
+        new Blob([JSON.stringify(data)], { type: 'application/json' })
+      );
+      formData.append('file', file);
+      return httpClient
+        .post<PatientDocument>(`/patients/${patientId}/documents`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        .then((r) => r.data);
+    },
+
+    downloadUrl: (patientId: number, documentId: number, inline = false) => {
+      const token = tokenStorage.getAccess();
+      const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
+      return `/api/patients/${patientId}/documents/${documentId}/download?inline=${inline}${tokenParam}`;
+    },
+
+    download: async (patientId: number, documentId: number, fileName: string) => {
+      const res = await httpClient.get<Blob>(`/patients/${patientId}/documents/${documentId}/download`, {
+        responseType: 'blob',
+      });
+      const blobUrl = URL.createObjectURL(res.data);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    },
+
+    getBlobUrl: async (patientId: number, documentId: number) => {
+      const res = await httpClient.get<Blob>(
+        `/patients/${patientId}/documents/${documentId}/download?inline=true`,
+        { responseType: 'blob' }
+      );
+      return URL.createObjectURL(res.data);
+    },
+
+    delete: (patientId: number, documentId: number) =>
+      httpClient.delete<void>(`/patients/${patientId}/documents/${documentId}`).then((r) => r.data),
+  },
 };

@@ -121,11 +121,24 @@ export function SignupPage() {
   });
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-surface-muted px-4 py-6">
-      <BackLink to="/" className="absolute left-4 top-4 mb-0 sm:left-6 sm:top-6">
+    <div className="relative isolate flex min-h-screen items-center justify-center overflow-hidden px-4 py-6">
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: `
+            radial-gradient(circle at 50% 45%, rgba(248, 250, 252, 0.76) 0%, rgba(241, 245, 249, 0.84) 55%, rgba(226, 232, 240, 0.94) 100%),
+            url('/marketing/login-backdrop.png')
+          `,
+        }}
+      />
+      <BackLink
+        to="/"
+        className="absolute left-4 top-4 z-10 mb-0 rounded-full border border-border/70 bg-surface/85 px-3 py-1.5 shadow-sm backdrop-blur-md transition-colors hover:bg-surface sm:left-6 sm:top-6"
+      >
         {t('Back to home')}
       </BackLink>
-      <div className="w-full max-w-3xl">
+      <div className="relative z-10 w-full max-w-3xl">
         <div className="mb-4 flex flex-col items-center gap-2 text-center">
           <Link
             to="/"

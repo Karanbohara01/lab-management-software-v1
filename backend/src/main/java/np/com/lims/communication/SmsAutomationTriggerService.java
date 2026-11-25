@@ -13,6 +13,8 @@ import np.com.lims.settings.LaboratoryProfileService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -82,8 +84,10 @@ public class SmsAutomationTriggerService {
     public void followUpDue(Patient patient, java.time.LocalDate dueDate, String reason) {
         Map<String, String> extra = new HashMap<>();
         extra.put("dueDate", dueDate.toString());
-        if (reason != null) {
+        if (reason != null && !reason.isBlank()) {
             extra.put("reason", reason);
+        } else {
+            extra.put("reason", "Routine follow-up");
         }
         fire(SmsAutomationEvent.FOLLOW_UP_DUE, patient, SmsCategory.FOLLOW_UP, extra);
     }
@@ -117,10 +121,28 @@ public class SmsAutomationTriggerService {
     }
 
     private void fire(SmsAutomationEvent event, Patient patient, SmsCategory category, Map<String, String> extra) {
+        if (patient == null || patient.getPhone() == null || patient.getPhone().isBlank()) {
+            return;
+        }
+
+        // If an outer transaction is currently active (e.g. PatientService.register, LabOrderService.confirm,
+        // ReportService.release), we MUST wait until that transaction commits before sending the SMS.
+        // Otherwise, SmsMessageService's REQUIRES_NEW transaction will attempt to insert a foreign key
+        // referencing an uncommitted patient/order/report row, causing an InnoDB lock wait timeout or deadlock.
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    doFire(event, patient, category, extra);
+                }
+            });
+        } else {
+            doFire(event, patient, category, extra);
+        }
+    }
+
+    private void doFire(SmsAutomationEvent event, Patient patient, SmsCategory category, Map<String, String> extra) {
         try {
-            if (patient == null || patient.getPhone() == null || patient.getPhone().isBlank()) {
-                return;
-            }
             SmsAutomationRule rule = ruleRepository.findByEventType(event).orElse(null);
             if (rule == null || !rule.isEnabled()) {
                 return;

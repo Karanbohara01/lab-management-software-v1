@@ -1,11 +1,13 @@
 package np.com.lims.order;
 
+import jakarta.persistence.LockModeType;
 import np.com.lims.order.entity.LabOrder;
 import np.com.lims.order.entity.OrderStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -13,6 +15,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface LabOrderRepository extends JpaRepository<LabOrder, Long> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT o FROM LabOrder o WHERE o.id = :id")
+    Optional<LabOrder> findWithLockById(@Param("id") Long id);
 
     @EntityGraph(attributePaths = {"patient", "referringDoctor", "items"})
     Optional<LabOrder> findDetailedById(Long id);

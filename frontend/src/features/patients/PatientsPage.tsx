@@ -7,7 +7,7 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { Select } from '@/components/ui/Select';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
-import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
+import { ErrorState, EmptyState } from '@/components/ui/PageState';
 import { useListParams, useSearchInput } from '@/hooks/useListParams';
 import { useQuery } from '@/hooks/useQuery';
 import { useNavigateFrom } from '@/lib/navigation';
@@ -76,9 +76,11 @@ export function PatientsPage() {
       header: t('Status'),
       cell: (p) =>
         p.deceased ? (
-          <Badge tone="neutral">{t('Deceased')}</Badge>
+          <Badge tone="neutral" variant="subtle">{t('Deceased')}</Badge>
         ) : (
-          <Badge tone={p.active ? 'success' : 'neutral'}>{t(p.active ? 'Active' : 'Inactive')}</Badge>
+          <Badge tone={p.active ? 'success' : 'neutral'} variant="subtle" dot={p.active}>
+            {t(p.active ? 'Active' : 'Inactive')}
+          </Badge>
         ),
     },
   ];
@@ -124,42 +126,42 @@ export function PatientsPage() {
           />
         </div>
 
-        {loading && !data ? (
-          <TableSkeleton columns={columns.length} />
-        ) : error ? (
+        {error ? (
           <ErrorState message={error} onRetry={refetch} />
-        ) : data && data.content.length === 0 ? (
-          <EmptyState
-            title={t('No patients found')}
-            message={
-              params.q || params.category
-                ? t('Try a different search or filter.')
-                : t('Register the first patient to get started.')
-            }
-            action={
-              canWrite && !params.q && !params.category ? (
-                <Button onClick={() => navigate('/app/patients/new')}>{t('Register patient')}</Button>
-              ) : undefined
-            }
-          />
         ) : (
-          data && (
-            <>
-              <DataTable
-                columns={columns}
-                rows={data.content}
-                rowKey={(p) => p.id}
-                rowHref={(p) => `/app/patients/${p.id}`}
-                onRowClick={(p) => navigate(`/app/patients/${p.id}`)}
-              />
+          <>
+            <DataTable
+              columns={columns}
+              rows={data?.content ?? []}
+              rowKey={(p) => p.id}
+              loading={loading && !data}
+              emptyState={
+                <EmptyState
+                  title={t('No patients found')}
+                  message={
+                    params.q || params.category
+                      ? t('Try a different search or filter.')
+                      : t('Register the first patient to get started.')
+                  }
+                  action={
+                    canWrite && !params.q && !params.category ? (
+                      <Button onClick={() => navigate('/app/patients/new')}>{t('Register patient')}</Button>
+                    ) : undefined
+                  }
+                />
+              }
+              rowHref={(p) => `/app/patients/${p.id}`}
+              onRowClick={(p) => navigate(`/app/patients/${p.id}`)}
+            />
+            {data && data.totalPages > 1 && (
               <Pagination
                 page={data.page}
                 totalPages={data.totalPages}
                 totalElements={data.totalElements}
                 onPageChange={(p) => set({ page: p + 1 })}
               />
-            </>
-          )
+            )}
+          </>
         )}
       </Card>
     </>

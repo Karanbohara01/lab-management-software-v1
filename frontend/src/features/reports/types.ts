@@ -72,6 +72,7 @@ export interface ReportDetail {
   patientMrn: string;
   patientGender: string;
   patientAgeYears: number | null;
+  patientPhone?: string | null;
   referringDoctorName: string | null;
   status: ReportStatus;
   reportType: 'PRELIMINARY' | 'FINAL';
@@ -100,3 +101,35 @@ export const REPORT_STATUS_TONE: Record<ReportStatus, 'neutral' | 'info' | 'succ
   RELEASED: 'info',
   DELIVERED: 'success',
 };
+
+export interface VerificationResult {
+  found?: boolean;
+  valid?: boolean;
+  reportNumber: string;
+  reportVersion: number;
+  reportType: string;
+  status: string;
+  patientMrn: string | null;
+  patientNameMasked?: string | null;
+  maskedPatientName?: string | null;
+  patientGender: string | null;
+  patientAgeYears: number | null;
+  orderNumber: string | null;
+  testNames: string[];
+  labName?: string | null;
+  laboratoryName?: string | null;
+  labAddress?: string | null;
+  laboratoryAddress?: string | null;
+  labPhone?: string | null;
+  laboratoryPhone?: string | null;
+  labEmail?: string | null;
+  laboratoryEmail?: string | null;
+  panNumber: string | null;
+  accreditationNumber: string | null;
+  contentHash: string | null;
+  signedBy: string | null;
+  signerCredentials: string | null;
+  signedAt: string | null;
+  generatedAt?: string | null;
+  releasedAt: string | null;
+}

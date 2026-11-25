@@ -1,5 +1,6 @@
 package np.com.lims.settings;
 
+import java.util.Optional;
 import np.com.lims.common.audit.AuditService;
 import np.com.lims.common.exception.ApiException;
 import np.com.lims.common.exception.ErrorCode;
@@ -33,6 +34,11 @@ public class LaboratoryProfileService {
     public LaboratoryProfile require() {
         return repository.findByOrganizationId(TenantContext.require())
                 .orElseThrow(() -> new ApiException(ErrorCode.INTERNAL_ERROR, "Laboratory profile is not initialised for this organization"));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<LaboratoryProfile> findByOrganizationId(Long organizationId) {
+        return repository.findByOrganizationId(organizationId);
     }
 
     /** Creates this organization's default profile if it doesn't have one yet. Safe to call repeatedly. */

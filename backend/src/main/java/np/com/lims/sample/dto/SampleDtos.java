@@ -1,6 +1,7 @@
 package np.com.lims.sample.dto;
 
 import np.com.lims.patient.PatientPrivacy;
+import np.com.lims.patient.entity.Gender;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -100,6 +101,8 @@ public final class SampleDtos {
             Long patientId,
             String patientName,
             String patientMrn,
+            Gender patientGender,
+            Integer patientAgeYears,
             SpecimenType specimenType,
             SampleStatus status,
             String priority,
@@ -111,7 +114,8 @@ public final class SampleDtos {
         public static ListItem from(Sample s) {
             return new ListItem(s.getId(), s.getAccessionNumber(), s.getOrder().getId(),
                     s.getOrder().getOrderNumber(), s.getPatient().getId(), PatientPrivacy.displayName(s.getPatient()),
-                    s.getPatient().getMrn(), s.getSpecimenType(), s.getStatus(), s.getPriority().name(), s.getItems().size(),
+                    s.getPatient().getMrn(), s.getPatient().getGender(), s.getPatient().ageYears(),
+                    s.getSpecimenType(), s.getStatus(), s.getPriority().name(), s.getItems().size(),
                     s.getItems().stream().map(SampleItem::getDepartmentName).distinct().sorted().toList(),
                     condSummary(s), s.getCreatedAt());
         }
@@ -126,6 +130,8 @@ public final class SampleDtos {
             Long patientId,
             String patientName,
             String patientMrn,
+            Gender patientGender,
+            Integer patientAgeYears,
             SpecimenType specimenType,
             SampleStatus status,
             String priority,
@@ -148,6 +154,7 @@ public final class SampleDtos {
                     s.getId(), s.getAccessionNumber(), s.getBarcodeValue(),
                     s.getOrder().getId(), s.getOrder().getOrderNumber(),
                     s.getPatient().getId(), PatientPrivacy.displayName(s.getPatient()), s.getPatient().getMrn(),
+                    s.getPatient().getGender(), s.getPatient().ageYears(),
                     s.getSpecimenType(), s.getStatus(), s.getPriority().name(), s.getContainer(), s.getCollectionSite(),
                     s.getRejectionReason(),
                     s.getCollectedAt(), s.getCollectedBy(), s.getReceivedAt(), s.getReceivedBy(),

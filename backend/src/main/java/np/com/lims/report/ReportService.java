@@ -26,6 +26,7 @@ import np.com.lims.result.entity.ResultValue;
 import np.com.lims.result.entity.TestResult;
 import np.com.lims.settings.LaboratoryProfileService;
 import np.com.lims.settings.ReportSignatoryRepository;
+import np.com.lims.settings.entity.LaboratoryProfile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -125,7 +126,7 @@ public class ReportService {
 
     @Transactional
     public Detail generate(Long orderId, boolean preliminary) {
-        LabOrder order = TenantGuard.owned(orderRepository.findById(orderId), LabOrder::getOrganizationId)
+        LabOrder order = TenantGuard.owned(orderRepository.findWithLockById(orderId), LabOrder::getOrganizationId)
                 .orElseThrow(() -> ApiException.notFound("Order", orderId));
         if (order.getStatus() != OrderStatus.CONFIRMED) {
             throw ApiException.conflict("Reports can only be generated for confirmed orders");
@@ -198,11 +199,59 @@ public class ReportService {
 
     @Transactional(readOnly = true)
     public VerificationResult verify(String token) {
-        return reportRepository.findByVerificationToken(token).map(r -> new VerificationResult(
-                true, r.getReportNumber(), r.getReportVersion(), r.getReportType().name(), r.getStatus().name(),
-                r.getPatient().getMrn(), r.getGeneratedAt(), r.getReleasedAt(),
-                r.getSignedBy(), r.getSignerCredentials(), r.getSignedAt(), r.getContentHash()))
-                .orElseGet(VerificationResult::notFound);
+        return reportRepository.findByVerificationToken(token).map(r -> {
+            LaboratoryProfile lab = laboratoryProfileService.findByOrganizationId(r.getOrganizationId()).orElse(null);
+            String maskedName = maskName(r.getPatient() != null ? r.getPatient().getFullName() : null);
+            List<String> testNames = r.getTests().stream().map(ReportTest::getTestName).toList();
+            String labAddress = lab != null
+                    ? (lab.getAddressLine() != null ? lab.getAddressLine() : "") + (lab.getCity() != null ? ", " + lab.getCity() : "")
+                    : null;
+            if (labAddress != null && labAddress.startsWith(", ")) labAddress = labAddress.substring(2);
+
+            return new VerificationResult(
+                    true, r.getReportNumber(), r.getReportVersion(), r.getReportType().name(), r.getStatus().name(),
+                    r.getPatient() != null ? r.getPatient().getMrn() : null,
+                    maskedName,
+                    r.getPatient() != null && r.getPatient().getGender() != null ? r.getPatient().getGender().name() : null,
+                    r.getPatient() != null ? r.getPatient().ageYears() : null,
+                    r.getOrder() != null ? r.getOrder().getOrderNumber() : null,
+                    testNames,
+                    lab != null ? lab.getName() : null,
+                    labAddress,
+                    lab != null ? lab.getPhone() : null,
+                    lab != null ? lab.getEmail() : null,
+                    lab != null ? lab.getPanNumber() : null,
+                    lab != null ? lab.getAccreditationNumber() : null,
+                    r.getGeneratedAt(), r.getReleasedAt(),
+                    r.getSignedBy(), r.getSignerCredentials(), r.getSignedAt(), r.getContentHash()
+            );
+        }).orElseGet(VerificationResult::notFound);
+    }
+
+    @Transactional(readOnly = true)
+    public Detail getDocumentByVerificationToken(String token) {
+        Report report = reportRepository.findByVerificationToken(token)
+                .orElseThrow(() -> ApiException.notFound("Report with verification token", token));
+        Long orgId = report.getOrganizationId();
+        LaboratoryProfile lab = laboratoryProfileService.findByOrganizationId(orgId).orElse(null);
+        var signatories = signatoryRepository.findAllByOrganizationIdOrderByDisplayOrderAscIdAsc(orgId);
+        return Detail.from(report, lab, signatories);
+    }
+
+    private static String maskName(String fullName) {
+        if (fullName == null || fullName.isBlank()) return "—";
+        String[] parts = fullName.trim().split("\\s+");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < parts.length; i++) {
+            String p = parts[i];
+            if (p.length() <= 1) {
+                sb.append(p);
+            } else {
+                sb.append(p.charAt(0)).append("*".repeat(Math.min(p.length() - 1, 4)));
+            }
+            if (i < parts.length - 1) sb.append(" ");
+        }
+        return sb.toString();
     }
 
     private static String newToken() {

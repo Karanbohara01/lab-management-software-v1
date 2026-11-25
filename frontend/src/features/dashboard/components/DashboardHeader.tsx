@@ -1,6 +1,8 @@
 import type { LucideIcon } from 'lucide-react';
 import { RotateCw } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
+import { SPRING_SNAPPY, isTestEnv } from '@/components/ui/motion';
 import { cn } from '@/lib/cn';
 import { useAuth } from '@/features/auth/useAuth';
 import { getLocale, LOCALE_TAG, translate, useT } from '@/i18n';
@@ -26,7 +28,7 @@ export interface PrimaryAction {
   onClick: () => void;
 }
 
-/** Shared dashboard header — greeting, date, an optional range switcher, refresh, and one primary action. */
+/** Shared dashboard header — greeting, date, an optional spring-animated range switcher, refresh, and one primary action. */
 export function DashboardHeader({
   subtitle,
   range,
@@ -46,6 +48,7 @@ export function DashboardHeader({
 }) {
   const t = useT();
   const { user } = useAuth();
+  const skipMotion = isTestEnv();
   const today = new Date().toLocaleDateString(LOCALE_TAG[getLocale()], {
     weekday: 'long',
     year: 'numeric',
@@ -68,22 +71,33 @@ export function DashboardHeader({
       <div className="flex flex-wrap items-center gap-3">
         {range != null && onRangeChange && (
           <div className="inline-flex rounded-lg border border-border bg-surface p-0.5">
-            {RANGES.map((r) => (
-              <button
-                key={r.value}
-                type="button"
-                onClick={() => onRangeChange(r.value)}
-                aria-pressed={range === r.value}
-                className={cn(
-                  'rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
-                  range === r.value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted hover:bg-surface-muted hover:text-foreground',
-                )}
-              >
-                {t(r.label)}
-              </button>
-            ))}
+            {RANGES.map((r) => {
+              const active = range === r.value;
+              return (
+                <button
+                  key={r.value}
+                  type="button"
+                  onClick={() => onRangeChange(r.value)}
+                  aria-pressed={active}
+                  className={cn(
+                    'relative rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                    active
+                      ? 'text-primary-foreground'
+                      : 'text-muted hover:bg-surface-muted hover:text-foreground',
+                  )}
+                >
+                  {active && (
+                    <motion.span
+                      layoutId={skipMotion ? undefined : 'dashboard-range-pill'}
+                      transition={SPRING_SNAPPY}
+                      className="absolute inset-0 rounded-md bg-primary"
+                      aria-hidden
+                    />
+                  )}
+                  <span className="relative z-10">{t(r.label)}</span>
+                </button>
+              );
+            })}
           </div>
         )}
 

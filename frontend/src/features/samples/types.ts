@@ -39,6 +39,8 @@ export interface SampleListItem {
   patientId: number;
   patientName: string;
   patientMrn: string;
+  patientGender?: string;
+  patientAgeYears?: number | null;
   specimenType: SpecimenType;
   status: SampleStatus;
   priority: OrderPriority;
@@ -57,6 +59,8 @@ export interface SampleDetail {
   patientId: number;
   patientName: string;
   patientMrn: string;
+  patientGender?: string;
+  patientAgeYears?: number | null;
   specimenType: SpecimenType;
   status: SampleStatus;
   priority: OrderPriority;

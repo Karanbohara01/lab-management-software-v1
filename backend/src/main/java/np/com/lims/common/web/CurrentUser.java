@@ -18,6 +18,14 @@ public final class CurrentUser {
         return auth.getName();
     }
 
+    public static Long userId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof AppUserDetails details) {
+            return details.getUserId();
+        }
+        return null;
+    }
+
     /** True when the authenticated user holds the given Spring Security authority (e.g. {@code PERM_PATIENT_CONFIDENTIAL}). */
     public static boolean hasAuthority(String authority) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

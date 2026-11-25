@@ -26,10 +26,14 @@ import org.springframework.util.StringUtils;
 import java.util.List;
 
 /**
- * This organization's own Samaya SMS account, plus the test-send / balance-check / gateway-status
- * views the Communication Hub's "SMS Configuration" screen needs — the Samaya-specific sibling of
- * {@code SmsCredentialsService} (which stays Sparrow-only, untouched). Lives in the
- * {@code communication} package rather than {@code messaging} since it is Communication Hub
+ * This organization's own Samaya SMS account, plus the test-send /
+ * balance-check / gateway-status
+ * views the Communication Hub's "SMS Configuration" screen needs — the
+ * Samaya-specific sibling of
+ * {@code SmsCredentialsService} (which stays Sparrow-only, untouched). Lives in
+ * the
+ * {@code communication} package rather than {@code messaging} since it is
+ * Communication Hub
  * surface area, not part of the original messaging integration.
  */
 @Service
@@ -44,8 +48,8 @@ public class SmsConfigService {
     private final SmsMessageService messageService;
 
     public SmsConfigService(SmsCredentialsRepository credentialsRepository, CryptoService cryptoService,
-                            AuditService auditService, SmsGatewayRegistry gatewayRegistry,
-                            SmsMessageService messageService) {
+            AuditService auditService, SmsGatewayRegistry gatewayRegistry,
+            SmsMessageService messageService) {
         this.credentialsRepository = credentialsRepository;
         this.cryptoService = cryptoService;
         this.auditService = auditService;
@@ -115,7 +119,8 @@ public class SmsConfigService {
     @Transactional
     public SendSmsResponse sendTest(SmsProvider provider, String phone) {
         if (!NepaliPhoneValidator.isValidMobile(phone)) {
-            throw new ApiException(ErrorCode.VALIDATION_FAILED, "\"" + phone + "\" does not look like a Nepali mobile number.");
+            throw new ApiException(ErrorCode.VALIDATION_FAILED,
+                    "\"" + phone + "\" does not look like a Nepali mobile number.");
         }
         SmsGateway gateway = gatewayRegistry.get(provider);
         if (!gateway.isConfigured()) {
@@ -125,7 +130,8 @@ public class SmsConfigService {
         var message = messageService.send(SmsMessageService.SendCommand.test(phone, SmsCategory.CUSTOM,
                 "This is a test message from LabOS to confirm your SMS gateway is working.",
                 CurrentUser.username(), provider));
-        boolean sent = message.getStatus() == SmsMessageStatus.SENT || message.getStatus() == SmsMessageStatus.DELIVERED;
+        boolean sent = message.getStatus() == SmsMessageStatus.SENT
+                || message.getStatus() == SmsMessageStatus.DELIVERED;
         return new SendSmsResponse(sent, SmsSendService.toResponse(message), sent ? null : message.getErrorMessage());
     }
 

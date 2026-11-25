@@ -14,6 +14,7 @@ import { useQuery } from '@/hooks/useQuery';
 import { useNavigateFrom } from '@/lib/navigation';
 import { formatMoney } from '@/lib/money';
 import { formatDate } from '@/features/patients/format';
+import { adToBs } from '@/lib/nepaliDate';
 import { branchesApi, type Branch } from '@/features/branches/api';
 import { useAuth } from '@/features/auth/useAuth';
 import { useToast } from '@/components/ui/toast';
@@ -115,7 +116,21 @@ export function InvoicesPage() {
         </span>
       ),
     },
-    { key: 'date', header: t('Date'), cell: (i) => formatDate(i.createdAt), hideOnMobile: true },
+    {
+      key: 'date',
+      header: t('Date'),
+      cell: (i) => (
+        <span className="flex flex-col">
+          <span>{formatDate(i.createdAt)}</span>
+          {adToBs(i.createdAt) && (
+            <span className="font-mono text-xs text-muted">
+              {adToBs(i.createdAt)!.formatted} BS
+            </span>
+          )}
+        </span>
+      ),
+      hideOnMobile: true,
+    },
     { key: 'total', header: t('Total'), cell: (i) => formatMoney(i.totalAmount), className: 'text-right' },
     { key: 'balance', header: t('Balance'), cell: (i) => formatMoney(i.balance), className: 'text-right' },
     {

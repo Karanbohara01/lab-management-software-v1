@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Outlet, ScrollRestoration, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
+import { SPRING_SMOOTH, isTestEnv } from '@/components/ui/motion';
 import { cn } from '@/lib/cn';
 import { SidebarContent } from './Sidebar';
 import { Topbar } from './Topbar';
@@ -8,16 +10,36 @@ import { Breadcrumbs } from './Breadcrumbs';
 import { PageTitleProvider } from './PageTitleContext';
 import { KeyboardShortcutsModal } from './KeyboardShortcutsModal';
 import { useGlobalShortcuts } from './useGlobalShortcuts';
+import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
+import { samplesApi } from '@/features/samples/api';
+import { useToast } from '@/components/ui/toast';
+import { useNavigate } from 'react-router-dom';
 import { useT } from '@/i18n';
 
 const COLLAPSE_KEY = 'lims.sidebar.collapsed';
 
 export function AppShell() {
   const t = useT();
+  const navigate = useNavigate();
+  const toast = useToast();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const openShortcutsHelp = useCallback(() => setShortcutsOpen(true), []);
   useGlobalShortcuts(openShortcutsHelp);
+
+  const handleGlobalBarcode = useCallback(
+    async (code: string) => {
+      try {
+        const sample = await samplesApi.lookup(code);
+        toast.success(t('Sample {acc} detected', { acc: sample.accessionNumber }));
+        navigate(`/app/samples/${sample.id}`);
+      } catch {
+        navigate(`/app/samples?q=${encodeURIComponent(code)}`);
+      }
+    },
+    [navigate, toast, t],
+  );
+  useBarcodeScanner(handleGlobalBarcode);
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return localStorage.getItem(COLLAPSE_KEY) === '1';
@@ -26,6 +48,7 @@ export function AppShell() {
     }
   });
   const location = useLocation();
+  const skipMotion = isTestEnv();
 
   // Close the mobile drawer whenever the route changes.
   useEffect(() => setDrawerOpen(false), [location.pathname]);
@@ -52,65 +75,76 @@ export function AppShell() {
 
   return (
     <PageTitleProvider>
-    <div className="flex min-h-screen bg-background">
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground"
-      >
-        {t('Skip to main content')}
-      </a>
+      <div className="flex min-h-screen bg-background">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground"
+        >
+          {t('Skip to main content')}
+        </a>
 
-      {/* Desktop sidebar */}
-      <aside
-        className={cn(
-          'hidden shrink-0 border-r border-border transition-[width] duration-150 lg:block',
-          collapsed ? 'w-[4.5rem]' : 'w-64',
-        )}
-      >
-        <div className="sticky top-0 h-screen">
-          <SidebarContent collapsed={collapsed} onToggleCollapse={toggleCollapsed} />
-        </div>
-      </aside>
-
-      {/* Mobile drawer */}
-      {drawerOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <div
-            className="absolute inset-0 bg-foreground/40 animate-fade-in"
-            onClick={() => setDrawerOpen(false)}
-            aria-hidden
-          />
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label={t('Navigation menu')}
-            className={cn('absolute inset-y-0 left-0 w-72 max-w-[80%] shadow-popover animate-slide-in-left')}
-          >
-            <button
-              type="button"
-              onClick={() => setDrawerOpen(false)}
-              className="absolute right-3 top-4 z-10 rounded-md p-2 text-muted-foreground hover:bg-surface-muted"
-              aria-label={t('Close navigation menu')}
-            >
-              <X className="h-5 w-5" aria-hidden />
-            </button>
-            <SidebarContent onNavigate={() => setDrawerOpen(false)} />
+        {/* Desktop sidebar */}
+        <aside
+          className={cn(
+            'hidden shrink-0 border-r border-border transition-[width] duration-150 lg:block',
+            collapsed ? 'w-[4.5rem]' : 'w-64',
+          )}
+        >
+          <div className="sticky top-0 h-screen">
+            <SidebarContent collapsed={collapsed} onToggleCollapse={toggleCollapsed} />
           </div>
+        </aside>
+
+        {/* Mobile drawer */}
+        {drawerOpen && (
+          <div className="fixed inset-0 z-40 lg:hidden">
+            <div
+              className="absolute inset-0 bg-foreground/40 animate-fade-in"
+              onClick={() => setDrawerOpen(false)}
+              aria-hidden
+            />
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label={t('Navigation menu')}
+              className={cn('absolute inset-y-0 left-0 w-72 max-w-[80%] shadow-popover animate-slide-in-left')}
+            >
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(false)}
+                className="absolute right-3 top-4 z-10 rounded-md p-2 text-muted-foreground hover:bg-surface-muted"
+                aria-label={t('Close navigation menu')}
+              >
+                <X className="h-5 w-5" aria-hidden />
+              </button>
+              <SidebarContent onNavigate={() => setDrawerOpen(false)} />
+            </div>
+          </div>
+        )}
+
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Topbar onOpenMenu={() => setDrawerOpen(true)} onOpenShortcuts={openShortcutsHelp} />
+          <main id="main-content" className="flex-1 px-4 py-6 lg:px-8">
+            <Breadcrumbs />
+            {skipMotion ? (
+              <Outlet />
+            ) : (
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={SPRING_SMOOTH}
+              >
+                <Outlet />
+              </motion.div>
+            )}
+          </main>
         </div>
-      )}
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar onOpenMenu={() => setDrawerOpen(true)} onOpenShortcuts={openShortcutsHelp} />
-        <main id="main-content" className="flex-1 px-4 py-6 lg:px-8">
-          <Breadcrumbs />
-          <Outlet />
-        </main>
+        <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+        {/* Back returns to where the list was scrolled; a new page starts at the top. */}
+        <ScrollRestoration />
       </div>
-
-      <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
-      {/* Back returns to where the list was scrolled; a new page starts at the top. */}
-      <ScrollRestoration />
-    </div>
     </PageTitleProvider>
   );
 }

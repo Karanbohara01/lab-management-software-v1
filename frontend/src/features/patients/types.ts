@@ -216,3 +216,44 @@ export interface MatchQuery {
   gender?: Gender;
   excludeId?: number | null;
 }
+
+export type PatientDocumentType =
+  | 'PRESCRIPTION'
+  | 'PRIOR_REPORT'
+  | 'CLINICAL_NOTE'
+  | 'INSURANCE_ID'
+  | 'IMAGING'
+  | 'OTHER';
+
+export const PATIENT_DOCUMENT_TYPE_LABEL: Record<PatientDocumentType, string> = {
+  PRESCRIPTION: 'Prescription (Rx)',
+  PRIOR_REPORT: 'Prior lab report',
+  CLINICAL_NOTE: 'Clinical note',
+  INSURANCE_ID: 'Insurance / ID card',
+  IMAGING: 'Imaging / Scan',
+  OTHER: 'Other document',
+};
+
+export interface PatientDocument {
+  id: number;
+  patientId: number;
+  title: string;
+  documentType: PatientDocumentType;
+  documentDate: string | null;
+  doctorOrFacility: string | null;
+  notes: string | null;
+  fileName: string;
+  fileType: string;
+  fileSizeBytes: number;
+  uploadedBy: string;
+  uploadedAt: string;
+}
+
+export interface UploadPatientDocumentRequest {
+  title: string;
+  documentType: PatientDocumentType;
+  documentDate?: string | null;
+  doctorOrFacility?: string | null;
+  notes?: string | null;
+}
+

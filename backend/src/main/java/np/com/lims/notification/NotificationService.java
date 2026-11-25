@@ -60,6 +60,12 @@ public class NotificationService {
         repository.save(new Notification(type, severity, title, message, linkPath, targetPermission, reference));
     }
 
+    @Transactional
+    public void publishForTenant(Long organizationId, Notification.Type type, Notification.Severity severity,
+                                 String title, String message, String linkPath, String targetPermission, String reference) {
+        repository.save(new Notification(organizationId, type, severity, title, message, linkPath, targetPermission, reference));
+    }
+
     @Transactional(readOnly = true)
     public List<NotificationDto> list(String username, Set<String> permissions, boolean unreadOnly, int limit) {
         return repository.recent(Instant.now().minus(LOOKBACK_DAYS, ChronoUnit.DAYS)).stream()

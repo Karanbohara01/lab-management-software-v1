@@ -28,6 +28,17 @@ export interface OrderItem {
 
 export type OrderPriority = 'ROUTINE' | 'URGENT' | 'STAT';
 
+export interface OrderPrescriptionSummary {
+  id: number;
+  title: string;
+  fileName: string;
+  fileType: string;
+  fileSizeBytes: number;
+  documentType: string | null;
+  documentDate: string | null;
+  doctorOrFacility: string | null;
+}
+
 export interface OrderListItem {
   id: number;
   orderNumber: string;
@@ -38,6 +49,7 @@ export interface OrderListItem {
   branchName: string;
   status: OrderStatus;
   priority: OrderPriority;
+  hasPrescription?: boolean;
   itemCount: number;
   totalAmount: number;
   orderedAt: string;
@@ -49,10 +61,14 @@ export interface OrderDetail {
   patientId: number;
   patientName: string;
   patientMrn: string;
+  patientGender?: string;
+  patientAgeYears?: number | null;
+  patientPhone?: string | null;
   branchId: number;
   branchName: string;
   referringDoctorId: number | null;
   referringDoctorName: string | null;
+  prescription: OrderPrescriptionSummary | null;
   status: OrderStatus;
   priority: OrderPriority;
   clinicalNotes: string | null;
@@ -75,6 +91,7 @@ export interface SaveOrderPayload {
   /** Omit for HQ default resolution: explicit request > actor's home branch > first active branch. */
   branchId?: number | null;
   referringDoctorId?: number | null;
+  prescriptionDocumentId?: number | null;
   clinicalNotes?: string;
   priority?: OrderPriority;
   items: OrderItemPayload[];

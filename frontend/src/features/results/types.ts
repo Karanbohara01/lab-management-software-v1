@@ -1,4 +1,4 @@
-import type { OrderPriority } from '@/features/orders/types';
+import type { OrderPriority, OrderPrescriptionSummary } from '@/features/orders/types';
 import type { ParameterDataType, ResultMode } from '@/features/catalog/types';
 
 export type ResultStatus = 'PENDING' | 'ENTERED' | 'VERIFIED' | 'APPROVED';
@@ -79,6 +79,7 @@ export type ResultFlag =
 export interface ResultValue {
   id: number;
   parameterId: number;
+  parameterCode?: string | null;
   parameterName: string;
   unit: string | null;
   dataType: ParameterDataType;
@@ -87,11 +88,17 @@ export interface ResultValue {
   valueText: string | null;
   flag: ResultFlag;
   referenceText: string | null;
+  lowValue?: number | null;
+  highValue?: number | null;
+  criticalLow?: number | null;
+  criticalHigh?: number | null;
   previousValue: number | null;
   deltaPercent: number | null;
   deltaBreach: boolean;
+  deltaCheckPercent?: number | null;
   comment: string | null;
   calculated: boolean;
+  calculationFormula?: string | null;
   decimalPlaces: number | null;
   allowedValues: string[];
   method: string | null;
@@ -158,6 +165,7 @@ export interface ResultDetail {
   criticalAckRequired: boolean;
   criticalCallbacks: CriticalCallback[];
   sampleCondition: string | null;
+  prescription?: OrderPrescriptionSummary | null;
   comment: string | null;
   hasAbnormal: boolean;
   hasCritical: boolean;

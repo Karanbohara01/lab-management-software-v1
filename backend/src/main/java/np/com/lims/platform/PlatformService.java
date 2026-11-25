@@ -68,6 +68,7 @@ public class PlatformService {
     private final SubscriptionRepository subscriptionRepository;
     private final LaboratoryProfileService laboratoryProfileService;
     private final np.com.lims.catalog.ParameterMasterService parameterMasterService;
+    private final np.com.lims.communication.SmsTemplateService smsTemplateService;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
@@ -80,6 +81,7 @@ public class PlatformService {
                            SubscriptionRepository subscriptionRepository,
                            LaboratoryProfileService laboratoryProfileService,
                            np.com.lims.catalog.ParameterMasterService parameterMasterService,
+                           np.com.lims.communication.SmsTemplateService smsTemplateService,
                            UserRepository userRepository,
                            RoleRepository roleRepository,
                            PermissionRepository permissionRepository,
@@ -91,6 +93,7 @@ public class PlatformService {
         this.subscriptionRepository = subscriptionRepository;
         this.laboratoryProfileService = laboratoryProfileService;
         this.parameterMasterService = parameterMasterService;
+        this.smsTemplateService = smsTemplateService;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.permissionRepository = permissionRepository;
@@ -353,6 +356,7 @@ public class PlatformService {
         subscriptionRepository.save(subscription);
         laboratoryProfileService.ensureProvisioned(saved.getId(), saved.getName());
         parameterMasterService.seedDefaults(saved.getId());
+        smsTemplateService.seedDefaults(saved.getId());
 
         // No need to pre-check username uniqueness here: this new organization has no users yet,
         // and app_user's uniqueness is (organization_id, username) — a duplicate is only possible

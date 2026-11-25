@@ -1,6 +1,7 @@
 import type { MouseEvent, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
+import { Skeleton } from './Skeleton';
 
 export interface Column<T> {
   key: string;
@@ -10,6 +11,8 @@ export interface Column<T> {
   className?: string;
   /** Hide this column below the `lg` breakpoint. */
   hideOnMobile?: boolean;
+  /** Automatically right-aligns and formats numerical data with tabular numbers. */
+  numeric?: boolean;
 }
 
 interface DataTableProps<T> {
@@ -24,6 +27,12 @@ interface DataTableProps<T> {
   rowHref?: (row: T) => string;
   /** Compact card shown per row on small screens. Falls back to the visible columns stacked. */
   mobileCard?: (row: T) => ReactNode;
+  /** When true, keeps table headers in place and renders smooth shimmer skeleton rows. */
+  loading?: boolean;
+  /** Number of skeleton rows to render while loading (default: 5). */
+  loadingRows?: number;
+  /** Fallback content rendered when not loading and rows are empty. */
+  emptyState?: ReactNode;
 }
 
 /** A click that the browser will handle itself (new tab/window) rather than the row handler. */
@@ -42,8 +51,20 @@ function handledByChild(e: MouseEvent) {
   return !!window.getSelection()?.toString();
 }
 
-export function DataTable<T>({ columns, rows, rowKey, onRowClick, rowHref, mobileCard }: DataTableProps<T>) {
-  const interactive = !!onRowClick || !!rowHref;
+const SKELETON_WIDTHS = [85, 60, 75, 50, 68, 80, 58, 70];
+
+export function DataTable<T>({
+  columns,
+  rows,
+  rowKey,
+  onRowClick,
+  rowHref,
+  mobileCard,
+  loading = false,
+  loadingRows = 5,
+  emptyState,
+}: DataTableProps<T>) {
+  const interactive = !loading && (!!onRowClick || !!rowHref);
 
   const rowProps = (row: T) => {
     if (!interactive) return {};
@@ -80,6 +101,10 @@ export function DataTable<T>({ columns, rows, rowKey, onRowClick, rowHref, mobil
     );
   };
 
+  if (!loading && rows.length === 0 && emptyState) {
+    return <div className="p-4">{emptyState}</div>;
+  }
+
   return (
     <>
       {/* Desktop / tablet: real table inside a horizontal-scroll container */}
@@ -90,7 +115,12 @@ export function DataTable<T>({ columns, rows, rowKey, onRowClick, rowHref, mobil
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className={cn('px-4 py-3', col.hideOnMobile && 'hidden lg:table-cell', col.className)}
+                  className={cn(
+                    'px-4 py-3',
+                    col.numeric && 'text-right',
+                    col.hideOnMobile && 'hidden lg:table-cell',
+                    col.className,
+                  )}
                 >
                   {col.header}
                 </th>
@@ -98,48 +128,97 @@ export function DataTable<T>({ columns, rows, rowKey, onRowClick, rowHref, mobil
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr
-                key={rowKey(row)}
-                {...rowProps(row)}
-                className={cn('border-b border-border last:border-0', interactive && 'cursor-pointer hover:bg-surface-muted')}
-              >
-                {columns.map((col, i) => (
-                  <td
-                    key={col.key}
-                    className={cn('px-4 py-3 text-foreground', col.hideOnMobile && 'hidden lg:table-cell', col.className)}
-                  >
-                    {renderCell(row, col, i)}
-                  </td>
-                ))}
-              </tr>
-            ))}
+            {loading ? (
+              Array.from({ length: loadingRows }).map((_, r) => (
+                <tr key={`skeleton-row-${r}`} className="border-b border-border last:border-0">
+                  {columns.map((col, c) => (
+                    <td
+                      key={`skeleton-col-${col.key}-${c}`}
+                      className={cn(
+                        'px-4 py-3.5',
+                        col.numeric && 'text-right',
+                        col.hideOnMobile && 'hidden lg:table-cell',
+                      )}
+                    >
+                      <Skeleton
+                        className={cn('h-4', col.numeric && 'ml-auto')}
+                        style={{ width: `${SKELETON_WIDTHS[(r + c) % SKELETON_WIDTHS.length]}%` }}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : (
+              rows.map((row) => (
+                <tr
+                  key={rowKey(row)}
+                  {...rowProps(row)}
+                  className={cn(
+                    'border-b border-border last:border-0 transition-colors',
+                    interactive && 'cursor-pointer hover:bg-surface-muted',
+                  )}
+                >
+                  {columns.map((col, i) => (
+                    <td
+                      key={col.key}
+                      className={cn(
+                        'px-4 py-3 text-foreground',
+                        col.numeric && 'text-right tabular-nums',
+                        col.hideOnMobile && 'hidden lg:table-cell',
+                        col.className,
+                      )}
+                    >
+                      {renderCell(row, col, i)}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
       {/* Mobile: stacked cards */}
       <ul className="divide-y divide-border sm:hidden">
-        {rows.map((row) => (
-          <li
-            key={rowKey(row)}
-            {...rowProps(row)}
-            className={cn('px-4 py-3', interactive && 'cursor-pointer active:bg-surface-muted')}
-          >
-            {mobileCard ? (
-              mobileCard(row)
-            ) : (
-              <dl className="space-y-1">
-                {columns.map((col, i) => (
-                  <div key={col.key} className="flex justify-between gap-3 text-sm">
-                    <dt className="text-muted">{col.header}</dt>
-                    <dd className="text-right text-foreground">{renderCell(row, col, i)}</dd>
-                  </div>
-                ))}
-              </dl>
-            )}
-          </li>
-        ))}
+        {loading ? (
+          Array.from({ length: loadingRows }).map((_, r) => (
+            <li key={`skeleton-mobile-${r}`} className="space-y-2 px-4 py-3">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-3.5 w-1/2" />
+            </li>
+          ))
+        ) : (
+          rows.map((row) => (
+            <li
+              key={rowKey(row)}
+              {...rowProps(row)}
+              className={cn(
+                'px-4 py-3 transition-colors',
+                interactive && 'cursor-pointer active:bg-surface-muted',
+              )}
+            >
+              {mobileCard ? (
+                mobileCard(row)
+              ) : (
+                <dl className="space-y-1">
+                  {columns.map((col, i) => (
+                    <div key={col.key} className="flex justify-between gap-3 text-sm">
+                      <dt className="text-muted">{col.header}</dt>
+                      <dd
+                        className={cn(
+                          'text-right text-foreground',
+                          col.numeric && 'tabular-nums',
+                        )}
+                      >
+                        {renderCell(row, col, i)}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+            </li>
+          ))
+        )}
       </ul>
     </>
   );

@@ -18,7 +18,9 @@ import { SPECIMEN_LABELS } from '@/features/catalog/types';
 import { samplesApi } from './api';
 import { ReceiveSampleModal } from './ReceiveSampleModal';
 import { SAMPLE_STATUS_LABEL, SAMPLE_STATUS_TONE } from './types';
+import { StatusStepper, type Step } from '@/components/ui/StatusStepper';
 import { BarcodeLabel } from './BarcodeLabel';
+import { ThermalLabelModal } from './ThermalLabelModal';
 import { SampleTimeline } from './SampleTimeline';
 import { CollectSampleModal } from './CollectSampleModal';
 import { SampleResultsCard } from './SampleResultsCard';
@@ -35,6 +37,7 @@ export function SampleDetailPage() {
   const [rejectOpen, setRejectOpen] = useState(false);
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [recollectOpen, setRecollectOpen] = useState(false);
+  const [labelModalOpen, setLabelModalOpen] = useState(false);
 
   const { data: sample, loading, error, refetch } = useQuery(() => samplesApi.get(Number(id)), [id]);
 
@@ -69,7 +72,46 @@ export function SampleDetailPage() {
     }
   };
 
-  const printLabel = () => window.open(`/app/samples/${sample.id}/label`, '_blank', 'noopener');
+  const sampleSteps: Step[] = [
+    {
+      id: 'AWAITING_COLLECTION',
+      label: t('Awaiting collection'),
+      timestamp: sample.events.find((e) => e.eventType === 'CREATED')?.occurredAt
+        ? new Date(sample.events.find((e) => e.eventType === 'CREATED')!.occurredAt).toLocaleString(LOCALE_TAG[getLocale()], {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : null,
+    },
+    {
+      id: 'COLLECTED',
+      label: t('Collected'),
+      timestamp: sample.collectedAt
+        ? new Date(sample.collectedAt).toLocaleString(LOCALE_TAG[getLocale()], {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : null,
+      actor: sample.collectedBy,
+    },
+    {
+      id: 'RECEIVED',
+      label: t('Received in Lab'),
+      timestamp: sample.receivedAt
+        ? new Date(sample.receivedAt).toLocaleString(LOCALE_TAG[getLocale()], {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : null,
+      actor: sample.receivedBy,
+    },
+  ];
 
   return (
     <>
@@ -82,8 +124,10 @@ export function SampleDetailPage() {
             {sample.priority !== 'ROUTINE' && (
               <Badge tone={sample.priority === 'STAT' ? 'critical' : 'warning'}>{sample.priority}</Badge>
             )}
-            <Badge tone={SAMPLE_STATUS_TONE[sample.status]}>{t(SAMPLE_STATUS_LABEL[sample.status])}</Badge>
-            <Button variant="secondary" onClick={printLabel}>
+            <Badge tone={SAMPLE_STATUS_TONE[sample.status]} variant="subtle" dot={sample.status !== 'REJECTED'}>
+              {t(SAMPLE_STATUS_LABEL[sample.status])}
+            </Badge>
+            <Button variant="secondary" onClick={() => setLabelModalOpen(true)}>
               <Printer className="h-4 w-4" aria-hidden />
               {t('Print label')}
             </Button>
@@ -122,6 +166,15 @@ export function SampleDetailPage() {
           </Alert>
         </div>
       )}
+
+      <Card className="mb-4 p-4 sm:p-5">
+        <StatusStepper
+          steps={sampleSteps}
+          currentStepId={sample.status}
+          isFailed={sample.status === 'REJECTED'}
+          failedLabel={t('Rejected')}
+        />
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="min-w-0 space-y-4 lg:col-span-2">
@@ -238,6 +291,20 @@ export function SampleDetailPage() {
         confirmLabel={t('Request recollection')}
         reason="optional"
       />
+      {labelModalOpen && (
+        <ThermalLabelModal
+          open={labelModalOpen}
+          onClose={() => setLabelModalOpen(false)}
+          barcodeValue={sample.barcodeValue}
+          patientName={sample.patientName}
+          patientMrn={sample.patientMrn}
+          patientGender={sample.patientGender}
+          patientAge={sample.patientAgeYears}
+          specimen={t(SPECIMEN_LABELS[sample.specimenType])}
+          container={sample.container}
+          collectedAt={sample.collectedAt}
+        />
+      )}
     </>
   );
 }

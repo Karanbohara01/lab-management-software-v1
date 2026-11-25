@@ -19,6 +19,7 @@ import np.com.lims.common.exception.ApiException;
 import np.com.lims.common.tenant.TenantContext;
 import np.com.lims.doctor.entity.Doctor;
 import np.com.lims.patient.entity.Patient;
+import np.com.lims.patient.entity.PatientDocument;
 import org.hibernate.annotations.Filter;
 
 import java.math.BigDecimal;
@@ -44,6 +45,10 @@ public class LabOrder extends BaseEntity {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "referring_doctor_id")
     private Doctor referringDoctor;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "prescription_document_id")
+    private PatientDocument prescriptionDocument;
 
     /** The branch/location this order was placed at. Drives data scoping for branch-restricted staff. */
     @ManyToOne(fetch = FetchType.EAGER)
@@ -129,10 +134,23 @@ public class LabOrder extends BaseEntity {
         }
     }
 
-    public void updateHeader(Doctor referringDoctor, String clinicalNotes) {
+    public void updateHeader(Doctor referringDoctor, String clinicalNotes, PatientDocument prescriptionDocument) {
         assertEditable();
         this.referringDoctor = referringDoctor;
         this.clinicalNotes = clinicalNotes;
+        this.prescriptionDocument = prescriptionDocument;
+    }
+
+    public void updateHeader(Doctor referringDoctor, String clinicalNotes) {
+        updateHeader(referringDoctor, clinicalNotes, this.prescriptionDocument);
+    }
+
+    public PatientDocument getPrescriptionDocument() {
+        return prescriptionDocument;
+    }
+
+    public void setPrescriptionDocument(PatientDocument prescriptionDocument) {
+        this.prescriptionDocument = prescriptionDocument;
     }
 
     public void applyPriority(np.com.lims.common.model.Priority priority) {

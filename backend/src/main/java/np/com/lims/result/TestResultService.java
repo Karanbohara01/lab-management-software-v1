@@ -134,17 +134,17 @@ public class TestResultService {
         return Detail.from(result, callbacksOf(result.getId()), referenceHints(result));
     }
 
-    private Map<Long, String> referenceHints(TestResult result) {
+    private Map<Long, ReferenceRangeResolver.Interpretation> referenceHints(TestResult result) {
         Patient patient = result.getPatient();
         Integer ageYears = patient.ageYears();
         Integer ageDays = patient.ageInDays();
-        Map<Long, String> hints = new java.util.HashMap<>();
+        Map<Long, ReferenceRangeResolver.Interpretation> hints = new java.util.HashMap<>();
         for (ResultValue v : result.getValues()) {
             TestParameter param = v.getParameter();
             var interp = rangeResolver.interpret(param, patient.getGender(), ageYears, ageDays,
                     v.getDataType(), null, null);
-            if (interp.referenceText() != null) {
-                hints.put(param.getId(), interp.referenceText());
+            if (interp != null) {
+                hints.put(param.getId(), interp);
             }
         }
         return hints;

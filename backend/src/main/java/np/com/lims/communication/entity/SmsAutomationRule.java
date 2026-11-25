@@ -51,6 +51,16 @@ public class SmsAutomationRule extends BaseEntity {
         return r;
     }
 
+    public static SmsAutomationRule createForOrganization(Long organizationId, SmsAutomationEvent eventType, boolean enabled, SmsTemplate template, Integer reminderOffsetHours) {
+        SmsAutomationRule r = new SmsAutomationRule();
+        r.organizationId = organizationId;
+        r.eventType = eventType;
+        r.enabled = enabled;
+        r.template = template;
+        r.reminderOffsetHours = reminderOffsetHours;
+        return r;
+    }
+
     public void update(boolean enabled, SmsTemplate template, Integer reminderOffsetHours) {
         this.enabled = enabled;
         this.template = template;

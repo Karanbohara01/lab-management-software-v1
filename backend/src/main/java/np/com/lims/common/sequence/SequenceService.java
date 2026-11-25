@@ -64,6 +64,24 @@ public class SequenceService {
     }
 
     /**
+     * Unscoped variant: sequence name is NOT prepended with tenantId.
+     * Used for platform-wide sequences like cross-tenant inquiry ticket numbers.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public long nextOrCreateGlobal(String sequenceName) {
+        AppSequence sequence = repository.findByName(sequenceName)
+                .orElseGet(() -> repository.save(AppSequence.start(sequenceName)));
+        long value = sequence.getNextValue();
+        sequence.setNextValue(value + 1);
+        return value;
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public String nextGlobalFormatted(String sequenceName, String prefix, int width) {
+        return prefix + String.format("%0" + width + "d", nextOrCreateGlobal(sequenceName));
+    }
+
+    /**
      * Reserves {@code count} consecutive numbers in one go, formatted like {@link #nextFormatted}.
      *
      * <p>For callers that will create many records inside one transaction — the bulk patient

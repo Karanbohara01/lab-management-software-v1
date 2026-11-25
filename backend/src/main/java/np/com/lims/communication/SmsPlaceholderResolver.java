@@ -21,7 +21,7 @@ public final class SmsPlaceholderResolver {
     /** The supported placeholder names, for the template editor's "insert placeholder" picker. */
     public static final java.util.List<String> SUPPORTED = java.util.List.of(
             "patientName", "mrn", "labName", "reportNumber", "appointmentDate", "appointmentTime",
-            "orderNumber", "invoiceNumber", "amount", "dueDate", "doctorName", "testNames");
+            "orderNumber", "invoiceNumber", "amount", "dueDate", "doctorName", "testNames", "reason");
 
     public static String resolve(String template, Map<String, String> values) {
         if (template == null) {

@@ -23,8 +23,15 @@ import java.util.Optional;
 @Component
 public class ReferenceRangeResolver {
 
-    public record Interpretation(ResultFlag flag, String referenceText) {
-        static final Interpretation NONE = new Interpretation(ResultFlag.NONE, null);
+    public record Interpretation(
+            ResultFlag flag,
+            String referenceText,
+            BigDecimal lowValue,
+            BigDecimal highValue,
+            BigDecimal criticalLow,
+            BigDecimal criticalHigh
+    ) {
+        static final Interpretation NONE = new Interpretation(ResultFlag.NONE, null, null, null, null, null);
     }
 
     /** Back-compat overload — approximates age in days from whole years. */
@@ -50,9 +57,16 @@ public class ReferenceRangeResolver {
         ReferenceRange range = match.get();
 
         if (dataType == ParameterDataType.NUMERIC) {
-            return new Interpretation(numericFlag(range, numericValue), numericReferenceText(range));
+            return new Interpretation(
+                    numericFlag(range, numericValue),
+                    numericReferenceText(range),
+                    range.getLowValue(),
+                    range.getHighValue(),
+                    range.getCriticalLow(),
+                    range.getCriticalHigh()
+            );
         }
-        return new Interpretation(textFlag(range, textValue), range.getNormalText());
+        return new Interpretation(textFlag(range, textValue), range.getNormalText(), null, null, null, null);
     }
 
     private static boolean genderMatches(RangeGender rangeGender, Gender patientGender) {
@@ -105,10 +119,10 @@ public class ReferenceRangeResolver {
         if (value == null) {
             return ResultFlag.NONE;
         }
-        if (range.getCriticalLow() != null && value.compareTo(range.getCriticalLow()) < 0) {
+        if (isMeaningfulCriticalLow(range) && value.compareTo(range.getCriticalLow()) < 0) {
             return ResultFlag.CRITICAL_LOW;
         }
-        if (range.getCriticalHigh() != null && value.compareTo(range.getCriticalHigh()) > 0) {
+        if (isMeaningfulCriticalHigh(range) && value.compareTo(range.getCriticalHigh()) > 0) {
             return ResultFlag.CRITICAL_HIGH;
         }
         if (range.getLowValue() != null && value.compareTo(range.getLowValue()) < 0) {
@@ -118,6 +132,38 @@ public class ReferenceRangeResolver {
             return ResultFlag.HIGH;
         }
         return ResultFlag.NORMAL;
+    }
+
+    private static boolean isMeaningfulCriticalLow(ReferenceRange range) {
+        BigDecimal cLow = range.getCriticalLow();
+        if (cLow == null) {
+            return false;
+        }
+        // Critical low of 0 when normal range is positive is an unset/garbage zero
+        if (cLow.compareTo(BigDecimal.ZERO) <= 0 && range.getLowValue() != null && range.getLowValue().compareTo(BigDecimal.ZERO) > 0) {
+            return false;
+        }
+        // Medically, a panic low alert must be strictly lower than the normal lower limit
+        if (range.getLowValue() != null && cLow.compareTo(range.getLowValue()) >= 0) {
+            return false;
+        }
+        return true;
+    }
+
+    private static boolean isMeaningfulCriticalHigh(ReferenceRange range) {
+        BigDecimal cHigh = range.getCriticalHigh();
+        if (cHigh == null) {
+            return false;
+        }
+        // Critical high of <= 0 when normal range is positive (e.g. 0 when normal is 36-50) is an unset/garbage zero
+        if (cHigh.compareTo(BigDecimal.ZERO) <= 0 && range.getHighValue() != null && range.getHighValue().compareTo(BigDecimal.ZERO) > 0) {
+            return false;
+        }
+        // Medically, a panic high alert must be strictly higher than the normal upper limit
+        if (range.getHighValue() != null && cHigh.compareTo(range.getHighValue()) <= 0) {
+            return false;
+        }
+        return true;
     }
 
     private static ResultFlag textFlag(ReferenceRange range, String value) {

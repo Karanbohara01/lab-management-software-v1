@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigateFrom } from '@/lib/navigation';
-import { ClipboardPlus, Keyboard, Languages, LogOut, Menu, Moon, Plus, Sun, SunMoon, UserPlus, UserRound } from 'lucide-react';
+import { ClipboardPlus, LogOut, Menu, Moon, Plus, Sun, SunMoon, UserPlus, UserRound } from 'lucide-react';
+import { FcCommandLine, FcComments } from 'react-icons/fc';
 import { useAppDispatch } from '@/store/hooks';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
@@ -57,7 +58,7 @@ function LanguageToggle() {
           next: upcoming.nativeLabel,
         })}
       >
-        <Languages className="h-[18px] w-[18px]" aria-hidden />
+        <FcComments className="h-[18px] w-[18px]" aria-hidden />
       </button>
     </Tooltip>
   );
@@ -145,7 +146,7 @@ export function Topbar({ onOpenMenu, onOpenShortcuts }: { onOpenMenu: () => void
           className="hidden rounded-md p-2 text-muted-foreground hover:bg-surface-muted hover:text-foreground sm:block"
           aria-label={t('Show keyboard shortcuts')}
         >
-          <Keyboard className="h-[18px] w-[18px]" aria-hidden />
+          <FcCommandLine className="h-[18px] w-[18px]" aria-hidden />
         </button>
       </Tooltip>
 

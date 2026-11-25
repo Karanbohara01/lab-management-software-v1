@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { DataTable, type Column } from '@/components/ui/DataTable';
-import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
+import { ErrorState, EmptyState } from '@/components/ui/PageState';
 import { useQuery } from '@/hooks/useQuery';
 import { useNavigateFrom } from '@/lib/navigation';
 import { useAuth } from '@/features/auth/useAuth';
@@ -26,9 +26,9 @@ export function PatientOrdersTab({ patientId }: { patientId: number }) {
   const columns: Column<OrderListItem>[] = [
     { key: 'no', header: 'Order', cell: (o) => <span className="font-mono text-xs">{o.orderNumber}</span> },
     { key: 'date', header: 'Ordered', cell: (o) => formatDate(o.orderedAt) },
-    { key: 'items', header: 'Tests', cell: (o) => o.itemCount, hideOnMobile: true },
-    { key: 'total', header: 'Total', cell: (o) => formatMoney(o.totalAmount), className: 'text-right' },
-    { key: 'status', header: 'Status', cell: (o) => <Badge tone={ORDER_STATUS_TONE[o.status]}>{o.status}</Badge> },
+    { key: 'items', header: 'Tests', cell: (o) => o.itemCount, hideOnMobile: true, numeric: true },
+    { key: 'total', header: 'Total', cell: (o) => formatMoney(o.totalAmount), numeric: true },
+    { key: 'status', header: 'Status', cell: (o) => <Badge tone={ORDER_STATUS_TONE[o.status]} variant="subtle">{o.status}</Badge> },
   ];
 
   return (
@@ -43,25 +43,24 @@ export function PatientOrdersTab({ patientId }: { patientId: number }) {
         )}
       </div>
 
-      {loading && !data ? (
-        <TableSkeleton columns={columns.length} rows={3} />
-      ) : error ? (
+      {error ? (
         <ErrorState message={error} onRetry={refetch} />
-      ) : data && data.content.length === 0 ? (
-        <EmptyState
-          title="No orders yet"
-          message="This patient has no lab orders."
-          action={canOrder ? <Button onClick={() => navigate(`/app/orders/new?patientId=${patientId}`)}>New order</Button> : undefined}
-        />
       ) : (
-        data && (
-          <DataTable
-            columns={columns}
-            rows={data.content}
-            rowKey={(o) => o.id}
-            onRowClick={(o) => navigate(`/app/orders/${o.id}`)}
-          />
-        )
+        <DataTable
+          columns={columns}
+          rows={data?.content ?? []}
+          rowKey={(o) => o.id}
+          loading={loading && !data}
+          emptyState={
+            <EmptyState
+              title="No orders yet"
+              message="This patient has no lab orders."
+              action={canOrder ? <Button onClick={() => navigate(`/app/orders/new?patientId=${patientId}`)}>New order</Button> : undefined}
+            />
+          }
+          rowHref={(o) => `/app/orders/${o.id}`}
+          onRowClick={(o) => navigate(`/app/orders/${o.id}`)}
+        />
       )}
     </Card>
   );

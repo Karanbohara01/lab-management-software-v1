@@ -103,7 +103,7 @@ export function SmsConfigPage() {
             <CardBody className="space-y-4">
               {saveError && <Alert tone="danger">{saveError}</Alert>}
               <Checkbox label={t('Enabled')} checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
-              <Input label={t('Base URL')} placeholder={t('https://your-install.samayasms.com.np/sms/api')} value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} />
+              <Input label={t('Base URL')} placeholder={t('https://samayasms.com.np/smsapi/index.php')} value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} />
               <Input label={t('Sender ID')} value={senderId} onChange={(e) => setSenderId(e.target.value)} />
               <Input
                 label={t('API key')}

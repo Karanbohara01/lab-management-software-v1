@@ -97,7 +97,7 @@ export function SmsTemplateFormModal({
         <div>
           <Textarea label={t('Message body')} rows={4} maxLength={1000} error={errors.body?.message} {...register('body')} />
           <p className="mt-1 text-xs text-muted">
-            {t('{count}/1000 characters. Placeholders: {patientName}, {mrn}, {labName}, {appointmentDate}, {reportNumber}, {invoiceNumber}, {amount}', {
+            {t('{count}/1000 characters. Placeholders: {patientName}, {mrn}, {labName}, {appointmentDate}, {appointmentTime}, {dueDate}, {reason}, {reportNumber}, {invoiceNumber}, {amount}', {
               count: body.length,
             })}
           </p>

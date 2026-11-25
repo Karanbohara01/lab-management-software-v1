@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Plus, Library, CheckCircle2, Building2, X } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
+import { FcBiotech, FcApproval, FcFactory } from 'react-icons/fc';
 import { PageHeader } from '@/components/PageHeader';
 import { useBackTarget } from '@/lib/navigation';
 import { Card } from '@/components/ui/Card';
@@ -62,9 +63,9 @@ export function MasterCatalogPage() {
 
   const stats: StatTileData[] = data
     ? [
-        { label: t('Total tests'), value: data.length, icon: Library },
-        { label: t('Active (visible to clinics)'), value: data.filter((row) => row.active).length, icon: CheckCircle2 },
-        { label: t('Departments'), value: departments.length, icon: Building2 },
+        { label: t('Total tests'), value: data.length, icon: FcBiotech },
+        { label: t('Active (visible to clinics)'), value: data.filter((row) => row.active).length, icon: FcApproval },
+        { label: t('Departments'), value: departments.length, icon: FcFactory },
       ]
     : [];
 

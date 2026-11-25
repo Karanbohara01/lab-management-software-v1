@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Ban, Pencil } from 'lucide-react';
+import { Ban, Pencil, Eye, FileText } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -16,6 +16,7 @@ import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
 import { formatMoney } from '@/lib/money';
 import { formatDate } from '@/features/patients/format';
+import { adToBs } from '@/lib/nepaliDate';
 import { samplesApi } from '@/features/samples/api';
 import type { SampleListItem } from '@/features/samples/types';
 import { CollectSampleModal } from '@/features/samples/CollectSampleModal';
@@ -24,6 +25,7 @@ import { resultsApi } from '@/features/results/api';
 import { approveWithPrompts, verifyWithPrompts } from '@/features/results/overrides';
 import { reportsApi } from '@/features/reports/api';
 import { DeliverReportModal } from '@/features/reports/DeliverReportModal';
+import { ReportGenerationModal } from '@/features/reports/ReportGenerationModal';
 import { useT } from '@/i18n';
 import { ordersApi } from './api';
 import { ORDER_STATUS_TONE, type OrderStatus } from './types';
@@ -32,6 +34,7 @@ import { OrderSamplesCard } from './OrderSamplesCard';
 import { OrderResultsCard } from './OrderResultsCard';
 import { OrderReportCard } from './OrderReportCard';
 import { OrderInvoiceCard } from './OrderInvoiceCard';
+import { PrescriptionViewerModal } from './PrescriptionViewerModal';
 import { OrderWorkflow, computeStage, type WorkflowAction } from './OrderWorkflow';
 
 /** OrderStatus has no shared label map (just a tone map) — the raw value doubles as the label. */
@@ -55,6 +58,8 @@ export function OrderDetailPage() {
   // Owned here, not by OrderReportCard, so the workflow bar's "Deliver report" and the card's own
   // button open the exact same modal instead of one of them navigating away to a different screen.
   const [deliverOpen, setDeliverOpen] = useState(false);
+  const [reportGenOpen, setReportGenOpen] = useState(false);
+  const [prescriptionModalOpen, setPrescriptionModalOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [busyRow, setBusyRow] = useState<number | null>(null);
   // Collecting and receiving go through the same capture modals the Sample page uses — never a
@@ -162,7 +167,7 @@ export function OrderDetailPage() {
         return bulk(t('Results approved'), complete.map((r) => resultsApi.approve(r.id)));
       }
       case 'report':
-        return bulk(t('Report generated'), [reportsApi.generate(order.id, false)]);
+        return setReportGenOpen(true);
       case 'release': {
         const creds = window.prompt(t('Signing credentials (e.g. "MD Pathology, NMC-12345"):'), '');
         if (creds === null || !report) return;
@@ -240,7 +245,7 @@ export function OrderDetailPage() {
         description={t('{patient} · {mrn} · placed {date}', {
           patient: order.patientName,
           mrn: order.patientMrn,
-          date: formatDate(order.orderedAt),
+          date: `${formatDate(order.orderedAt)}${adToBs(order.orderedAt) ? ` (${adToBs(order.orderedAt)!.formatted} BS)` : ''}`,
         })}
         actions={
           <div className="flex flex-wrap items-center gap-2">
@@ -315,6 +320,8 @@ export function OrderDetailPage() {
             <>
               <OrderSamplesCard
                 samples={samples}
+                patientGender={order.patientGender}
+                patientAge={order.patientAgeYears}
                 onCollect={(s) => startRun(setCollectRun, [s])}
                 onReceive={(s) => startRun(setReceiveRun, [s])}
               />
@@ -349,6 +356,28 @@ export function OrderDetailPage() {
                 <div>
                   <span className="text-muted">{t('Clinical notes')}</span>
                   <p className="text-foreground">{order.clinicalNotes}</p>
+                </div>
+              )}
+              {order.prescription && (
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <span className="text-xs font-semibold text-primary">{t('Prescription Attached')}</span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-foreground truncate">{order.prescription.title}</p>
+                    <p className="text-[11px] font-mono text-muted truncate">{order.prescription.fileName}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="w-full h-7 text-xs"
+                    onClick={() => setPrescriptionModalOpen(true)}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    <span>{t('View Prescription')}</span>
+                  </Button>
                 </div>
               )}
             </CardBody>
@@ -405,7 +434,29 @@ export function OrderDetailPage() {
         />
       )}
       {report && (
-        <DeliverReportModal open={deliverOpen} onClose={() => setDeliverOpen(false)} reportId={report.id} onDone={reload} />
+        <DeliverReportModal
+          open={deliverOpen}
+          onClose={() => setDeliverOpen(false)}
+          reportId={report.id}
+          reportNumber={report.reportNumber}
+          patientName={report.patientName}
+          patientPhone={report.patientPhone ?? order.patientPhone}
+          verificationToken={report.verificationToken}
+          labName={report.laboratory?.name}
+          onDone={reload}
+        />
+      )}
+      {reportGenOpen && order && (
+        <ReportGenerationModal
+          open={reportGenOpen}
+          orderId={order.id}
+          orderNumber={order.orderNumber}
+          patientName={order.patientName}
+          onClose={() => setReportGenOpen(false)}
+          onSuccess={() => {
+            reload();
+          }}
+        />
       )}
       <ConfirmDialog
         open={confirmOpen}
@@ -425,6 +476,14 @@ export function OrderDetailPage() {
         tone="danger"
         reason="required"
       />
+      {order && (
+        <PrescriptionViewerModal
+          open={prescriptionModalOpen}
+          patientId={order.patientId}
+          prescription={order.prescription}
+          onClose={() => setPrescriptionModalOpen(false)}
+        />
+      )}
     </>
   );
 }

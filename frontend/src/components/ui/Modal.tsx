@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
+import { SPRING_SNAPPY, isTestEnv } from '@/components/ui/motion';
 import { useT, translate, getLocale } from '@/i18n';
 import { cn } from '@/lib/cn';
 import { Button } from './Button';
@@ -30,22 +32,11 @@ const SIZES: Record<NonNullable<ModalProps['size']>, string> = {
 
 const RequestCloseContext = createContext<(() => void) | null>(null);
 
-/**
- * The modal's own "try to close" action, for a Cancel button the call site renders in `footer` (or
- * anywhere in the body). It asks before discarding when the modal is in `confirmClose` mode, using
- * the same single prompt Escape and the backdrop use — so a modal never ends up with two of them.
- * Outside a `Modal` it falls back to a no-op, so a footer can be rendered standalone in a test.
- */
 export function useModalRequestClose(): () => void {
   const requestClose = useContext(RequestCloseContext);
   return requestClose ?? (() => undefined);
 }
 
-/**
- * The Cancel button for a modal's footer. It routes through the modal's own close request, so a
- * form with unsaved edits (`confirmClose`) asks before throwing them away — instead of every form
- * modal repeating that logic. Render it inside `footer`, not around the `Modal`.
- */
 export function ModalCancelButton({ children }: { children?: ReactNode }) {
   const t = useT();
   const requestClose = useModalRequestClose();
@@ -68,6 +59,7 @@ export function Modal({
 }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const [asking, setAsking] = useState(false);
+  const skipMotion = isTestEnv();
 
   const requestClose = useCallback(() => {
     if (confirmClose) setAsking(true);
@@ -125,19 +117,25 @@ export function Modal({
   return createPortal(
     <RequestCloseContext.Provider value={requestClose}>
       <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-        <div
-          className="absolute inset-0 bg-foreground/40 backdrop-blur-sm animate-fade-in"
+        <motion.div
+          initial={skipMotion ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.18 }}
+          className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
           onClick={requestClose}
           aria-hidden
         />
-        <div
+        <motion.div
           ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-labelledby="modal-title"
           tabIndex={-1}
+          initial={skipMotion ? false : { opacity: 0, y: 18, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={SPRING_SNAPPY}
           className={cn(
-            'relative z-10 flex max-h-[92vh] w-full flex-col rounded-t-xl bg-surface shadow-popover animate-fade-in sm:rounded-xl',
+            'relative z-10 flex max-h-[92vh] w-full flex-col rounded-t-xl bg-surface shadow-popover sm:rounded-xl',
             SIZES[size],
           )}
         >
@@ -175,7 +173,7 @@ export function Modal({
           ) : (
             footer && <div className="flex justify-end gap-2 border-t border-border px-5 py-4">{footer}</div>
           )}
-        </div>
+        </motion.div>
       </div>
     </RequestCloseContext.Provider>,
     document.body,

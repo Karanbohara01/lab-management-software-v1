@@ -1,6 +1,6 @@
 import { httpClient } from '@/api/client';
 import type { PageResponse } from '@/types/api';
-import type { ReportDetail, ReportListItem, ReportStatus } from './types';
+import type { ReportDetail, ReportListItem, ReportStatus, VerificationResult } from './types';
 
 export interface ReportQuery {
   status?: ReportStatus;
@@ -26,7 +26,10 @@ export const reportsApi = {
     httpClient.post<ReportDetail>(`/reports/${id}/release`, { signerCredentials }).then((r) => r.data),
 
   verify: (token: string) =>
-    httpClient.get(`/reports/verify/${token}`).then((r) => r.data),
+    httpClient.get<VerificationResult>(`/reports/verify/${token}`).then((r) => r.data),
+
+  getDocumentByToken: (token: string) =>
+    httpClient.get<ReportDetail>(`/reports/verify/${token}/document`).then((r) => r.data),
 
   deliver: (id: number, method: string, recipient?: string) =>
     httpClient.post<ReportDetail>(`/reports/${id}/deliver`, { method, recipient }).then((r) => r.data),

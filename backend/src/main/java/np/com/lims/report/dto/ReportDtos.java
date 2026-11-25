@@ -27,11 +27,32 @@ public final class ReportDtos {
     }
 
     public record VerificationResult(
-            boolean found, String reportNumber, int reportVersion, String reportType, String status,
-            String patientMrn, java.time.Instant generatedAt, java.time.Instant releasedAt,
-            String signedBy, String signerCredentials, java.time.Instant signedAt, String contentHash) {
+            boolean found,
+            String reportNumber,
+            int reportVersion,
+            String reportType,
+            String status,
+            String patientMrn,
+            String patientNameMasked,
+            String patientGender,
+            Integer patientAgeYears,
+            String orderNumber,
+            List<String> testNames,
+            String labName,
+            String labAddress,
+            String labPhone,
+            String labEmail,
+            String panNumber,
+            String accreditationNumber,
+            java.time.Instant generatedAt,
+            java.time.Instant releasedAt,
+            String signedBy,
+            String signerCredentials,
+            java.time.Instant signedAt,
+            String contentHash
+    ) {
         public static VerificationResult notFound() {
-            return new VerificationResult(false, null, 0, null, null, null, null, null, null, null, null, null);
+            return new VerificationResult(false, null, 0, null, null, null, null, null, null, null, List.of(), null, null, null, null, null, null, null, null, null, null, null, null);
         }
     }
 
@@ -47,6 +68,9 @@ public final class ReportDtos {
             boolean printLetterhead
     ) {
         static LabHeader from(LaboratoryProfile p) {
+            if (p == null) {
+                return new LabHeader(null, null, null, null, null, null, null, null, null, false);
+            }
             return new LabHeader(p.getName(), p.getAddressLine(), p.getCity(), p.getPhone(), p.getEmail(),
                     p.getPanNumber(), p.getAccreditationNumber(), p.getReportFooter(), p.getLogoDataUri(),
                     p.isPrintReportLetterhead());
@@ -99,6 +123,7 @@ public final class ReportDtos {
     public record Detail(
             Long id, String reportNumber, Long orderId, String orderNumber,
             Long patientId, String patientName, String patientMrn, String patientGender, Integer patientAgeYears,
+            String patientPhone,
             String referringDoctorName,
             ReportStatus status, String reportType, int reportVersion, boolean hasCritical,
             String verificationToken, String contentHash, String signedBy, String signerCredentials, Instant signedAt,
@@ -114,6 +139,7 @@ public final class ReportDtos {
                     r.getId(), r.getReportNumber(), r.getOrder().getId(), r.getOrder().getOrderNumber(),
                     r.getPatient().getId(), PatientPrivacy.displayName(r.getPatient()), r.getPatient().getMrn(),
                     r.getPatient().getGender().name(), r.getPatient().ageYears(),
+                    r.getPatient().getPhone(),
                     r.getReferringDoctorName(),
                     r.getStatus(), r.getReportType().name(), r.getReportVersion(), r.hasCritical(),
                     r.getVerificationToken(), r.getContentHash(), r.getSignedBy(), r.getSignerCredentials(), r.getSignedAt(),

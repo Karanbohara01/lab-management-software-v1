@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { ChevronDown, ChevronsLeft, ChevronsRight, Search, X } from 'lucide-react';
+import { SPRING_SNAPPY, isTestEnv } from '@/components/ui/motion';
 import { cn } from '@/lib/cn';
 import { useT } from '@/i18n';
 import { useAuth } from '@/features/auth/useAuth';
@@ -8,6 +10,7 @@ import { useLeafHandle } from '@/lib/navigation';
 import { handleChain, resolvePattern } from '@/routes/appRoutes';
 import { NAV_SECTIONS } from './navigation';
 import { SidebarBrand } from './SidebarBrand';
+import { inquiriesApi } from '@/features/inquiries/api';
 
 const SECTION_COLLAPSE_KEY = 'lims.sidebar.collapsedSections';
 
@@ -39,6 +42,7 @@ export function SidebarContent({
   const { hasAnyPermission } = useAuth();
   const t = useT();
   const leaf = useLeafHandle();
+  const skipMotion = isTestEnv();
   /**
    * The current page and everything above it. Several pages live under a section they don't share
    * a URL prefix with (Users sits under Control center), so a path prefix alone can't say which
@@ -57,6 +61,20 @@ export function SidebarContent({
   const searchRef = useRef<HTMLInputElement>(null);
   const trimmedQuery = query.trim();
   const isSearching = trimmedQuery.length > 0;
+  const [unreadInquiries, setUnreadInquiries] = useState<number>(0);
+
+  useEffect(() => {
+    let active = true;
+    inquiriesApi.clinic
+      .unreadCount()
+      .then((res) => {
+        if (active) setUnreadInquiries(res.count);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [pathname]);
 
   const visibleSections = useMemo(
     () =>
@@ -71,15 +89,6 @@ export function SidebarContent({
     [hasAnyPermission, isSearching, trimmedQuery, t],
   );
 
-  /**
-   * Which nav item is "where I am" — exactly one, even when a section has its own "Overview" page
-   * (its route is a genuine breadcrumb ancestor of every page under it, e.g. Communication is an
-   * ancestor of Communication → Send SMS, so both would otherwise match at once). Among every
-   * visible item whose route matches the current page — via its own declared ancestor chain, or
-   * the path-prefix fallback for anything not registered in appRoutes.ts — only the most specific
-   * one (the longest `to`) wins; Dashboard is exact, since it's every page's last ancestor and
-   * lighting it everywhere would say nothing.
-   */
   const activeTo = useMemo(() => {
     const matches = (to: string) => {
       if (to === '/app') return pathname === '/app';
@@ -204,6 +213,8 @@ export function SidebarContent({
                   {items.map((item) => {
                     const match = !collapsed ? splitMatch(item.label, trimmedQuery) : null;
                     const isActive = isItemActive(item.to);
+                    const isSupportItem = item.to === '/app/support';
+                    const hasUnread = isSupportItem && unreadInquiries > 0;
                     return (
                       <li key={item.to}>
                         <Link
@@ -219,22 +230,34 @@ export function SidebarContent({
                             'group relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-100',
                             collapsed && 'justify-center px-0',
                             isActive
-                              ? 'bg-primary/10 text-primary'
+                              ? 'text-primary'
                               : 'text-muted-foreground hover:bg-surface-muted hover:text-foreground',
                             item.upcoming && 'pointer-events-none opacity-50',
                           )}
                         >
-                          <span
-                            className={cn(
-                              'absolute left-0 h-[18px] w-[3px] rounded-full bg-primary transition-opacity duration-100',
-                              isActive ? 'opacity-100' : 'opacity-0',
-                            )}
-                            aria-hidden
-                          />
-                          <item.icon className="h-4 w-4 shrink-0" aria-hidden />
+                          {isActive && (
+                            <>
+                              <motion.span
+                                layoutId={skipMotion ? undefined : 'sidebar-active-bg'}
+                                transition={SPRING_SNAPPY}
+                                className="absolute inset-0 rounded-md bg-primary/10"
+                                aria-hidden
+                              />
+                              <motion.span
+                                layoutId={skipMotion ? undefined : 'sidebar-active-bar'}
+                                transition={SPRING_SNAPPY}
+                                className="absolute left-0 h-[18px] w-[3px] rounded-full bg-primary"
+                                aria-hidden
+                              />
+                            </>
+                          )}
+                          <item.icon className="relative z-10 h-4 w-4 shrink-0 transition-transform duration-150 group-hover:scale-110" aria-hidden />
+                          {collapsed && hasUnread && (
+                            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary ring-2 ring-surface" />
+                          )}
                           {!collapsed && (
                             <>
-                              <span className="flex-1 truncate">
+                              <span className="relative z-10 flex-1 truncate">
                                 {match ? (
                                   <>
                                     {match[0]}
@@ -245,8 +268,13 @@ export function SidebarContent({
                                   item.label
                                 )}
                               </span>
+                              {hasUnread && (
+                                <span className="relative z-10 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground px-1">
+                                  {unreadInquiries}
+                                </span>
+                              )}
                               {item.upcoming && (
-                                <span className="rounded bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted">
+                                <span className="relative z-10 rounded bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase text-muted">
                                   {t('Soon')}
                                 </span>
                               )}

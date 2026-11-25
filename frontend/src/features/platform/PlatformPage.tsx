@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Plus, Building2, CreditCard, AlertTriangle, TrendingUp, Users2 } from 'lucide-react';
+import { Plus, Users2 } from 'lucide-react';
+import { FcOrganization, FcApproval, FcCalendar, FcHighPriority, FcMoneyTransfer } from 'react-icons/fc';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -55,16 +56,16 @@ export function PlatformPage() {
   const summary = summaryQ.data;
   const stats: StatTileData[] = summary
     ? [
-        { label: t('Clinics'), value: summary.totalOrganizations, icon: Building2 },
-        { label: t('Active'), value: summary.activeOrganizations, icon: TrendingUp },
-        { label: t('Trial'), value: summary.trialOrganizations, icon: Building2 },
+        { label: t('Clinics'), value: summary.totalOrganizations, icon: FcOrganization },
+        { label: t('Active'), value: summary.activeOrganizations, icon: FcApproval },
+        { label: t('Trial'), value: summary.trialOrganizations, icon: FcCalendar },
         {
           label: t('Past due'),
           value: summary.pastDueSubscriptions,
-          icon: AlertTriangle,
+          icon: FcHighPriority,
           tone: summary.pastDueSubscriptions > 0 ? 'warning' : 'neutral',
         },
-        { label: t('MRR (NPR)'), value: summary.monthlyRecurringRevenue.toLocaleString(), icon: CreditCard },
+        { label: t('MRR (NPR)'), value: summary.monthlyRecurringRevenue.toLocaleString(), icon: FcMoneyTransfer },
       ]
     : [];
 

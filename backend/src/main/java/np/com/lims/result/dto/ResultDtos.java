@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import np.com.lims.catalog.entity.ParameterDataType;
+import np.com.lims.result.ReferenceRangeResolver;
 import np.com.lims.result.entity.ContactMethod;
 import np.com.lims.result.entity.CriticalValueCallback;
 import np.com.lims.result.entity.CultureGrowth;
@@ -169,6 +170,7 @@ public final class ResultDtos {
     public record ValueDto(
             Long id,
             Long parameterId,
+            String parameterCode,
             String parameterName,
             String unit,
             ParameterDataType dataType,
@@ -179,27 +181,42 @@ public final class ResultDtos {
             String referenceText,
             boolean calculated,
             Integer decimalPlaces,
+            String calculationFormula,
             java.util.List<String> allowedValues,
             String method,
             String groupHeading,
+            BigDecimal lowValue,
+            BigDecimal highValue,
+            BigDecimal criticalLow,
+            BigDecimal criticalHigh,
             BigDecimal previousValue,
             BigDecimal deltaPercent,
             boolean deltaBreach,
+            BigDecimal deltaCheckPercent,
             String comment
     ) {
         static ValueDto from(ResultValue v) {
             return from(v, null);
         }
 
-        /** {@code referenceHint} is the parameter's configured range text, shown before a value is entered. */
-        static ValueDto from(ResultValue v, String referenceHint) {
+        /** {@code rangeHint} provides resolved clinical reference boundaries and range text for the patient. */
+        static ValueDto from(ResultValue v, ReferenceRangeResolver.Interpretation rangeHint) {
             var p = v.getParameter();
-            String reference = v.getReferenceText() != null ? v.getReferenceText() : referenceHint;
-            return new ValueDto(v.getId(), p.getId(), v.getParameterName(), v.getParameterUnit(),
+            String reference = v.getReferenceText() != null ? v.getReferenceText()
+                    : (rangeHint != null ? rangeHint.referenceText() : null);
+            BigDecimal low = rangeHint != null ? rangeHint.lowValue() : null;
+            BigDecimal high = rangeHint != null ? rangeHint.highValue() : null;
+            BigDecimal critLow = rangeHint != null ? rangeHint.criticalLow() : null;
+            BigDecimal critHigh = rangeHint != null ? rangeHint.criticalHigh() : null;
+
+            return new ValueDto(v.getId(), p.getId(), p.getCode(), v.getParameterName(), v.getParameterUnit(),
                     v.getDataType(), v.getDisplayOrder(), v.getValueNumeric(), v.getValueText(),
                     v.getFlag(), reference,
-                    p.isCalculated(), p.getDecimalPlaces(), p.allowedValueList(), p.getMethod(), p.getGroupHeading(),
-                    v.getPreviousValue(), v.getDeltaPercent(), v.isDeltaBreach(), v.getComment());
+                    p.isCalculated(), p.getDecimalPlaces(), p.getCalculationFormula(), p.allowedValueList(),
+                    p.getMethod(), p.getGroupHeading(),
+                    low, high, critLow, critHigh,
+                    v.getPreviousValue(), v.getDeltaPercent(), v.isDeltaBreach(), p.getDeltaCheckPercent(),
+                    v.getComment());
         }
     }
 
@@ -274,6 +291,7 @@ public final class ResultDtos {
             boolean overdue,
             boolean autoVerified,
             String sampleCondition,
+            np.com.lims.order.dto.OrderDtos.PrescriptionSummary prescription,
             boolean criticalAckRequired,
             List<CallbackDto> criticalCallbacks,
             String comment,
@@ -300,7 +318,7 @@ public final class ResultDtos {
             return from(r, callbacks, Map.of());
         }
 
-        public static Detail from(TestResult r, List<CallbackDto> callbacks, Map<Long, String> referenceHints) {
+        public static Detail from(TestResult r, List<CallbackDto> callbacks, Map<Long, ReferenceRangeResolver.Interpretation> referenceHints) {
             return new Detail(
                     r.getId(), r.getOrder().getId(), r.getOrder().getOrderNumber(),
                     r.getSample().getId(), r.getSample().getAccessionNumber(),
@@ -309,7 +327,9 @@ public final class ResultDtos {
                     r.getTestId(), r.getTestCode(), r.getTestName(), r.getDepartmentName(),
                     r.getResultMode().name(),
                     r.getStatus(), r.getPriority().name(), r.getDueAt(), r.isOverdue(), r.isAutoVerified(),
-                    sampleCondSummary(r), r.isCriticalAckRequired(), callbacks,
+                    sampleCondSummary(r),
+                    np.com.lims.order.dto.OrderDtos.PrescriptionSummary.from(r.getOrder().getPrescriptionDocument()),
+                    r.isCriticalAckRequired(), callbacks,
                     r.getComment(), r.isHasAbnormal(), r.isHasCritical(),
                     r.isComplete(), r.missingValues().stream().map(ResultValue::getParameterName).toList(),
                     r.getRejectionReason(),

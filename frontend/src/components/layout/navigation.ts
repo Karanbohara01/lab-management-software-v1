@@ -69,6 +69,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: 'Billing', to: '/app/platform/billing', icon: FcMoneyTransfer, anyPermission: [PERMISSIONS.PLATFORM_MANAGE] },
       { label: 'Roles & permissions', to: '/app/platform/roles', icon: FcLock, anyPermission: [PERMISSIONS.PLATFORM_MANAGE] },
       { label: 'Leadership', to: '/app/platform/leadership', icon: FcManager, anyPermission: [PERMISSIONS.PLATFORM_MANAGE] },
+      { label: 'Clinic Inquiries', to: '/app/platform/inquiries', icon: FcComments, anyPermission: [PERMISSIONS.PLATFORM_MANAGE] },
     ],
   },
   {
@@ -142,6 +143,7 @@ export const NAV_SECTIONS: NavSection[] = [
     heading: 'Support',
     items: [
       { label: 'Help', to: '/app/help', icon: FcFaq, anyPermission: [] },
+      { label: 'Support & Inquiries', to: '/app/support', icon: FcComments, anyPermission: [] },
     ],
   },
 ];

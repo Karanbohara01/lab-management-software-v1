@@ -81,6 +81,15 @@ public class ReportController {
         return service.verify(token);
     }
 
+    /**
+     * Public diagnostic report document by unguessable 128-bit verification token.
+     * Allows patients and clinicians scanning the report's QR code to view and print the official document.
+     */
+    @GetMapping("/verify/{token}/document")
+    public Detail getDocumentByToken(@PathVariable String token) {
+        return service.getDocumentByVerificationToken(token);
+    }
+
     @PostMapping("/{id}/deliver")
     @PreAuthorize("hasAuthority('PERM_REPORT_DELIVER')")
     public Detail deliver(@PathVariable Long id, @Valid @RequestBody DeliverRequest request) {

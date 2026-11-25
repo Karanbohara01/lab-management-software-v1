@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ChevronDown, Menu, Phone, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Menu, Phone, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { BrandMark } from '@/components/brand/BrandMark';
 import { BrandWordmark } from '@/components/brand/BrandWordmark';
@@ -15,10 +15,10 @@ const CONTACTS_PANEL_ID = 'team-contacts';
 // Nav links share the buttons' type (`text-button`: 15px / 500) so the bar reads as one voice;
 // they sit in the muted ink and step up to the foreground on hover / when current.
 const NAV_LINK =
-  'whitespace-nowrap rounded-md px-3 py-2 text-button text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+  'whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium text-muted-foreground transition-all duration-150 hover:text-foreground hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 const TOP_LINK =
-  'inline-flex items-center gap-2 rounded-md px-2 py-1 text-button text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-muted-foreground transition-all duration-150 hover:text-foreground hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 /**
  * Contact strip above the main bar (desktop only — the mobile drawer carries the same links).
@@ -39,26 +39,37 @@ function TopBar({
   return (
     <div
       className={cn(
-        'hidden overflow-hidden bg-surface-muted transition-[max-height] duration-200 lg:block',
+        'hidden overflow-hidden border-b border-border/40 bg-surface-muted/60 transition-[max-height] duration-200 lg:block',
         visible ? 'max-h-10' : 'invisible max-h-0',
       )}
     >
-      <div className="border-t-[3px] border-primary/30">
-        <div className="mx-auto flex h-9 max-w-page items-center justify-end gap-6 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-9 max-w-page items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground/85">Diagnostic Laboratory Management System</span>
+          <span className="hidden text-border/80 xl:inline" aria-hidden>
+            ·
+          </span>
+          <span className="hidden text-muted-foreground/75 xl:inline">
+            Complete diagnostic workflow, instrument interfacing &amp; IRD compliance
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
           <a
             href={CONTACT_WHATSAPP.href}
             target="_blank"
             rel="noopener noreferrer"
             aria-label={`Chat on WhatsApp: ${CONTACT_WHATSAPP.display}`}
-            className={TOP_LINK}
+            className={cn(TOP_LINK, 'hover:text-[#25D366]')}
           >
-            <WhatsAppIcon className="h-4 w-4 text-[#25D366]" />
-            {CONTACT_WHATSAPP.display}
+            <WhatsAppIcon className="h-3.5 w-3.5 text-[#25D366]" />
+            <span>{CONTACT_WHATSAPP.display}</span>
           </a>
+          <span className="h-3 w-px bg-border/80" aria-hidden />
           <a href={CONTACT_PHONE.href} aria-label={`Call ${CONTACT_PHONE.display}`} className={TOP_LINK}>
-            <Phone className="h-4 w-4" aria-hidden />
-            {CONTACT_PHONE.display}
+            <Phone className="h-3.5 w-3.5 text-primary" aria-hidden />
+            <span>{CONTACT_PHONE.display}</span>
           </a>
+          <span className="h-3 w-px bg-border/80" aria-hidden />
           {/* The panel it opens is rendered by MarketingNav — this strip clips anything that overflows it. */}
           <button
             ref={moreRef}
@@ -66,11 +77,11 @@ function TopBar({
             aria-expanded={contactsOpen}
             aria-controls={CONTACTS_PANEL_ID}
             onClick={onToggleContacts}
-            className={cn(TOP_LINK, '-mr-2', contactsOpen && 'text-foreground')}
+            className={cn(TOP_LINK, contactsOpen && 'bg-surface text-foreground font-semibold shadow-xs')}
           >
             More
             <ChevronDown
-              className={cn('h-4 w-4 transition-transform duration-150 motion-reduce:transition-none', contactsOpen && 'rotate-180')}
+              className={cn('h-3.5 w-3.5 transition-transform duration-150 motion-reduce:transition-none', contactsOpen && 'rotate-180')}
               aria-hidden
             />
           </button>
@@ -82,8 +93,14 @@ function TopBar({
 
 function Logo() {
   return (
-    <Link to="/" className="flex items-center gap-2.5" aria-label={`${PRODUCT_NAME} home`}>
-      <BrandMark className="h-9" />
+    <Link
+      to="/"
+      className="group flex items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      aria-label={`${PRODUCT_NAME} home`}
+    >
+      <div className="transition-transform duration-200 group-hover:scale-105">
+        <BrandMark className="h-9" />
+      </div>
       <BrandWordmark className="h-6" />
     </Link>
   );
@@ -143,8 +160,10 @@ export function MarketingNav() {
   return (
     <header
       className={cn(
-        'fixed inset-x-0 top-0 z-40 border-b border-border bg-surface transition-shadow duration-200',
-        scrolled && 'shadow-sm',
+        'fixed inset-x-0 top-0 z-40 border-b transition-all duration-200',
+        scrolled
+          ? 'border-border/80 bg-surface/90 backdrop-blur-md shadow-[0_4px_24px_-4px_rgba(0,0,0,0.07)]'
+          : 'border-border/40 bg-surface/95 backdrop-blur-xs',
       )}
     >
       <TopBar
@@ -163,7 +182,7 @@ export function MarketingNav() {
             role="region"
             aria-label="Contact the team"
             className={cn(
-              'w-[40rem] max-w-full rounded-2xl border border-border bg-surface p-5 shadow-popover',
+              'w-[36rem] max-w-full rounded-2xl border border-border/80 bg-surface p-4 shadow-xl',
               'transition-[opacity,transform,visibility] duration-150 motion-reduce:transition-none',
               contactsOpen ? 'pointer-events-auto visible translate-y-0 opacity-100' : 'invisible -translate-y-1 opacity-0',
             )}
@@ -181,11 +200,14 @@ export function MarketingNav() {
             item.hasFeatureMenu ? (
               <FeaturesMenu key={item.href} item={item} linkClassName={NAV_LINK} />
             ) : (
-              <li key={item.href}>
+              <li key={item.href} className="flex items-center">
                 <Link
                   to={item.href}
                   aria-current={pathname === item.href ? 'page' : undefined}
-                  className={cn(NAV_LINK, pathname === item.href && 'text-foreground')}
+                  className={cn(
+                    NAV_LINK,
+                    pathname === item.href && 'bg-primary/10 text-primary font-semibold',
+                  )}
                 >
                   {item.label}
                 </Link>
@@ -194,12 +216,18 @@ export function MarketingNav() {
           )}
         </ul>
 
-        <div className="hidden items-center gap-2 xl:flex">
-          <LinkButton to="/login" variant="secondary" size="md">
+        <div className="hidden items-center gap-2.5 xl:flex">
+          <LinkButton to="/login" variant="secondary" size="md" className="rounded-full px-4 text-sm font-medium">
             Sign in
           </LinkButton>
-          <LinkButton to="/signup" variant="primary" size="md">
-            Start free trial
+          <LinkButton
+            to="/signup"
+            variant="primary"
+            size="md"
+            className="group rounded-full px-5 text-sm font-semibold shadow-sm hover:shadow-md hover:shadow-primary/20"
+          >
+            <span>Start free trial</span>
+            <ChevronRight className="h-4 w-4 transition-transform duration-150 group-hover:translate-x-0.5" aria-hidden />
           </LinkButton>
         </div>
 
@@ -279,10 +307,10 @@ export function MarketingNav() {
                 {CONTACT_PHONE.display}
               </a>
             </div>
-            <LinkButton to="/login" variant="secondary" size="lg" className="w-full">
+            <LinkButton to="/login" variant="secondary" size="lg" className="w-full rounded-full font-medium">
               Sign in
             </LinkButton>
-            <LinkButton to="/signup" variant="primary" size="lg" className="w-full">
+            <LinkButton to="/signup" variant="primary" size="lg" className="w-full rounded-full font-semibold shadow-sm">
               Start free trial
             </LinkButton>
           </div>

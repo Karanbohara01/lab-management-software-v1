@@ -1,4 +1,12 @@
-import { useId } from 'react';
+import { useId, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  AnimatedNumber,
+  EASE_OUT_EXPO,
+  SPRING_SMOOTH,
+  SPRING_SNAPPY,
+  isTestEnv,
+} from '@/components/ui/motion';
 import { formatMoney } from '@/lib/money';
 import { getLocale, LOCALE_TAG, useT } from '@/i18n';
 import type { RevenueTrend } from '../types';
@@ -12,18 +20,12 @@ function bucketLabel(iso: string, granularity: RevenueTrend['granularity']): str
   return date.toLocaleDateString(LOCALE_TAG[getLocale()], { day: 'numeric', month: 'short' });
 }
 
-/**
- * Billed against collected over the period — two series on ONE value axis, since both are rupees;
- * a second axis would invite reading a crossover that isn't there. Plain SVG, matching the
- * existing revenue trend card: no charting dependency, and it prints as drawn.
- *
- * Bars are billed (what was sold that day), the line is collected (cash that day). They are not
- * expected to track each other — that gap is the point of the chart.
- */
 const GRANULARITY_UNIT: Record<RevenueTrend['granularity'], string> = { DAY: 'day', WEEK: 'week', MONTH: 'month' };
 
 export function BilledVsCollectedChart({ trend }: { trend: RevenueTrend }) {
   const t = useT();
+  const skipMotion = isTestEnv();
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const points = trend.points;
   const gradientId = `collected-fill-${useId().replace(/:/g, '')}`;
   const max = Math.max(1, ...points.map((p) => Math.max(p.billed, p.collected)));
@@ -50,7 +52,6 @@ export function BilledVsCollectedChart({ trend }: { trend: RevenueTrend }) {
     (a, p) => ({ billed: a.billed + p.billed, collected: a.collected + p.collected }),
     { billed: 0, collected: 0 },
   );
-  // Label every bucket while they fit, then thin them out so they never overlap.
   const labelEvery = Math.max(1, Math.ceil(points.length / 14));
 
   if (points.length === 0) {
@@ -58,21 +59,54 @@ export function BilledVsCollectedChart({ trend }: { trend: RevenueTrend }) {
   }
 
   const unit = t(GRANULARITY_UNIT[trend.granularity]);
+  const seriesKey = `${trend.period.from}-${trend.period.to}-${trend.granularity}`;
+  const hovered = hoverIdx != null ? coords[hoverIdx] : null;
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-1 px-5 pb-2 text-caption">
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-sm bg-primary/35" aria-hidden />
-          <span className="text-muted">{t('Billed')}</span>
-          <span className="font-medium tabular-nums text-foreground">{formatMoney(totals.billed)}</span>
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <span className="h-0.5 w-4 rounded-full bg-primary" aria-hidden />
-          <span className="text-muted">{t('Collected')}</span>
-          <span className="font-medium tabular-nums text-foreground">{formatMoney(totals.collected)}</span>
-        </span>
-        <span className="text-muted">{t('per {unit}', { unit })}</span>
+      <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-1 px-5 pb-2 text-caption">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-sm bg-primary/35" aria-hidden />
+            <span className="text-muted">{t('Billed')}</span>
+            <AnimatedNumber
+              value={totals.billed}
+              format={formatMoney}
+              className="font-medium tabular-nums text-foreground"
+            />
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-0.5 w-4 rounded-full bg-primary" aria-hidden />
+            <span className="text-muted">{t('Collected')}</span>
+            <AnimatedNumber
+              value={totals.collected}
+              format={formatMoney}
+              className="font-medium tabular-nums text-foreground"
+            />
+          </span>
+          <span className="text-muted">{t('per {unit}', { unit })}</span>
+        </div>
+
+        <AnimatePresence mode="wait">
+          {hovered && (
+            <motion.div
+              key={hovered.bucket}
+              initial={{ opacity: 0, y: -3 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -3 }}
+              transition={{ duration: 0.14 }}
+              className="inline-flex flex-wrap items-center gap-3 rounded-full border border-primary/25 bg-primary/[0.06] px-3 py-0.5 text-xs"
+            >
+              <span className="font-semibold text-foreground">{bucketLabel(hovered.bucket, trend.granularity)}</span>
+              <span className="tabular-nums text-muted">
+                {t('Billed')} <strong className="font-semibold text-foreground">{formatMoney(hovered.billed)}</strong>
+              </span>
+              <span className="tabular-nums text-muted">
+                {t('Collected')} <strong className="font-semibold text-primary">{formatMoney(hovered.collected)}</strong>
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="overflow-x-auto px-2 pb-2">
@@ -81,10 +115,11 @@ export function BilledVsCollectedChart({ trend }: { trend: RevenueTrend }) {
           className="w-full min-w-[640px]"
           role="img"
           aria-label={t('Billed and collected per {unit} over the selected period', { unit })}
+          onMouseLeave={() => setHoverIdx(null)}
         >
           <defs>
             <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" className="[stop-color:hsl(var(--primary))]" stopOpacity={0.2} />
+              <stop offset="0%" className="[stop-color:hsl(var(--primary))]" stopOpacity={0.22} />
               <stop offset="100%" className="[stop-color:hsl(var(--primary))]" stopOpacity={0} />
             </linearGradient>
           </defs>
@@ -109,43 +144,102 @@ export function BilledVsCollectedChart({ trend }: { trend: RevenueTrend }) {
             );
           })}
 
-          {coords.map((c) => (
-            <g key={c.bucket}>
-              <rect
-                x={c.x - barW / 2}
-                y={y(c.billed)}
-                width={barW}
-                height={Math.max(0, baseline - y(c.billed))}
-                rx={2}
-                className="fill-primary/30"
-              >
-                <title>
-                  {t('{date} · billed {amount}', { date: bucketLabel(c.bucket, trend.granularity), amount: formatMoney(c.billed) })}
-                </title>
-              </rect>
-            </g>
-          ))}
-
-          <path d={area} fill={`url(#${gradientId})`} />
-          <path d={line} fill="none" className="stroke-primary" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-
-          {coords.map((c, i) => (
-            <g key={`c-${c.bucket}`}>
-              {points.length <= 40 && (
-                <circle cx={c.x} cy={c.cy} r={3} className="fill-surface stroke-primary" strokeWidth={2}>
+          {coords.map((c, i) => {
+            const targetY = y(c.billed);
+            const targetH = Math.max(0, baseline - targetY);
+            const isHovered = hoverIdx === i;
+            return (
+              <g key={c.bucket} onMouseEnter={() => setHoverIdx(i)} className="cursor-pointer">
+                <rect
+                  x={c.x - slot / 2}
+                  y={padTop}
+                  width={Math.max(4, slot)}
+                  height={baseline - padTop}
+                  fill="transparent"
+                />
+                <motion.rect
+                  x={c.x - barW / 2}
+                  width={barW}
+                  rx={2}
+                  className={isHovered ? 'fill-primary/55' : 'fill-primary/30'}
+                  initial={skipMotion ? false : { y: baseline, height: 0 }}
+                  animate={{ y: targetY, height: targetH }}
+                  transition={{
+                    ...SPRING_SMOOTH,
+                    delay: skipMotion ? 0 : Math.min(i * 0.015, 0.4),
+                  }}
+                >
                   <title>
-                    {t('{date} · collected {amount}', { date: bucketLabel(c.bucket, trend.granularity), amount: formatMoney(c.collected) })}
-                    {c.refunded > 0 ? ` ${t('· refunded {amount}', { amount: formatMoney(c.refunded) })}` : ''}
+                    {t('{date} · billed {amount}', { date: bucketLabel(c.bucket, trend.granularity), amount: formatMoney(c.billed) })}
                   </title>
-                </circle>
-              )}
-              {i % labelEvery === 0 && (
-                <text x={c.x} y={H - 10} textAnchor="middle" className="fill-muted" style={{ fontSize: 10 }}>
-                  {bucketLabel(c.bucket, trend.granularity)}
-                </text>
-              )}
-            </g>
-          ))}
+                </motion.rect>
+              </g>
+            );
+          })}
+
+          <motion.path
+            key={`area-${seriesKey}`}
+            d={area}
+            fill={`url(#${gradientId})`}
+            initial={skipMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.65, ease: 'easeOut' }}
+          />
+          <motion.path
+            key={`line-${seriesKey}`}
+            d={line}
+            fill="none"
+            className="stroke-primary"
+            strokeWidth={2.25}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            initial={skipMotion ? false : { pathLength: 0, opacity: 0.4 }}
+            animate={{ pathLength: 1, opacity: 1 }}
+            transition={EASE_OUT_EXPO}
+          />
+
+          {hovered && (
+            <motion.line
+              initial={false}
+              animate={{ x1: hovered.x, x2: hovered.x }}
+              transition={SPRING_SNAPPY}
+              y1={padTop}
+              y2={baseline}
+              className="stroke-primary/45 pointer-events-none"
+              strokeWidth={1}
+              strokeDasharray="3 3"
+            />
+          )}
+
+          {coords.map((c, i) => {
+            const isHovered = hoverIdx === i;
+            return (
+              <g key={`c-${c.bucket}`} onMouseEnter={() => setHoverIdx(i)} className="cursor-pointer">
+                {(points.length <= 40 || isHovered) && (
+                  <motion.circle
+                    cx={c.x}
+                    cy={c.cy}
+                    r={isHovered ? 4.5 : 3}
+                    className={isHovered ? 'fill-primary stroke-surface' : 'fill-surface stroke-primary'}
+                    strokeWidth={2}
+                    initial={skipMotion ? false : { scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ ...SPRING_SNAPPY, delay: skipMotion ? 0 : Math.min(i * 0.015, 0.4) }}
+                  >
+                    <title>
+                      {t('{date} · collected {amount}', { date: bucketLabel(c.bucket, trend.granularity), amount: formatMoney(c.collected) })}
+                      {c.refunded > 0 ? ` ${t('· refunded {amount}', { amount: formatMoney(c.refunded) })}` : ''}
+                    </title>
+                  </motion.circle>
+                )}
+                {i % labelEvery === 0 && (
+                  <text x={c.x} y={H - 10} textAnchor="middle" className="fill-muted" style={{ fontSize: 10 }}>
+                    {bucketLabel(c.bucket, trend.granularity)}
+                  </text>
+                )}
+              </g>
+            );
+          })}
         </svg>
       </div>
     </div>

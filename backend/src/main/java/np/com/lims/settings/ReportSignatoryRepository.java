@@ -8,4 +8,6 @@ import java.util.List;
 public interface ReportSignatoryRepository extends JpaRepository<ReportSignatory, Long> {
 
     List<ReportSignatory> findAllByOrderByDisplayOrderAscIdAsc();
+
+    List<ReportSignatory> findAllByOrganizationIdOrderByDisplayOrderAscIdAsc(Long organizationId);
 }

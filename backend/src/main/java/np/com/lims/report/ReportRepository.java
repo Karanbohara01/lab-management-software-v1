@@ -19,6 +19,7 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
     @EntityGraph(attributePaths = {"patient", "order", "tests"})
     Optional<Report> findByOrderId(Long orderId);
 
+    @EntityGraph(attributePaths = {"patient", "order", "tests"})
     Optional<Report> findByVerificationToken(String verificationToken);
 
     boolean existsByOrderId(Long orderId);

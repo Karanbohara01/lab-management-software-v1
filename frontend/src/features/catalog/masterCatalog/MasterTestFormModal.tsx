@@ -17,15 +17,15 @@ import { masterCatalogAdminApi } from './api';
 import type { MasterTestDetail } from './types';
 import { useT, tOpts } from '@/i18n';
 
-const numish = z
-  .union([z.coerce.number(), z.literal('')])
-  .optional()
-  .transform((v) => (v === '' || v == null ? null : Number(v)));
+const numish = z.preprocess(
+  (v) => (v === '' || v == null ? null : v),
+  z.coerce.number().nullable(),
+);
 
-const intish = z
-  .union([z.coerce.number().int(), z.literal('')])
-  .optional()
-  .transform((v) => (v === '' || v == null ? null : Number(v)));
+const intish = z.preprocess(
+  (v) => (v === '' || v == null ? null : v),
+  z.coerce.number().int().nullable(),
+);
 
 const paramSchema = z.object({
   code: z.string().max(32).optional(),

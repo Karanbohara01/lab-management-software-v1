@@ -1,8 +1,10 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { cn } from '@/lib/cn';
 import {
   AlertTriangle,
   CheckCircle2,
+  FileText,
   MessageSquarePlus,
   Save,
   ShieldCheck,
@@ -35,7 +37,9 @@ import {
   type ResultValue,
   type ValueInput,
 } from './types';
+import { evaluateResultFlag, evaluateDelta, computeCalculatedValues } from './evaluator';
 import { AmendResultModal } from './AmendResultModal';
+import { PrescriptionViewerModal } from '@/features/orders/PrescriptionViewerModal';
 import { CriticalCallbackModal } from './CriticalCallbackModal';
 import { CultureEntryForm } from './CultureEntryForm';
 
@@ -67,6 +71,7 @@ export function ResultEntryPage() {
   const [rejectOpen, setRejectOpen] = useState(false);
   const [amendOpen, setAmendOpen] = useState(false);
   const [callbackOpen, setCallbackOpen] = useState(false);
+  const [prescriptionModalOpen, setPrescriptionModalOpen] = useState(false);
   const [incompleteAction, setIncompleteAction] = useState<'verify' | 'approve' | null>(null);
 
   useEffect(() => {
@@ -115,45 +120,21 @@ export function ResultEntryPage() {
     setPendingNoteFocusId(parameterId);
   };
 
-  /**
-   * Enter moves focus to the next parameter's value field instead of submitting/doing nothing —
-   * a tech entering a 20-parameter CBC panel shouldn't need the mouse for every row. Walks DOM
-   * order among `[data-value-input]` elements rather than tracking an index, so it stays correct
-   * regardless of which rows are actually editable (calculated parameters are skipped since
-   * they're never rendered as an input at all).
-   */
-  const focusNextValueInput = (e: React.KeyboardEvent<HTMLSelectElement | HTMLInputElement>) => {
-    if (e.key !== 'Enter') return;
-    e.preventDefault();
-    const table = valuesTableRef.current;
-    if (!table) return;
-    const inputs = Array.from(table.querySelectorAll<HTMLElement>('[data-value-input]'));
-    const currentIndex = inputs.indexOf(e.currentTarget);
-    const next = inputs[currentIndex + 1];
-    if (next) {
-      next.focus();
-      if (next instanceof HTMLInputElement) next.select();
-    } else {
-      (e.currentTarget as HTMLElement).blur();
-    }
-  };
-
-  if (loading && !result) return <LoadingState label={t('Loading result…')} />;
-  if (error) return <ErrorState message={error} onRetry={refetch} />;
-  if (!result) return null;
-
   const buildPayload = (): ValueInput[] =>
-    result.values
-      .filter((v) => !v.calculated)
-      .map((v) => {
-        const raw = (draft[v.parameterId] ?? '').trim();
-        const note = (notes[v.parameterId] ?? '').trim() || null;
-        return v.dataType === 'NUMERIC'
-          ? { parameterId: v.parameterId, valueNumeric: raw === '' ? null : Number(raw), comment: note }
-          : { parameterId: v.parameterId, valueText: raw || null, comment: note };
-      });
+    result
+      ? result.values
+          .filter((v) => !v.calculated)
+          .map((v) => {
+            const raw = (draft[v.parameterId] ?? '').trim();
+            const note = (notes[v.parameterId] ?? '').trim() || null;
+            return v.dataType === 'NUMERIC'
+              ? { parameterId: v.parameterId, valueNumeric: raw === '' ? null : Number(raw), comment: note }
+              : { parameterId: v.parameterId, valueText: raw || null, comment: note };
+          })
+      : [];
 
   const save = async () => {
+    if (!result) return;
     setSaving(true);
     try {
       await resultsApi.saveValues(result.id, buildPayload(), comment || undefined);
@@ -165,6 +146,135 @@ export function ResultEntryPage() {
       setSaving(false);
     }
   };
+
+  const computedValues = useMemo(() => {
+    if (!result) return {};
+    return computeCalculatedValues(result.values, draft, {
+      gender: result.patientGender,
+      ageYears: result.patientAgeYears,
+    });
+  }, [result, draft]);
+
+  const fillNormals = () => {
+    if (!result) return;
+    setDraft((prev) => {
+      const next = { ...prev };
+      for (const v of result.values) {
+        if (v.calculated) continue;
+        const current = (next[v.parameterId] ?? '').trim();
+        if (current === '') {
+          if (v.dataType === 'NUMERIC') {
+            if (v.lowValue != null && v.highValue != null) {
+              const mid = (v.lowValue + v.highValue) / 2;
+              next[v.parameterId] = v.decimalPlaces != null ? mid.toFixed(v.decimalPlaces) : String(mid);
+            } else if (v.lowValue != null) {
+              next[v.parameterId] = String(v.lowValue);
+            } else if (v.highValue != null) {
+              next[v.parameterId] = String(v.highValue);
+            }
+          } else {
+            const choices = v.allowedValues.length ? v.allowedValues : CHOICE_OPTIONS[v.dataType];
+            if (choices && choices.length > 0) {
+              const normalChoice = choices.find((c) => /negative|non-reactive/i.test(c)) || choices[0];
+              if (normalChoice) next[v.parameterId] = normalChoice;
+            }
+          }
+        }
+      }
+      return next;
+    });
+    toast.success(t('Normal reference values populated for blank parameters'));
+  };
+
+  /**
+   * Spreadsheet-style rapid keyboard navigation:
+   * - Enter / ArrowDown: advances to the next parameter value input and selects its text.
+   * - ArrowUp: moves to the previous parameter value input and selects its text.
+   * - Escape: reverts the current parameter to its saved/initial value.
+   * - +/- or P/N: quick shortcuts for Positive/Negative & Reactive/Non-reactive choices.
+   * - Ctrl+Enter / Cmd+Enter: saves all results immediately without using the mouse.
+   */
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLSelectElement | HTMLInputElement>) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      save();
+      return;
+    }
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      const paramId = Number(e.currentTarget.getAttribute('data-parameter-id'));
+      const orig = result?.values.find((val) => val.parameterId === paramId);
+      if (orig) {
+        const origVal = orig.valueNumeric != null ? String(orig.valueNumeric) : (orig.valueText ?? '');
+        setDraft((p) => ({ ...p, [paramId]: origVal }));
+      }
+      return;
+    }
+
+    const hasChoices = e.currentTarget.getAttribute('data-has-choices');
+    if (hasChoices === 'true') {
+      const k = e.key.toLowerCase();
+      if (k === '+' || k === 'p') {
+        const paramId = Number(e.currentTarget.getAttribute('data-parameter-id'));
+        const v = result?.values.find((val) => val.parameterId === paramId);
+        const opts = v ? (v.allowedValues.length ? v.allowedValues : CHOICE_OPTIONS[v.dataType]) : null;
+        const match = opts?.find((c) => /positive|reactive/i.test(c));
+        if (match) {
+          e.preventDefault();
+          setDraft((p) => ({ ...p, [paramId]: match }));
+          return;
+        }
+      } else if (k === '-' || k === 'n') {
+        const paramId = Number(e.currentTarget.getAttribute('data-parameter-id'));
+        const v = result?.values.find((val) => val.parameterId === paramId);
+        const opts = v ? (v.allowedValues.length ? v.allowedValues : CHOICE_OPTIONS[v.dataType]) : null;
+        const match = opts?.find((c) => /negative|non-reactive/i.test(c));
+        if (match) {
+          e.preventDefault();
+          setDraft((p) => ({ ...p, [paramId]: match }));
+          return;
+        }
+      }
+    }
+
+    const table = valuesTableRef.current;
+    if (!table) return;
+
+    if (e.key === 'Enter' || e.key === 'ArrowDown') {
+      // For select elements, let ordinary ArrowDown browse choices unless combined with Alt/Ctrl
+      if (e.currentTarget instanceof HTMLSelectElement && e.key === 'ArrowDown' && !e.altKey && !e.ctrlKey) {
+        return;
+      }
+      e.preventDefault();
+      const inputs = Array.from(table.querySelectorAll<HTMLElement>('[data-value-input]'));
+      const currentIndex = inputs.indexOf(e.currentTarget);
+      const next = inputs[currentIndex + 1];
+      if (next) {
+        next.focus();
+        if (next instanceof HTMLInputElement) next.select();
+      } else {
+        (e.currentTarget as HTMLElement).blur();
+      }
+    } else if (e.key === 'ArrowUp') {
+      // For select elements, let ordinary ArrowUp browse choices unless combined with Alt/Ctrl
+      if (e.currentTarget instanceof HTMLSelectElement && !e.altKey && !e.ctrlKey) {
+        return;
+      }
+      e.preventDefault();
+      const inputs = Array.from(table.querySelectorAll<HTMLElement>('[data-value-input]'));
+      const currentIndex = inputs.indexOf(e.currentTarget);
+      const prev = inputs[currentIndex - 1];
+      if (prev) {
+        prev.focus();
+        if (prev instanceof HTMLInputElement) prev.select();
+      }
+    }
+  };
+
+  if (loading && !result) return <LoadingState label={t('Loading result…')} />;
+  if (error) return <ErrorState message={error} onRetry={refetch} />;
+  if (!result) return null;
 
   /**
    * Returns whether it actually went through. A declined or failed secondary prompt (self-verify,
@@ -275,7 +385,7 @@ export function ResultEntryPage() {
       />
 
       {/* Identity banner — guards against entering results against the wrong patient/sample */}
-      <div className="mb-4 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+      <div className="mb-4 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm">
           <span className="font-semibold text-foreground">{result.patientName}</span>
           <span className="mx-2 font-mono text-xs text-muted">{result.patientMrn}</span>
@@ -288,6 +398,19 @@ export function ResultEntryPage() {
             {result.accessionNumber}
           </LinkFrom>
         </p>
+        {result.prescription && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => setPrescriptionModalOpen(true)}
+            title={result.prescription.title}
+          >
+            <FileText className="h-3.5 w-3.5 text-primary" />
+            <span>{t('View Prescription')}</span>
+          </Button>
+        )}
       </div>
 
       {result.autoVerified && result.status !== 'PENDING' && (
@@ -377,21 +500,89 @@ export function ResultEntryPage() {
         </div>
       )}
 
+      {editable && result.values.some((v) => {
+        if (v.calculated) {
+          const live = computedValues[v.parameterId];
+          if (live?.value == null) return false;
+          const flag = evaluateResultFlag(String(live.value), v.dataType, {
+            lowValue: v.lowValue,
+            highValue: v.highValue,
+            criticalLow: v.criticalLow,
+            criticalHigh: v.criticalHigh,
+          });
+          return flag === 'CRITICAL_LOW' || flag === 'CRITICAL_HIGH';
+        }
+        const val = draft[v.parameterId];
+        if (!val || !val.trim()) return false;
+        const flag = evaluateResultFlag(val, v.dataType, {
+          lowValue: v.lowValue,
+          highValue: v.highValue,
+          criticalLow: v.criticalLow,
+          criticalHigh: v.criticalHigh,
+        });
+        return flag === 'CRITICAL_LOW' || flag === 'CRITICAL_HIGH';
+      }) && (
+        <div className="mb-4">
+          <Alert tone="danger" title={t('Critical panic value detected')}>
+            {t('One or more values currently entered exceed critical panic limits. Please double-check entered digits before saving and prepare to initiate critical value read-back protocol.')}
+          </Alert>
+        </div>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="min-w-0 space-y-4 lg:col-span-2">
           {result.resultMode === 'CULTURE' ? (
             <CultureEntryForm result={result} editable={editable} onSaved={refetch} />
           ) : (
           <Card>
-            <CardHeader title={t('Parameters')} />
+            <CardHeader
+              title={t('Parameters')}
+              description={t('Enter measured values. Navigating with keyboard automatically selects text.')}
+            />
+            {editable && (
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border bg-surface-muted/30 px-5 py-2 text-xs text-muted">
+                <div className="flex items-center gap-3">
+                  <span>
+                    <kbd className="rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-[11px] font-semibold text-foreground">↵</kbd>
+                    {' / '}
+                    <kbd className="rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-[11px] font-semibold text-foreground">↓</kbd>
+                    {' '}{t('Next')}
+                  </span>
+                  <span>
+                    <kbd className="rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-[11px] font-semibold text-foreground">↑</kbd>
+                    {' '}{t('Previous')}
+                  </span>
+                  <span>
+                    <kbd className="rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-[11px] font-semibold text-foreground">Esc</kbd>
+                    {' '}{t('Revert')}
+                  </span>
+                  <span>
+                    <kbd className="rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-[11px] font-semibold text-foreground">Ctrl+↵</kbd>
+                    {' '}{t('Save')}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={fillNormals}
+                    className="rounded border border-border bg-surface px-2 py-0.5 text-[11px] font-medium text-foreground hover:bg-surface-muted transition-colors"
+                  >
+                    {t('Fill normal defaults')}
+                  </button>
+                  <span className="text-[11px] font-medium text-primary">
+                    {t('Live calculation & flags active')}
+                  </span>
+                </div>
+              </div>
+            )}
             <div className="overflow-x-auto">
               <table ref={valuesTableRef} className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-label uppercase text-muted">
-                    <th className="px-5 py-2">{t('Parameter')}</th>
-                    <th className="px-5 py-2">{t('Result')}</th>
-                    <th className="px-5 py-2">{t('Reference')}</th>
-                    <th className="px-5 py-2">{t('Flag')}</th>
+                    <th className="px-5 py-2.5">{t('Parameter')}</th>
+                    <th className="px-5 py-2.5">{t('Result')}</th>
+                    <th className="px-5 py-2.5">{t('Reference')}</th>
+                    <th className="px-5 py-2.5">{t('Flag')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -400,35 +591,79 @@ export function ResultEntryPage() {
                     const heading = v.groupHeading && v.groupHeading !== result.values[i - 1]?.groupHeading
                       ? v.groupHeading
                       : null;
+                    const isCalculated = v.calculated;
+                    const liveComputed = isCalculated ? computedValues[v.parameterId] : null;
+                    const currentRaw = draft[v.parameterId];
+
+                    const displayValue = isCalculated
+                      ? (liveComputed ? liveComputed.display : (v.valueNumeric != null ? String(v.valueNumeric) : (v.valueText ?? '')))
+                      : (currentRaw ?? (v.valueNumeric != null ? String(v.valueNumeric) : (v.valueText ?? '')));
+
+                    const effectiveFlag = editable && !isCalculated && currentRaw !== undefined && currentRaw.trim() !== ''
+                      ? evaluateResultFlag(currentRaw, v.dataType, {
+                          lowValue: v.lowValue,
+                          highValue: v.highValue,
+                          criticalLow: v.criticalLow,
+                          criticalHigh: v.criticalHigh,
+                        })
+                      : isCalculated && liveComputed?.value != null
+                        ? evaluateResultFlag(String(liveComputed.value), v.dataType, {
+                            lowValue: v.lowValue,
+                            highValue: v.highValue,
+                            criticalLow: v.criticalLow,
+                            criticalHigh: v.criticalHigh,
+                          })
+                        : v.flag;
+
+                    const deltaInfo = editable && !isCalculated && currentRaw !== undefined && currentRaw.trim() !== '' && !isNaN(Number(currentRaw))
+                      ? evaluateDelta(Number(currentRaw), v.previousValue, v.deltaCheckPercent)
+                      : { deltaPercent: v.deltaPercent, deltaBreach: v.deltaBreach };
+
+                    const isCritical = flagTone(effectiveFlag) === 'critical';
+                    const isWarning = flagTone(effectiveFlag) === 'warning';
                     return (
                       <Fragment key={v.parameterId}>
                         {heading && (
-                          <tr className="bg-surface-muted/50">
-                            <td colSpan={4} className="px-5 py-1.5 text-label uppercase text-muted">
+                          <tr className="bg-surface-muted/60">
+                            <td colSpan={4} className="px-5 py-1.5 text-label uppercase font-semibold text-muted">
                               {heading}
                             </td>
                           </tr>
                         )}
-                      <tr className="border-b border-border last:border-0">
-                        <td className="px-5 py-2">
-                          <span className="font-medium text-foreground">{v.parameterName}</span>
+                      <tr
+                        className={cn(
+                          'border-b border-border last:border-0 transition-colors focus-within:bg-primary/5',
+                          isCritical && 'bg-critical/10 border-l-4 border-l-critical',
+                          isWarning && !isCritical && 'bg-warning/5 border-l-2 border-l-warning',
+                        )}
+                      >
+                        <td className="px-5 py-2.5">
+                          <span className={cn('font-medium', isCritical ? 'text-critical font-bold' : 'text-foreground')}>
+                            {v.parameterName}
+                          </span>
                           {v.unit && <span className="ml-1 text-muted">({v.unit})</span>}
-                          {v.calculated && (
+                          {isCalculated && (
                             <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
                               {t('calculated')}
                             </span>
                           )}
                           {v.method && <span className="ml-2 text-[11px] text-muted">· {v.method}</span>}
                         </td>
-                        <td className="px-5 py-2">
-                          {editable && !v.calculated ? (
+                        <td className="px-5 py-2.5">
+                          {editable && !isCalculated ? (
                             choices ? (
                               <select
                                 data-value-input
+                                data-parameter-id={v.parameterId}
+                                data-has-choices="true"
                                 value={draft[v.parameterId] ?? ''}
                                 onChange={(e) => setDraft((p) => ({ ...p, [v.parameterId]: e.target.value }))}
-                                onKeyDown={focusNextValueInput}
-                                className="h-9 w-40 rounded-md border border-input bg-surface px-2"
+                                onKeyDown={handleInputKeyDown}
+                                className={cn(
+                                  'h-9 w-40 rounded-md border border-input bg-surface px-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary',
+                                  isCritical && 'border-critical bg-critical/5 text-critical font-bold',
+                                  isWarning && !isCritical && 'border-warning bg-warning/5 text-warning font-semibold',
+                                )}
                               >
                                 <option value="">—</option>
                                 {choices.map((c) => (
@@ -440,26 +675,33 @@ export function ResultEntryPage() {
                             ) : (
                               <input
                                 data-value-input
+                                data-parameter-id={v.parameterId}
                                 type={v.dataType === 'NUMERIC' ? 'number' : 'text'}
                                 step="any"
                                 inputMode={v.dataType === 'NUMERIC' ? 'decimal' : undefined}
                                 value={draft[v.parameterId] ?? ''}
                                 onChange={(e) => setDraft((p) => ({ ...p, [v.parameterId]: e.target.value }))}
-                                onKeyDown={focusNextValueInput}
-                                className="h-9 w-40 rounded-md border border-input bg-surface px-2 text-base"
+                                onKeyDown={handleInputKeyDown}
+                                className={cn(
+                                  'h-9 w-40 rounded-md border border-input bg-surface px-2.5 font-mono tabular-nums text-sm focus:border-primary focus:ring-1 focus:ring-primary',
+                                  isCritical && 'border-critical bg-critical/5 text-critical font-bold',
+                                  isWarning && !isCritical && 'border-warning bg-warning/5 text-warning font-semibold',
+                                )}
                                 aria-label={v.parameterName}
                               />
                             )
-                          ) : v.valueNumeric != null || (v.valueText ?? '').trim() ? (
-                            <span className={v.calculated ? 'font-medium text-muted' : 'font-medium text-foreground'}>
-                              {v.valueNumeric != null ? v.valueNumeric : v.valueText}
+                          ) : isCalculated ? (
+                            <span className="font-semibold text-primary font-mono tabular-nums">
+                              {displayValue || <span className="italic text-muted font-normal">{t('Computing…')}</span>}
                             </span>
-                          ) : v.calculated ? (
-                            <span className="italic text-warning">{t('Could not compute')}</span>
+                          ) : displayValue ? (
+                            <span className="font-medium text-foreground font-mono tabular-nums">
+                              {displayValue}
+                            </span>
                           ) : (
                             <span className="italic text-warning">{t('Not resulted')}</span>
                           )}
-                          {editable && !v.calculated ? (
+                          {editable && !isCalculated ? (
                             revealedNotes[v.parameterId] || (notes[v.parameterId] ?? '').trim() ? (
                               <input
                                 ref={(el) => {
@@ -486,31 +728,31 @@ export function ResultEntryPage() {
                             v.comment && <p className="mt-0.5 text-xs italic text-muted">{v.comment}</p>
                           )}
                         </td>
-                        <td className="px-5 py-2 text-muted">
+                        <td className="px-5 py-2.5 text-muted font-mono tabular-nums text-xs">
                           {v.referenceText ?? '—'}
                           {v.previousValue != null && (
                             <span
-                              className={`ml-2 text-xs ${v.deltaBreach ? 'font-semibold text-danger' : 'text-muted'}`}
+                              className={cn(
+                                'ml-2 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-mono tabular-nums',
+                                deltaInfo.deltaBreach ? 'bg-danger/10 text-danger font-semibold' : 'text-muted bg-surface-muted',
+                              )}
                             >
-                              (prev {v.previousValue}
-                              {v.deltaPercent != null ? ` · Δ ${v.deltaPercent}%` : ''})
+                              {deltaInfo.deltaBreach && <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden />}
+                              {t('prev')} {v.previousValue}
+                              {deltaInfo.deltaPercent != null ? ` · Δ ${deltaInfo.deltaPercent > 0 ? '+' : ''}${deltaInfo.deltaPercent}%` : ''}
                             </span>
                           )}
                         </td>
-                        <td className="px-5 py-2">
-                          {v.flag !== 'NONE' && (
-                            <span
-                              className={
-                                flagTone(v.flag) === 'critical'
-                                  ? 'inline-flex items-center gap-1 rounded-full bg-critical/15 px-2 py-0.5 text-xs font-semibold text-critical'
-                                  : flagTone(v.flag) === 'warning'
-                                    ? 'inline-flex items-center gap-1 rounded-full bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning'
-                                    : 'text-xs text-muted'
-                              }
+                        <td className="px-5 py-2.5">
+                          {effectiveFlag !== 'NONE' && (
+                            <Badge
+                              tone={flagTone(effectiveFlag)}
+                              variant="subtle"
+                              dot={isCritical}
+                              icon={isCritical ? <AlertTriangle className="h-3 w-3" aria-hidden /> : undefined}
                             >
-                              {flagTone(v.flag) === 'critical' && <AlertTriangle className="h-3 w-3" aria-hidden />}
-                              {t(flagLabel(v.flag))}
-                            </span>
+                              {t(flagLabel(effectiveFlag))}
+                            </Badge>
                           )}
                         </td>
                       </tr>
@@ -674,6 +916,12 @@ export function ResultEntryPage() {
         onLogged={refetch}
       />
       <AmendResultModal open={amendOpen} onClose={() => setAmendOpen(false)} result={result} onDone={refetch} />
+      <PrescriptionViewerModal
+        open={prescriptionModalOpen}
+        patientId={result.patientId}
+        prescription={result.prescription ?? null}
+        onClose={() => setPrescriptionModalOpen(false)}
+      />
     </>
   );
 }

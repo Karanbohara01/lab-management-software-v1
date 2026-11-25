@@ -19,58 +19,24 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 /**
- * Real gateway to Samaya SMS (Samaya Technology Pvt. Ltd., Nepal — samayasms.com /
- * samayasms.com.np).
- *
- * <h2>Verification status — READ BEFORE RELYING ON THIS IN PRODUCTION</h2>
- * Samaya SMS publishes no developer portal, no API reference, no Postman collection and no
- * self-service sandbox. A thorough search (11 distinct queries, 12 pages fetched, including the
- * vendor's own marketing site, FAQ, pricing/quote page, and customer portal) turned up exactly one
- * technical artifact: an unofficial-looking but apparently vendor-published PHP client library at
- * {@code github.com/samayatech/sms-api} — created and last modified 2018-04-02, never updated or
- * versioned since, with no stars/forks/issues. This gateway is implemented EXACTLY against that
- * library's documented request/response shape (quoted in full below) because it is the only real,
- * concrete thing to build against, consistent with this codebase's rule of never inventing an
- * endpoint shape — but it is eight years old and could plausibly be stale relative to whatever the
- * live samayasms.com.np platform actually runs today. Before enabling this for a real clinic,
- * confirm the exact base URL and parameter names with Samaya support directly
- * (info@samayasms.com, +977-1-5233434) — the same "verify against a live sandbox before trusting
- * published docs" caution this codebase's Sparrow SMS and Khalti integrations both document.
- *
- * <p><b>What the 2018 library documents, verbatim:</b>
- * <pre>
- * POST &lt;install-host&gt;/sms/api   (form-urlencoded body)
- *   action=send-sms&amp;api_key=...&amp;to=...&amp;from=...&amp;sms=...&amp;unicode=0|1
- * Success: {"code":"ok","message":"Successfully Send"}
- * Errors:  100 Bad gateway requested · 101 Wrong action · 102 Authentication failed
- *          103 Invalid phone number · 104 Phone coverage not active
- *          105 Insufficient balance · 106 Invalid Sender ID
- * </pre>
- * This is a self-hosted-per-customer-install pattern (the base URL is whatever host the
- * customer's own Samaya instance runs on, not one shared cloud domain), which is why {@code
- * baseUrl} is a configured field here exactly like {@link np.com.lims.messaging.gateway.SmsProperties}'s
- * is for Sparrow, rather than a hardcoded constant — there is no single public endpoint to
- * hardcode even if we wanted to.
- *
- * <p><b>What is explicitly NOT documented anywhere found</b> (do not assume any of this without
- * confirming with Samaya first): a true bulk-send endpoint or parameter (this gateway sends one
- * HTTP request per recipient — see {@code SmsCampaignWorker} — never a fabricated "send to N
- * numbers at once" call); any delivery-report/webhook/DLR mechanism (so {@code SmsMessage} never
- * reaches {@code DELIVERED} through this gateway — see that entity's javadoc); the exact JSON
- * shape of a balance-check response (this gateway's {@link #checkBalance()} parses only what the
- * 2018 docs show structurally and returns the raw decoded value under a best-effort key, clearly
- * marked as unconfirmed); per-segment billing rules (see {@link SmsSegmentCalculator}'s javadoc);
- * rate limits; or sender-ID registration requirements.
- *
- * <p>The vendor's own reference implementation builds its POST body by hand without
- * URL-encoding the parameter VALUES (only the keys) — a real bug in their sample code that would
- * corrupt message text containing {@code &amp;} or {@code =}. This implementation avoids that
- * entirely by using Spring's standard {@link MultiValueMap} + form-urlencoded {@link RestClient}
- * submission, which correctly encodes every value — the same safe mechanism
- * {@link np.com.lims.messaging.gateway.SparrowSmsGateway} already uses.
+ * Real gateway to Samaya SMS (Samaya Technology Pvt. Ltd., Nepal — samayasms.com.np),
+ * verified live against the SamayaSMS Developer API SDK:
+ * <ul>
+ *   <li><b>Send SMS</b> ({@code POST https://samayasms.com.np/smsapi/index.php},
+ *       {@code application/x-www-form-urlencoded}):
+ *       parameters {@code key} (API key), {@code type} ({@code text} or {@code unicode}),
+ *       {@code contacts} (recipient phone number), {@code senderid} (Sender ID, e.g.
+ *       {@code SmsBit}), and {@code msg} (message text). Returns plain text
+ *       {@code SMS-SHOOT-ID/<id>} on success or {@code ERR: <reason>} on failure.</li>
+ *   <li><b>Credit Balance API</b> ({@code GET https://samayasms.com.np/miscapi/<API_KEY>/getBalance/true/}):
+ *       returns a JSON array {@code [{"ROUTE_ID":135,"ROUTE":"FSN_MAIN","BALANCE":26998}]}.</li>
+ * </ul>
  */
 @Configuration
 @EnableConfigurationProperties(SamayaSmsProperties.class)
@@ -78,6 +44,7 @@ public class SamayaSmsGateway {
 
     private static final Logger log = LoggerFactory.getLogger(SamayaSmsGateway.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final String SHOOT_ID_PREFIX = "SMS-SHOOT-ID/";
 
     /**
      * Named {@code samayaGateway}, NOT {@code samayaSmsGateway} — that name collides with this
@@ -88,7 +55,7 @@ public class SamayaSmsGateway {
      */
     @Bean
     public SmsGateway samayaGateway(SamayaSmsProperties properties, RestClient.Builder restClientBuilder,
-                                       SmsCredentialsRepository credentialsRepository, CryptoService cryptoService) {
+                                    SmsCredentialsRepository credentialsRepository, CryptoService cryptoService) {
         var requestFactory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout(Duration.ofSeconds(10));
         requestFactory.setReadTimeout(Duration.ofSeconds(20));
@@ -99,7 +66,7 @@ public class SamayaSmsGateway {
     private record Effective(boolean configured, String baseUrl, String senderId, String apiKey) {
     }
 
-    /** A best-effort parse of {@code check-balance}'s response — see the class javadoc; the exact field name is unconfirmed. */
+    /** Parsed balance from SamayaSMS's Credit Balance API ({@code /miscapi/<key>/getBalance/true/}). */
     public record BalanceResult(boolean available, String rawResponse, Long balance, String errorMessage) {
     }
 
@@ -112,11 +79,15 @@ public class SamayaSmsGateway {
                 SmsCredentials c = credentialsRepository.findByOrganizationId(orgId).orElse(null);
                 if (c != null && c.isSamayaEnabled() && hasText(c.getSamayaBaseUrl())
                         && hasText(c.getSamayaSenderId()) && hasText(c.getSamayaApiKeyEncrypted())) {
-                    return new Effective(true, c.getSamayaBaseUrl(), c.getSamayaSenderId(),
-                            cryptoService.decrypt(c.getSamayaApiKeyEncrypted()));
+                    return new Effective(true, c.getSamayaBaseUrl().trim(), c.getSamayaSenderId().trim(),
+                            cryptoService.decrypt(c.getSamayaApiKeyEncrypted()).trim());
                 }
             }
-            return new Effective(properties.isFullyConfigured(), properties.baseUrl(), properties.senderId(), properties.apiKey());
+            return new Effective(
+                    properties.isFullyConfigured(),
+                    properties.baseUrl() == null ? null : properties.baseUrl().trim(),
+                    properties.senderId() == null ? null : properties.senderId().trim(),
+                    properties.apiKey() == null ? null : properties.apiKey().trim());
         }
 
         private static boolean hasText(String value) {
@@ -144,19 +115,20 @@ public class SamayaSmsGateway {
 
             String normalizedTo = normalizePhone(toPhone);
             SmsSegmentCalculator.Estimate estimate = SmsSegmentCalculator.estimate(message);
+            String smsType = estimate.encoding() == SmsSegmentCalculator.Encoding.UCS2 ? "unicode" : "text";
 
             MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-            form.add("action", "send-sms");
-            form.add("api_key", effective.apiKey());
-            form.add("to", normalizedTo);
-            form.add("from", effective.senderId());
-            form.add("sms", message);
-            form.add("unicode", estimate.encoding() == SmsSegmentCalculator.Encoding.UCS2 ? "1" : "0");
+            form.add("key", effective.apiKey());
+            form.add("type", smsType);
+            form.add("contacts", normalizedTo);
+            form.add("senderid", effective.senderId());
+            form.add("msg", message);
 
+            String targetUrl = resolveSendUrl(effective.baseUrl());
             String raw;
             try {
                 raw = client.post()
-                        .uri(effective.baseUrl())
+                        .uri(targetUrl)
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                         .body(form)
                         .retrieve()
@@ -166,78 +138,132 @@ public class SamayaSmsGateway {
                 return Result.transportError("SMS_UNREACHABLE", "Samaya SMS call failed: " + ex.getMessage());
             }
 
-            try {
-                JsonNode node = MAPPER.readTree(raw);
-                String code = node.path("code").asText("");
-                if ("ok".equalsIgnoreCase(code)) {
-                    // The 2018 docs show no per-message reference id in the success response —
-                    // only {"code":"ok","message":"Successfully Send"} — so there is nothing to
-                    // record as a provider reference beyond the fact that it was accepted.
-                    return Result.sent(null);
-                }
-                String description = SAMAYA_ERROR_CODES.getOrDefault(code, node.path("message").asText(raw));
-                return Result.transportError(code.isBlank() ? "SAMAYA_UNRECOGNISED_RESPONSE" : code, description);
-            } catch (Exception ex) {
-                return Result.transportError("SMS_UNRECOGNISED_RESPONSE", "Unrecognised Samaya SMS response: " + raw);
+            String trimmed = raw == null ? "" : raw.trim();
+            if (trimmed.regionMatches(true, 0, SHOOT_ID_PREFIX, 0, SHOOT_ID_PREFIX.length())) {
+                String shootId = trimmed.substring(SHOOT_ID_PREFIX.length()).trim();
+                return Result.sent(shootId.isEmpty() ? trimmed : shootId);
             }
+            if (trimmed.regionMatches(true, 0, "ERR:", 0, 4) || trimmed.regionMatches(true, 0, "ERR ", 0, 4)) {
+                return Result.transportError("SAMAYA_ERR", trimmed);
+            }
+
+            if (trimmed.startsWith("{")) {
+                try {
+                    JsonNode node = MAPPER.readTree(trimmed);
+                    String code = node.path("code").asText("");
+                    if ("ok".equalsIgnoreCase(code)) {
+                        return Result.sent(null);
+                    }
+                    String description = SAMAYA_ERROR_CODES.getOrDefault(code, node.path("message").asText(trimmed));
+                    return Result.transportError(code.isBlank() ? "SAMAYA_UNRECOGNISED_RESPONSE" : code, description);
+                } catch (Exception ex) {
+                    return Result.transportError("SMS_UNRECOGNISED_RESPONSE", "Unrecognised Samaya SMS response: " + trimmed);
+                }
+            }
+
+            return Result.transportError("SMS_UNRECOGNISED_RESPONSE",
+                    trimmed.isEmpty() ? "Empty response from Samaya SMS" : "Unrecognised Samaya SMS response: " + trimmed);
         }
 
-        /**
-         * {@code action=check-balance} — documented to exist, but the 2018 reference never shows
-         * what the response actually contains beyond the general {@code {"code":...}} envelope.
-         * This parses defensively: looks for a handful of plausible field names
-         * ({@code balance}, {@code sms_balance}, {@code credit}) and falls back to returning the
-         * raw response text untouched if none match, rather than guessing a shape. The UI must
-         * show {@link BalanceResult#rawResponse()} rather than inventing a number when
-         * {@link BalanceResult#balance()} is null.
-         */
         @Override
         public BalanceResult checkBalance() {
             Effective effective = resolve();
             if (!effective.configured()) {
                 return new BalanceResult(false, null, null, "Samaya SMS is not configured.");
             }
-            MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-            form.add("action", "check-balance");
-            form.add("api_key", effective.apiKey());
-
+            String balanceUrl = resolveBalanceUrl(effective.baseUrl(), effective.apiKey());
             String raw;
             try {
-                raw = client.post()
-                        .uri(effective.baseUrl())
-                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                        .body(form)
+                raw = client.get()
+                        .uri(balanceUrl)
                         .retrieve()
                         .body(String.class);
             } catch (RestClientException ex) {
                 return new BalanceResult(false, null, null, "Samaya SMS balance check failed: " + ex.getMessage());
             }
 
+            String trimmed = raw == null ? "" : raw.trim();
+            if (trimmed.isEmpty()) {
+                return new BalanceResult(false, null, null, "Empty response from Samaya SMS balance endpoint.");
+            }
+            if (trimmed.regionMatches(true, 0, "ERR:", 0, 4)) {
+                return new BalanceResult(false, trimmed, null, trimmed);
+            }
+
             try {
-                JsonNode node = MAPPER.readTree(raw);
-                for (String key : new String[] {"balance", "sms_balance", "credit", "credits"}) {
-                    if (node.has(key) && node.get(key).isNumber()) {
-                        return new BalanceResult(true, raw, node.get(key).asLong(), null);
+                JsonNode node = MAPPER.readTree(trimmed);
+                if (node.isArray() && !node.isEmpty()) {
+                    long total = 0L;
+                    boolean found = false;
+                    for (JsonNode routeNode : node) {
+                        for (String key : new String[] {"BALANCE", "balance", "sms_balance", "credit", "credits"}) {
+                            if (routeNode.has(key) && (routeNode.get(key).isNumber() || routeNode.get(key).isTextual())) {
+                                total += Math.round(Double.parseDouble(routeNode.get(key).asText().trim()));
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (found) {
+                        return new BalanceResult(true, trimmed, total, null);
+                    }
+                } else if (node.isObject()) {
+                    for (String key : new String[] {"BALANCE", "balance", "sms_balance", "credit", "credits"}) {
+                        if (node.has(key) && (node.get(key).isNumber() || node.get(key).isTextual())) {
+                            long bal = Math.round(Double.parseDouble(node.get(key).asText().trim()));
+                            return new BalanceResult(true, trimmed, bal, null);
+                        }
                     }
                 }
-                return new BalanceResult(true, raw, null, null);
+                return new BalanceResult(true, trimmed, null, null);
             } catch (Exception ex) {
-                return new BalanceResult(false, raw, null, "Unrecognised balance response: " + raw);
+                return new BalanceResult(false, trimmed, null, "Unrecognised balance response: " + trimmed);
             }
         }
 
         /**
-         * Samaya's documented contract requires the destination number to carry its country code
-         * at the front. Patient phone numbers in this system are stored as plain 10-digit Nepali
-         * mobile numbers (98XXXXXXXX/97XXXXXXXX) — this prefixes 977 only when the number doesn't
-         * already look internationally formatted, rather than assuming every stored number is bare.
+         * Normalizes a Nepali mobile number to the 10-digit format ({@code 98XXXXXXXX}/{@code 97XXXXXXXX})
+         * expected by {@code samayasms.com.np/smsapi/index.php}.
          */
         private static String normalizePhone(String phone) {
             String digits = phone == null ? "" : phone.replaceAll("[^0-9]", "");
-            if (digits.startsWith("977") && digits.length() > 10) {
-                return digits;
+            if (digits.startsWith("977") && digits.length() == 13) {
+                return digits.substring(3);
             }
-            return "977" + digits;
+            if (digits.startsWith("0") && digits.length() == 11) {
+                return digits.substring(1);
+            }
+            return digits;
+        }
+
+        private static String resolveSendUrl(String baseUrl) {
+            String trimmed = baseUrl.trim();
+            try {
+                URI uri = URI.create(trimmed);
+                String path = uri.getPath();
+                if (path == null || path.isEmpty() || "/".equals(path)) {
+                    String base = trimmed.endsWith("/") ? trimmed.substring(0, trimmed.length() - 1) : trimmed;
+                    return base + "/smsapi/index.php";
+                }
+            } catch (Exception ignored) {
+                // Use as configured
+            }
+            return trimmed;
+        }
+
+        private static String resolveBalanceUrl(String baseUrl, String apiKey) {
+            String encodedKey = URLEncoder.encode(apiKey, StandardCharsets.UTF_8);
+            try {
+                URI uri = URI.create(baseUrl.trim());
+                if (uri.getScheme() != null && uri.getHost() != null) {
+                    String portPart = uri.getPort() > 0 ? ":" + uri.getPort() : "";
+                    return uri.getScheme() + "://" + uri.getHost() + portPart + "/miscapi/" + encodedKey + "/getBalance/true/";
+                }
+            } catch (Exception ignored) {
+                // Fall through
+            }
+            String separator = baseUrl.contains("?") ? "&" : "?";
+            return baseUrl + separator + "key=" + encodedKey;
         }
     }
 

@@ -13,10 +13,10 @@ import { parameterMasterApi } from './api';
 import { PARAMETER_DATA_TYPE_LABEL, type ParameterMaster } from './types';
 import { useT, tOpts } from '@/i18n';
 
-const numish = z
-  .union([z.coerce.number(), z.literal('')])
-  .optional()
-  .transform((v) => (v === '' || v == null ? null : Number(v)));
+const numish = z.preprocess(
+  (v) => (v === '' || v == null ? null : v),
+  z.coerce.number().nullable(),
+);
 
 const schema = z.object({
   name: z.string().min(1, 'Name is required').max(160),

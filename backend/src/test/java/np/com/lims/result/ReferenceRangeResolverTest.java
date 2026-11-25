@@ -62,6 +62,25 @@ class ReferenceRangeResolverTest {
                 .isEqualTo(ResultFlag.ABNORMAL);
     }
 
+    @Test
+    void ignoresZeroCriticalValuesWhenNormalRangeIsPositive() {
+        TestParameter p = numericParam();
+        // Simulates parameters like Haematocrit (36 - 50) where critical values were accidentally saved as 0
+        p.addRange(RangeGender.ALL, null, null, bd("36"), bd("50"), null, bd("0"), bd("0"));
+        
+        // Normal value within range should be NORMAL, not CRITICAL_HIGH
+        var normalResult = resolver.interpret(p, Gender.MALE, 30, ParameterDataType.NUMERIC, bd("38"), null);
+        assertThat(normalResult.flag()).isEqualTo(ResultFlag.NORMAL);
+
+        // Value above normal range should be HIGH, not CRITICAL_HIGH
+        var highResult = resolver.interpret(p, Gender.MALE, 30, ParameterDataType.NUMERIC, bd("55"), null);
+        assertThat(highResult.flag()).isEqualTo(ResultFlag.HIGH);
+
+        // Value below normal range should be LOW, not CRITICAL_LOW
+        var lowResult = resolver.interpret(p, Gender.MALE, 30, ParameterDataType.NUMERIC, bd("30"), null);
+        assertThat(lowResult.flag()).isEqualTo(ResultFlag.LOW);
+    }
+
     private static BigDecimal bd(String v) {
         return new BigDecimal(v);
     }

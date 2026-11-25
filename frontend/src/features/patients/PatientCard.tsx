@@ -5,6 +5,7 @@ import type { PatientDetail } from './types';
 import { formatAddress, formatDate } from './format';
 import { bloodGroupLabel, categoryLabel } from './constants';
 import { translate, getLocale } from '@/i18n';
+import { adToBs, formatBsDate, getDetailedAge } from '@/lib/nepaliDate';
 
 /**
  * Printable patient card + registration slip. Rendered off-screen; `window.print()` plus the
@@ -54,12 +55,15 @@ export function PatientCard({ patient, labName }: { patient: PatientDetail; labN
     };
   }, [patient.id, patient.mrn]);
 
+  const detailed = getDetailedAge(patient.dateOfBirth);
   const age =
-    patient.ageYears != null
-      ? t('{age} yrs', { age: patient.ageYears })
-      : patient.approximateAgeYears != null
-        ? t('~{age} yrs', { age: patient.approximateAgeYears })
-        : null;
+    detailed && detailed.years < 2
+      ? detailed.formatted
+      : patient.ageYears != null
+        ? t('{age} yrs', { age: patient.ageYears })
+        : patient.approximateAgeYears != null
+          ? t('~{age} yrs', { age: patient.approximateAgeYears })
+          : null;
 
   return (
     <div id="patient-print" className="hidden print:block">
@@ -114,7 +118,16 @@ export function PatientCard({ patient, labName }: { patient: PatientDetail; labN
                 label={t('Referred by')}
                 value={patient.referringDoctorName || patient.referralSourceName || t('Self')}
               />
-              <LabelValue label={t('Registered')} value={formatDate(patient.createdAt)} />
+              {patient.dateOfBirth && (
+                <LabelValue
+                  label={t('Date of birth')}
+                  value={`${formatDate(patient.dateOfBirth)}${adToBs(patient.dateOfBirth) ? ` (${formatBsDate(adToBs(patient.dateOfBirth))})` : ''}`}
+                />
+              )}
+              <LabelValue
+                label={t('Registered')}
+                value={`${formatDate(patient.createdAt)}${adToBs(patient.createdAt) ? ` (${adToBs(patient.createdAt)!.formatted} BS)` : ''}`}
+              />
               <LabelValue label={t('Address')} value={formatAddress(patient.address) || '—'} full />
             </div>
 

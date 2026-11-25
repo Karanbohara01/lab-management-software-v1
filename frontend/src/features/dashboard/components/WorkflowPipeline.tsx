@@ -1,6 +1,14 @@
 import { ChevronRight } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/cn';
 import { Card } from '@/components/ui/Card';
+import {
+  AnimatedNumber,
+  SPRING_SNAPPY,
+  isTestEnv,
+  staggerContainerVariants,
+  staggerItemVariants,
+} from '@/components/ui/motion';
 import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { SectionHeader } from './SectionHeader';
@@ -30,6 +38,7 @@ export function WorkflowPipeline({
   const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
   const t = useT();
+  const skipMotion = isTestEnv();
 
   const stages = ([
     { key: 'patients', label: 'Patients registered', value: summary.todayPatients, to: '/app/patients', permission: PERMISSIONS.PATIENT_READ },
@@ -77,15 +86,23 @@ export function WorkflowPipeline({
   return (
     <Card className="mb-5 p-5">
       <SectionHeader title="Laboratory pipeline" description="Where today's work currently stands, end to end." />
-      {/* Tiles flex to fill the card's actual width (evenly, down to a 100px floor) instead of a
-          fixed per-tile width — a fixed width times 8 stages forced a horizontal scrollbar even
-          on a wide desktop viewport with room to spare. overflow-x-auto stays as a genuine
-          fallback for when the floor is actually hit (narrow viewports), not the normal case. */}
       <div className="-mx-1 overflow-x-auto pb-1">
-        <ol className="flex items-stretch gap-0 px-1">
+        <motion.ol
+          variants={staggerContainerVariants}
+          initial={skipMotion ? false : 'hidden'}
+          animate="show"
+          className="flex items-stretch gap-0 px-1"
+        >
           {stages.map((s, i) => (
-            <li key={s.key} className="flex flex-1 items-stretch">
-              <button
+            <motion.li
+              key={s.key}
+              variants={staggerItemVariants}
+              className="flex flex-1 items-stretch"
+            >
+              <motion.button
+                whileHover={skipMotion ? undefined : { y: -2 }}
+                whileTap={skipMotion ? undefined : { scale: 0.985 }}
+                transition={SPRING_SNAPPY}
                 type="button"
                 onClick={() => navigate(s.to)}
                 className={cn(
@@ -96,21 +113,21 @@ export function WorkflowPipeline({
                 <span className="text-label uppercase text-muted">{t(s.label)}</span>
                 <span
                   className={cn(
-                    'mt-1.5 text-xl font-semibold tracking-tight',
+                    'mt-1.5 text-xl font-semibold tracking-tight tabular-nums',
                     s.tone === 'warning' ? 'text-warning' : 'text-foreground',
                   )}
                 >
-                  {s.value}
+                  <AnimatedNumber value={s.value} />
                 </span>
-              </button>
+              </motion.button>
               {i < stages.length - 1 && (
                 <span className="flex items-center px-1 text-border" aria-hidden>
                   <ChevronRight className="h-4 w-4" />
                 </span>
               )}
-            </li>
+            </motion.li>
           ))}
-        </ol>
+        </motion.ol>
       </div>
     </Card>
   );

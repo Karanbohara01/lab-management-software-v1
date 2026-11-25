@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, FileText } from 'lucide-react';
 import { PageHeader } from '@/components/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -8,7 +8,7 @@ import { Select } from '@/components/ui/Select';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { DataTable, type Column } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
-import { TableSkeleton, ErrorState, EmptyState } from '@/components/ui/PageState';
+import { ErrorState, EmptyState } from '@/components/ui/PageState';
 import { useListParams, useSearchInput } from '@/hooks/useListParams';
 import { useQuery } from '@/hooks/useQuery';
 import { useNavigateFrom } from '@/lib/navigation';
@@ -16,6 +16,7 @@ import { useAuth } from '@/features/auth/useAuth';
 import { PERMISSIONS } from '@/features/auth/permissions';
 import { formatMoney } from '@/lib/money';
 import { formatDate } from '@/features/patients/format';
+import { adToBs } from '@/lib/nepaliDate';
 import { branchesApi, type Branch } from '@/features/branches/api';
 import { useT } from '@/i18n';
 import { ordersApi } from './api';
@@ -70,6 +71,11 @@ export function OrdersPage() {
             <Badge tone={o.priority === 'STAT' ? 'critical' : 'warning'}>{o.priority}</Badge>
           )}
           <span className="font-mono text-xs">{o.orderNumber}</span>
+          {o.hasPrescription && (
+            <span title={t('Prescription attached')} className="text-primary inline-flex items-center">
+              <FileText className="h-3.5 w-3.5" />
+            </span>
+          )}
         </span>
       ),
     },
@@ -83,13 +89,35 @@ export function OrdersPage() {
         </span>
       ),
     },
-    { key: 'items', header: t('Tests'), cell: (o) => o.itemCount, hideOnMobile: true },
-    { key: 'date', header: t('Ordered'), cell: (o) => formatDate(o.orderedAt), hideOnMobile: true },
-    { key: 'total', header: t('Total'), cell: (o) => formatMoney(o.totalAmount), className: 'text-right' },
+    { key: 'items', header: t('Tests'), cell: (o) => o.itemCount, hideOnMobile: true, numeric: true },
+    {
+      key: 'date',
+      header: t('Ordered'),
+      cell: (o) => (
+        <span className="flex flex-col">
+          <span>{formatDate(o.orderedAt)}</span>
+          {adToBs(o.orderedAt) && (
+            <span className="font-mono text-xs text-muted">
+              {adToBs(o.orderedAt)!.formatted} BS
+            </span>
+          )}
+        </span>
+      ),
+      hideOnMobile: true,
+    },
+    { key: 'total', header: t('Total'), cell: (o) => formatMoney(o.totalAmount), numeric: true },
     {
       key: 'status',
       header: t('Status'),
-      cell: (o) => <Badge tone={ORDER_STATUS_TONE[o.status]}>{t(ORDER_STATUS_LABEL[o.status])}</Badge>,
+      cell: (o) => (
+        <Badge
+          tone={ORDER_STATUS_TONE[o.status]}
+          variant="subtle"
+          dot={o.status === 'CONFIRMED'}
+        >
+          {t(ORDER_STATUS_LABEL[o.status])}
+        </Badge>
+      ),
     },
     ...(isHq
       ? [{ key: 'branch', header: t('Branch'), cell: (o: OrderListItem) => o.branchName, hideOnMobile: true } as Column<OrderListItem>]
@@ -143,34 +171,34 @@ export function OrdersPage() {
           )}
         </div>
 
-        {loading && !data ? (
-          <TableSkeleton columns={columns.length} />
-        ) : error ? (
+        {error ? (
           <ErrorState message={error} onRetry={refetch} />
-        ) : data && data.content.length === 0 ? (
-          <EmptyState
-            title={t('No orders found')}
-            message={params.q || params.status ? t('Adjust the filters.') : t('Create the first lab order.')}
-            action={canWrite && !params.q && !params.status ? <Button onClick={() => navigate('/app/orders/new')}>{t('New order')}</Button> : undefined}
-          />
         ) : (
-          data && (
-            <>
-              <DataTable
-                columns={columns}
-                rows={data.content}
-                rowKey={(o) => o.id}
-                rowHref={(o) => `/app/orders/${o.id}`}
-                onRowClick={(o) => navigate(`/app/orders/${o.id}`)}
-              />
+          <>
+            <DataTable
+              columns={columns}
+              rows={data?.content ?? []}
+              rowKey={(o) => o.id}
+              loading={loading && !data}
+              emptyState={
+                <EmptyState
+                  title={t('No orders found')}
+                  message={params.q || params.status ? t('Adjust the filters.') : t('Create the first lab order.')}
+                  action={canWrite && !params.q && !params.status ? <Button onClick={() => navigate('/app/orders/new')}>{t('New order')}</Button> : undefined}
+                />
+              }
+              rowHref={(o) => `/app/orders/${o.id}`}
+              onRowClick={(o) => navigate(`/app/orders/${o.id}`)}
+            />
+            {data && data.totalPages > 1 && (
               <Pagination
                 page={data.page}
                 totalPages={data.totalPages}
                 totalElements={data.totalElements}
                 onPageChange={(p) => set({ page: p + 1 })}
               />
-            </>
-          )
+            )}
+          </>
         )}
       </Card>
     </>

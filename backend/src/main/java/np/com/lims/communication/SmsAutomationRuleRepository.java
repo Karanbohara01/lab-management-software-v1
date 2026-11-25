@@ -2,6 +2,7 @@ package np.com.lims.communication;
 
 import np.com.lims.communication.entity.SmsAutomationEvent;
 import np.com.lims.communication.entity.SmsAutomationRule;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -11,6 +12,10 @@ public interface SmsAutomationRuleRepository extends JpaRepository<SmsAutomation
 
     List<SmsAutomationRule> findAllByOrderByEventTypeAsc();
 
+    @EntityGraph(attributePaths = {"template"})
+    Optional<SmsAutomationRule> findByOrganizationIdAndEventType(Long organizationId, SmsAutomationEvent eventType);
+
+    @EntityGraph(attributePaths = {"template"})
     Optional<SmsAutomationRule> findByEventType(SmsAutomationEvent eventType);
 
     /**

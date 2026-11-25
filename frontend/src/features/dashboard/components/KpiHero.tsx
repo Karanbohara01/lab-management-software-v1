@@ -1,17 +1,21 @@
 import { useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { Activity, ClipboardCheck, FileCheck2, FlaskConical, Wallet } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/cn';
 import { formatMoney } from '@/lib/money';
+import {
+  AnimatedNumber,
+  SPRING_SNAPPY,
+  isTestEnv,
+  staggerContainerVariants,
+  staggerItemVariants,
+} from '@/components/ui/motion';
 import { useAuth } from '@/features/auth/useAuth';
 import type { DashboardSummary } from '../api';
 import { useNavigateFrom } from '@/lib/navigation';
 import { useT } from '@/i18n';
 
-/**
- * Illustrations for the headline cards — `frontend/public/dashboard-icons/` (160 x 160
- * transparent PNGs). Until a file exists the card shows its plain line icon instead.
- */
 const ART = {
   patients: '/dashboard-icons/patients.png',
   orders: '/dashboard-icons/orders.png',
@@ -22,7 +26,8 @@ const ART = {
 
 interface Metric {
   label: string;
-  value: string;
+  rawValue: number;
+  format?: (n: number) => string;
   isZero?: boolean;
   caption?: string;
   icon: LucideIcon;
@@ -32,14 +37,13 @@ interface Metric {
   tone?: 'neutral' | 'warning';
 }
 
-/** A card's picture: the illustration if its file exists, otherwise the plain icon on a soft tile. */
 function MetricIcon({ art, icon: Icon, warning }: { art?: string; icon: LucideIcon; warning?: boolean }) {
   const [failed, setFailed] = useState(false);
   if (!art || failed) {
     return (
       <span
         className={cn(
-          'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
+          'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-transform duration-200 group-hover:scale-105',
           warning ? 'bg-warning/10 text-warning' : 'bg-primary/10 text-primary',
         )}
       >
@@ -55,21 +59,22 @@ function MetricIcon({ art, icon: Icon, warning }: { art?: string; icon: LucideIc
       alt=""
       draggable={false}
       onError={() => setFailed(true)}
-      className="h-12 w-12 shrink-0 select-none object-contain"
+      className="h-12 w-12 shrink-0 select-none object-contain transition-transform duration-200 group-hover:scale-105"
     />
   );
 }
 
-/** The dominant "today at a glance" row — one primary metric, four supporting ones. */
+/** The dominant "today at a glance" row — one primary metric, four supporting ones, with spring entrances and animated counters. */
 export function KpiHero({ summary }: { summary: DashboardSummary }) {
   const navigate = useNavigateFrom();
   const { hasPermission } = useAuth();
   const t = useT();
+  const skipMotion = isTestEnv();
 
   const secondary = ([
     {
       label: t("Today's orders"),
-      value: String(summary.todayOrders),
+      rawValue: summary.todayOrders,
       isZero: summary.todayOrders === 0,
       icon: ClipboardCheck,
       art: ART.orders,
@@ -78,7 +83,7 @@ export function KpiHero({ summary }: { summary: DashboardSummary }) {
     },
     {
       label: t('Samples in lab'),
-      value: String(summary.samplesInLab),
+      rawValue: summary.samplesInLab,
       isZero: summary.samplesInLab === 0,
       caption:
         summary.pendingCollection > 0
@@ -92,7 +97,7 @@ export function KpiHero({ summary }: { summary: DashboardSummary }) {
     },
     {
       label: t('Reports issued'),
-      value: String(summary.reportsToday),
+      rawValue: summary.reportsToday,
       isZero: summary.reportsToday === 0,
       icon: FileCheck2,
       art: ART.reports,
@@ -101,7 +106,8 @@ export function KpiHero({ summary }: { summary: DashboardSummary }) {
     },
     {
       label: t("Today's revenue"),
-      value: formatMoney(summary.todayRevenue),
+      rawValue: summary.todayRevenue,
+      format: formatMoney,
       isZero: summary.todayRevenue === 0,
       caption:
         summary.outstandingBalance > 0
@@ -116,8 +122,17 @@ export function KpiHero({ summary }: { summary: DashboardSummary }) {
   ] as Metric[]).filter((m) => !m.permission || hasPermission(m.permission));
 
   return (
-    <div className="mb-5 flex flex-wrap gap-3">
-      <button
+    <motion.div
+      variants={staggerContainerVariants}
+      initial={skipMotion ? false : 'hidden'}
+      animate="show"
+      className="mb-5 flex flex-wrap gap-3"
+    >
+      <motion.button
+        variants={staggerItemVariants}
+        whileHover={skipMotion ? undefined : { y: -3 }}
+        whileTap={skipMotion ? undefined : { scale: 0.985 }}
+        transition={SPRING_SNAPPY}
         type="button"
         onClick={() => navigate('/app/patients')}
         className="group flex flex-[2_2_20rem] items-center gap-4 rounded-lg border-2 border-primary/30 bg-primary/[0.07] px-4 py-3 text-left shadow-card transition-colors hover:border-primary/50"
@@ -125,30 +140,31 @@ export function KpiHero({ summary }: { summary: DashboardSummary }) {
         <MetricIcon art={ART.patients} icon={Activity} />
         <div className="min-w-0">
           <span className="block text-sm font-medium text-muted">{t('Patients registered today')}</span>
-          {/* A real zero shouldn't carry the same visual weight as a real count — it's the
-              least-actionable number on the dashboard, not the most, so it's dimmed rather than
-              rendered at full strength like every other value here. */}
           <p
             className={cn(
-              'my-0.5 text-price',
+              'my-0.5 text-price tabular-nums',
               summary.todayPatients > 0 ? 'text-foreground' : 'text-muted-foreground/50',
             )}
           >
-            {summary.todayPatients}
+            <AnimatedNumber value={summary.todayPatients} />
           </p>
           <p className="text-xs text-muted">
             {t('{count} order(s) placed so far today', { count: summary.todayOrders })}
           </p>
         </div>
-      </button>
+      </motion.button>
 
       {secondary.map((m) => (
-        <button
+        <motion.button
           key={m.label}
+          variants={staggerItemVariants}
+          whileHover={skipMotion ? undefined : { y: -3 }}
+          whileTap={skipMotion ? undefined : { scale: 0.985 }}
+          transition={SPRING_SNAPPY}
           type="button"
           onClick={m.to ? () => navigate(m.to!) : undefined}
           className={cn(
-            'flex flex-[1_1_11rem] items-center gap-3 rounded-lg border bg-surface px-3.5 py-3 text-left shadow-card transition-colors hover:border-primary/30',
+            'group flex flex-[1_1_11rem] items-center gap-3 rounded-lg border bg-surface px-3.5 py-3 text-left shadow-card transition-colors hover:border-primary/30',
             m.tone === 'warning' ? 'border-warning/30' : 'border-border',
           )}
         >
@@ -157,18 +173,18 @@ export function KpiHero({ summary }: { summary: DashboardSummary }) {
             <span className="block text-xs font-medium text-muted">{m.label}</span>
             <p
               className={cn(
-                'my-0.5 text-2xl font-semibold leading-none tracking-tight',
+                'my-0.5 text-2xl font-semibold leading-none tracking-tight tabular-nums',
                 m.isZero ? 'text-muted-foreground/50' : 'text-foreground',
               )}
             >
-              {m.value}
+              <AnimatedNumber value={m.rawValue} format={m.format} />
             </p>
             {m.caption && (
               <p className={cn('text-xs', m.tone === 'warning' ? 'text-warning' : 'text-muted')}>{m.caption}</p>
             )}
           </div>
-        </button>
+        </motion.button>
       ))}
-    </div>
+    </motion.div>
   );
 }

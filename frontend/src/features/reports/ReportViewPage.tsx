@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Printer, RefreshCw, Send, ShieldCheck } from 'lucide-react';
+import { Printer, RefreshCw, Send, ShieldCheck, MessageCircle } from 'lucide-react';
 import { BackLink } from '@/components/BackLink';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -16,6 +16,7 @@ import { reportsApi } from './api';
 import { REPORT_STATUS_TONE } from './types';
 import { ReportDocument } from './ReportDocument';
 import { DeliverReportModal } from './DeliverReportModal';
+import { ReportGenerationModal } from './ReportGenerationModal';
 import { useT } from '@/i18n';
 
 export function ReportViewPage() {
@@ -25,7 +26,9 @@ export function ReportViewPage() {
   const toast = useToast();
   const { hasPermission } = useAuth();
   const [deliverOpen, setDeliverOpen] = useState(false);
+  const [deliverMethod, setDeliverMethod] = useState<string | undefined>(undefined);
   const [busy, setBusy] = useState(false);
+  const [generateConfig, setGenerateConfig] = useState<{ preliminary: boolean } | null>(null);
 
   const { data: report, loading, error, refetch } = useQuery(() => reportsApi.get(Number(id)), [id]);
   // This page draws its own print-aware header rather than PageHeader, so it publishes its title itself.
@@ -76,7 +79,7 @@ export function ReportViewPage() {
             <Button
               variant="secondary"
               disabled={busy}
-              onClick={() => act(() => reportsApi.generate(report.orderId), t('Report regenerated'))}
+              onClick={() => setGenerateConfig({ preliminary: false })}
             >
               <RefreshCw className="h-4 w-4" aria-hidden />
               {t('Regenerate (final)')}
@@ -86,7 +89,7 @@ export function ReportViewPage() {
             <Button
               variant="secondary"
               disabled={busy}
-              onClick={() => act(() => reportsApi.generate(report.orderId, true), t('Preliminary report updated'))}
+              onClick={() => setGenerateConfig({ preliminary: true })}
             >
               <RefreshCw className="h-4 w-4" aria-hidden />
               {t('Update preliminary')}
@@ -105,7 +108,27 @@ export function ReportViewPage() {
             </Button>
           )}
           {canDeliver && report.status !== 'GENERATED' && (
-            <Button disabled={busy} onClick={() => setDeliverOpen(true)}>
+            <Button
+              variant="secondary"
+              disabled={busy}
+              onClick={() => {
+                setDeliverMethod('WHATSAPP_DIRECT');
+                setDeliverOpen(true);
+              }}
+              className="border-emerald-500/40 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 dark:border-emerald-500/30 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
+            >
+              <MessageCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden />
+              {t('WhatsApp')}
+            </Button>
+          )}
+          {canDeliver && report.status !== 'GENERATED' && (
+            <Button
+              disabled={busy}
+              onClick={() => {
+                setDeliverMethod(undefined);
+                setDeliverOpen(true);
+              }}
+            >
               <Send className="h-4 w-4" aria-hidden />
               {t('Record delivery')}
             </Button>
@@ -121,8 +144,29 @@ export function ReportViewPage() {
         open={deliverOpen}
         onClose={() => setDeliverOpen(false)}
         reportId={report.id}
+        reportNumber={report.reportNumber}
+        patientName={report.patientName}
+        patientPhone={report.patientPhone}
+        verificationToken={report.verificationToken}
+        labName={report.laboratory?.name}
+        initialMethod={deliverMethod}
         onDone={refetch}
       />
+
+      {generateConfig && (
+        <ReportGenerationModal
+          open={!!generateConfig}
+          orderId={report.orderId}
+          preliminary={generateConfig.preliminary}
+          orderNumber={report.orderNumber}
+          patientName={report.patientName}
+          onClose={() => setGenerateConfig(null)}
+          onSuccess={() => {
+            setGenerateConfig(null);
+            refetch();
+          }}
+        />
+      )}
     </>
   );
 }

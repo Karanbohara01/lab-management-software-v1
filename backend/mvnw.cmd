@@ -19,7 +19,7 @@
 @SET __MVNW_ARG0_NAME__=
 @SET MVNW_USERNAME=
 @SET MVNW_PASSWORD=
-@IF NOT "%__MVNW_CMD__%"=="" (%__MVNW_CMD__% %*)
+@IF NOT "%__MVNW_CMD__%"=="" ("%__MVNW_CMD__%" %*)
 @echo Cannot start maven from wrapper >&2 && exit /b 1
 @GOTO :EOF
 : end batch / begin powershell #>
@@ -36,12 +36,12 @@ if (-not $env:JAVA_HOME) {
 
 [xml]$dummy = "<root/>"
 $distributionUrl = $null
-foreach ($line in (Get-Content -Path "$PSScriptRoot/.mvn/wrapper/maven-wrapper.properties")) {
+foreach ($line in (Get-Content -Path "$scriptDir/.mvn/wrapper/maven-wrapper.properties")) {
   $t = $line.Trim()
   if ($t.StartsWith("distributionUrl=")) { $distributionUrl = $t.Substring("distributionUrl=".Length) }
   if ($t.StartsWith("distributionSha256Sum=")) { $distributionSha256Sum = $t.Substring("distributionSha256Sum=".Length) }
 }
-if (-not $distributionUrl) { Write-Error "cannot read distributionUrl property in $PSScriptRoot/.mvn/wrapper/maven-wrapper.properties" }
+if (-not $distributionUrl) { Write-Error "cannot read distributionUrl property in $scriptDir/.mvn/wrapper/maven-wrapper.properties" }
 
 switch -wildcard -casesensitive ( $($distributionUrl -replace '^.*/','') ) {
   "maven-mvnd-*" { $MVN_CMD = "mvnd.cmd"; $USE_MVND = $true }

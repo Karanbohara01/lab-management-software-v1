@@ -20,10 +20,13 @@ import { Alert } from '@/components/ui/Alert';
 import { PatientCard } from './PatientCard';
 import { MergePatientModal } from './MergePatientModal';
 import { PatientOrdersTab } from './PatientOrdersTab';
+import { PatientResultsTab } from './PatientResultsTab';
 import { PatientReportsTab } from './PatientReportsTab';
 import { PatientInvoicesTab } from './PatientInvoicesTab';
 import { PatientCommunicationTab } from './PatientCommunicationTab';
-import { formatAddress, formatDate, formatDateTime, formatGender } from './format';
+import { PatientDocumentsTab } from './PatientDocumentsTab';
+import { formatAddress, formatDate, formatDateTime, formatGender, formatPreciseAge } from './format';
+import { adToBs, formatBsDate } from '@/lib/nepaliDate';
 import {
   bloodGroupLabel,
   categoryLabel,
@@ -34,13 +37,15 @@ import {
   referralSourceLabel,
 } from './constants';
 
-type Tab = 'overview' | 'orders' | 'invoices' | 'reports' | 'communication';
+type Tab = 'overview' | 'orders' | 'results' | 'reports' | 'documents' | 'invoices' | 'communication';
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'overview', label: 'Overview (tab)' },
-  { id: 'orders', label: 'Lab orders (tab)' },
-  { id: 'invoices', label: 'Invoices (tab)' },
-  { id: 'reports', label: 'Reports (tab)' },
-  { id: 'communication', label: 'Communication (tab)' },
+  { id: 'overview', label: 'Overview' },
+  { id: 'orders', label: 'Lab orders' },
+  { id: 'results', label: 'Results' },
+  { id: 'reports', label: 'Reports' },
+  { id: 'documents', label: 'Medical records' },
+  { id: 'invoices', label: 'Invoices' },
+  { id: 'communication', label: 'Communication' },
 ];
 
 function Field({ label, value }: { label: string; value: ReactNode }) {
@@ -165,7 +170,7 @@ export function PatientDetailPage() {
             {canWrite && !merged && (
               <Button variant="secondary" onClick={() => navigate(`/app/patients/${patient.id}/edit`)}>
                 <Pencil className="h-4 w-4" aria-hidden />
-                {t('Edit (action)')}
+                {t('Edit')}
               </Button>
             )}
           </div>
@@ -197,12 +202,28 @@ export function PatientDetailPage() {
                 <Field label={t('MRN')} value={<span className="font-mono">{patient.mrn}</span>} />
                 <Field label={t('External MRN')} value={patient.externalMrn} />
                 <Field label={t('Gender')} value={formatGender(patient.gender)} />
-                <Field label={t('Date of birth')} value={formatDate(patient.dateOfBirth)} />
+                <Field
+                  label={t('Date of birth')}
+                  value={
+                    patient.dateOfBirth ? (
+                      <div>
+                        <div>{formatDate(patient.dateOfBirth)}</div>
+                        {adToBs(patient.dateOfBirth) && (
+                          <div className="text-xs text-muted">
+                            {formatBsDate(adToBs(patient.dateOfBirth), getLocale() === 'ne' ? 'ne' : 'en')}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      '—'
+                    )
+                  }
+                />
                 <Field
                   label={t('Age')}
                   value={
-                    patient.ageYears != null
-                      ? t(patient.minor ? '{age} years (minor)' : '{age} years', { age: patient.ageYears })
+                    patient.dateOfBirth
+                      ? formatPreciseAge(patient.dateOfBirth, patient.ageYears, patient.minor)
                       : patient.approximateAgeYears != null
                         ? t('~{age} years', { age: patient.approximateAgeYears })
                         : '—'
@@ -330,7 +351,9 @@ export function PatientDetailPage() {
       )}
 
       {tab === 'orders' && <PatientOrdersTab patientId={patient.id} />}
+      {tab === 'results' && <PatientResultsTab patientId={patient.id} />}
       {tab === 'reports' && <PatientReportsTab patientId={patient.id} />}
+      {tab === 'documents' && <PatientDocumentsTab patientId={patient.id} />}
       {tab === 'invoices' && <PatientInvoicesTab patientId={patient.id} />}
       {tab === 'communication' && (
         <PatientCommunicationTab patientId={patient.id} phone={patient.phone} fullName={patient.fullName} />

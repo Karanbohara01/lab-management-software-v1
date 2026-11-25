@@ -1,5 +1,7 @@
+import { motion } from 'framer-motion';
 import { Select } from '@/components/ui/Select';
 import { DateRangePicker } from '@/components/ui/DateRangePicker';
+import { SPRING_SNAPPY, isTestEnv } from '@/components/ui/motion';
 import { cn } from '@/lib/cn';
 import type { Branch } from '@/features/branches/api';
 import { useT } from '@/i18n';
@@ -8,11 +10,6 @@ import type { RevenueWindowState } from '../useRevenueWindow';
 
 const PRESETS = Object.keys(REVENUE_PRESET_LABEL) as RevenuePreset[];
 
-/**
- * The period control: the ten named windows as a row of chips (a tap, not a menu — a front office
- * switches between "Today" and "This month" constantly), plus a two-month calendar for anything
- * else. Branch narrowing sits alongside, and is hidden for a user already tied to one branch.
- */
 export function RevenueFilters({
   window,
   branches,
@@ -23,6 +20,7 @@ export function RevenueFilters({
   showBranch: boolean;
 }) {
   const t = useT();
+  const skipMotion = isTestEnv();
   return (
     <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row lg:items-end lg:justify-between">
       <div className="min-w-0">
@@ -37,13 +35,21 @@ export function RevenueFilters({
                 aria-pressed={active}
                 onClick={() => window.setPreset(p)}
                 className={cn(
-                  'shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
+                  'relative shrink-0 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
                   active
-                    ? 'border-primary bg-primary/10 text-primary'
+                    ? 'border-primary text-primary'
                     : 'border-border text-muted-foreground hover:bg-surface-muted hover:text-foreground',
                 )}
               >
-                {t(REVENUE_PRESET_LABEL[p])}
+                {active && (
+                  <motion.span
+                    layoutId={skipMotion ? undefined : 'revenue-preset-pill'}
+                    transition={SPRING_SNAPPY}
+                    className="absolute inset-0 rounded-full bg-primary/10"
+                    aria-hidden
+                  />
+                )}
+                <span className="relative z-10">{t(REVENUE_PRESET_LABEL[p])}</span>
               </button>
             );
           })}

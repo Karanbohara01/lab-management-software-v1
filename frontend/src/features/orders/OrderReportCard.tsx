@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText } from 'lucide-react';
+import { FileText, Eye } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -11,6 +11,8 @@ import { ApiError } from '@/types/api';
 import { useToast } from '@/components/ui/toast';
 import { reportsApi } from '@/features/reports/api';
 import { REPORT_STATUS_TONE, type ReportDetail, type ReportStatus } from '@/features/reports/types';
+import { ReportPreviewModal } from '@/features/reports/ReportPreviewModal';
+import { ReportGenerationModal } from '@/features/reports/ReportGenerationModal';
 import { useT } from '@/i18n';
 
 /** ReportStatus has no shared label map (just a tone map) — the raw value doubles as the label. */
@@ -44,6 +46,8 @@ export function OrderReportCard({
   const canGenerate = hasPermission(PERMISSIONS.REPORT_GENERATE);
   const canDeliver = hasPermission(PERMISSIONS.REPORT_DELIVER);
   const [busy, setBusy] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [generateConfig, setGenerateConfig] = useState<{ preliminary: boolean } | null>(null);
 
   const run = async (fn: () => Promise<unknown>, ok: string) => {
     setBusy(true);
@@ -86,22 +90,34 @@ export function OrderReportCard({
             </Button>
           )}
           <div className="flex gap-2">
+            <Button variant="secondary" className="flex-1" onClick={() => setPreviewOpen(true)}>
+              <Eye className="h-4 w-4" aria-hidden />
+              {t('Preview')}
+            </Button>
             <LinkFrom to={`/app/reports/${report.id}`} className="flex-1">
-              <Button variant="secondary" className="w-full">
+              <Button variant="ghost" className="w-full">
                 <FileText className="h-4 w-4" aria-hidden />
-                {t('Open report')}
+                {t('Open')}
               </Button>
             </LinkFrom>
             {canGenerate && report.status === 'GENERATED' && (
               <Button
                 variant="ghost"
-                loading={busy}
-                onClick={() => run(() => reportsApi.generate(orderId, false), t('Report regenerated'))}
+                disabled={busy}
+                onClick={() => setGenerateConfig({ preliminary: false })}
               >
                 {t('Regenerate')}
               </Button>
             )}
           </div>
+          {previewOpen && (
+            <ReportPreviewModal
+              open={previewOpen}
+              onClose={() => setPreviewOpen(false)}
+              report={report}
+              onUpdated={onChange}
+            />
+          )}
         </CardBody>
       ) : (
         <CardBody className="space-y-2">
@@ -111,8 +127,8 @@ export function OrderReportCard({
             <>
               <Button
                 className="w-full"
-                loading={busy}
-                onClick={() => run(() => reportsApi.generate(orderId, false), t('Report generated'))}
+                disabled={busy}
+                onClick={() => setGenerateConfig({ preliminary: false })}
               >
                 <FileText className="h-4 w-4" aria-hidden />
                 {t('Generate final report')}
@@ -120,8 +136,8 @@ export function OrderReportCard({
               <Button
                 variant="secondary"
                 className="w-full"
-                loading={busy}
-                onClick={() => run(() => reportsApi.generate(orderId, true), t('Preliminary report generated'))}
+                disabled={busy}
+                onClick={() => setGenerateConfig({ preliminary: true })}
               >
                 {t('Generate preliminary report')}
               </Button>
@@ -130,6 +146,19 @@ export function OrderReportCard({
             <p className="text-sm text-muted">{t('Results are approved — a pathologist can generate the report.')}</p>
           )}
         </CardBody>
+      )}
+
+      {generateConfig && (
+        <ReportGenerationModal
+          open={!!generateConfig}
+          orderId={orderId}
+          preliminary={generateConfig.preliminary}
+          onClose={() => setGenerateConfig(null)}
+          onSuccess={() => {
+            setGenerateConfig(null);
+            onChange();
+          }}
+        />
       )}
     </Card>
   );

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Plus, Users, GitBranch, CreditCard, CheckCircle2 } from 'lucide-react';
+import { Plus, Users, GitBranch } from 'lucide-react';
+import { FcPlanner, FcApproval, FcCurrencyExchange } from 'react-icons/fc';
 import { PageHeader } from '@/components/PageHeader';
 import { useBackTarget } from '@/lib/navigation';
 import { Button } from '@/components/ui/Button';
@@ -30,15 +31,15 @@ export function PlansPage() {
 
   const stats: StatTileData[] = data
     ? [
-        { label: t('Total plans'), value: data.length, icon: CreditCard },
-        { label: t('Active (offered to new clinics)'), value: data.filter((p) => p.active).length, icon: CheckCircle2 },
+        { label: t('Total plans'), value: data.length, icon: FcPlanner },
+        { label: t('Active (offered to new clinics)'), value: data.filter((p) => p.active).length, icon: FcApproval },
         {
           label: t('Price range'),
           value:
             data.length === 0
               ? '—'
               : `NPR ${Math.min(...data.map((p) => p.priceMonthly)).toLocaleString()} – ${Math.max(...data.map((p) => p.priceMonthly)).toLocaleString()}`,
-          icon: Users,
+          icon: FcCurrencyExchange,
         },
       ]
     : [];

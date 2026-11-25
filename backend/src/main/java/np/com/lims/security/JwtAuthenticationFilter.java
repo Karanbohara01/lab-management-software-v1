@@ -33,13 +33,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
+        String token = null;
         String header = request.getHeader(HEADER);
-        if (header == null || !header.startsWith(PREFIX)) {
+        if (header != null && header.startsWith(PREFIX)) {
+            token = header.substring(PREFIX.length());
+        } else {
+            String paramToken = request.getParameter("token");
+            if (paramToken != null && !paramToken.isBlank()) {
+                token = paramToken.trim();
+            }
+        }
+
+        if (token == null) {
             filterChain.doFilter(request, response);
             return;
         }
-
-        String token = header.substring(PREFIX.length());
         try {
             // The subject is the user's numeric id (not username) — see AuthService.issueTokens
             // and AppUserDetailsService.loadUserById's javadoc for why: usernames are only unique

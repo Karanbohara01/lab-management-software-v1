@@ -29,6 +29,9 @@ import { useT } from '@/i18n';
 import { ordersApi } from './api';
 import type { DiscountType, OrderPricing, OrderPriority } from './types';
 import { PricingSummary } from './PricingSummary';
+import { SpecimenCollectionGuide } from './SpecimenCollectionGuide';
+import { OrderPrescriptionPicker } from './OrderPrescriptionPicker';
+import type { SpecimenType } from '@/features/catalog/types';
 
 /** Just the fields the order builder shows for the selected patient. */
 interface PickedPatient {
@@ -46,6 +49,7 @@ interface Row {
   unitPrice: number;
   quantity: number;
   lineDiscount: number;
+  specimenType?: SpecimenType;
 }
 
 const ZERO_PRICING: OrderPricing = {
@@ -78,6 +82,7 @@ export function OrderBuilderPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [branchId, setBranchId] = useState('');
   const [referringDoctorId, setReferringDoctorId] = useState('');
+  const [prescriptionDocumentId, setPrescriptionDocumentId] = useState<number | null>(null);
   const [clinicalNotes, setClinicalNotes] = useState('');
   const [priority, setPriority] = useState<OrderPriority>('ROUTINE');
   const [rows, setRows] = useState<Row[]>([]);
@@ -90,6 +95,34 @@ export function OrderBuilderPage() {
   useScrollToTopOnError(formError);
 
   const [doctors, setDoctors] = useState<{ id: number; fullName: string }[]>([]);
+  const RECENT_DOCTORS_KEY = 'lims:recent_referrers';
+  const [recentDoctorIds, setRecentDoctorIds] = useState<number[]>(() => {
+    try {
+      const raw = localStorage.getItem('lims:recent_referrers');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const recordRecentDoctor = (idStr: string) => {
+    if (!idStr) return;
+    const idNum = Number(idStr);
+    if (!idNum) return;
+    try {
+      const updated = [idNum, ...recentDoctorIds.filter((id) => id !== idNum)].slice(0, 4);
+      localStorage.setItem(RECENT_DOCTORS_KEY, JSON.stringify(updated));
+      setRecentDoctorIds(updated);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const recentDoctors = useMemo(() => {
+    return recentDoctorIds
+      .map((id) => doctors.find((d) => d.id === id))
+      .filter((d): d is { id: number; fullName: string } => !!d);
+  }, [recentDoctorIds, doctors]);
 
   // ---- initial load -------------------------------------------------
   useEffect(() => {
@@ -117,6 +150,7 @@ export function OrderBuilderPage() {
         });
         setBranchId(String(order.branchId));
         setReferringDoctorId(order.referringDoctorId ? String(order.referringDoctorId) : '');
+        setPrescriptionDocumentId(order.prescription?.id ?? null);
         setClinicalNotes(order.clinicalNotes ?? '');
         setPriority(order.priority ?? 'ROUTINE');
         setRows(
@@ -165,6 +199,7 @@ export function OrderBuilderPage() {
                 unitPrice: tests[i]?.price ?? 0,
                 quantity: it.quantity,
                 lineDiscount: 0,
+                specimenType: tests[i]?.specimenType,
               })),
             );
           }
@@ -184,7 +219,18 @@ export function OrderBuilderPage() {
    * the snapshot taken once loading finished (an empty form, the order being edited, or whatever
    * a patient/appointment preset filled in). Anything the user changed after that is unsaved work.
    */
-  const snapshot = JSON.stringify({ patient: patient?.id ?? null, branchId, referringDoctorId, clinicalNotes, priority, rows, discountType, discountValue, taxRate });
+  const snapshot = JSON.stringify({
+    patient: patient?.id ?? null,
+    branchId,
+    referringDoctorId,
+    prescriptionDocumentId,
+    clinicalNotes,
+    priority,
+    rows,
+    discountType,
+    discountValue,
+    taxRate,
+  });
   const baseline = useRef<string | null>(null);
   useEffect(() => {
     if (!loading && baseline.current === null) baseline.current = snapshot;
@@ -235,6 +281,7 @@ export function OrderBuilderPage() {
         patientId: patient.id,
         branchId: !isBranchScoped && branchId ? Number(branchId) : undefined,
         referringDoctorId: referringDoctorId ? Number(referringDoctorId) : null,
+        prescriptionDocumentId: prescriptionDocumentId ?? null,
         clinicalNotes: clinicalNotes || undefined,
         priority,
         items: rows.map((r) => ({ testId: r.testId, quantity: r.quantity, lineDiscount: r.lineDiscount })),
@@ -340,6 +387,7 @@ export function OrderBuilderPage() {
                       unitPrice: t.price,
                       quantity: 1,
                       lineDiscount: 0,
+                      specimenType: t.specimenType,
                     },
                   ])
                 }
@@ -422,6 +470,8 @@ export function OrderBuilderPage() {
                   </table>
                 </div>
               )}
+
+              {rows.length > 0 && <SpecimenCollectionGuide items={rows} />}
             </CardBody>
           </Card>
 
@@ -437,13 +487,40 @@ export function OrderBuilderPage() {
                   onChange={(e) => setBranchId(e.target.value)}
                 />
               )}
-              <Combobox
-                label={t('Referring doctor')}
-                placeholder={t('No referring doctor')}
-                options={doctors.map((d) => ({ value: String(d.id), label: d.fullName }))}
-                value={referringDoctorId}
-                onChange={setReferringDoctorId}
-              />
+              <div className="space-y-1.5">
+                <Combobox
+                  label={t('Referring doctor')}
+                  placeholder={t('No referring doctor')}
+                  options={doctors.map((d) => ({ value: String(d.id), label: d.fullName }))}
+                  value={referringDoctorId}
+                  onChange={(val) => {
+                    setReferringDoctorId(val);
+                    recordRecentDoctor(val);
+                  }}
+                />
+                {recentDoctors.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs">
+                    <span className="text-muted">{t('Recent:')}</span>
+                    {recentDoctors.map((doc) => (
+                      <button
+                        key={doc.id}
+                        type="button"
+                        onClick={() => {
+                          setReferringDoctorId(String(doc.id));
+                          recordRecentDoctor(String(doc.id));
+                        }}
+                        className={`rounded-full px-2.5 py-0.5 border text-xs font-medium transition-colors ${
+                          referringDoctorId === String(doc.id)
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border bg-surface hover:bg-surface-muted text-foreground'
+                        }`}
+                      >
+                        {doc.fullName}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <Select
                 label={t('Priority')}
                 options={[
@@ -454,6 +531,13 @@ export function OrderBuilderPage() {
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as OrderPriority)}
               />
+
+              <OrderPrescriptionPicker
+                patientId={patient?.id ?? null}
+                selectedDocId={prescriptionDocumentId}
+                onSelectDocId={setPrescriptionDocumentId}
+              />
+
               <Textarea
                 label={t('Clinical notes')}
                 value={clinicalNotes}

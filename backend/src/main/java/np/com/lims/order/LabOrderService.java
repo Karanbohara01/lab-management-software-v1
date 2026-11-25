@@ -8,6 +8,7 @@ import np.com.lims.common.audit.AuditService;
 import np.com.lims.common.exception.ApiException;
 import np.com.lims.common.exception.ErrorCode;
 import np.com.lims.common.sequence.SequenceService;
+import np.com.lims.common.tenant.TenantContext;
 import np.com.lims.common.tenant.TenantGuard;
 import np.com.lims.common.web.CurrentUser;
 import np.com.lims.communication.SmsAutomationTriggerService;
@@ -21,8 +22,10 @@ import np.com.lims.order.dto.OrderDtos.PreviewRequest;
 import np.com.lims.order.dto.OrderDtos.SaveRequest;
 import np.com.lims.order.entity.LabOrder;
 import np.com.lims.order.entity.OrderStatus;
+import np.com.lims.patient.PatientDocumentRepository;
 import np.com.lims.patient.PatientRepository;
 import np.com.lims.patient.entity.Patient;
+import np.com.lims.patient.entity.PatientDocument;
 import np.com.lims.sample.SampleService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -50,6 +53,7 @@ public class LabOrderService {
     private final AuditService auditService;
     private final SampleService sampleService;
     private final SmsAutomationTriggerService smsAutomationTriggerService;
+    private final PatientDocumentRepository patientDocumentRepository;
 
     public LabOrderService(LabOrderRepository orderRepository,
                            PatientRepository patientRepository,
@@ -60,7 +64,8 @@ public class LabOrderService {
                            SequenceService sequenceService,
                            AuditService auditService,
                            SampleService sampleService,
-                           SmsAutomationTriggerService smsAutomationTriggerService) {
+                           SmsAutomationTriggerService smsAutomationTriggerService,
+                           PatientDocumentRepository patientDocumentRepository) {
         this.orderRepository = orderRepository;
         this.patientRepository = patientRepository;
         this.doctorRepository = doctorRepository;
@@ -71,6 +76,7 @@ public class LabOrderService {
         this.auditService = auditService;
         this.sampleService = sampleService;
         this.smsAutomationTriggerService = smsAutomationTriggerService;
+        this.patientDocumentRepository = patientDocumentRepository;
     }
 
     @Transactional(readOnly = true)
@@ -113,9 +119,11 @@ public class LabOrderService {
         }
         Doctor doctor = resolveDoctor(request.referringDoctorId(), patient);
         Branch branch = resolveBranch(request.branchId());
+        PatientDocument prescription = resolvePrescription(request.prescriptionDocumentId(), patient.getId());
 
         String number = sequenceService.nextFormatted(ORDER_SEQUENCE, "ORD", 6);
         LabOrder order = LabOrder.open(number, patient, doctor, branch, trimToNull(request.clinicalNotes()));
+        order.setPrescriptionDocument(prescription);
         order.applyPriority(request.priority());
         addItems(order, request.items());
         repriceAndPersist(order, request);
@@ -140,7 +148,8 @@ public class LabOrderService {
         Detail before = Detail.from(order);
 
         Doctor doctor = resolveDoctor(request.referringDoctorId(), order.getPatient());
-        order.updateHeader(doctor, trimToNull(request.clinicalNotes()));
+        PatientDocument prescription = resolvePrescription(request.prescriptionDocumentId(), order.getPatient().getId());
+        order.updateHeader(doctor, trimToNull(request.clinicalNotes()), prescription);
         order.applyPriority(request.priority());
         order.clearItems();
         addItems(order, request.items());
@@ -205,6 +214,15 @@ public class LabOrderService {
         order.applyPricing(result.discountType(), result.discountValue(), result.taxRate(),
                 result.subtotal(), result.discountAmount(), result.taxableAmount(),
                 result.taxAmount(), result.totalAmount());
+    }
+
+    private PatientDocument resolvePrescription(Long docId, Long patientId) {
+        if (docId == null) {
+            return null;
+        }
+        Long orgId = TenantContext.require();
+        return patientDocumentRepository.findByIdAndPatient(orgId, patientId, docId)
+                .orElseThrow(() -> ApiException.notFound("PatientDocument", docId));
     }
 
     private Doctor resolveDoctor(Long doctorId, Patient patient) {

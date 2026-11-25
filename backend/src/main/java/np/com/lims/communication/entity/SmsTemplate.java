@@ -47,6 +47,16 @@ public class SmsTemplate extends BaseEntity {
         return t;
     }
 
+    public static SmsTemplate createForOrganization(Long organizationId, String name, SmsCategory category, String body) {
+        SmsTemplate t = new SmsTemplate();
+        t.organizationId = organizationId;
+        t.name = name;
+        t.category = category;
+        t.body = body;
+        t.active = true;
+        return t;
+    }
+
     public void update(String name, SmsCategory category, String body) {
         this.name = name;
         this.category = category;

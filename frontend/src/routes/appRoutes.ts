@@ -20,6 +20,8 @@ export interface MatchedHandle extends RouteHandle {
 export const APP_ROUTE_HANDLES: Record<string, RouteHandle> = {
   '/app': { title: 'Dashboard' },
   '/app/help': { title: 'Help' },
+  '/app/support': { title: 'Support & Inquiries' },
+  '/app/support/:id': { title: 'Inquiry', parent: '/app/support' },
   '/app/notifications': { title: 'Notifications' },
 
   '/app/patients': { title: 'Patients' },
@@ -95,6 +97,7 @@ export const APP_ROUTE_HANDLES: Record<string, RouteHandle> = {
   '/app/platform/billing': { title: 'Platform billing', parent: '/app/platform' },
   '/app/platform/roles': { title: 'Roles & permissions', parent: '/app/platform' },
   '/app/platform/leadership': { title: 'Leadership', parent: '/app/platform' },
+  '/app/platform/inquiries': { title: 'Clinic Inquiries', parent: '/app/platform' },
 };
 
 /** The handle router.tsx attaches to the route for `pattern` (undefined for unlisted routes like the 404). */
