@@ -62,7 +62,7 @@ export function useBarcodeScanner(
       }
 
       // Only buffer single printable characters
-      if (e.key.length !== 1) {
+      if (!e.key || e.key.length !== 1) {
         bufferRef.current = [];
         return;
       }

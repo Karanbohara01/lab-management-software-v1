@@ -92,7 +92,8 @@ public class AuditLog {
     @PrePersist
     private void assignTenant() {
         if (organizationId == null) {
-            organizationId = TenantContext.require();
+            Long tenantId = TenantContext.get();
+            this.organizationId = tenantId != null ? tenantId : 1L;
         }
     }
 
