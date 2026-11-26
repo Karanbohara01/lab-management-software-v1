@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, Pill, Truck, Building2, AlertTriangle, ShieldCheck, RotateCcw } from 'lucide-react';
+import { ShoppingCart, Pill, Truck, Building2, AlertTriangle, ShieldCheck, RotateCcw, Receipt } from 'lucide-react';
 import { useT } from '@/i18n';
 
 interface NavItem {
@@ -19,6 +19,11 @@ export function PharmacyHeader() {
       to: '/app/pharmacy/pos',
       label: t('POS Counter'),
       icon: ShoppingCart,
+    },
+    {
+      to: '/app/pharmacy/sales',
+      label: t('Sales & Invoices'),
+      icon: Receipt,
     },
     {
       to: '/app/pharmacy/medicines',
