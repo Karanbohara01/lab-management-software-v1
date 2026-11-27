@@ -94,6 +94,6 @@ you do directly with IRD.
 | Variable | Default | Notes |
 |---|---|---|
 | `DB_ROOT_PASSWORD` | *(required, no default)* | The MySQL root password — only the prod compose file's `mysql` service uses this (not the app itself). |
-| `HTTP_PORT` | `80` | The host port the frontend/nginx container is published on. |
+| `DOMAIN` | *(required, no default)* | The real domain this deployment is served from, without `https://` (e.g. `labs.example.com`) — used by the `caddy` service (see `./Caddyfile`) to request and auto-renew its own Let's Encrypt certificate. The frontend container is no longer published directly; Caddy is the sole entrypoint on ports 80/443. |
 
 See `.env.prod.example` for a ready-to-copy template of everything above.

@@ -101,8 +101,26 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
+    networks: [lims]
+
+  # Reverse proxy + automatic HTTPS. Fronts everything on 80/443 — frontend itself is no longer
+  # published to the host — and issues/renews its own Let's Encrypt certificate the moment DOMAIN's
+  # DNS points at this host, with no certbot/cron to maintain. See ./Caddyfile.
+  caddy:
+    image: caddy:2-alpine
+    container_name: lims-caddy-prod
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env.prod, e.g. DOMAIN=labs.example.com}
     ports:
-      - "${HTTP_PORT:-80}:8080"
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
     networks: [lims]
 
 networks:
@@ -111,3 +129,5 @@ networks:
 volumes:
   lims_mysql_prod_data:
   lims_backups:
+  caddy_data:
+  caddy_config:
