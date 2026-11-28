@@ -781,24 +781,24 @@ export function PharmacyReturnsPage() {
         <Modal
           open={true}
           onClose={() => setCreditNoteReceipt(null)}
-          title={t('Credit Note #{num}', { num: creditNoteReceipt.creditNoteNumber })}
-          size="md"
+          title={t('IRD Credit Note #{num}', { num: creditNoteReceipt.creditNoteNumber })}
+          size="lg"
         >
           <div className="space-y-4">
-            <div className="max-h-[65vh] overflow-y-auto rounded-lg border border-border bg-gray-50 p-3 shadow-inner dark:bg-gray-900">
+            <div className="max-h-[75vh] overflow-y-auto rounded-xl border border-border/80 bg-slate-100 p-6 shadow-inner dark:bg-slate-900/60 scrollbar-thin">
               <PharmacyCreditNotePrint creditNote={creditNoteReceipt} />
             </div>
 
-            <div className="flex gap-2 pt-2" data-print-hide>
+            <div className="flex gap-3 pt-1" data-print-hide>
               <Button
                 variant="secondary"
-                className="flex-1"
+                className="flex-1 py-2.5 text-sm font-semibold"
                 onClick={() => window.print()}
               >
                 <Printer className="mr-2 h-4 w-4" />
                 {t('Print Credit Note (अनुसूची-७)')}
               </Button>
-              <Button className="flex-1" onClick={() => setCreditNoteReceipt(null)}>
+              <Button className="flex-1 py-2.5 text-sm font-semibold" onClick={() => setCreditNoteReceipt(null)}>
                 {t('Done')}
               </Button>
             </div>
