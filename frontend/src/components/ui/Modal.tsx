@@ -14,7 +14,8 @@ export interface ModalProps {
   description?: string;
   children: ReactNode;
   footer?: ReactNode;
-  size?: 'md' | 'lg' | 'xl';
+  size?: 'md' | 'lg' | 'xl' | '2xl';
+  className?: string;
   /**
    * Set while the form inside has unsaved edits. Escape, the backdrop and the close button then
    * ask before discarding (an inline strip in the footer — a second dialog would fight this one's
@@ -28,6 +29,7 @@ const SIZES: Record<NonNullable<ModalProps['size']>, string> = {
   md: 'sm:max-w-lg',
   lg: 'sm:max-w-2xl',
   xl: 'sm:max-w-4xl',
+  '2xl': 'sm:max-w-6xl',
 };
 
 const RequestCloseContext = createContext<(() => void) | null>(null);
@@ -56,6 +58,7 @@ export function Modal({
   footer,
   size = 'md',
   confirmClose,
+  className,
 }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const [asking, setAsking] = useState(false);
@@ -137,6 +140,7 @@ export function Modal({
           className={cn(
             'relative z-10 flex max-h-[92vh] w-full flex-col rounded-t-xl bg-surface shadow-popover sm:rounded-xl',
             SIZES[size],
+            className,
           )}
         >
           <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
