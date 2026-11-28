@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@/hooks/useQuery';
 import { pharmacyApi } from './api';
 import { doctorsApi } from '@/features/doctors/api';
-import type { PharmacyItem, SaleReceipt, DispenseItemRequest, Prescription } from './types';
+import type { PharmacyItem, SaleReceipt, DispenseItemRequest, Prescription, DrugSafetyCheckResponse } from './types';
 import type { PatientListItem } from '@/features/patients/types';
 import { PatientPicker } from '@/features/patients/PatientPicker';
 import { Input } from '@/components/ui/Input';
@@ -30,6 +30,9 @@ import {
   Clock,
   MapPin,
   ClipboardList,
+  AlertTriangle,
+  ShieldAlert,
+  ShieldCheck,
 } from 'lucide-react';
 import { PharmacyHeader } from './PharmacyHeader';
 import { PharmacyReceiptPrint } from './PharmacyReceiptPrint';
@@ -147,6 +150,33 @@ export function PharmacyPosPage() {
   const [enableRefillReminder, setEnableRefillReminder] = useState(false);
   const [receipt, setReceipt] = useState<SaleReceipt | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Clinical Safety & DDI Alert Engine State
+  const [safetyResult, setSafetyResult] = useState<DrugSafetyCheckResponse | null>(null);
+  const [overrideSevereWarning, setOverrideSevereWarning] = useState(false);
+  const [_isSafetyChecking, setIsSafetyChecking] = useState(false);
+
+  // Real-time Clinical Drug-Drug Interaction (DDI) & Allergy Check
+  useEffect(() => {
+    if (cart.length === 0) {
+      setSafetyResult(null);
+      setOverrideSevereWarning(false);
+      return;
+    }
+
+    const itemIds = cart.map((c) => c.item.id);
+    setIsSafetyChecking(true);
+    pharmacyApi.safety
+      .check({ itemIds, patientId: selectedPatientId })
+      .then((res) => {
+        setSafetyResult(res);
+        if (!res.hasSevereContraindication) {
+          setOverrideSevereWarning(false);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setIsSafetyChecking(false));
+  }, [cart, selectedPatientId]);
 
   // Keyboard shortcut listener
   useEffect(() => {
@@ -298,6 +328,11 @@ export function PharmacyPosPage() {
   const handleCheckout = async () => {
     if (cart.length === 0) {
       toast.error(t('Cart is empty. Please add items to dispense.'));
+      return;
+    }
+
+    if (safetyResult?.hasSevereContraindication && !overrideSevereWarning) {
+      toast.error(t('Severe drug contraindication detected! Pharmacist authorization override is required to dispense.'));
       return;
     }
 
@@ -905,16 +940,117 @@ export function PharmacyPosPage() {
               )}
             </div>
 
+            {/* Clinical Safety & Drug-Drug Interaction (DDI) Guardrail Banner */}
+            {cart.length > 0 && safetyResult && (
+              <div className="space-y-2">
+                {/* 1. Critical Severe Contraindications */}
+                {safetyResult.hasSevereContraindication && (
+                  <div className="rounded-xl border-2 border-red-500 bg-red-50 p-3.5 text-xs text-red-950 dark:border-red-600 dark:bg-red-950/40 dark:text-red-200 space-y-2.5 shadow-sm">
+                    <div className="flex items-center gap-2 font-black text-red-700 dark:text-red-400">
+                      <ShieldAlert className="h-5 w-5 shrink-0 animate-pulse text-red-600" />
+                      <span>{t('CRITICAL DRUG CONTRAINDICATION DETECTED')}</span>
+                    </div>
+
+                    <div className="space-y-2 divide-y divide-red-200 dark:divide-red-800/40 text-[11px]">
+                      {safetyResult.interactions
+                        .filter((i) => i.severity === 'SEVERE_CONTRAINDICATED')
+                        .map((alert, idx) => (
+                          <div key={idx} className="pt-1.5 space-y-1">
+                            <div className="font-bold text-red-900 dark:text-red-100 flex items-center justify-between">
+                              <span>
+                                {alert.drugAName} ↔ {alert.drugBName}
+                              </span>
+                              <Badge tone="danger">{t('Contraindicated')}</Badge>
+                            </div>
+                            <p className="font-semibold text-red-800 dark:text-red-300">{alert.interactionTitle}</p>
+                            <p className="text-red-700 dark:text-red-400">{alert.clinicalEffect}</p>
+                            <div className="rounded bg-white/70 p-1.5 font-medium text-red-900 dark:bg-gray-900/60 dark:text-red-200 border border-red-200 dark:border-red-800">
+                              <span className="font-bold">{t('Advice:')} </span>
+                              {alert.recommendation}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+
+                    {/* Pharmacist Authorization Override Checkbox */}
+                    <div className="border-t border-red-200 dark:border-red-800/60 pt-2">
+                      <label className="flex items-start gap-2 cursor-pointer font-bold text-red-900 dark:text-red-200">
+                        <input
+                          type="checkbox"
+                          checked={overrideSevereWarning}
+                          onChange={(e) => setOverrideSevereWarning(e.target.checked)}
+                          className="mt-0.5 rounded border-red-400 text-red-600 focus:ring-red-500"
+                        />
+                        <span>
+                          {t('Authorized Pharmacist Override: Confirmed with Prescribing Doctor & Patient Monitored')}
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Patient Drug Allergy Warnings */}
+                {safetyResult.hasAllergyWarning && (
+                  <div className="rounded-xl border border-rose-300 bg-rose-50 p-3 text-xs text-rose-950 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200 space-y-1.5">
+                    <div className="flex items-center gap-2 font-bold text-rose-800 dark:text-rose-300">
+                      <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" />
+                      <span>{t('Patient Known Drug Allergy Alert')}</span>
+                    </div>
+                    {safetyResult.allergies.map((allergy, idx) => (
+                      <div key={idx} className="text-[11px] pl-6">
+                        <span className="font-bold">{allergy.itemName}</span> {t('matches known allergy')} <span className="font-mono font-bold text-red-600">[{allergy.allergenGeneric}]</span>. {allergy.reactionDetails || ''}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* 3. Moderate Interactions & Counseling Tips */}
+                {!safetyResult.hasSevereContraindication && safetyResult.interactions.some((i) => i.severity === 'MODERATE_MONITOR') && (
+                  <div className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200 space-y-1.5">
+                    <div className="flex items-center gap-2 font-bold text-amber-800 dark:text-amber-300">
+                      <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
+                      <span>{t('Moderate Interaction · Patient Counseling Advised')}</span>
+                    </div>
+                    {safetyResult.interactions
+                      .filter((i) => i.severity === 'MODERATE_MONITOR')
+                      .map((alert, idx) => (
+                        <div key={idx} className="text-[11px] pl-6 space-y-0.5">
+                          <span className="font-bold">{alert.drugAName} ↔ {alert.drugBName}:</span> {alert.recommendation}
+                        </div>
+                      ))}
+                  </div>
+                )}
+
+                {/* 4. Safety Verified Pill */}
+                {!safetyResult.hasSevereContraindication && !safetyResult.hasAllergyWarning && safetyResult.interactions.length === 0 && (
+                  <div className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50/70 px-2.5 py-1 text-[11px] font-semibold text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-950/30 dark:text-emerald-300">
+                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                    <span>{t('Clinical Safety Verified · 0 Known Contraindications')}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Checkout Action Button */}
             <Button
               onClick={handleCheckout}
-              disabled={cart.length === 0 || isSubmitting}
-              className="w-full text-sm font-extrabold py-3 shadow-md"
+              disabled={
+                cart.length === 0 ||
+                isSubmitting ||
+                (safetyResult?.hasSevereContraindication === true && !overrideSevereWarning)
+              }
+              className={`w-full text-sm font-extrabold py-3 shadow-md ${
+                safetyResult?.hasSevereContraindication && !overrideSevereWarning
+                  ? 'bg-red-600 hover:bg-red-700 text-white cursor-not-allowed'
+                  : ''
+              }`}
             >
               <Printer className="mr-2 h-4 w-4" />
               {isSubmitting
                 ? t('Processing Dispense...')
-                : `${t('Dispense & Print Bill')} — Rs. ${grandTotal.toFixed(2)}`}
+                : safetyResult?.hasSevereContraindication && !overrideSevereWarning
+                  ? t('Awaiting Pharmacist Clinical Override...')
+                  : `${t('Dispense & Print Bill')} — Rs. ${grandTotal.toFixed(2)}`}
             </Button>
           </div>
         </div>

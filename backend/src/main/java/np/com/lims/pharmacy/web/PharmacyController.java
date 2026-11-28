@@ -42,6 +42,7 @@ public class PharmacyController {
     private final PharmacyReturnService returnService;
     private final np.com.lims.pharmacy.service.PharmacyNarcoticService narcoticService;
     private final np.com.lims.pharmacy.service.PharmacyPrescriptionService prescriptionService;
+    private final np.com.lims.pharmacy.service.PharmacySafetyService safetyService;
 
     public PharmacyController(PharmacyItemService itemService,
                               PharmacyBatchService batchService,
@@ -52,7 +53,8 @@ public class PharmacyController {
                               PharmacyDashboardService dashboardService,
                               PharmacyReturnService returnService,
                               np.com.lims.pharmacy.service.PharmacyNarcoticService narcoticService,
-                              np.com.lims.pharmacy.service.PharmacyPrescriptionService prescriptionService) {
+                              np.com.lims.pharmacy.service.PharmacyPrescriptionService prescriptionService,
+                              np.com.lims.pharmacy.service.PharmacySafetyService safetyService) {
         this.itemService = itemService;
         this.batchService = batchService;
         this.wholesalerService = wholesalerService;
@@ -63,6 +65,7 @@ public class PharmacyController {
         this.returnService = returnService;
         this.narcoticService = narcoticService;
         this.prescriptionService = prescriptionService;
+        this.safetyService = safetyService;
     }
 
     // --- Statistics ---
@@ -277,5 +280,16 @@ public class PharmacyController {
     @PostMapping("/prescriptions/{number}/dispensed")
     public void markPrescriptionDispensed(@PathVariable String number) {
         prescriptionService.markDispensed(number);
+    }
+
+    // --- Clinical Drug-Drug Interactions (DDI) & Allergy Safety Alerts ---
+    @PostMapping("/safety/check")
+    public DrugSafetyCheckResponse checkSafety(@RequestBody CheckSafetyRequest req) {
+        return safetyService.checkSafety(req);
+    }
+
+    @GetMapping("/safety/interactions")
+    public List<np.com.lims.pharmacy.entity.PharmacyDrugInteraction> listInteractionRules() {
+        return safetyService.listAllRules();
     }
 }

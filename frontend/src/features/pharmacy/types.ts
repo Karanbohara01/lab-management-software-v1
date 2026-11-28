@@ -451,6 +451,34 @@ export interface CreatePrescriptionRequest {
   }[];
 }
 
+export interface DrugInteractionAlert {
+  drugAGeneric: string;
+  drugBGeneric: string;
+  drugAName: string;
+  drugBName: string;
+  severity: 'SEVERE_CONTRAINDICATED' | 'MODERATE_MONITOR' | 'MINOR_INFORMATIONAL';
+  interactionTitle: string;
+  clinicalEffect: string;
+  recommendation: string;
+}
+
+export interface PatientAllergyAlert {
+  patientId: number;
+  allergenGeneric: string;
+  itemName: string;
+  severity: string;
+  reactionDetails?: string;
+}
+
+export interface DrugSafetyCheckResponse {
+  hasSevereContraindication: boolean;
+  hasAllergyWarning: boolean;
+  interactions: DrugInteractionAlert[];
+  allergies: PatientAllergyAlert[];
+  patientCounselingTips: string[];
+}
+
+
 
 
 export interface RecordNarcoticLogRequest {
@@ -536,5 +564,33 @@ export interface CreatePrescriptionRequest {
     instructions?: string;
   }[];
 }
+
+export interface DrugInteractionAlert {
+  drugAGeneric: string;
+  drugBGeneric: string;
+  drugAName: string;
+  drugBName: string;
+  severity: 'SEVERE_CONTRAINDICATED' | 'MODERATE_MONITOR' | 'MINOR_INFORMATIONAL';
+  interactionTitle: string;
+  clinicalEffect: string;
+  recommendation: string;
+}
+
+export interface PatientAllergyAlert {
+  patientId: number;
+  allergenGeneric: string;
+  itemName: string;
+  severity: string;
+  reactionDetails?: string;
+}
+
+export interface DrugSafetyCheckResponse {
+  hasSevereContraindication: boolean;
+  hasAllergyWarning: boolean;
+  interactions: DrugInteractionAlert[];
+  allergies: PatientAllergyAlert[];
+  patientCounselingTips: string[];
+}
+
 
 

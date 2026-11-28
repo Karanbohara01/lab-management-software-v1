@@ -102,4 +102,11 @@ export const pharmacyApi = {
     markDispensed: (number: string) =>
       httpClient.post<import('./types').Prescription>(`/pharmacy/prescriptions/${encodeURIComponent(number)}/dispensed`).then((r) => r.data),
   },
+
+  safety: {
+    check: (payload: { itemIds: number[]; patientId?: number }) =>
+      httpClient.post<import('./types').DrugSafetyCheckResponse>('/pharmacy/safety/check', payload).then((r) => r.data),
+    interactions: () =>
+      httpClient.get<any[]>('/pharmacy/safety/interactions').then((r) => r.data),
+  },
 };

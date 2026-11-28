@@ -464,4 +464,36 @@ public final class PharmacyDtos {
             Instant createdAt,
             List<PrescriptionItemDto> items
     ) {}
+
+    public record CheckSafetyRequest(
+            List<Long> itemIds,
+            Long patientId
+    ) {}
+
+    public record DrugInteractionAlertDto(
+            String drugAGeneric,
+            String drugBGeneric,
+            String drugAName,
+            String drugBName,
+            String severity,
+            String interactionTitle,
+            String clinicalEffect,
+            String recommendation
+    ) {}
+
+    public record PatientAllergyAlertDto(
+            Long patientId,
+            String allergenGeneric,
+            String itemName,
+            String severity,
+            String reactionDetails
+    ) {}
+
+    public record DrugSafetyCheckResponse(
+            boolean hasSevereContraindication,
+            boolean hasAllergyWarning,
+            List<DrugInteractionAlertDto> interactions,
+            List<PatientAllergyAlertDto> allergies,
+            List<String> patientCounselingTips
+    ) {}
 }
