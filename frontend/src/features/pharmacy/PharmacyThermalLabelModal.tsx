@@ -422,35 +422,35 @@ export function PharmacyThermalLabelModal({
 
         {/* Main Workstation: 2-Column Split */}
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 items-start">
-          {/* Left Column: Authentic Thermal Sticker Canvas */}
-          <div className="flex flex-col rounded-2xl border border-border/90 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 p-4 text-white shadow-xl lg:col-span-5">
+          {/* Left Column: Clean Medical Thermal Sticker Canvas */}
+          <div className="flex flex-col rounded-2xl border border-border/80 bg-surface-muted/30 p-4 shadow-2xs lg:col-span-5">
             {/* Canvas Header & Zoom Controls */}
-            <div className="flex items-center justify-between border-b border-white/10 pb-2.5 text-xs">
-              <div className="flex items-center gap-1.5 font-bold tracking-tight text-slate-200">
-                <Tag className="h-3.5 w-3.5 text-primary-400" />
+            <div className="flex items-center justify-between border-b border-border/70 pb-2.5 text-xs">
+              <div className="flex items-center gap-1.5 font-bold tracking-tight text-foreground">
+                <Tag className="h-3.5 w-3.5 text-primary" />
                 <span>{t('Physical Sticker')}</span>
-                <span className="font-mono text-[11px] text-slate-400 font-normal">
+                <span className="font-mono text-[11px] text-muted font-normal">
                   ({widthMm} × {heightMm} mm)
                 </span>
               </div>
 
               {/* Interactive Zoom Bar */}
-              <div className="flex items-center gap-1 bg-white/10 rounded-md p-0.5">
+              <div className="flex items-center gap-1 bg-surface border border-border/80 rounded-md p-0.5 shadow-2xs">
                 <button
                   type="button"
                   onClick={() => setZoomLevel((z) => Math.max(0.9, +(z - 0.2).toFixed(2)))}
-                  className="rounded p-1 hover:bg-white/20 text-slate-300 transition"
+                  className="rounded p-1 hover:bg-surface-muted text-muted hover:text-foreground transition"
                   title="Zoom Out"
                 >
                   <ZoomOut className="h-3.5 w-3.5" />
                 </button>
-                <span className="font-mono text-[10px] px-1 text-slate-300 font-semibold">
+                <span className="font-mono text-[10px] px-1 text-foreground font-semibold">
                   {Math.round(zoomLevel * 100)}%
                 </span>
                 <button
                   type="button"
                   onClick={() => setZoomLevel((z) => Math.min(2.0, +(z + 0.2).toFixed(2)))}
-                  className="rounded p-1 hover:bg-white/20 text-slate-300 transition"
+                  className="rounded p-1 hover:bg-surface-muted text-muted hover:text-foreground transition"
                   title="Zoom In"
                 >
                   <ZoomIn className="h-3.5 w-3.5" />
@@ -458,15 +458,15 @@ export function PharmacyThermalLabelModal({
               </div>
             </div>
 
-            {/* Sticker Preview Mount - Perfectly bounded wrapper that NEVER clips */}
-            <div className="flex min-h-[220px] max-h-[300px] items-center justify-center overflow-auto p-4 py-6">
+            {/* Sticker Preview Mount - Clean textured workbench, perfectly bounded */}
+            <div className="flex min-h-[220px] max-h-[300px] items-center justify-center overflow-auto p-4 py-6 rounded-xl border border-dashed border-border/80 bg-surface/70 mt-3">
               <div
                 style={{
                   width: `${widthMm * zoomLevel}mm`,
                   height: `${heightMm * zoomLevel}mm`,
                   maxWidth: '100%',
                 }}
-                className="relative shrink-0 rounded-xs bg-white text-black shadow-2xl transition-all duration-200"
+                className="relative shrink-0 rounded-xs bg-white text-black shadow-md border border-gray-300 transition-all duration-200"
               >
                 <div
                   style={{
@@ -490,12 +490,12 @@ export function PharmacyThermalLabelModal({
             </div>
 
             {/* 5-Rights Bedside Verification Indicator */}
-            <div className="mt-2 rounded-xl border border-white/10 bg-white/5 p-2.5 text-xs">
-              <div className="flex items-center gap-1.5 font-bold text-emerald-400 text-[11px]">
-                <ShieldCheck className="h-4 w-4" />
+            <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50/80 dark:border-emerald-800/40 dark:bg-emerald-950/30 p-2.5 text-xs">
+              <div className="flex items-center gap-1.5 font-bold text-emerald-800 dark:text-emerald-300 text-[11px]">
+                <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 <span>{t('Clinical 5-Rights QR Verification Ready')}</span>
               </div>
-              <p className="mt-1 text-[10px] leading-relaxed text-slate-400">
+              <p className="mt-1 text-[10px] leading-relaxed text-emerald-900/80 dark:text-emerald-200/80">
                 Encodes structured patient MRN, drug lot, dose instruction, and expiry for bedside nurse barcode verification.
               </p>
             </div>
