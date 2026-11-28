@@ -9,6 +9,7 @@ import np.com.lims.pharmacy.entity.PharmacyItemCategory;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public final class PharmacyDtos {
@@ -495,5 +496,50 @@ public final class PharmacyDtos {
             List<DrugInteractionAlertDto> interactions,
             List<PatientAllergyAlertDto> allergies,
             List<String> patientCounselingTips
+    ) {}
+
+    public record CreateRefillRequest(
+            Long patientId,
+            String patientName,
+            String patientPhone,
+            Long saleId,
+            String invoiceNumber,
+            Long itemId,
+            String itemName,
+            Integer dispensedQuantity,
+            String unitType,
+            String dosageInstruction,
+            Integer courseDays,
+            String notes
+    ) {}
+
+    public record RefillScheduleDto(
+            Long id,
+            Long patientId,
+            String patientName,
+            String patientPhone,
+            Long saleId,
+            String invoiceNumber,
+            Long itemId,
+            String itemName,
+            Integer dispensedQuantity,
+            String unitType,
+            String dosageInstruction,
+            LocalDate dispensedDate,
+            Integer courseDays,
+            LocalDate refillDueDate,
+            String status,
+            LocalDateTime lastReminderSentAt,
+            Integer reminderCount,
+            String notes,
+            boolean isOverdue
+    ) {}
+
+    public record RefillStatsDto(
+            long totalScheduled,
+            long overdue,
+            long dueThisWeek,
+            long remindersSent,
+            long completedRefills
     ) {}
 }

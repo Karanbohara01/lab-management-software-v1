@@ -109,4 +109,17 @@ export const pharmacyApi = {
     interactions: () =>
       httpClient.get<any[]>('/pharmacy/safety/interactions').then((r) => r.data),
   },
+
+  refills: {
+    list: (params?: { query?: string; status?: string; page?: number; size?: number }) =>
+      httpClient.get<PageResponse<import('./types').RefillSchedule>>('/pharmacy/refills', { params }).then((r) => r.data),
+    stats: () =>
+      httpClient.get<import('./types').RefillStats>('/pharmacy/refills/stats').then((r) => r.data),
+    create: (payload: import('./types').CreateRefillScheduleRequest) =>
+      httpClient.post<import('./types').RefillSchedule>('/pharmacy/refills', payload).then((r) => r.data),
+    sendReminder: (id: number) =>
+      httpClient.post<import('./types').RefillSchedule>(`/pharmacy/refills/${id}/send-reminder`).then((r) => r.data),
+    markRefilled: (id: number) =>
+      httpClient.post<import('./types').RefillSchedule>(`/pharmacy/refills/${id}/refilled`).then((r) => r.data),
+  },
 };

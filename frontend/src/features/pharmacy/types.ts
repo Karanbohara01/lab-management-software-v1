@@ -478,6 +478,52 @@ export interface DrugSafetyCheckResponse {
   patientCounselingTips: string[];
 }
 
+export interface RefillSchedule {
+  id: number;
+  patientId?: number;
+  patientName: string;
+  patientPhone: string;
+  saleId?: number;
+  invoiceNumber?: string;
+  itemId: number;
+  itemName: string;
+  dispensedQuantity: number;
+  unitType: string;
+  dosageInstruction?: string;
+  dispensedDate: string;
+  courseDays: number;
+  refillDueDate: string;
+  status: 'SCHEDULED' | 'REMINDER_SENT' | 'REFILLED' | 'LAPSED';
+  lastReminderSentAt?: string;
+  reminderCount: number;
+  notes?: string;
+  isOverdue: boolean;
+}
+
+export interface RefillStats {
+  totalScheduled: number;
+  overdue: number;
+  dueThisWeek: number;
+  remindersSent: number;
+  completedRefills: number;
+}
+
+export interface CreateRefillScheduleRequest {
+  patientId?: number;
+  patientName: string;
+  patientPhone: string;
+  saleId?: number;
+  invoiceNumber?: string;
+  itemId: number;
+  itemName: string;
+  dispensedQuantity?: number;
+  unitType?: string;
+  dosageInstruction?: string;
+  courseDays?: number;
+  notes?: string;
+}
+
+
 
 
 
@@ -591,6 +637,52 @@ export interface DrugSafetyCheckResponse {
   allergies: PatientAllergyAlert[];
   patientCounselingTips: string[];
 }
+
+export interface RefillSchedule {
+  id: number;
+  patientId?: number;
+  patientName: string;
+  patientPhone: string;
+  saleId?: number;
+  invoiceNumber?: string;
+  itemId: number;
+  itemName: string;
+  dispensedQuantity: number;
+  unitType: string;
+  dosageInstruction?: string;
+  dispensedDate: string;
+  courseDays: number;
+  refillDueDate: string;
+  status: 'SCHEDULED' | 'REMINDER_SENT' | 'REFILLED' | 'LAPSED';
+  lastReminderSentAt?: string;
+  reminderCount: number;
+  notes?: string;
+  isOverdue: boolean;
+}
+
+export interface RefillStats {
+  totalScheduled: number;
+  overdue: number;
+  dueThisWeek: number;
+  remindersSent: number;
+  completedRefills: number;
+}
+
+export interface CreateRefillScheduleRequest {
+  patientId?: number;
+  patientName: string;
+  patientPhone: string;
+  saleId?: number;
+  invoiceNumber?: string;
+  itemId: number;
+  itemName: string;
+  dispensedQuantity?: number;
+  unitType?: string;
+  dosageInstruction?: string;
+  courseDays?: number;
+  notes?: string;
+}
+
 
 
 

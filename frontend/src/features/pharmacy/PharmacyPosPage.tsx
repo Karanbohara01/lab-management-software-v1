@@ -360,6 +360,31 @@ export function PharmacyPosPage() {
       setReceipt(res);
       setCart([]);
       setTenderAmount('');
+
+      // Auto-schedule chronic refill tracking and SMS reminders if selected
+      if (enableRefillReminder && refillDays > 0 && customerPhone.trim()) {
+        try {
+          for (const c of cart) {
+            await pharmacyApi.refills.create({
+              patientId: selectedPatientId || undefined,
+              patientName: customerName.trim() || 'Walk-in Customer',
+              patientPhone: customerPhone.trim(),
+              saleId: res.id,
+              invoiceNumber: res.invoiceNumber,
+              itemId: c.item.id,
+              itemName: c.item.name,
+              dispensedQuantity: c.quantity,
+              unitType: c.unitType,
+              dosageInstruction: c.dosageInstruction,
+              courseDays: refillDays,
+              notes: 'POS checkout chronic refill scheduled',
+            });
+          }
+        } catch {
+          // non-blocking
+        }
+      }
+
       if (activeRxNumber) {
         try {
           await pharmacyApi.prescriptions.markDispensed(activeRxNumber);

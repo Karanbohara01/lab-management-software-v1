@@ -10,6 +10,7 @@ import {
   Receipt,
   ShieldAlert,
   ClipboardList,
+  CalendarClock,
 } from 'lucide-react';
 import { useT } from '@/i18n';
 
@@ -65,6 +66,11 @@ export function PharmacyHeader() {
       to: '/app/pharmacy/returns',
       label: t('Returns & Credit Notes'),
       icon: RotateCcw,
+    },
+    {
+      to: '/app/pharmacy/refills',
+      label: t('Refill Tracker & SMS'),
+      icon: CalendarClock,
     },
     {
       to: '/app/pharmacy/narcotics',

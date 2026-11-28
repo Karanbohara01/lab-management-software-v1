@@ -43,6 +43,7 @@ public class PharmacyController {
     private final np.com.lims.pharmacy.service.PharmacyNarcoticService narcoticService;
     private final np.com.lims.pharmacy.service.PharmacyPrescriptionService prescriptionService;
     private final np.com.lims.pharmacy.service.PharmacySafetyService safetyService;
+    private final np.com.lims.pharmacy.service.PharmacyRefillService refillService;
 
     public PharmacyController(PharmacyItemService itemService,
                               PharmacyBatchService batchService,
@@ -54,7 +55,8 @@ public class PharmacyController {
                               PharmacyReturnService returnService,
                               np.com.lims.pharmacy.service.PharmacyNarcoticService narcoticService,
                               np.com.lims.pharmacy.service.PharmacyPrescriptionService prescriptionService,
-                              np.com.lims.pharmacy.service.PharmacySafetyService safetyService) {
+                              np.com.lims.pharmacy.service.PharmacySafetyService safetyService,
+                              np.com.lims.pharmacy.service.PharmacyRefillService refillService) {
         this.itemService = itemService;
         this.batchService = batchService;
         this.wholesalerService = wholesalerService;
@@ -66,6 +68,7 @@ public class PharmacyController {
         this.narcoticService = narcoticService;
         this.prescriptionService = prescriptionService;
         this.safetyService = safetyService;
+        this.refillService = refillService;
     }
 
     // --- Statistics ---
@@ -291,5 +294,35 @@ public class PharmacyController {
     @GetMapping("/safety/interactions")
     public List<np.com.lims.pharmacy.entity.PharmacyDrugInteraction> listInteractionRules() {
         return safetyService.listAllRules();
+    }
+
+    // --- Chronic Patient Medication Refill Tracker & SMS Reminders ---
+    @GetMapping("/refills")
+    public Page<RefillScheduleDto> listRefills(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String query,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return refillService.searchRefills(status, query, pageable);
+    }
+
+    @GetMapping("/refills/stats")
+    public RefillStatsDto getRefillStats() {
+        return refillService.getStats();
+    }
+
+    @PostMapping("/refills")
+    @ResponseStatus(HttpStatus.CREATED)
+    public RefillScheduleDto createRefillSchedule(@Valid @RequestBody CreateRefillRequest req) {
+        return refillService.createSchedule(req);
+    }
+
+    @PostMapping("/refills/{id}/send-reminder")
+    public RefillScheduleDto sendRefillReminder(@PathVariable Long id) {
+        return refillService.sendSmsReminder(id);
+    }
+
+    @PostMapping("/refills/{id}/refilled")
+    public RefillScheduleDto markRefilled(@PathVariable Long id) {
+        return refillService.markRefilled(id);
     }
 }
