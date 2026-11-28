@@ -18,9 +18,10 @@ export function PharmacyReceiptPrint({
   phone = '01-4455660 / 9801234567',
   isPrintDocument = false,
 }: PharmacyReceiptPrintProps) {
-  const isTaxInvoice = receipt.vatAmount > 0;
+  const isTaxInvoice = (receipt.vatAmount || 0) > 0;
   const invoiceTitle = isTaxInvoice ? 'TAX INVOICE' : 'ABBREVIATED TAX INVOICE / CASH RECEIPT';
-  const hasTaxable = receipt.taxableAmount > 0;
+  const hasTaxable = (receipt.taxableAmount || 0) > 0;
+  const items = receipt.items || [];
 
   return (
     <div
@@ -81,7 +82,7 @@ export function PharmacyReceiptPrint({
           </tr>
         </thead>
         <tbody>
-          {receipt.items.map((item, idx) => (
+          {items.map((item, idx) => (
             <tr key={idx} className="border-b border-dotted border-gray-300">
               <td className="py-1 pr-1">
                 <div className="font-bold">
@@ -100,10 +101,10 @@ export function PharmacyReceiptPrint({
                 {item.quantity} {item.unitType === 'PACK' ? 'Pack' : 'Tab/Pcs'}
               </td>
               <td className="whitespace-nowrap text-right align-top py-1">
-                {item.unitPrice.toFixed(2)}
+                {(item.unitPrice || 0).toFixed(2)}
               </td>
               <td className="whitespace-nowrap text-right font-bold align-top py-1">
-                {item.totalPrice.toFixed(2)}
+                {(item.totalPrice || 0).toFixed(2)}
               </td>
             </tr>
           ))}
@@ -114,44 +115,44 @@ export function PharmacyReceiptPrint({
       <div className="border-b-2 border-dashed border-black py-2 text-[10px]">
         <div className="flex justify-between">
           <span>Subtotal:</span>
-          <span>Rs. {receipt.subtotal.toFixed(2)}</span>
+          <span>Rs. {(receipt.subtotal || 0).toFixed(2)}</span>
         </div>
 
-        {receipt.discountAmount > 0 && (
+        {(receipt.discountAmount || 0) > 0 && (
           <div className="flex justify-between text-gray-700">
             <span>Discount:</span>
-            <span>- Rs. {receipt.discountAmount.toFixed(2)}</span>
+            <span>- Rs. {(receipt.discountAmount || 0).toFixed(2)}</span>
           </div>
         )}
 
         <div className="flex justify-between">
           <span>Non-Taxable (0% VAT):</span>
-          <span>Rs. {receipt.nonTaxableAmount.toFixed(2)}</span>
+          <span>Rs. {(receipt.nonTaxableAmount || 0).toFixed(2)}</span>
         </div>
 
         {hasTaxable && (
           <div className="flex justify-between">
             <span>Taxable Amount (13% VAT items):</span>
-            <span>Rs. {receipt.taxableAmount.toFixed(2)}</span>
+            <span>Rs. {(receipt.taxableAmount || 0).toFixed(2)}</span>
           </div>
         )}
 
-        {receipt.vatAmount > 0 && (
+        {(receipt.vatAmount || 0) > 0 && (
           <div className="flex justify-between font-semibold">
             <span>VAT (13%):</span>
-            <span>Rs. {receipt.vatAmount.toFixed(2)}</span>
+            <span>Rs. {(receipt.vatAmount || 0).toFixed(2)}</span>
           </div>
         )}
 
         <div className="mt-1 flex justify-between border-t border-black pt-1 text-xs font-black">
           <span>GRAND TOTAL:</span>
-          <span>Rs. {receipt.netTotal.toFixed(2)}</span>
+          <span>Rs. {(receipt.netTotal || 0).toFixed(2)}</span>
         </div>
 
-        {receipt.paidAmount > 0 && (
+        {(receipt.paidAmount || 0) > 0 && (
           <div className="mt-1 flex justify-between border-t border-dotted border-gray-400 pt-1 text-[10px]">
-            <span>Paid: Rs. {receipt.paidAmount.toFixed(2)}</span>
-            <span>Change: Rs. {receipt.changeAmount.toFixed(2)}</span>
+            <span>Paid: Rs. {(receipt.paidAmount || 0).toFixed(2)}</span>
+            <span>Change: Rs. {(receipt.changeAmount || 0).toFixed(2)}</span>
           </div>
         )}
       </div>

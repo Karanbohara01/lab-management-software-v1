@@ -23,7 +23,9 @@ export function PharmacyCreditNotePrint({
   phone = '01-4455660 / 9801234567',
   isPrintDocument = false,
 }: PharmacyCreditNotePrintProps) {
-  const words = amountInWordsNpr(creditNote.netRefundAmount);
+  const netRefund = creditNote.netRefundAmount || 0;
+  const words = amountInWordsNpr(netRefund);
+  const items = creditNote.items || [];
 
   return (
     <div
@@ -56,7 +58,7 @@ export function PharmacyCreditNotePrint({
             <strong className="font-semibold">Ref Invoice:</strong> {creditNote.originalInvoiceNumber}
           </span>
           <span>
-            <strong className="font-semibold">Date:</strong> {new Date(creditNote.createdAt).toLocaleDateString()}
+            <strong className="font-semibold">Date:</strong> {creditNote.createdAt ? new Date(creditNote.createdAt).toLocaleDateString() : 'N/A'}
           </span>
         </div>
         <div className="mt-1 border-t border-dotted border-gray-400 pt-1">
@@ -85,20 +87,20 @@ export function PharmacyCreditNotePrint({
           </tr>
         </thead>
         <tbody className="divide-y divide-dotted divide-gray-300">
-          {creditNote.items.map((i, idx) => (
+          {items.map((i, idx) => (
             <tr key={idx}>
               <td className="py-1 pr-1">
                 <div className="font-bold">{i.itemName}</div>
                 <div className="text-[9px] text-gray-600">
-                  B: {i.batchNumber} | Exp: {i.expiryDate}
+                  B: {i.batchNumber} {i.expiryDate ? `| Exp: ${i.expiryDate}` : ''}
                 </div>
               </td>
               <td className="py-1 text-center font-medium">
                 {i.returnQuantity} {i.unitType}
               </td>
-              <td className="py-1 text-right">Rs. {i.unitPrice.toFixed(2)}</td>
+              <td className="py-1 text-right">Rs. {(i.unitPrice || 0).toFixed(2)}</td>
               <td className="py-1 text-right font-bold text-red-600">
-                Rs. {i.totalRefund.toFixed(2)}
+                Rs. {(i.totalRefund || 0).toFixed(2)}
               </td>
             </tr>
           ))}
@@ -109,29 +111,29 @@ export function PharmacyCreditNotePrint({
       <div className="space-y-0.5 border-b border-dashed border-black py-2 text-[10px]">
         <div className="flex justify-between">
           <span>Subtotal Refund:</span>
-          <span>Rs. {creditNote.subtotalRefund.toFixed(2)}</span>
+          <span>Rs. {(creditNote.subtotalRefund || 0).toFixed(2)}</span>
         </div>
-        {creditNote.nonTaxableAmount > 0 && (
+        {(creditNote.nonTaxableAmount || 0) > 0 && (
           <div className="flex justify-between text-gray-600">
             <span>Non-Taxable Amount:</span>
-            <span>Rs. {creditNote.nonTaxableAmount.toFixed(2)}</span>
+            <span>Rs. {(creditNote.nonTaxableAmount || 0).toFixed(2)}</span>
           </div>
         )}
-        {creditNote.taxableAmount > 0 && (
+        {(creditNote.taxableAmount || 0) > 0 && (
           <div className="flex justify-between text-gray-600">
             <span>Taxable Amount:</span>
-            <span>Rs. {creditNote.taxableAmount.toFixed(2)}</span>
+            <span>Rs. {(creditNote.taxableAmount || 0).toFixed(2)}</span>
           </div>
         )}
-        {creditNote.vatAmount > 0 && (
+        {(creditNote.vatAmount || 0) > 0 && (
           <div className="flex justify-between font-medium text-amber-700">
             <span>VAT Reversal (13%):</span>
-            <span>Rs. {creditNote.vatAmount.toFixed(2)}</span>
+            <span>Rs. {(creditNote.vatAmount || 0).toFixed(2)}</span>
           </div>
         )}
         <div className="flex justify-between border-t border-black pt-1 text-xs font-extrabold text-red-700">
           <span>Total Refund Paid:</span>
-          <span>Rs. {creditNote.netRefundAmount.toFixed(2)}</span>
+          <span>Rs. {netRefund.toFixed(2)}</span>
         </div>
       </div>
 
