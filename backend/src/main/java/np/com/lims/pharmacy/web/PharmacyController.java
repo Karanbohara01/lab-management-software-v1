@@ -17,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -44,6 +45,7 @@ public class PharmacyController {
     private final np.com.lims.pharmacy.service.PharmacyPrescriptionService prescriptionService;
     private final np.com.lims.pharmacy.service.PharmacySafetyService safetyService;
     private final np.com.lims.pharmacy.service.PharmacyRefillService refillService;
+    private final np.com.lims.pharmacy.service.PharmacyReorderService reorderService;
 
     public PharmacyController(PharmacyItemService itemService,
                               PharmacyBatchService batchService,
@@ -56,7 +58,8 @@ public class PharmacyController {
                               np.com.lims.pharmacy.service.PharmacyNarcoticService narcoticService,
                               np.com.lims.pharmacy.service.PharmacyPrescriptionService prescriptionService,
                               np.com.lims.pharmacy.service.PharmacySafetyService safetyService,
-                              np.com.lims.pharmacy.service.PharmacyRefillService refillService) {
+                              np.com.lims.pharmacy.service.PharmacyRefillService refillService,
+                              np.com.lims.pharmacy.service.PharmacyReorderService reorderService) {
         this.itemService = itemService;
         this.batchService = batchService;
         this.wholesalerService = wholesalerService;
@@ -69,6 +72,7 @@ public class PharmacyController {
         this.prescriptionService = prescriptionService;
         this.safetyService = safetyService;
         this.refillService = refillService;
+        this.reorderService = reorderService;
     }
 
     // --- Statistics ---
@@ -324,5 +328,46 @@ public class PharmacyController {
     @PostMapping("/refills/{id}/refilled")
     public RefillScheduleDto markRefilled(@PathVariable Long id) {
         return refillService.markRefilled(id);
+    }
+
+    // --- Smart Re-Order Intelligence & Purchase Orders ---
+    @GetMapping("/reorder/recommendations")
+    public List<ReorderRecommendationDto> getReorderRecommendations(
+            @RequestParam(required = false, defaultValue = "ALL") String urgency,
+            @RequestParam(required = false) Long wholesalerId,
+            @RequestParam(required = false) String query) {
+        return reorderService.getRecommendations(urgency, wholesalerId, query);
+    }
+
+    @GetMapping("/reorder/summary")
+    public ReorderIntelligenceSummaryDto getReorderSummary() {
+        return reorderService.getSummary();
+    }
+
+    @PostMapping("/purchase-orders")
+    @ResponseStatus(HttpStatus.CREATED)
+    public PurchaseOrderDto createPurchaseOrder(@Valid @RequestBody CreatePurchaseOrderRequest req,
+                                                java.security.Principal principal) {
+        String username = principal != null ? principal.getName() : "Pharmacist";
+        return reorderService.createPurchaseOrder(req, username);
+    }
+
+    @GetMapping("/purchase-orders")
+    public Page<PurchaseOrderDto> listPurchaseOrders(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long wholesalerId,
+            @RequestParam(required = false) String query,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return reorderService.listPurchaseOrders(status, wholesalerId, query, pageable);
+    }
+
+    @GetMapping("/purchase-orders/{id}")
+    public PurchaseOrderDto getPurchaseOrder(@PathVariable Long id) {
+        return reorderService.getPurchaseOrder(id);
+    }
+
+    @PatchMapping("/purchase-orders/{id}/status")
+    public PurchaseOrderDto updatePurchaseOrderStatus(@PathVariable Long id, @RequestParam String status) {
+        return reorderService.updateStatus(id, status);
     }
 }

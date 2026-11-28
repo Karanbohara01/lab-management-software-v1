@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@/hooks/useQuery';
 import { pharmacyApi } from './api';
 import type { CreatePurchaseRequest, PurchaseItemRequest } from './types';
@@ -19,12 +20,14 @@ import {
   Search,
   CheckCircle2,
   DollarSign,
+  PackageSearch,
 } from 'lucide-react';
 import { PharmacyHeader } from './PharmacyHeader';
 
 export function PharmacyPurchasesPage() {
   const t = useT();
   const toast = useToast();
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [search, setSearch] = useState('');
 
@@ -227,10 +230,20 @@ export function PharmacyPurchasesPage() {
             'Procure stock from authorized distributors, record bonus/free strips, apportion freight charges, and generate inventory batches automatically.'
           )}
         />
-        <Button onClick={openCreateModal} className="shrink-0">
-          <Plus className="mr-2 h-4 w-4" />
-          {t('New Stock Inward Entry (GRN)')}
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="secondary"
+            onClick={() => navigate('/app/pharmacy/reorder')}
+            className="gap-1.5 text-xs"
+          >
+            <PackageSearch className="h-4 w-4 text-primary" />
+            {t('Reorder Intelligence & PO')}
+          </Button>
+          <Button onClick={openCreateModal}>
+            <Plus className="mr-2 h-4 w-4" />
+            {t('New Stock Inward Entry (GRN)')}
+          </Button>
+        </div>
       </div>
 
       {/* Search Input */}

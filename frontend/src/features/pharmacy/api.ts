@@ -122,4 +122,22 @@ export const pharmacyApi = {
     markRefilled: (id: number) =>
       httpClient.post<import('./types').RefillSchedule>(`/pharmacy/refills/${id}/refilled`).then((r) => r.data),
   },
+
+  reorder: {
+    recommendations: (params?: { urgency?: string; wholesalerId?: number; query?: string }) =>
+      httpClient.get<import('./types').ReorderRecommendation[]>('/pharmacy/reorder/recommendations', { params }).then((r) => r.data),
+    summary: () =>
+      httpClient.get<import('./types').ReorderIntelligenceSummary>('/pharmacy/reorder/summary').then((r) => r.data),
+  },
+
+  purchaseOrders: {
+    list: (params?: { status?: string; wholesalerId?: number; query?: string; page?: number; size?: number }) =>
+      httpClient.get<PageResponse<import('./types').PurchaseOrder>>('/pharmacy/purchase-orders', { params }).then((r) => r.data),
+    get: (id: number) =>
+      httpClient.get<import('./types').PurchaseOrder>(`/pharmacy/purchase-orders/${id}`).then((r) => r.data),
+    create: (payload: import('./types').CreatePurchaseOrderRequest) =>
+      httpClient.post<import('./types').PurchaseOrder>('/pharmacy/purchase-orders', payload).then((r) => r.data),
+    updateStatus: (id: number, status: string) =>
+      httpClient.patch<import('./types').PurchaseOrder>(`/pharmacy/purchase-orders/${id}/status`, null, { params: { status } }).then((r) => r.data),
+  },
 };

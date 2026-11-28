@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   ClipboardList,
   CalendarClock,
+  PackageSearch,
 } from 'lucide-react';
 import { useT } from '@/i18n';
 
@@ -51,6 +52,11 @@ export function PharmacyHeader() {
       to: '/app/pharmacy/purchases',
       label: t('Purchases & Inward (GRN)'),
       icon: Truck,
+    },
+    {
+      to: '/app/pharmacy/reorder',
+      label: t('Re-Order Intelligence & PO'),
+      icon: PackageSearch,
     },
     {
       to: '/app/pharmacy/wholesalers',

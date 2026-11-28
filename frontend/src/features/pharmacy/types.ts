@@ -523,6 +523,89 @@ export interface CreateRefillScheduleRequest {
   notes?: string;
 }
 
+export interface ReorderRecommendation {
+  itemId: number;
+  itemName: string;
+  genericName?: string;
+  category: string;
+  packUnit: string;
+  dispensingUnit: string;
+  packSize: number;
+  currentUnits: number;
+  currentPacks: number;
+  minStockLevel: number;
+  last30DaysDispensedUnits: number;
+  averageDailyConsumption: number;
+  reorderPointUnits: number;
+  daysOfStockRemaining: number;
+  urgency: 'OUT_OF_STOCK' | 'CRITICAL_URGENT' | 'REORDER_RECOMMENDED' | 'OPTIMAL';
+  recommendedReorderPacks: number;
+  preferredWholesalerId?: number;
+  preferredWholesalerName: string;
+  estimatedRatePerPack: number;
+  estimatedTotalAmount: number;
+  rackLocation?: string;
+}
+
+export interface ReorderIntelligenceSummary {
+  totalMonitoredItems: number;
+  outOfStockCount: number;
+  criticalUrgentCount: number;
+  reorderRecommendedCount: number;
+  optimalCount: number;
+  estimatedTotalProcurementCost: number;
+}
+
+export interface CreatePurchaseOrderItemRequest {
+  itemId: number;
+  packUnit?: string;
+  packSize?: number;
+  recommendedPackQty?: number;
+  orderedPackQty: number;
+  estimatedRatePerPack: number;
+  remarks?: string;
+}
+
+export interface CreatePurchaseOrderRequest {
+  wholesalerId: number;
+  expectedDeliveryDate?: string;
+  notes?: string;
+  items: CreatePurchaseOrderItemRequest[];
+}
+
+export interface PurchaseOrderItem {
+  id: number;
+  itemId: number;
+  itemName: string;
+  genericName?: string;
+  packUnit: string;
+  packSize: number;
+  recommendedPackQty: number;
+  orderedPackQty: number;
+  receivedPackQty: number;
+  estimatedRatePerPack: number;
+  estimatedTotalAmount: number;
+  remarks?: string;
+}
+
+export interface PurchaseOrder {
+  id: number;
+  poNumber: string;
+  wholesalerId: number;
+  wholesalerName: string;
+  wholesalerPhone?: string;
+  wholesalerPan?: string;
+  orderDate: string;
+  expectedDeliveryDate?: string;
+  status: 'DRAFT' | 'ISSUED' | 'PARTIALLY_RECEIVED' | 'COMPLETED' | 'CANCELLED';
+  totalEstimatedAmount: number;
+  notes?: string;
+  createdBy?: string;
+  createdAt: string;
+  items: PurchaseOrderItem[];
+}
+
+
 
 
 
@@ -682,6 +765,89 @@ export interface CreateRefillScheduleRequest {
   courseDays?: number;
   notes?: string;
 }
+
+export interface ReorderRecommendation {
+  itemId: number;
+  itemName: string;
+  genericName?: string;
+  category: string;
+  packUnit: string;
+  dispensingUnit: string;
+  packSize: number;
+  currentUnits: number;
+  currentPacks: number;
+  minStockLevel: number;
+  last30DaysDispensedUnits: number;
+  averageDailyConsumption: number;
+  reorderPointUnits: number;
+  daysOfStockRemaining: number;
+  urgency: 'OUT_OF_STOCK' | 'CRITICAL_URGENT' | 'REORDER_RECOMMENDED' | 'OPTIMAL';
+  recommendedReorderPacks: number;
+  preferredWholesalerId?: number;
+  preferredWholesalerName: string;
+  estimatedRatePerPack: number;
+  estimatedTotalAmount: number;
+  rackLocation?: string;
+}
+
+export interface ReorderIntelligenceSummary {
+  totalMonitoredItems: number;
+  outOfStockCount: number;
+  criticalUrgentCount: number;
+  reorderRecommendedCount: number;
+  optimalCount: number;
+  estimatedTotalProcurementCost: number;
+}
+
+export interface CreatePurchaseOrderItemRequest {
+  itemId: number;
+  packUnit?: string;
+  packSize?: number;
+  recommendedPackQty?: number;
+  orderedPackQty: number;
+  estimatedRatePerPack: number;
+  remarks?: string;
+}
+
+export interface CreatePurchaseOrderRequest {
+  wholesalerId: number;
+  expectedDeliveryDate?: string;
+  notes?: string;
+  items: CreatePurchaseOrderItemRequest[];
+}
+
+export interface PurchaseOrderItem {
+  id: number;
+  itemId: number;
+  itemName: string;
+  genericName?: string;
+  packUnit: string;
+  packSize: number;
+  recommendedPackQty: number;
+  orderedPackQty: number;
+  receivedPackQty: number;
+  estimatedRatePerPack: number;
+  estimatedTotalAmount: number;
+  remarks?: string;
+}
+
+export interface PurchaseOrder {
+  id: number;
+  poNumber: string;
+  wholesalerId: number;
+  wholesalerName: string;
+  wholesalerPhone?: string;
+  wholesalerPan?: string;
+  orderDate: string;
+  expectedDeliveryDate?: string;
+  status: 'DRAFT' | 'ISSUED' | 'PARTIALLY_RECEIVED' | 'COMPLETED' | 'CANCELLED';
+  totalEstimatedAmount: number;
+  notes?: string;
+  createdBy?: string;
+  createdAt: string;
+  items: PurchaseOrderItem[];
+}
+
 
 
 

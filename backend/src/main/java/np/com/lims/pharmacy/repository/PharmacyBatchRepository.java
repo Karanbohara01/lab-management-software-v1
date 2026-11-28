@@ -25,4 +25,6 @@ public interface PharmacyBatchRepository extends JpaRepository<PharmacyBatch, Lo
 
     @Query("SELECT b FROM PharmacyBatch b WHERE b.remainingUnits > 0 AND b.expiryDate >= :today AND b.expiryDate <= :inDays ORDER BY b.expiryDate ASC")
     List<PharmacyBatch> findNearExpiryBatches(@Param("today") LocalDate today, @Param("inDays") LocalDate inDays);
+
+    java.util.Optional<PharmacyBatch> findFirstByItemIdOrderByCreatedAtDesc(Long itemId);
 }

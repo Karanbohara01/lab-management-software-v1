@@ -542,4 +542,87 @@ public final class PharmacyDtos {
             long remindersSent,
             long completedRefills
     ) {}
+
+    // === Reorder Intelligence & Purchase Order DTOs ===
+    public record ReorderRecommendationDto(
+            Long itemId,
+            String itemName,
+            String genericName,
+            String category,
+            String packUnit,
+            String dispensingUnit,
+            Integer packSize,
+            Integer currentUnits,
+            Integer currentPacks,
+            Integer minStockLevel,
+            Long last30DaysDispensedUnits,
+            Double averageDailyConsumption,
+            Integer reorderPointUnits,
+            Integer daysOfStockRemaining,
+            String urgency, // OUT_OF_STOCK, CRITICAL_URGENT, REORDER_RECOMMENDED, OPTIMAL
+            Integer recommendedReorderPacks,
+            Long preferredWholesalerId,
+            String preferredWholesalerName,
+            BigDecimal estimatedRatePerPack,
+            BigDecimal estimatedTotalAmount,
+            String rackLocation
+    ) {}
+
+    public record ReorderIntelligenceSummaryDto(
+            long totalMonitoredItems,
+            long outOfStockCount,
+            long criticalUrgentCount,
+            long reorderRecommendedCount,
+            long optimalCount,
+            BigDecimal estimatedTotalProcurementCost
+    ) {}
+
+    public record CreatePurchaseOrderItemRequest(
+            Long itemId,
+            String packUnit,
+            Integer packSize,
+            Integer recommendedPackQty,
+            Integer orderedPackQty,
+            BigDecimal estimatedRatePerPack,
+            String remarks
+    ) {}
+
+    public record CreatePurchaseOrderRequest(
+            Long wholesalerId,
+            LocalDate expectedDeliveryDate,
+            String notes,
+            List<CreatePurchaseOrderItemRequest> items
+    ) {}
+
+    public record PurchaseOrderItemDto(
+            Long id,
+            Long itemId,
+            String itemName,
+            String genericName,
+            String packUnit,
+            Integer packSize,
+            Integer recommendedPackQty,
+            Integer orderedPackQty,
+            Integer receivedPackQty,
+            BigDecimal estimatedRatePerPack,
+            BigDecimal estimatedTotalAmount,
+            String remarks
+    ) {}
+
+    public record PurchaseOrderDto(
+            Long id,
+            String poNumber,
+            Long wholesalerId,
+            String wholesalerName,
+            String wholesalerPhone,
+            String wholesalerPan,
+            LocalDate orderDate,
+            LocalDate expectedDeliveryDate,
+            String status,
+            BigDecimal totalEstimatedAmount,
+            String notes,
+            String createdBy,
+            java.time.Instant createdAt,
+            List<PurchaseOrderItemDto> items
+    ) {}
 }
