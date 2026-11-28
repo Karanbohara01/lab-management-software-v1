@@ -62,7 +62,7 @@ export function PharmacyHeader() {
       {/* Top Banner with Badges */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-600 text-white shadow-sm">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
             <Pill className="h-5 w-5" />
           </div>
           <div>
@@ -100,16 +100,16 @@ export function PharmacyHeader() {
               to={item.to}
               className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 ${
                 isActive
-                  ? 'bg-primary-600 text-white shadow-xs font-bold'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-foreground dark:text-gray-300 dark:hover:bg-gray-800'
+                  ? 'bg-primary text-primary-foreground shadow-sm font-bold'
+                  : 'text-muted-foreground hover:bg-surface-muted hover:text-foreground'
               }`}
             >
-              <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400'}`} />
+              <Icon className={`h-4 w-4 ${isActive ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
               <span className="whitespace-nowrap">{item.label}</span>
               {item.badge && (
                 <span
                   className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                    isActive ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                    isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-surface-muted text-foreground'
                   }`}
                 >
                   {item.badge}
