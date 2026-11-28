@@ -90,26 +90,26 @@ export function PharmacyHeader() {
       </div>
 
       {/* Modern Navigation Tabs */}
-      <nav className="flex space-x-1 overflow-x-auto rounded-xl border border-border/80 bg-surface/80 p-1 shadow-sm backdrop-blur-sm">
+      <nav className="flex items-center gap-1.5 overflow-x-auto rounded-xl border border-border/80 bg-surface/80 p-1.5 shadow-xs backdrop-blur-sm scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none]">
         {navItems.map((item) => {
-          const isActive = location.pathname === item.to;
+          const isActive = location.pathname.startsWith(item.to);
           const Icon = item.icon;
           return (
             <Link
               key={item.to}
               to={item.to}
-              className={`flex shrink-0 items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition-all duration-150 ${
+              className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150 ${
                 isActive
-                  ? 'bg-primary-600 text-white shadow-sm'
-                  : 'text-muted-foreground hover:bg-surface-muted hover:text-foreground'
+                  ? 'bg-primary-600 text-white shadow-xs font-bold'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-foreground dark:text-gray-300 dark:hover:bg-gray-800'
               }`}
             >
-              <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-muted-foreground'}`} />
-              <span>{item.label}</span>
+              <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400'}`} />
+              <span className="whitespace-nowrap">{item.label}</span>
               {item.badge && (
                 <span
-                  className={`ml-1 rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-surface-muted text-foreground'
+                  className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                    isActive ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
                   }`}
                 >
                   {item.badge}
