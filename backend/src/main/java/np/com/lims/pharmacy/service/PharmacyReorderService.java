@@ -58,7 +58,7 @@ public class PharmacyReorderService {
     @Transactional(readOnly = true)
     public List<ReorderRecommendationDto> getRecommendations(String urgencyFilter, Long wholesalerFilter, String query) {
         List<PharmacyItem> items = itemRepository.findAll();
-        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+        java.time.Instant thirtyDaysAgo = java.time.Instant.now().minus(30, java.time.temporal.ChronoUnit.DAYS);
 
         List<ReorderRecommendationDto> results = new ArrayList<>();
 
