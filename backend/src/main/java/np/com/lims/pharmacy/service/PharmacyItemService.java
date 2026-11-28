@@ -119,6 +119,8 @@ public class PharmacyItemService {
         if (req.schedule() != null) item.setSchedule(req.schedule());
         item.setRackLocation(req.rackLocation());
         item.setMinStockLevel(req.minStockLevel());
+        if (req.isNarcotic() != null) item.setIsNarcotic(req.isNarcotic());
+        if (req.requiresPrescription() != null) item.setRequiresPrescription(req.requiresPrescription());
         item.setBarcode(req.barcode());
     }
 
@@ -141,6 +143,8 @@ public class PharmacyItemService {
                 i.getRackLocation(),
                 i.getMinStockLevel(),
                 i.getIsActive(),
+                i.getIsNarcotic(),
+                i.getRequiresPrescription(),
                 i.getBarcode(),
                 units,
                 packs,

@@ -40,6 +40,8 @@ export interface PharmacyItem {
   rackLocation?: string;
   minStockLevel: number;
   isActive: boolean;
+  isNarcotic?: boolean;
+  requiresPrescription?: boolean;
   barcode?: string;
   totalStockUnits: number;
   totalStockPacks: number;
@@ -63,6 +65,8 @@ export interface CreatePharmacyItemRequest {
   schedule?: string;
   rackLocation?: string;
   minStockLevel?: number;
+  isNarcotic?: boolean;
+  requiresPrescription?: boolean;
   barcode?: string;
 }
 
@@ -355,4 +359,62 @@ export interface PharmacyDashboardStats {
   todaySalesCount: number;
   todaySalesAmount: number;
   monthSalesAmount: number;
+}
+
+export interface NarcoticLog {
+  id: number;
+  itemId: number;
+  itemName: string;
+  genericName?: string;
+  batchId: number;
+  batchNumber: string;
+  expiryDate?: string;
+  saleId?: number;
+  logDate: string;
+  patientId?: number;
+  patientName: string;
+  patientAgeGender?: string;
+  patientAddress?: string;
+  buyerName: string;
+  buyerRelation?: string;
+  buyerContact?: string;
+  buyerIdType?: string;
+  buyerIdNumber?: string;
+  doctorId?: number;
+  doctorName: string;
+  doctorNmcNumber: string;
+  prescriptionNumber?: string;
+  prescriptionDate?: string;
+  dispensedQuantity: number;
+  unitType: string;
+  balanceStockUnits: number;
+  pharmacistName: string;
+  pharmacistNpcNumber?: string;
+  remarks?: string;
+}
+
+export interface RecordNarcoticLogRequest {
+  itemId: number;
+  batchId: number;
+  saleId?: number;
+  saleItemId?: number;
+  patientId?: number;
+  patientName: string;
+  patientAgeGender?: string;
+  patientAddress?: string;
+  buyerName: string;
+  buyerRelation?: string;
+  buyerContact?: string;
+  buyerIdType?: string;
+  buyerIdNumber?: string;
+  doctorId?: number;
+  doctorName: string;
+  doctorNmcNumber: string;
+  prescriptionNumber?: string;
+  prescriptionDate?: string;
+  dispensedQuantity: number;
+  unitType?: string;
+  pharmacistName: string;
+  pharmacistNpcNumber?: string;
+  remarks?: string;
 }

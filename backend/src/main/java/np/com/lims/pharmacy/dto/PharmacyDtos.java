@@ -33,6 +33,8 @@ public final class PharmacyDtos {
             String rackLocation,
             Integer minStockLevel,
             Boolean isActive,
+            Boolean isNarcotic,
+            Boolean requiresPrescription,
             String barcode,
             Integer totalStockUnits,
             Integer totalStockPacks,
@@ -56,6 +58,8 @@ public final class PharmacyDtos {
             String schedule,
             String rackLocation,
             Integer minStockLevel,
+            Boolean isNarcotic,
+            Boolean requiresPrescription,
             String barcode
     ) {}
 
@@ -341,5 +345,63 @@ public final class PharmacyDtos {
             long todaySalesCount,
             BigDecimal todaySalesAmount,
             BigDecimal monthSalesAmount
+    ) {}
+
+    public record RecordNarcoticLogRequest(
+            @NotNull Long itemId,
+            @NotNull Long batchId,
+            Long saleId,
+            Long saleItemId,
+            Long patientId,
+            @NotBlank String patientName,
+            String patientAgeGender,
+            String patientAddress,
+            @NotBlank String buyerName,
+            String buyerRelation,
+            String buyerContact,
+            String buyerIdType,
+            String buyerIdNumber,
+            Long doctorId,
+            @NotBlank String doctorName,
+            @NotBlank String doctorNmcNumber,
+            String prescriptionNumber,
+            LocalDate prescriptionDate,
+            @NotNull @Min(1) Integer dispensedQuantity,
+            String unitType,
+            @NotBlank String pharmacistName,
+            String pharmacistNpcNumber,
+            String remarks
+    ) {}
+
+    public record NarcoticLogDto(
+            Long id,
+            Long itemId,
+            String itemName,
+            String genericName,
+            Long batchId,
+            String batchNumber,
+            LocalDate expiryDate,
+            Long saleId,
+            Instant logDate,
+            Long patientId,
+            String patientName,
+            String patientAgeGender,
+            String patientAddress,
+            String buyerName,
+            String buyerRelation,
+            String buyerContact,
+            String buyerIdType,
+            String buyerIdNumber,
+            Long doctorId,
+            String doctorName,
+            String doctorNmcNumber,
+            String prescriptionNumber,
+            LocalDate prescriptionDate,
+            Integer dispensedQuantity,
+            String unitType,
+            Integer balanceStockUnits,
+            String pharmacistName,
+            String pharmacistNpcNumber,
+            String remarks
     ) {}
 }

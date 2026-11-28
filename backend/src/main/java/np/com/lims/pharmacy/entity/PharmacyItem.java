@@ -70,6 +70,12 @@ public class PharmacyItem extends BaseEntity {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
+    @Column(name = "is_narcotic", nullable = false)
+    private Boolean isNarcotic = false;
+
+    @Column(name = "requires_prescription", nullable = false)
+    private Boolean requiresPrescription = false;
+
     @Column(length = 80)
     private String barcode;
 
@@ -211,6 +217,22 @@ public class PharmacyItem extends BaseEntity {
 
     public void setIsActive(Boolean isActive) {
         this.isActive = isActive;
+    }
+
+    public Boolean getIsNarcotic() {
+        return isNarcotic != null ? isNarcotic : false;
+    }
+
+    public void setIsNarcotic(Boolean isNarcotic) {
+        this.isNarcotic = isNarcotic;
+    }
+
+    public Boolean getRequiresPrescription() {
+        return requiresPrescription != null ? requiresPrescription : false;
+    }
+
+    public void setRequiresPrescription(Boolean requiresPrescription) {
+        this.requiresPrescription = requiresPrescription;
     }
 
     public String getBarcode() {

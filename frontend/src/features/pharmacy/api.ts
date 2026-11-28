@@ -82,4 +82,11 @@ export const pharmacyApi = {
     listSupplierReturns: (params?: { page?: number; size?: number }) =>
       httpClient.get<PageResponse<import('./types').SupplierReturn>>('/pharmacy/returns/suppliers', { params }).then((r) => r.data),
   },
+
+  narcotics: {
+    list: (params?: { query?: string; page?: number; size?: number }) =>
+      httpClient.get<PageResponse<import('./types').NarcoticLog>>('/pharmacy/narcotics/logs', { params }).then((r) => r.data),
+    record: (payload: import('./types').RecordNarcoticLogRequest) =>
+      httpClient.post<import('./types').NarcoticLog>('/pharmacy/narcotics/logs', payload).then((r) => r.data),
+  },
 };

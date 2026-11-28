@@ -40,6 +40,7 @@ public class PharmacyController {
     private final PharmacyDispenseService dispenseService;
     private final PharmacyDashboardService dashboardService;
     private final PharmacyReturnService returnService;
+    private final np.com.lims.pharmacy.service.PharmacyNarcoticService narcoticService;
 
     public PharmacyController(PharmacyItemService itemService,
                               PharmacyBatchService batchService,
@@ -48,7 +49,8 @@ public class PharmacyController {
                               PharmacyPurchaseService purchaseService,
                               PharmacyDispenseService dispenseService,
                               PharmacyDashboardService dashboardService,
-                              PharmacyReturnService returnService) {
+                              PharmacyReturnService returnService,
+                              np.com.lims.pharmacy.service.PharmacyNarcoticService narcoticService) {
         this.itemService = itemService;
         this.batchService = batchService;
         this.wholesalerService = wholesalerService;
@@ -57,6 +59,7 @@ public class PharmacyController {
         this.dispenseService = dispenseService;
         this.dashboardService = dashboardService;
         this.returnService = returnService;
+        this.narcoticService = narcoticService;
     }
 
     // --- Statistics ---
@@ -228,5 +231,18 @@ public class PharmacyController {
     @ResponseStatus(HttpStatus.CREATED)
     public SupplierReturnDto createSupplierReturn(@Valid @RequestBody CreateSupplierReturnRequest req) {
         return returnService.createSupplierReturn(req);
+    }
+
+    // --- Narcotics & Schedule H / G Controlled Drug Register ---
+    @GetMapping("/narcotics/logs")
+    public Page<NarcoticLogDto> listNarcoticLogs(@RequestParam(required = false) String query,
+                                                 @PageableDefault(size = 20) Pageable pageable) {
+        return narcoticService.listLogs(query, pageable);
+    }
+
+    @PostMapping("/narcotics/logs")
+    @ResponseStatus(HttpStatus.CREATED)
+    public NarcoticLogDto recordNarcoticLog(@Valid @RequestBody RecordNarcoticLogRequest req) {
+        return narcoticService.recordLog(req);
     }
 }

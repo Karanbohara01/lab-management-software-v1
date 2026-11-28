@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, Pill, Truck, Building2, AlertTriangle, ShieldCheck, RotateCcw, Receipt } from 'lucide-react';
+import { ShoppingCart, Pill, Truck, Building2, AlertTriangle, ShieldCheck, RotateCcw, Receipt, ShieldAlert } from 'lucide-react';
 import { useT } from '@/i18n';
 
 interface NavItem {
@@ -49,6 +49,11 @@ export function PharmacyHeader() {
       to: '/app/pharmacy/returns',
       label: t('Returns & Credit Notes'),
       icon: RotateCcw,
+    },
+    {
+      to: '/app/pharmacy/narcotics',
+      label: t('Narcotics & Schedule H'),
+      icon: ShieldAlert,
     },
   ];
 
