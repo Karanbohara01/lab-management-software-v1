@@ -214,12 +214,15 @@
   #patient-print,
   #patient-print *,
   #pharmacy-receipt-print,
-  #pharmacy-receipt-print * {
+  #pharmacy-receipt-print *,
+  #pharmacy-po-print,
+  #pharmacy-po-print * {
     visibility: visible !important;
   }
   #report-print,
   #patient-print,
-  #pharmacy-receipt-print {
+  #pharmacy-receipt-print,
+  #pharmacy-po-print {
     display: block !important;
     position: absolute;
     inset: 0;
@@ -236,7 +239,9 @@
   #patient-print,
   #patient-print *,
   #pharmacy-receipt-print,
-  #pharmacy-receipt-print * {
+  #pharmacy-receipt-print *,
+  #pharmacy-po-print,
+  #pharmacy-po-print * {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
@@ -247,11 +252,13 @@
      single parameter row/comment/group-heading across a page break (tr) — a test's table can
      break mid-panel, but never mid-row, and never separates a column header from its data. */
   #report-print thead,
-  #pharmacy-receipt-print thead {
+  #pharmacy-receipt-print thead,
+  #pharmacy-po-print thead {
     display: table-header-group;
   }
   #report-print tr,
-  #pharmacy-receipt-print tr {
+  #pharmacy-receipt-print tr,
+  #pharmacy-po-print tr {
     break-inside: avoid;
     page-break-inside: avoid;
   }

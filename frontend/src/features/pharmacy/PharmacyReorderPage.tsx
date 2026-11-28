@@ -17,6 +17,7 @@ import {
   Check,
 } from 'lucide-react';
 import { PharmacyHeader } from './PharmacyHeader';
+import { PharmacyPoPrintSheet } from './PharmacyPoPrintSheet';
 import { pharmacyApi } from './api';
 import type {
   ReorderRecommendation,
@@ -881,116 +882,18 @@ export function PharmacyReorderPage() {
               </div>
             </div>
 
-            {/* Printable Purchase Order Template */}
-            <div className="rounded-xl border border-border/80 bg-white p-6 text-gray-900 space-y-6 shadow-xs font-sans">
-              {/* Header */}
-              <div className="flex justify-between items-start border-b border-gray-200 pb-4">
-                <div>
-                  <h1 className="text-xl font-black text-gray-950 uppercase tracking-tight">
-                    PURCHASE ORDER
-                  </h1>
-                  <p className="text-xs text-gray-600 font-medium">Hospital Pharmacy Procurement Dept.</p>
-                  <p className="text-xs text-gray-500">Kathmandu, Nepal · Tel: 01-4455660</p>
-                </div>
-                <div className="text-right">
-                  <div className="font-mono text-sm font-black text-blue-700">{viewPo.poNumber}</div>
-                  <p className="text-xs text-gray-600">Date: {viewPo.orderDate}</p>
-                  <p className="text-xs text-gray-600">Delivery Due: {viewPo.expectedDeliveryDate || 'Immediate'}</p>
-                </div>
-              </div>
-
-              {/* Vendor & Bill To */}
-              <div className="grid grid-cols-2 gap-6 text-xs">
-                <div className="rounded-lg border border-gray-200 p-3 bg-gray-50/50">
-                  <span className="font-bold text-gray-500 uppercase tracking-wider block text-[10px] mb-1">
-                    VENDOR / DISTRIBUTOR:
-                  </span>
-                  <div className="font-bold text-gray-900 text-sm">{viewPo.wholesalerName}</div>
-                  {viewPo.wholesalerPhone && <p className="text-gray-600">Phone: {viewPo.wholesalerPhone}</p>}
-                  {viewPo.wholesalerPan && <p className="text-gray-600">PAN/VAT: {viewPo.wholesalerPan}</p>}
-                </div>
-
-                <div className="rounded-lg border border-gray-200 p-3 bg-gray-50/50">
-                  <span className="font-bold text-gray-500 uppercase tracking-wider block text-[10px] mb-1">
-                    DELIVERY TO:
-                  </span>
-                  <div className="font-bold text-gray-900 text-sm">Hospital Main Dispensary</div>
-                  <p className="text-gray-600">Attn: Chief Pharmacist</p>
-                  <p className="text-gray-600">Issued by: {viewPo.createdBy || 'Authorized Pharmacist'}</p>
-                </div>
-              </div>
-
-              {/* Line items table */}
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-gray-100 font-bold text-gray-700 border-b border-gray-200">
-                    <tr>
-                      <th className="px-3 py-2.5">S.N.</th>
-                      <th className="px-3 py-2.5">Medicine Name & Formulation</th>
-                      <th className="px-3 py-2.5 text-center">Packaging</th>
-                      <th className="px-3 py-2.5 text-center">Ordered Packs</th>
-                      <th className="px-3 py-2.5 text-right">Est. Rate</th>
-                      <th className="px-3 py-2.5 text-right">Line Total (Rs.)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {viewPo.items?.map((item, idx) => (
-                      <tr key={item.id}>
-                        <td className="px-3 py-2 text-gray-500">{idx + 1}</td>
-                        <td className="px-3 py-2">
-                          <span className="font-bold text-gray-950">{item.itemName}</span>
-                          {item.genericName && (
-                            <span className="text-[10px] text-gray-500 block">{item.genericName}</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2 text-center text-gray-600">
-                          1 {item.packUnit} ({item.packSize} tabs)
-                        </td>
-                        <td className="px-3 py-2 text-center font-bold text-gray-950">
-                          {item.orderedPackQty} {item.packUnit}
-                        </td>
-                        <td className="px-3 py-2 text-right text-gray-600">
-                          Rs. {item.estimatedRatePerPack.toFixed(2)}
-                        </td>
-                        <td className="px-3 py-2 text-right font-bold text-gray-950">
-                          Rs. {item.estimatedTotalAmount.toFixed(2)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot className="bg-gray-50 font-bold border-t border-gray-200">
-                    <tr>
-                      <td colSpan={5} className="px-3 py-2.5 text-right text-gray-700">
-                        TOTAL ESTIMATED ORDER VALUE:
-                      </td>
-                      <td className="px-3 py-2.5 text-right font-black text-gray-950 text-sm">
-                        Rs. {viewPo.totalEstimatedAmount.toFixed(2)}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-
-              {/* Terms and Signatures */}
-              <div className="pt-2 text-xs text-gray-600 space-y-1">
-                <p className="font-semibold text-gray-700">Terms & Conditions:</p>
-                <p>1. Please deliver stock with minimum 18 months expiry remaining from delivery date.</p>
-                <p>2. Invoices must include official DDA batch numbers and IRD VAT numbers.</p>
-                {viewPo.notes && <p className="font-semibold text-blue-800">Special Notes: {viewPo.notes}</p>}
-              </div>
-
-              <div className="flex justify-between pt-8 text-xs text-gray-700">
-                <div className="border-t border-gray-300 pt-1 text-center w-40">
-                  <p className="font-semibold">Prepared By</p>
-                  <p className="text-[10px] text-gray-500">Store Pharmacist</p>
-                </div>
-                <div className="border-t border-gray-300 pt-1 text-center w-40">
-                  <p className="font-semibold">Approved By</p>
-                  <p className="text-[10px] text-gray-500">Medical Director / Admin</p>
-                </div>
-              </div>
+            {/* Purchase Order Preview */}
+            <div className="rounded-xl border border-border/80 bg-white shadow-xs overflow-hidden">
+              <PharmacyPoPrintSheet po={viewPo} isPrintDocument={false} />
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Dedicated Printable Purchase Order Sheet (Rendered exclusively during print via #pharmacy-po-print) */}
+      {viewPo && (
+        <div className="hidden print:block">
+          <PharmacyPoPrintSheet po={viewPo} isPrintDocument={true} />
         </div>
       )}
     </div>
