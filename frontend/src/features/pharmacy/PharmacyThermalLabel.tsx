@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import QRCode from 'qrcode';
 import JsBarcode from 'jsbarcode';
 
-export type ThermalLabelSize = '50x25' | '50x35' | '75x50';
+export type ThermalLabelSize = '100x50' | '50x25' | '50x35' | '75x50';
 export type LabelCodeType = 'QR' | 'BARCODE';
 
 export interface PharmacyThermalLabelData {
@@ -33,6 +33,13 @@ export const THERMAL_LABEL_PRESETS: {
   heightMm: number;
   description: string;
 }[] = [
+  {
+    id: '100x50',
+    name: '100 × 50 mm (4"×2")',
+    widthMm: 100,
+    heightMm: 50,
+    description: 'Standard 4-Inch Thermal Roll (EML-400L / Zebra 4" / TSC)',
+  },
   {
     id: '50x25',
     name: '50 × 25 mm',
@@ -312,6 +319,99 @@ export function PharmacyThermalLabel({
               <svg ref={barcodeRef} className="w-[10mm] h-[10mm]" />
             )}
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 4-Inch Wide Format: 100x50mm (Standard for EML-400L / Zebra 4")
+  if (size === '100x50') {
+    return (
+      <div
+        {...(isPrintDocument ? { id: 'pharmacy-label-print' } : {})}
+        style={{
+          width: '100mm',
+          height: '50mm',
+          padding: '2mm 3.5mm',
+          transform: scale !== 1 ? `scale(${scale})` : undefined,
+          transformOrigin: 'top left',
+        }}
+        className="box-border flex flex-col justify-between overflow-hidden border border-gray-300 bg-white text-black font-sans select-none print:border-0 print:m-0"
+      >
+        {/* Letterhead Header */}
+        <div className="border-b-2 border-black pb-[0.8mm] flex justify-between items-start">
+          <div>
+            <h2 className="text-[3.2mm] font-black uppercase tracking-tight">{hospital}</h2>
+            <p className="text-[2.1mm] text-gray-700 font-semibold">Bedside & Inpatient Dispense Unit · Tel: 01-4455660</p>
+          </div>
+          <div className="text-right text-[2.2mm] font-mono">
+            <div>Date: {today}</div>
+            <div className="font-bold text-[2.5mm]">MRN: {data.patientMrn}</div>
+          </div>
+        </div>
+
+        {/* Patient & Doctor */}
+        <div className="flex justify-between items-center text-[2.5mm] border-b border-gray-300 py-[0.8mm]">
+          <div>
+            <span className="font-semibold text-gray-600">Patient: </span>
+            <span className="font-black text-[2.9mm]">{data.patientName}</span>
+            {data.patientAgeGender && <span className="text-gray-600 font-bold ml-1">({data.patientAgeGender})</span>}
+          </div>
+          {data.doctorName && (
+            <div className="text-right text-[2.4mm]">
+              <span className="text-gray-600">Prescriber: </span>
+              <span className="font-bold">{data.doctorName}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Main Drug Details & Sig */}
+        <div className="my-auto py-[1mm] flex items-center justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-baseline justify-between">
+              <span className="text-[3.8mm] font-black tracking-tight truncate">{data.drugName}</span>
+              <span className="text-[2.6mm] font-black bg-black text-white px-[1.2mm] py-[0.3mm] rounded-[0.4mm] shrink-0 ml-2">
+                Qty: {data.dispensedQty} {data.dosageForm || 'Units'}
+              </span>
+            </div>
+            {data.genericName && (
+              <div className="text-[2.2mm] italic text-gray-700 truncate">{data.genericName}</div>
+            )}
+
+            {/* Directions / Sig Box */}
+            <div className="mt-[1mm] rounded border-2 border-black p-[1mm] bg-gray-50/70">
+              <span className="block text-[1.8mm] font-black uppercase tracking-wider text-gray-700">
+                Dosage Instructions (प्रयोग विधि):
+              </span>
+              <p className="text-[2.8mm] font-black leading-snug">{data.instructionsEn}</p>
+              {data.instructionsNp && (
+                <p className="text-[2.6mm] font-bold text-gray-900 mt-[0.3mm]">{data.instructionsNp}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Verification QR Code */}
+          <div className="shrink-0 flex flex-col items-center justify-center p-1.5 border border-black/30 rounded bg-white">
+            {codeType === 'QR' && qrUri ? (
+              <img src={qrUri} alt="QR" className="w-[19mm] h-[19mm] object-contain" />
+            ) : (
+              <svg ref={barcodeRef} className="w-[20mm] h-[14mm]" />
+            )}
+            <span className="text-[1.8mm] font-bold text-gray-700 uppercase mt-0.5">5-Rights Scan</span>
+          </div>
+        </div>
+
+        {/* Footer Info */}
+        <div className="border-t border-black/60 pt-[0.8mm] flex justify-between items-center text-[2.3mm]">
+          <div className="flex gap-4 font-mono font-bold">
+            <span>Batch: {data.batchNumber}</span>
+            <span>Exp: {data.expiryDate}</span>
+          </div>
+          {data.advisoryNote && (
+            <div className="font-bold text-black text-[2.2mm]">
+              ⚠️ {data.advisoryNote}
+            </div>
+          )}
         </div>
       </div>
     );
