@@ -781,11 +781,11 @@ export function PharmacyReturnsPage() {
         <Modal
           open={true}
           onClose={() => setCreditNoteReceipt(null)}
-          title={t('IRD Credit Note #{num}', { num: creditNoteReceipt.creditNoteNumber })}
+          title={t('Credit Note #{num}', { num: creditNoteReceipt.creditNoteNumber })}
           size="lg"
         >
           <div className="space-y-4">
-            <div className="max-h-[75vh] overflow-y-auto rounded-xl border border-border/80 bg-slate-100 p-6 shadow-inner dark:bg-slate-900/60 scrollbar-thin">
+            <div className="max-h-[72vh] overflow-y-auto rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-6 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border/80 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-border">
               <PharmacyCreditNotePrint creditNote={creditNoteReceipt} />
             </div>
 

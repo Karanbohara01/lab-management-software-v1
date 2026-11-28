@@ -1,5 +1,16 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, Pill, Truck, Building2, AlertTriangle, ShieldCheck, RotateCcw, Receipt, ShieldAlert } from 'lucide-react';
+import {
+  ShoppingCart,
+  Pill,
+  Truck,
+  Building2,
+  AlertTriangle,
+  ShieldCheck,
+  RotateCcw,
+  Receipt,
+  ShieldAlert,
+  ClipboardList,
+} from 'lucide-react';
 import { useT } from '@/i18n';
 
 interface NavItem {
@@ -24,6 +35,11 @@ export function PharmacyHeader() {
       to: '/app/pharmacy/sales',
       label: t('Sales & Invoices'),
       icon: Receipt,
+    },
+    {
+      to: '/app/pharmacy/prescriptions',
+      label: t('Doctor Rx (E-Prescriptions)'),
+      icon: ClipboardList,
     },
     {
       to: '/app/pharmacy/medicines',
@@ -89,8 +105,8 @@ export function PharmacyHeader() {
         </div>
       </div>
 
-      {/* Modern Navigation Tabs */}
-      <nav className="flex items-center gap-1.5 overflow-x-auto rounded-xl border border-border/80 bg-surface/80 p-1.5 shadow-xs backdrop-blur-sm scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none]">
+      {/* Modern Navigation Tabs - Flex wrap to ensure all tabs are visible without ugly scrollbars */}
+      <nav className="flex flex-wrap items-center gap-1.5 rounded-xl border border-border/80 bg-surface/80 p-1.5 shadow-xs backdrop-blur-sm [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {navItems.map((item) => {
           const isActive = location.pathname.startsWith(item.to);
           const Icon = item.icon;

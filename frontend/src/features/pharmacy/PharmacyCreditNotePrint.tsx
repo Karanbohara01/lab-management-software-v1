@@ -30,7 +30,7 @@ export function PharmacyCreditNotePrint({
   return (
     <div
       {...(isPrintDocument ? { id: 'pharmacy-receipt-print' } : {})}
-      className="mx-auto w-full max-w-[480px] rounded-lg bg-white p-6 font-mono text-[12px] leading-relaxed text-black shadow-lg print:m-0 print:max-w-none print:p-2 print:shadow-none"
+      className="mx-auto w-full max-w-[460px] rounded-xl border border-gray-200/80 bg-white p-5 sm:p-6 font-mono text-[12px] leading-relaxed text-gray-950 shadow-md print:m-0 print:max-w-none print:border-none print:p-2 print:shadow-none"
     >
       {/* Top Header */}
       <div className="border-b-2 border-dashed border-gray-800 pb-3 text-center">
@@ -151,8 +151,8 @@ export function PharmacyCreditNotePrint({
       </div>
 
       {/* Footer Notes & Signatures */}
-      <div className="pt-4 text-center text-[10px]">
-        <div className="mb-5 flex justify-between px-4 pt-10">
+      <div className="pt-3 text-center text-[10px]">
+        <div className="mb-4 flex justify-between px-4 pt-6">
           <div className="w-28 border-t border-black pt-1 font-semibold text-gray-800">Customer Sign</div>
           <div className="w-28 border-t border-black pt-1 font-semibold text-gray-800">Pharmacist Sign</div>
         </div>
