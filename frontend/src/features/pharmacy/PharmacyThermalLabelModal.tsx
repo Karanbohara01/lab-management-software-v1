@@ -1,18 +1,35 @@
 import { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
 import {
-  Printer,
+  FaPills,
+  FaPrescription,
+  FaUserCheck,
+  FaSun,
+  FaMoon,
+  FaClock,
+  FaUtensils,
+  FaEye,
+  FaFlask,
+  FaSnowflake,
+  FaTriangleExclamation,
+  FaQrcode,
+  FaBarcode,
+  FaPrint,
+  FaShieldHalved,
+  FaHashtag,
+  FaBoxesStacked,
+  FaCalendarDays,
+  FaSuitcaseMedical,
+  FaNotesMedical,
+  FaLanguage,
+} from 'react-icons/fa6';
+import {
   Tag,
-  QrCode,
-  Barcode,
   Layers,
   ZoomIn,
   ZoomOut,
   ChevronLeft,
   ChevronRight,
-  ShieldCheck,
-  Pill,
-  Clock,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -36,11 +53,72 @@ interface PharmacyThermalLabelModalProps {
   defaultSize?: ThermalLabelSize;
 }
 
+// Preset Icon Map for Vibrant Flaticon Aesthetic
+const PRESET_ICONS: Record<
+  string,
+  { icon: typeof FaSun; color: string; badge: string; border: string }
+> = {
+  'OD (Once Daily)': {
+    icon: FaSun,
+    color: 'text-amber-500',
+    badge: 'bg-amber-50 text-amber-950 dark:bg-amber-950/40 dark:text-amber-200',
+    border: 'border-amber-200 dark:border-amber-800/50 hover:border-amber-400',
+  },
+  'BD (Twice Daily)': {
+    icon: FaClock,
+    color: 'text-sky-500',
+    badge: 'bg-sky-50 text-sky-950 dark:bg-sky-950/40 dark:text-sky-200',
+    border: 'border-sky-200 dark:border-sky-800/50 hover:border-sky-400',
+  },
+  'TDS (3 Times Daily)': {
+    icon: FaNotesMedical,
+    color: 'text-indigo-500',
+    badge: 'bg-indigo-50 text-indigo-950 dark:bg-indigo-950/40 dark:text-indigo-200',
+    border: 'border-indigo-200 dark:border-indigo-800/50 hover:border-indigo-400',
+  },
+  'QID (4 Times Daily)': {
+    icon: FaBoxesStacked,
+    color: 'text-purple-500',
+    badge: 'bg-purple-50 text-purple-950 dark:bg-purple-950/40 dark:text-purple-200',
+    border: 'border-purple-200 dark:border-purple-800/50 hover:border-purple-400',
+  },
+  'HS (Bedtime)': {
+    icon: FaMoon,
+    color: 'text-violet-500',
+    badge: 'bg-violet-50 text-violet-950 dark:bg-violet-950/40 dark:text-violet-200',
+    border: 'border-violet-200 dark:border-violet-800/50 hover:border-violet-400',
+  },
+  'SOS (As Needed)': {
+    icon: FaSuitcaseMedical,
+    color: 'text-rose-500',
+    badge: 'bg-rose-50 text-rose-950 dark:bg-rose-950/40 dark:text-rose-200',
+    border: 'border-rose-200 dark:border-rose-800/50 hover:border-rose-400',
+  },
+  'Empty Stomach (AC)': {
+    icon: FaUtensils,
+    color: 'text-emerald-500',
+    badge: 'bg-emerald-50 text-emerald-950 dark:bg-emerald-950/40 dark:text-emerald-200',
+    border: 'border-emerald-200 dark:border-emerald-800/50 hover:border-emerald-400',
+  },
+  'Syrup (5ml TDS)': {
+    icon: FaFlask,
+    color: 'text-orange-500',
+    badge: 'bg-orange-50 text-orange-950 dark:bg-orange-950/40 dark:text-orange-200',
+    border: 'border-orange-200 dark:border-orange-800/50 hover:border-orange-400',
+  },
+  'Eye Drops (1 Drop TDS)': {
+    icon: FaEye,
+    color: 'text-cyan-500',
+    badge: 'bg-cyan-50 text-cyan-950 dark:bg-cyan-950/40 dark:text-cyan-200',
+    border: 'border-cyan-200 dark:border-cyan-800/50 hover:border-cyan-400',
+  },
+};
+
 export function PharmacyThermalLabelModal({
   open,
   onClose,
   initialItems = [],
-  defaultSize = '50x25',
+  defaultSize = '100x50',
 }: PharmacyThermalLabelModalProps) {
   const t = useT();
 
@@ -50,19 +128,20 @@ export function PharmacyThermalLabelModal({
   const [selectedCodeType, setSelectedCodeType] = useState<LabelCodeType>('QR');
   const [copies, setCopies] = useState('1');
 
-  // Auto-calculated zoom scale to fit the preview card perfectly without clipping
+  // Optimal zoom level matching physical width to avoid clipping or overflow
   const [zoomLevel, setZoomLevel] = useState<number>(() => {
-    return defaultSize === '75x50' ? 1.15 : defaultSize === '50x35' ? 1.4 : 1.65;
+    return defaultSize === '100x50' ? 0.95 : defaultSize === '75x50' ? 1.15 : defaultSize === '50x35' ? 1.4 : 1.6;
   });
 
-  // Adjust default zoom when size changes to avoid clipping
   useEffect(() => {
-    if (selectedSize === '75x50') {
+    if (selectedSize === '100x50') {
+      setZoomLevel(0.95);
+    } else if (selectedSize === '75x50') {
       setZoomLevel(1.15);
     } else if (selectedSize === '50x35') {
       setZoomLevel(1.4);
     } else {
-      setZoomLevel(1.65);
+      setZoomLevel(1.6);
     }
   }, [selectedSize]);
 
@@ -119,13 +198,12 @@ export function PharmacyThermalLabelModal({
     });
   };
 
-  // Dimensions of selected physical stock
   const currentPreset =
     THERMAL_LABEL_PRESETS.find((p) => p.id === selectedSize) ?? THERMAL_LABEL_PRESETS[0]!;
   const widthMm = currentPreset.widthMm;
   const heightMm = currentPreset.heightMm;
 
-  // Direct thermal roll printing via dedicated window with strict @page geometry
+  // Direct thermal roll printing with real QR image generation
   const handlePrint = async (printAll: boolean = false) => {
     const numCopies = Math.max(1, parseInt(copies, 10) || 1);
     const targetItems = printAll ? items : [currentItem].filter(Boolean) as PharmacyThermalLabelData[];
@@ -151,7 +229,7 @@ export function PharmacyThermalLabelModal({
 
       let singleLabelInnerHtml = '';
       if (widthMm >= 75) {
-        // 100x50mm or 75x50mm Wide Format (EML-400L 4-Inch / Zebra 3"-4")
+        // 100x50mm or 75x50mm Wide Format
         singleLabelInnerHtml = `
           <div style="width: 100%; height: 100%; box-sizing: border-box; padding: 2.5mm 3.5mm; display: flex; flex-direction: column; justify-content: space-between; font-family: system-ui, -apple-system, sans-serif; color: #000; background: #fff;">
             <!-- Header -->
@@ -212,7 +290,7 @@ export function PharmacyThermalLabelModal({
           </div>
         `;
       } else {
-        // 50x25mm and 50x35mm Compact Standard Layout
+        // 50x25mm and 50x35mm Compact Layout
         singleLabelInnerHtml = `
           <div style="width: 100%; height: 100%; box-sizing: border-box; padding: 1mm 1.3mm; display: flex; flex-direction: column; justify-content: space-between; font-family: system-ui, -apple-system, sans-serif; color: #000; background: #fff;">
             <!-- Header -->
@@ -330,11 +408,12 @@ export function PharmacyThermalLabelModal({
       size="2xl"
     >
       <div className="flex flex-col gap-3">
-        {/* Top Sticky Ribbon: Stock Size + Barcode Engine + Multi-Item Stepper */}
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/80 bg-surface-muted/40 px-3 py-1.5 backdrop-blur-xs">
+        {/* Top Ribbon: Roll Stock & Code Engine */}
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/80 bg-surface-muted/40 px-3 py-1.5 shadow-2xs">
           {/* Label Stock Selector */}
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-muted">
+            <span className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-muted">
+              <FaPrint className="text-primary h-3 w-3" />
               {t('Label Roll')}:
             </span>
             <div className="inline-flex rounded-lg border border-border bg-surface p-0.5 shadow-2xs">
@@ -395,25 +474,25 @@ export function PharmacyThermalLabelModal({
               <button
                 type="button"
                 onClick={() => setSelectedCodeType('QR')}
-                className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold transition ${
+                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition ${
                   selectedCodeType === 'QR'
                     ? 'bg-primary text-primary-foreground shadow-xs'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                <QrCode className="h-3.5 w-3.5" />
+                <FaQrcode className="h-3 w-3 text-sky-400" />
                 QR 5-Rights
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedCodeType('BARCODE')}
-                className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold transition ${
+                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition ${
                   selectedCodeType === 'BARCODE'
                     ? 'bg-primary text-primary-foreground shadow-xs'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                <Barcode className="h-3.5 w-3.5" />
+                <FaBarcode className="h-3 w-3" />
                 Code128
               </button>
             </div>
@@ -438,18 +517,18 @@ export function PharmacyThermalLabelModal({
               <div className="flex items-center gap-1 bg-surface border border-border/80 rounded-md p-0.5 shadow-2xs">
                 <button
                   type="button"
-                  onClick={() => setZoomLevel((z) => Math.max(0.8, +(z - 0.15).toFixed(2)))}
+                  onClick={() => setZoomLevel((z) => Math.max(0.7, +(z - 0.1).toFixed(2)))}
                   className="rounded p-0.5 hover:bg-surface-muted text-muted hover:text-foreground transition"
                   title="Zoom Out"
                 >
                   <ZoomOut className="h-3.5 w-3.5" />
                 </button>
-                <span className="font-mono text-[10px] px-1 text-foreground font-semibold">
+                <span className="font-mono text-[10px] px-1.5 text-foreground font-semibold">
                   {Math.round(zoomLevel * 100)}%
                 </span>
                 <button
                   type="button"
-                  onClick={() => setZoomLevel((z) => Math.min(2.0, +(z + 0.15).toFixed(2)))}
+                  onClick={() => setZoomLevel((z) => Math.min(1.8, +(z + 0.1).toFixed(2)))}
                   className="rounded p-0.5 hover:bg-surface-muted text-muted hover:text-foreground transition"
                   title="Zoom In"
                 >
@@ -458,15 +537,15 @@ export function PharmacyThermalLabelModal({
               </div>
             </div>
 
-            {/* Sticker Preview Mount */}
-            <div className="flex min-h-[170px] max-h-[220px] items-center justify-center overflow-auto p-3 rounded-lg border border-dashed border-border/80 bg-surface/70 mt-2">
+            {/* Sticker Preview Mount: Auto-fitting canvas without inner scrollbars */}
+            <div className="flex min-h-[180px] items-center justify-center p-3 rounded-lg border border-dashed border-border/80 bg-surface/70 mt-2 overflow-hidden">
               <div
                 style={{
                   width: `${widthMm * zoomLevel}mm`,
                   height: `${heightMm * zoomLevel}mm`,
                   maxWidth: '100%',
                 }}
-                className="relative shrink-0 rounded-xs bg-white text-black shadow-md border border-gray-300 transition-all duration-200"
+                className="relative shrink-0 rounded-xs bg-white text-black shadow-md border border-gray-300 transition-all duration-150"
               >
                 <div
                   style={{
@@ -490,115 +569,139 @@ export function PharmacyThermalLabelModal({
             </div>
 
             {/* 5-Rights Bedside Verification Strip */}
-            <div className="mt-2.5 flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50/80 dark:border-emerald-800/40 dark:bg-emerald-950/30 px-2.5 py-1.5 text-xs">
-              <div className="flex items-center gap-1.5 font-bold text-emerald-800 dark:text-emerald-300 text-[11px]">
-                <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <div className="mt-2.5 flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50/90 dark:border-emerald-800/40 dark:bg-emerald-950/30 px-3 py-1.5 text-xs text-emerald-900 dark:text-emerald-200 shadow-2xs">
+              <div className="flex items-center gap-1.5 font-bold text-[11px] text-emerald-800 dark:text-emerald-300">
+                <FaShieldHalved className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                 <span>{t('Clinical 5-Rights Ready')}</span>
               </div>
-              <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-medium">
-                MRN · Lot · Dose · Route · Time
+              <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-semibold">
+                Patient · Drug · Dose · Route · Time
               </span>
             </div>
           </div>
 
-          {/* Right Column: Clean Structured Form without scrollbars */}
+          {/* Right Column: Clean Structured Form with Flaticons */}
           <div className="flex flex-col gap-2.5 lg:col-span-7">
-            {/* Group 1: Bilingual Quick Dosage Presets (En/Nepali) */}
+            {/* Group 1: Bilingual Quick Dosage Presets with Flat Medical Icons */}
             <div className="rounded-xl border border-border/80 bg-surface p-2.5 shadow-2xs">
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <Clock className="h-3.5 w-3.5 text-primary" />
-                  {t('Quick Dosage Directions (प्रयोग विधि)')}
+                  <FaPrescription className="h-3.5 w-3.5 text-primary" />
+                  {t('Quick Dosage Directions (द्रुत प्रयोग विधि)')}
                 </span>
-                <span className="text-[10px] text-muted">1-Click Apply</span>
+                <span className="text-[10px] font-semibold text-muted">1-Click Apply</span>
               </div>
 
-              {/* 4-Column Compact Chip Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
-                {DOSAGE_INSTRUCTION_PRESETS.map((preset) => (
-                  <button
-                    key={preset.label}
-                    type="button"
-                    onClick={() => handleApplyPreset(preset)}
-                    className="flex items-center justify-between rounded-md border border-border/80 bg-surface-muted/40 px-2 py-1 text-left transition hover:border-primary hover:bg-primary/5 active:scale-98"
-                  >
-                    <span className="font-extrabold text-[10px] text-primary truncate mr-1">
-                      {preset.label.split('(')[0]}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground truncate">
-                      {preset.np}
-                    </span>
-                  </button>
-                ))}
+              {/* Flaticon Preset Chips Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                {DOSAGE_INSTRUCTION_PRESETS.map((preset) => {
+                  const conf = PRESET_ICONS[preset.label] || {
+                    icon: FaClock,
+                    color: 'text-primary',
+                    badge: 'bg-surface-muted/60 text-foreground',
+                    border: 'border-border/80 hover:border-primary',
+                  };
+                  const Icon = conf.icon;
+                  const isMatching = currentItem.instructionsEn === preset.en;
+
+                  return (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => handleApplyPreset(preset)}
+                      className={`flex items-center gap-2 rounded-lg border p-1.5 text-left transition active:scale-98 ${conf.border} ${conf.badge} ${
+                        isMatching ? 'ring-2 ring-primary shadow-xs font-bold' : ''
+                      }`}
+                    >
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-white shadow-2xs dark:bg-black/30">
+                        <Icon className={`h-3.5 w-3.5 ${conf.color}`} />
+                      </div>
+                      <div className="min-w-0 flex-1 leading-tight">
+                        <div className="font-extrabold text-[10px] truncate text-foreground">
+                          {preset.label.split('(')[0]?.trim() || preset.label}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground truncate font-medium">
+                          {preset.np}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Group 2: Patient & Medication Input 3-Column Grid */}
+            {/* Group 2: Patient & Medication Input 3-Column Grid with Flaticons */}
             <div className="rounded-xl border border-border/80 bg-surface p-2.5 shadow-2xs space-y-2">
               <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                <Pill className="h-3.5 w-3.5 text-primary" />
+                <FaPills className="h-3.5 w-3.5 text-primary" />
                 {t('Medicine & Patient Identifiers')}
               </span>
 
               <div className="grid grid-cols-3 gap-2 text-xs">
                 <div>
-                  <label className="text-[10px] font-semibold text-muted block mb-0.5">
+                  <label className="text-[10px] font-semibold text-muted flex items-center gap-1 mb-0.5">
+                    <FaUserCheck className="h-2.5 w-2.5 text-muted-foreground" />
                     {t('Patient Name')}
                   </label>
                   <Input
                     value={currentItem.patientName || ''}
                     onChange={(e) => updateCurrentItem({ patientName: e.target.value })}
                     placeholder="Patient Full Name"
-                    className="h-7 text-xs"
+                    className="h-7 text-xs font-medium"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-semibold text-muted block mb-0.5">
+                  <label className="text-[10px] font-semibold text-muted flex items-center gap-1 mb-0.5">
+                    <FaPills className="h-2.5 w-2.5 text-indigo-500" />
                     {t('Medicine Name')}
                   </label>
                   <Input
                     value={currentItem.drugName || ''}
                     onChange={(e) => updateCurrentItem({ drugName: e.target.value })}
                     placeholder="Drug & Strength"
-                    className="h-7 text-xs font-medium"
+                    className="h-7 text-xs font-bold"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-semibold text-muted block mb-0.5">
+                  <label className="text-[10px] font-semibold text-muted flex items-center gap-1 mb-0.5">
+                    <FaBarcode className="h-2.5 w-2.5 text-muted-foreground" />
                     {t('Batch Number')}
                   </label>
                   <Input
                     value={currentItem.batchNumber || ''}
                     onChange={(e) => updateCurrentItem({ batchNumber: e.target.value })}
                     placeholder="Lot / Batch"
-                    className="h-7 text-xs font-mono"
+                    className="h-7 text-xs font-mono font-semibold"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-semibold text-muted block mb-0.5">
+                  <label className="text-[10px] font-semibold text-muted flex items-center gap-1 mb-0.5">
+                    <FaHashtag className="h-2.5 w-2.5 text-muted-foreground" />
                     {t('MRN / Hospital ID')}
                   </label>
                   <Input
                     value={currentItem.patientMrn || ''}
                     onChange={(e) => updateCurrentItem({ patientMrn: e.target.value })}
                     placeholder="MRN-001"
-                    className="h-7 text-xs"
+                    className="h-7 text-xs font-mono"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-semibold text-muted block mb-0.5">
+                  <label className="text-[10px] font-semibold text-muted flex items-center gap-1 mb-0.5">
+                    <FaBoxesStacked className="h-2.5 w-2.5 text-muted-foreground" />
                     {t('Dispensed Quantity')}
                   </label>
                   <Input
                     value={currentItem.dispensedQty}
                     onChange={(e) => updateCurrentItem({ dispensedQty: e.target.value })}
                     placeholder="10 Tabs"
-                    className="h-7 text-xs font-semibold"
+                    className="h-7 text-xs font-bold"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-semibold text-muted block mb-0.5">
+                  <label className="text-[10px] font-semibold text-muted flex items-center gap-1 mb-0.5">
+                    <FaCalendarDays className="h-2.5 w-2.5 text-muted-foreground" />
                     {t('Expiry Date')}
                   </label>
                   <Input
@@ -615,18 +718,20 @@ export function PharmacyThermalLabelModal({
             <div className="rounded-xl border border-border/80 bg-surface p-2.5 shadow-2xs space-y-1.5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                 <div>
-                  <label className="text-[10px] font-semibold text-muted block mb-0.5">
+                  <label className="text-[10px] font-semibold text-muted flex items-center gap-1 mb-0.5">
+                    <FaPrescription className="h-2.5 w-2.5 text-primary" />
                     {t('Directions (English)')}
                   </label>
                   <Input
                     value={currentItem.instructionsEn || ''}
                     onChange={(e) => updateCurrentItem({ instructionsEn: e.target.value })}
                     placeholder="e.g. 1 Tablet Twice Daily After Meals"
-                    className="h-7 text-xs"
+                    className="h-7 text-xs font-medium"
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-semibold text-muted block mb-0.5">
+                  <label className="text-[10px] font-semibold text-muted flex items-center gap-1 mb-0.5">
+                    <FaLanguage className="h-2.5 w-2.5 text-primary" />
                     {t('Directions (नेपाली / Nepali)')}
                   </label>
                   <Input
@@ -638,11 +743,38 @@ export function PharmacyThermalLabelModal({
                 </div>
               </div>
 
-              {/* Advisory Caution Dropdown */}
-              <div className="pt-0.5">
-                <label className="text-[10px] font-semibold text-muted block mb-0.5">
-                  {t('Clinical Advisory & Caution Note')}
-                </label>
+              {/* Advisory Caution with 1-Click Flaticon Chips */}
+              <div className="pt-0.5 space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-semibold text-muted flex items-center gap-1">
+                    <FaTriangleExclamation className="h-2.5 w-2.5 text-amber-500" />
+                    {t('Clinical Caution & Advisory Warning')}
+                  </label>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => updateCurrentItem({ advisoryNote: 'Keep in Refrigerator 2-8°C (फ्रिजमा राख्नुहोस्)' })}
+                      className="inline-flex items-center gap-1 rounded bg-sky-50 px-1.5 py-0.5 text-[9px] font-bold text-sky-800 border border-sky-200 hover:bg-sky-100 transition"
+                    >
+                      <FaSnowflake className="h-2 w-2 text-sky-500" /> Fridge 2-8°C
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateCurrentItem({ advisoryNote: 'Complete Full Course (औषधि पूरा खानुहोस्)' })}
+                      className="inline-flex items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-800 border border-emerald-200 hover:bg-emerald-100 transition"
+                    >
+                      <FaPills className="h-2 w-2 text-emerald-500" /> Full Course
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateCurrentItem({ advisoryNote: 'May Cause Drowsiness (झुम्म बनाउन सक्छ)' })}
+                      className="inline-flex items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 text-[9px] font-bold text-amber-800 border border-amber-200 hover:bg-amber-100 transition"
+                    >
+                      <FaMoon className="h-2 w-2 text-amber-500" /> Drowsiness
+                    </button>
+                  </div>
+                </div>
+
                 <Select
                   value={currentItem.advisoryNote || ''}
                   onChange={(e) => updateCurrentItem({ advisoryNote: e.target.value })}
@@ -667,7 +799,7 @@ export function PharmacyThermalLabelModal({
               max="50"
               value={copies}
               onChange={(e) => setCopies(e.target.value)}
-              className="w-14 h-7 text-xs text-center font-bold"
+              className="w-14 h-8 text-xs text-center font-bold"
             />
             <div className="hidden sm:flex items-center gap-1">
               {['1', '2', '3'].map((num) => (
@@ -675,7 +807,7 @@ export function PharmacyThermalLabelModal({
                   key={num}
                   type="button"
                   onClick={() => setCopies(num)}
-                  className={`rounded px-1.5 py-0.5 text-xs font-semibold border ${
+                  className={`rounded px-2 py-1 text-xs font-bold border transition ${
                     copies === num
                       ? 'border-primary bg-primary/10 text-primary'
                       : 'border-border text-muted hover:bg-surface-muted'
@@ -705,9 +837,9 @@ export function PharmacyThermalLabelModal({
 
             <Button
               onClick={() => handlePrint(false)}
-              className="gap-2 font-bold shadow-md text-xs h-8 px-4"
+              className="gap-2 bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-800 hover:to-indigo-800 text-white font-black shadow-md text-xs h-8 px-4"
             >
-              <Printer className="h-3.5 w-3.5" />
+              <FaPrint className="h-3.5 w-3.5" />
               {t('Print Sticker (Thermal Roll)')}
             </Button>
           </div>
