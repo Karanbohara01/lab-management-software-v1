@@ -1,8 +1,9 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@/hooks/useQuery';
 import { pharmacyApi } from './api';
 import { doctorsApi } from '@/features/doctors/api';
-import type { PharmacyItem, SaleReceipt, DispenseItemRequest } from './types';
+import type { PharmacyItem, SaleReceipt, DispenseItemRequest, Prescription } from './types';
 import type { PatientListItem } from '@/features/patients/types';
 import { PatientPicker } from '@/features/patients/PatientPicker';
 import { Input } from '@/components/ui/Input';
@@ -28,6 +29,7 @@ import {
   Building,
   Clock,
   MapPin,
+  ClipboardList,
 } from 'lucide-react';
 import { PharmacyHeader } from './PharmacyHeader';
 import { PharmacyReceiptPrint } from './PharmacyReceiptPrint';
@@ -70,12 +72,74 @@ export function PharmacyPosPage() {
     []
   );
 
+  const [searchParams] = useSearchParams();
   const [cart, setCart] = useState<CartLine[]>([]);
   const [customerName, setCustomerName] = useState('Walk-in Customer');
   const [customerPhone, setCustomerPhone] = useState('');
   const [selectedPatientId, setSelectedPatientId] = useState<number | undefined>(undefined);
   const [doctorName, setDoctorName] = useState('');
+  const [activeRxNumber, setActiveRxNumber] = useState<string | null>(null);
   const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
+  const [isRxModalOpen, setIsRxModalOpen] = useState(false);
+
+  // Load pending prescriptions for the quick pull modal
+  const { data: pendingRxData } = useQuery(
+    () => pharmacyApi.prescriptions.list({ status: 'PENDING', size: 50 }),
+    [isRxModalOpen]
+  );
+
+  const applyPrescriptionToCart = useCallback(
+    (rx: Prescription) => {
+      setActiveRxNumber(rx.prescriptionNumber);
+      setCustomerName(rx.patientName);
+      if (rx.patientPhone) setCustomerPhone(rx.patientPhone);
+      if (rx.patientId) setSelectedPatientId(rx.patientId);
+      if (rx.doctorName) setDoctorName(rx.doctorName);
+
+      // Map prescribed items to cart lines matching available inventory
+      if (itemsPage?.content) {
+        const newCartLines: CartLine[] = [];
+        for (const prescItem of rx.items) {
+          const med = itemsPage.content.find((i) => i.id === prescItem.itemId);
+          if (med) {
+            const unitType = prescItem.unitType || 'UNIT';
+            const unitPrice =
+              unitType === 'PACK' ? med.latestMrpPerPack || 0 : med.latestUnitMrp || 0;
+            const quantity = prescItem.quantityPrescribed || 1;
+            newCartLines.push({
+              item: med,
+              unitType,
+              quantity,
+              unitPrice,
+              totalPrice: quantity * unitPrice,
+              dosageInstruction: prescItem.dosage || prescItem.instructions || '1-0-1 After Food',
+            });
+          }
+        }
+        if (newCartLines.length > 0) {
+          setCart(newCartLines);
+          toast.success(
+            t('Loaded {count} prescribed items from Rx #{num}', {
+              count: newCartLines.length,
+              num: rx.prescriptionNumber,
+            })
+          );
+        }
+      }
+    },
+    [itemsPage, t, toast]
+  );
+
+  // Auto-load if rx query param is present
+  useEffect(() => {
+    const rxParam = searchParams.get('rx');
+    if (rxParam && itemsPage?.content) {
+      pharmacyApi.prescriptions
+        .getByNumber(rxParam)
+        .then((rx) => applyPrescriptionToCart(rx))
+        .catch(() => toast.error(t('Could not load prescription #{num}', { num: rxParam })));
+    }
+  }, [searchParams, itemsPage, applyPrescriptionToCart, t, toast]);
 
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'QR_FONEPAY' | 'CARD' | 'CREDIT'>('CASH');
   const [tenderAmount, setTenderAmount] = useState<number | string>('');
@@ -210,6 +274,8 @@ export function PharmacyPosPage() {
     setCustomerName('Walk-in Customer');
     setCustomerPhone('');
     setSelectedPatientId(undefined);
+    setDoctorName('');
+    setActiveRxNumber(null);
   };
 
   const subtotal = useMemo(() => cart.reduce((acc, c) => acc + c.totalPrice, 0), [cart]);
@@ -259,6 +325,14 @@ export function PharmacyPosPage() {
       setReceipt(res);
       setCart([]);
       setTenderAmount('');
+      if (activeRxNumber) {
+        try {
+          await pharmacyApi.prescriptions.markDispensed(activeRxNumber);
+        } catch {
+          // non-blocking
+        }
+        setActiveRxNumber(null);
+      }
       toast.success(t('Bill #{inv} dispensed successfully!', { inv: res.invoiceNumber }));
       refetchItems();
     } catch (err: any) {
@@ -480,6 +554,15 @@ export function PharmacyPosPage() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
+                    onClick={() => setIsRxModalOpen(true)}
+                    className="flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 rounded-md px-2 py-0.5 hover:bg-amber-100 transition shadow-xs"
+                  >
+                    <ClipboardList className="h-3.5 w-3.5 text-amber-600" />
+                    {t('Pull Rx')}
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => setIsPatientModalOpen(true)}
                     className="flex items-center gap-1 text-xs font-semibold text-primary-600 hover:text-primary-700 hover:underline"
                   >
@@ -487,7 +570,7 @@ export function PharmacyPosPage() {
                     {t('Lookup Patient')}
                   </button>
 
-                  {selectedPatientId && (
+                  {(selectedPatientId || activeRxNumber) && (
                     <button
                       type="button"
                       onClick={resetToWalkIn}
@@ -498,6 +581,22 @@ export function PharmacyPosPage() {
                   )}
                 </div>
               </div>
+
+              {activeRxNumber && (
+                <div className="flex items-center justify-between rounded-lg bg-amber-50/90 dark:bg-amber-950/40 border border-amber-300/80 px-2.5 py-1.5 text-xs">
+                  <span className="flex items-center gap-1.5 font-bold text-amber-900 dark:text-amber-200">
+                    <ClipboardList className="h-3.5 w-3.5 text-amber-600" />
+                    Rx: {activeRxNumber}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveRxNumber(null)}
+                    className="text-[11px] text-amber-700 hover:underline font-semibold"
+                  >
+                    {t('Detach')}
+                  </button>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <Input
@@ -832,6 +931,63 @@ export function PharmacyPosPage() {
         >
           <div className="p-2 space-y-4">
             <PatientPicker onSelect={handleSelectPatient} />
+          </div>
+        </Modal>
+      )}
+
+      {/* Pull Doctor Rx Modal */}
+      {isRxModalOpen && (
+        <Modal
+          open={true}
+          onClose={() => setIsRxModalOpen(false)}
+          title={t('Select Doctor E-Prescription (Pending Dispense)')}
+          size="lg"
+        >
+          <div className="space-y-3">
+            <p className="text-xs text-muted">
+              {t('Select an active outpatient prescription to populate patient details and prescribed medicines automatically.')}
+            </p>
+
+            <div className="max-h-[60vh] overflow-y-auto space-y-2">
+              {pendingRxData?.content && pendingRxData.content.length > 0 ? (
+                pendingRxData.content.map((rx) => (
+                  <div
+                    key={rx.id}
+                    className="flex items-center justify-between p-3 rounded-lg border border-border hover:border-primary-500 bg-surface hover:bg-surface-muted/50 transition cursor-pointer"
+                    onClick={() => {
+                      applyPrescriptionToCart(rx);
+                      setIsRxModalOpen(false);
+                    }}
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-primary">{rx.prescriptionNumber}</span>
+                        <span className="text-xs font-semibold text-foreground">{rx.patientName}</span>
+                        {rx.patientMrn && <span className="text-[11px] text-muted font-mono">({rx.patientMrn})</span>}
+                      </div>
+                      <div className="text-[11px] text-muted flex items-center gap-2 mt-1">
+                        <span>Dr. {rx.doctorName}</span>
+                        <span>·</span>
+                        <span>{new Date(rx.createdAt).toLocaleDateString()}</span>
+                        <span>·</span>
+                        <span className="font-bold text-foreground">{rx.items.length} items</span>
+                      </div>
+                    </div>
+
+                    <Button size="sm" className="h-7 text-xs gap-1 font-semibold">
+                      <ShoppingCart className="h-3 w-3" />
+                      {t('Load to Cart')}
+                    </Button>
+                  </div>
+                ))
+              ) : (
+                <div className="p-8 text-center text-muted">
+                  <ClipboardList className="mx-auto h-8 w-8 text-muted/40 mb-2" />
+                  <p className="font-semibold text-foreground">{t('No pending doctor prescriptions')}</p>
+                  <p className="text-xs">{t('All prescriptions have already been dispensed or none are logged.')}</p>
+                </div>
+              )}
+            </div>
           </div>
         </Modal>
       )}

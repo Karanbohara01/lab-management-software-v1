@@ -89,4 +89,17 @@ export const pharmacyApi = {
     record: (payload: import('./types').RecordNarcoticLogRequest) =>
       httpClient.post<import('./types').NarcoticLog>('/pharmacy/narcotics/logs', payload).then((r) => r.data),
   },
+
+  prescriptions: {
+    list: (params?: { query?: string; status?: string; page?: number; size?: number }) =>
+      httpClient.get<PageResponse<import('./types').Prescription>>('/pharmacy/prescriptions', { params }).then((r) => r.data),
+    getByNumber: (number: string) =>
+      httpClient.get<import('./types').Prescription>(`/pharmacy/prescriptions/${encodeURIComponent(number)}`).then((r) => r.data),
+    getPendingByPatient: (patientId: number) =>
+      httpClient.get<import('./types').Prescription[]>(`/pharmacy/prescriptions/patient/${patientId}`).then((r) => r.data),
+    create: (payload: import('./types').CreatePrescriptionRequest) =>
+      httpClient.post<import('./types').Prescription>('/pharmacy/prescriptions', payload).then((r) => r.data),
+    markDispensed: (number: string) =>
+      httpClient.post<import('./types').Prescription>(`/pharmacy/prescriptions/${encodeURIComponent(number)}/dispensed`).then((r) => r.data),
+  },
 };

@@ -41,6 +41,7 @@ public class PharmacyController {
     private final PharmacyDashboardService dashboardService;
     private final PharmacyReturnService returnService;
     private final np.com.lims.pharmacy.service.PharmacyNarcoticService narcoticService;
+    private final np.com.lims.pharmacy.service.PharmacyPrescriptionService prescriptionService;
 
     public PharmacyController(PharmacyItemService itemService,
                               PharmacyBatchService batchService,
@@ -50,7 +51,8 @@ public class PharmacyController {
                               PharmacyDispenseService dispenseService,
                               PharmacyDashboardService dashboardService,
                               PharmacyReturnService returnService,
-                              np.com.lims.pharmacy.service.PharmacyNarcoticService narcoticService) {
+                              np.com.lims.pharmacy.service.PharmacyNarcoticService narcoticService,
+                              np.com.lims.pharmacy.service.PharmacyPrescriptionService prescriptionService) {
         this.itemService = itemService;
         this.batchService = batchService;
         this.wholesalerService = wholesalerService;
@@ -60,6 +62,7 @@ public class PharmacyController {
         this.dashboardService = dashboardService;
         this.returnService = returnService;
         this.narcoticService = narcoticService;
+        this.prescriptionService = prescriptionService;
     }
 
     // --- Statistics ---
@@ -244,5 +247,35 @@ public class PharmacyController {
     @ResponseStatus(HttpStatus.CREATED)
     public NarcoticLogDto recordNarcoticLog(@Valid @RequestBody RecordNarcoticLogRequest req) {
         return narcoticService.recordLog(req);
+    }
+
+    // --- Doctor E-Prescription Direct Dispense Queue ---
+    @GetMapping("/prescriptions")
+    public Page<PrescriptionDto> listPrescriptions(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) String status,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return prescriptionService.list(query, status, pageable);
+    }
+
+    @GetMapping("/prescriptions/{number}")
+    public PrescriptionDto getPrescription(@PathVariable String number) {
+        return prescriptionService.getByNumber(number);
+    }
+
+    @GetMapping("/prescriptions/patient/{patientId}")
+    public List<PrescriptionDto> getPatientPrescriptions(@PathVariable Long patientId) {
+        return prescriptionService.getPendingByPatient(patientId);
+    }
+
+    @PostMapping("/prescriptions")
+    @ResponseStatus(HttpStatus.CREATED)
+    public PrescriptionDto createPrescription(@Valid @RequestBody CreatePrescriptionRequest req) {
+        return prescriptionService.createPrescription(req);
+    }
+
+    @PostMapping("/prescriptions/{number}/dispensed")
+    public void markPrescriptionDispensed(@PathVariable String number) {
+        prescriptionService.markDispensed(number);
     }
 }

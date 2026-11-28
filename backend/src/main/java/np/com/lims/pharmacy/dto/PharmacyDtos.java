@@ -404,4 +404,64 @@ public final class PharmacyDtos {
             String pharmacistNpcNumber,
             String remarks
     ) {}
+
+    public record PrescriptionItemRequest(
+            @NotNull Long itemId,
+            @NotBlank String dosage,
+            String frequency,
+            Integer durationDays,
+            @NotNull @Min(1) Integer quantityPrescribed,
+            String unitType,
+            String instructions
+    ) {}
+
+    public record CreatePrescriptionRequest(
+            Long patientId,
+            @NotBlank String patientName,
+            String patientMrn,
+            String patientPhone,
+            Long doctorId,
+            @NotBlank String doctorName,
+            String doctorNmc,
+            String department,
+            String diagnosis,
+            LocalDate validUntil,
+            String notes,
+            @NotNull List<PrescriptionItemRequest> items
+    ) {}
+
+    public record PrescriptionItemDto(
+            Long id,
+            Long itemId,
+            String itemName,
+            String genericName,
+            String dosage,
+            String frequency,
+            Integer durationDays,
+            Integer quantityPrescribed,
+            Integer quantityDispensed,
+            String unitType,
+            String instructions,
+            BigDecimal currentUnitPrice,
+            Integer stockAvailable
+    ) {}
+
+    public record PrescriptionDto(
+            Long id,
+            String prescriptionNumber,
+            Long patientId,
+            String patientName,
+            String patientMrn,
+            String patientPhone,
+            Long doctorId,
+            String doctorName,
+            String doctorNmc,
+            String department,
+            String diagnosis,
+            String status,
+            LocalDate validUntil,
+            String notes,
+            Instant createdAt,
+            List<PrescriptionItemDto> items
+    ) {}
 }

@@ -1,8 +1,10 @@
 -- V92: Narcotics & Controlled Schedule H / G Drug Register (DDA Nepal Compliance)
 
+DROP TABLE IF EXISTS `pharmacy_narcotic_log`;
+
 CREATE TABLE IF NOT EXISTS `pharmacy_narcotic_log` (
     `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
-    `tenant_id` BIGINT NOT NULL DEFAULT 1,
+    `organization_id` BIGINT NOT NULL DEFAULT 1,
     `item_id` BIGINT NOT NULL,
     `batch_id` BIGINT NOT NULL,
     `sale_id` BIGINT NULL,
@@ -40,7 +42,7 @@ CREATE TABLE IF NOT EXISTS `pharmacy_narcotic_log` (
     INDEX `idx_narcotic_doctor_nmc` (`doctor_nmc_number`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Add narcotic / controlled substance flag & schedule classification to pharmacy_item if not already enriched
+-- Add narcotic / controlled substance flag & schedule classification to pharmacy_item
 ALTER TABLE `pharmacy_item`
-    ADD COLUMN IF NOT EXISTS `is_narcotic` BOOLEAN NOT NULL DEFAULT FALSE,
-    ADD COLUMN IF NOT EXISTS `requires_prescription` BOOLEAN NOT NULL DEFAULT FALSE;
+    ADD COLUMN `is_narcotic` BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN `requires_prescription` BOOLEAN NOT NULL DEFAULT FALSE;

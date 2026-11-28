@@ -393,6 +393,66 @@ export interface NarcoticLog {
   remarks?: string;
 }
 
+export interface PrescriptionItem {
+  id: number;
+  itemId: number;
+  itemName: string;
+  genericName?: string;
+  dosage: string;
+  frequency?: string;
+  durationDays: number;
+  quantityPrescribed: number;
+  quantityDispensed: number;
+  unitType: 'PACK' | 'UNIT';
+  instructions?: string;
+  currentUnitPrice: number;
+  stockAvailable: number;
+}
+
+export interface Prescription {
+  id: number;
+  prescriptionNumber: string;
+  patientId?: number;
+  patientName: string;
+  patientMrn?: string;
+  patientPhone?: string;
+  doctorId?: number;
+  doctorName: string;
+  doctorNmc?: string;
+  department?: string;
+  diagnosis?: string;
+  status: 'PENDING' | 'PARTIALLY_DISPENSED' | 'COMPLETED' | 'CANCELLED';
+  validUntil?: string;
+  notes?: string;
+  createdAt: string;
+  items: PrescriptionItem[];
+}
+
+export interface CreatePrescriptionRequest {
+  patientId?: number;
+  patientName: string;
+  patientMrn?: string;
+  patientPhone?: string;
+  doctorId?: number;
+  doctorName: string;
+  doctorNmc?: string;
+  department?: string;
+  diagnosis?: string;
+  validUntil?: string;
+  notes?: string;
+  items: {
+    itemId: number;
+    dosage: string;
+    frequency?: string;
+    durationDays?: number;
+    quantityPrescribed: number;
+    unitType?: 'PACK' | 'UNIT';
+    instructions?: string;
+  }[];
+}
+
+
+
 export interface RecordNarcoticLogRequest {
   itemId: number;
   batchId: number;
@@ -418,3 +478,63 @@ export interface RecordNarcoticLogRequest {
   pharmacistNpcNumber?: string;
   remarks?: string;
 }
+
+export interface PrescriptionItem {
+  id: number;
+  itemId: number;
+  itemName: string;
+  genericName?: string;
+  dosage: string;
+  frequency?: string;
+  durationDays: number;
+  quantityPrescribed: number;
+  quantityDispensed: number;
+  unitType: 'PACK' | 'UNIT';
+  instructions?: string;
+  currentUnitPrice: number;
+  stockAvailable: number;
+}
+
+export interface Prescription {
+  id: number;
+  prescriptionNumber: string;
+  patientId?: number;
+  patientName: string;
+  patientMrn?: string;
+  patientPhone?: string;
+  doctorId?: number;
+  doctorName: string;
+  doctorNmc?: string;
+  department?: string;
+  diagnosis?: string;
+  status: 'PENDING' | 'PARTIALLY_DISPENSED' | 'COMPLETED' | 'CANCELLED';
+  validUntil?: string;
+  notes?: string;
+  createdAt: string;
+  items: PrescriptionItem[];
+}
+
+export interface CreatePrescriptionRequest {
+  patientId?: number;
+  patientName: string;
+  patientMrn?: string;
+  patientPhone?: string;
+  doctorId?: number;
+  doctorName: string;
+  doctorNmc?: string;
+  department?: string;
+  diagnosis?: string;
+  validUntil?: string;
+  notes?: string;
+  items: {
+    itemId: number;
+    dosage: string;
+    frequency?: string;
+    durationDays?: number;
+    quantityPrescribed: number;
+    unitType?: 'PACK' | 'UNIT';
+    instructions?: string;
+  }[];
+}
+
+
