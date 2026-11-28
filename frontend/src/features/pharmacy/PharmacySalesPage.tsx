@@ -4,6 +4,8 @@ import { pharmacyApi } from './api';
 import type { SaleReceipt } from './types';
 import { PharmacyHeader } from './PharmacyHeader';
 import { PharmacyReceiptPrint } from './PharmacyReceiptPrint';
+import { PharmacyThermalLabelModal } from './PharmacyThermalLabelModal';
+import type { PharmacyThermalLabelData } from './PharmacyThermalLabel';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -19,6 +21,7 @@ import {
   Phone,
   Stethoscope,
   Filter,
+  Tag,
 } from 'lucide-react';
 
 export function PharmacySalesPage() {
@@ -27,6 +30,25 @@ export function PharmacySalesPage() {
   const [search, setSearch] = useState('');
   const [selectedPaymentMode, setSelectedPaymentMode] = useState<string>('ALL');
   const [activeReceipt, setActiveReceipt] = useState<SaleReceipt | null>(null);
+  const [labelModalItems, setLabelModalItems] = useState<PharmacyThermalLabelData[] | null>(null);
+
+  const handlePrintInvoiceLabels = (receipt: SaleReceipt) => {
+    if (!receipt.items || receipt.items.length === 0) return;
+    const items: PharmacyThermalLabelData[] = receipt.items.map((it) => ({
+      patientName: receipt.customerName || 'Walk-in Patient',
+      patientMrn: receipt.patientId ? `MRN-${receipt.patientId}` : 'WALKIN',
+      doctorName: receipt.doctorName || undefined,
+      drugName: it.itemName,
+      genericName: it.genericName || undefined,
+      dispensedQty: it.quantity,
+      batchNumber: it.batchNumber || 'NA',
+      expiryDate: it.expiryDate || 'NA',
+      dispenseDate: (receipt.createdAt || new Date().toISOString()).split('T')[0],
+      instructionsEn: it.dosageInstruction || '1 Tablet Twice Daily After Meals',
+      instructionsNp: 'बिहान-बेलुका १-१ चक्की खानापछि',
+    }));
+    setLabelModalItems(items);
+  };
 
   // Load Sales Data
   const { data: salesPage, loading, refetch } = useQuery(
@@ -226,14 +248,25 @@ export function PharmacySalesPage() {
                     Rs. {sale.netTotal.toFixed(2)}
                   </td>
                   <td className="py-3 px-4 text-right">
-                    <Button
-                      variant="secondary"
-                      className="h-7 px-2.5 text-xs font-semibold"
-                      onClick={() => setActiveReceipt(sale)}
-                    >
-                      <Printer className="mr-1.5 h-3.5 w-3.5" />
-                      {t('Receipt')}
-                    </Button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button
+                        variant="secondary"
+                        className="h-7 px-2 text-xs font-semibold"
+                        title={t('Print Thermal Medication Labels')}
+                        onClick={() => handlePrintInvoiceLabels(sale)}
+                      >
+                        <Tag className="h-3.5 w-3.5 text-primary" />
+                        <span className="hidden sm:inline ml-1">{t('Labels')}</span>
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        className="h-7 px-2.5 text-xs font-semibold"
+                        onClick={() => setActiveReceipt(sale)}
+                      >
+                        <Printer className="mr-1.5 h-3.5 w-3.5" />
+                        {t('Receipt')}
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -278,6 +311,14 @@ export function PharmacySalesPage() {
                 <Printer className="mr-2 h-4 w-4" />
                 {t('Print Invoice')}
               </Button>
+              <Button
+                variant="secondary"
+                className="flex-1 font-semibold"
+                onClick={() => handlePrintInvoiceLabels(activeReceipt)}
+              >
+                <Tag className="mr-2 h-4 w-4 text-primary" />
+                {t('Print Labels')}
+              </Button>
               <Button className="flex-1" onClick={() => setActiveReceipt(null)}>
                 {t('Close')}
               </Button>
@@ -291,6 +332,15 @@ export function PharmacySalesPage() {
         <div className="hidden print:block">
           <PharmacyReceiptPrint receipt={activeReceipt} isPrintDocument={true} />
         </div>
+      )}
+
+      {/* Bedside Thermal Medication Label Generator Modal */}
+      {labelModalItems && (
+        <PharmacyThermalLabelModal
+          open={Boolean(labelModalItems)}
+          onClose={() => setLabelModalItems(null)}
+          initialItems={labelModalItems}
+        />
       )}
     </div>
   );

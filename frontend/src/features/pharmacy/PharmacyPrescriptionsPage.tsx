@@ -4,6 +4,8 @@ import { useQuery } from '@/hooks/useQuery';
 import { pharmacyApi } from './api';
 import type { Prescription } from './types';
 import { PharmacyHeader } from './PharmacyHeader';
+import { PharmacyThermalLabelModal } from './PharmacyThermalLabelModal';
+import type { PharmacyThermalLabelData } from './PharmacyThermalLabel';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -23,6 +25,7 @@ import {
   AlertCircle,
   FileText,
   Trash2,
+  Tag,
 } from 'lucide-react';
 
 export function PharmacyPrescriptionsPage() {
@@ -32,6 +35,25 @@ export function PharmacyPrescriptionsPage() {
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [activePrescription, setActivePrescription] = useState<Prescription | null>(null);
+  const [labelModalItems, setLabelModalItems] = useState<PharmacyThermalLabelData[] | null>(null);
+
+  const handlePrintPrescriptionLabels = (rx: Prescription) => {
+    if (!rx.items || rx.items.length === 0) return;
+    const labelItems: PharmacyThermalLabelData[] = rx.items.map((it) => ({
+      patientName: rx.patientName || 'Patient',
+      patientMrn: rx.patientMrn || (rx.patientId ? `MRN-${rx.patientId}` : 'WALKIN'),
+      doctorName: rx.doctorName || undefined,
+      drugName: it.itemName,
+      genericName: it.genericName || undefined,
+      dispensedQty: `${it.quantityPrescribed || it.durationDays || 5} ${it.unitType === 'PACK' ? 'Packs' : 'Units'}`,
+      batchNumber: 'CURRENT_LOT',
+      expiryDate: '12/2026',
+      dispenseDate: (rx.createdAt || new Date().toISOString()).split('T')[0],
+      instructionsEn: it.dosage || it.instructions || '1 Tablet Twice Daily After Meals',
+      instructionsNp: 'बिहान-बेलुका १-१ चक्की खानापछि',
+    }));
+    setLabelModalItems(labelItems);
+  };
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -512,6 +534,14 @@ export function PharmacyPrescriptionsPage() {
                 <Printer className="mr-1.5 h-4 w-4" />
                 {t('Print Rx Slip')}
               </Button>
+              <Button
+                variant="secondary"
+                className="flex-1 py-2 text-xs font-semibold"
+                onClick={() => handlePrintPrescriptionLabels(activePrescription)}
+              >
+                <Tag className="mr-1.5 h-4 w-4 text-primary" />
+                {t('Print Labels')}
+              </Button>
               <Button variant="secondary" className="py-2 text-xs" onClick={() => setActivePrescription(null)}>
                 {t('Close')}
               </Button>
@@ -758,6 +788,15 @@ export function PharmacyPrescriptionsPage() {
             </div>
           </form>
         </Modal>
+      )}
+
+      {/* Bedside Thermal Medication Label Generator Modal */}
+      {labelModalItems && (
+        <PharmacyThermalLabelModal
+          open={Boolean(labelModalItems)}
+          onClose={() => setLabelModalItems(null)}
+          initialItems={labelModalItems}
+        />
       )}
     </div>
   );

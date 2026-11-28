@@ -39,9 +39,12 @@ import {
   PauseCircle,
   PlayCircle,
   Zap,
+  Tag,
 } from 'lucide-react';
 import { PharmacyHeader } from './PharmacyHeader';
 import { PharmacyReceiptPrint } from './PharmacyReceiptPrint';
+import { PharmacyThermalLabelModal } from './PharmacyThermalLabelModal';
+import type { PharmacyThermalLabelData } from './PharmacyThermalLabel';
 import { playScanSuccessSound, playScanErrorSound, playCheckoutDingSound } from './posAudio';
 
 interface HeldCart {
@@ -182,6 +185,46 @@ export function PharmacyPosPage() {
   const [safetyResult, setSafetyResult] = useState<DrugSafetyCheckResponse | null>(null);
   const [overrideSevereWarning, setOverrideSevereWarning] = useState(false);
   const [_isSafetyChecking, setIsSafetyChecking] = useState(false);
+
+  // Bedside Thermal Medication Label Generator Modal State
+  const [labelModalItems, setLabelModalItems] = useState<PharmacyThermalLabelData[] | null>(null);
+
+  const handlePrintCartLineLabel = (line: CartLine) => {
+    const labelItem: PharmacyThermalLabelData = {
+      patientName: customerName.trim() || 'Walk-in Patient',
+      patientMrn: selectedPatientId ? `MRN-${selectedPatientId}` : 'WALKIN',
+      doctorName: doctorName.trim() || undefined,
+      drugName: `${line.item.name} ${line.item.strength || ''}`.trim(),
+      genericName: line.item.genericName || undefined,
+      dosageForm: String(line.item.dosageForm || 'Tab'),
+      dispensedQty: `${line.quantity} ${line.unitType === 'PACK' ? 'Packs' : 'Tabs'}`,
+      batchNumber: line.item.barcode || 'CURRENT_LOT',
+      expiryDate: '12/2026',
+      dispenseDate: new Date().toISOString().split('T')[0],
+      instructionsEn: line.dosageInstruction?.trim() || '1 Tablet Twice Daily After Meals',
+      instructionsNp: 'बिहान-बेलुका १-१ चक्की खानापछि',
+      advisoryNote: line.item.isNarcotic ? 'Schedule Controlled Medicine (विशेष निगरानी)' : undefined,
+    };
+    setLabelModalItems([labelItem]);
+  };
+
+  const handlePrintReceiptLabels = () => {
+    if (!receipt || !receipt.items) return;
+    const items: PharmacyThermalLabelData[] = receipt.items.map((it) => ({
+      patientName: receipt.customerName || customerName.trim() || 'Walk-in Patient',
+      patientMrn: receipt.patientId ? `MRN-${receipt.patientId}` : (selectedPatientId ? `MRN-${selectedPatientId}` : 'WALKIN'),
+      doctorName: receipt.doctorName || doctorName.trim() || undefined,
+      drugName: it.itemName,
+      genericName: it.genericName || undefined,
+      dispensedQty: it.quantity,
+      batchNumber: it.batchNumber || 'NA',
+      expiryDate: it.expiryDate || 'NA',
+      dispenseDate: (receipt.createdAt || new Date().toISOString()).split('T')[0],
+      instructionsEn: it.dosageInstruction || '1 Tablet Twice Daily After Meals',
+      instructionsNp: 'बिहान-बेलुका १-१ चक्की खानापछि',
+    }));
+    setLabelModalItems(items);
+  };
 
   // Real-time Clinical Drug-Drug Interaction (DDI) & Allergy Check
   useEffect(() => {
@@ -1001,13 +1044,23 @@ export function PharmacyPosPage() {
                         <div className="text-[10px] text-muted">{line.item.genericName}</div>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => removeFromCart(line.item.id)}
-                        className="text-muted hover:text-danger transition p-0.5"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          title={t('Print Bedside Thermal Label')}
+                          onClick={() => handlePrintCartLineLabel(line)}
+                          className="text-muted hover:text-primary transition p-1 rounded hover:bg-surface-muted"
+                        >
+                          <Tag className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeFromCart(line.item.id)}
+                          className="text-muted hover:text-danger transition p-1 rounded hover:bg-surface-muted"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Unit Switcher & Stepper Controls */}
@@ -1443,6 +1496,14 @@ export function PharmacyPosPage() {
                 <Printer className="mr-2 h-4 w-4" />
                 {t('Print Receipt')}
               </Button>
+              <Button
+                variant="secondary"
+                className="flex-1 font-semibold"
+                onClick={handlePrintReceiptLabels}
+              >
+                <Tag className="mr-2 h-4 w-4 text-primary" />
+                {t('Print Labels')}
+              </Button>
               <Button className="flex-1" onClick={() => setReceipt(null)}>
                 {t('Done (Next Customer)')}
               </Button>
@@ -1498,6 +1559,15 @@ export function PharmacyPosPage() {
             )}
           </div>
         </Modal>
+      )}
+
+      {/* Bedside & POS Thermal Medication Label Modal */}
+      {labelModalItems && (
+        <PharmacyThermalLabelModal
+          open={Boolean(labelModalItems)}
+          onClose={() => setLabelModalItems(null)}
+          initialItems={labelModalItems}
+        />
       )}
     </div>
   );

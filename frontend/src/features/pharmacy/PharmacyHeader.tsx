@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   ShoppingCart,
@@ -12,8 +13,10 @@ import {
   ClipboardList,
   CalendarClock,
   PackageSearch,
+  Tag,
 } from 'lucide-react';
 import { useT } from '@/i18n';
+import { PharmacyThermalLabelModal } from './PharmacyThermalLabelModal';
 
 interface NavItem {
   to: string;
@@ -26,6 +29,7 @@ interface NavItem {
 export function PharmacyHeader() {
   const t = useT();
   const location = useLocation();
+  const [labelModalOpen, setLabelModalOpen] = useState(false);
 
   const navItems: NavItem[] = [
     {
@@ -114,6 +118,14 @@ export function PharmacyHeader() {
           <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-2.5 py-0.5 font-medium text-purple-800 dark:border-purple-800/40 dark:bg-purple-950/40 dark:text-purple-300">
             {t('Dual-Unit (Pack ↔ Tab)')}
           </span>
+          <button
+            type="button"
+            onClick={() => setLabelModalOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-0.5 text-[11px] font-bold text-amber-900 transition hover:bg-amber-100 dark:border-amber-700/50 dark:bg-amber-950/50 dark:text-amber-300 shadow-xs cursor-pointer"
+          >
+            <Tag className="h-3 w-3 text-amber-700 dark:text-amber-400" />
+            {t('Thermal Label Maker')}
+          </button>
         </div>
       </div>
 
@@ -147,6 +159,14 @@ export function PharmacyHeader() {
           );
         })}
       </nav>
+
+      {/* Standalone Bedside & POS Thermal Label Modal */}
+      {labelModalOpen && (
+        <PharmacyThermalLabelModal
+          open={labelModalOpen}
+          onClose={() => setLabelModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

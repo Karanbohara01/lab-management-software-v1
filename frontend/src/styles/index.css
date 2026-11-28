@@ -216,13 +216,16 @@
   #pharmacy-receipt-print,
   #pharmacy-receipt-print *,
   #pharmacy-po-print,
-  #pharmacy-po-print * {
+  #pharmacy-po-print *,
+  #pharmacy-label-print,
+  #pharmacy-label-print * {
     visibility: visible !important;
   }
   #report-print,
   #patient-print,
   #pharmacy-receipt-print,
-  #pharmacy-po-print {
+  #pharmacy-po-print,
+  #pharmacy-label-print {
     display: block !important;
     position: absolute;
     inset: 0;
@@ -241,7 +244,9 @@
   #pharmacy-receipt-print,
   #pharmacy-receipt-print *,
   #pharmacy-po-print,
-  #pharmacy-po-print * {
+  #pharmacy-po-print *,
+  #pharmacy-label-print,
+  #pharmacy-label-print * {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
