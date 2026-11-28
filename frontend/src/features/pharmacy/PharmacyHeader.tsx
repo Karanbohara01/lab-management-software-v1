@@ -1,27 +1,29 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  ShoppingCart,
-  Pill,
-  Truck,
-  Building2,
-  AlertTriangle,
-  ShieldCheck,
-  RotateCcw,
-  Receipt,
-  ShieldAlert,
-  ClipboardList,
-  CalendarClock,
-  PackageSearch,
-  Tag,
-} from 'lucide-react';
+  FaCashRegister,
+  FaFileInvoiceDollar,
+  FaFilePrescription,
+  FaCapsules,
+  FaTruckRampBox,
+  FaBoxesPacking,
+  FaBuilding,
+  FaHourglassHalf,
+  FaRotateLeft,
+  FaBell,
+  FaShieldHalved,
+  FaTags,
+  FaPrescriptionBottleMedical,
+  FaRotate,
+  FaBoxesStacked,
+} from 'react-icons/fa6';
 import { useT } from '@/i18n';
 import { PharmacyThermalLabelModal } from './PharmacyThermalLabelModal';
 
 interface NavItem {
   to: string;
   label: string;
-  icon: typeof ShoppingCart;
+  icon: typeof FaCashRegister;
   badge?: string;
   badgeTone?: 'primary' | 'danger' | 'warning' | 'neutral';
 }
@@ -35,57 +37,57 @@ export function PharmacyHeader() {
     {
       to: '/app/pharmacy/pos',
       label: t('POS Counter'),
-      icon: ShoppingCart,
+      icon: FaCashRegister,
     },
     {
       to: '/app/pharmacy/sales',
       label: t('Sales & Invoices'),
-      icon: Receipt,
+      icon: FaFileInvoiceDollar,
     },
     {
       to: '/app/pharmacy/prescriptions',
       label: t('Doctor Rx (E-Prescriptions)'),
-      icon: ClipboardList,
+      icon: FaFilePrescription,
     },
     {
       to: '/app/pharmacy/medicines',
       label: t('Medicines & Catalog'),
-      icon: Pill,
+      icon: FaCapsules,
     },
     {
       to: '/app/pharmacy/purchases',
       label: t('Purchases & Inward (GRN)'),
-      icon: Truck,
+      icon: FaTruckRampBox,
     },
     {
       to: '/app/pharmacy/reorder',
       label: t('Re-Order Intelligence & PO'),
-      icon: PackageSearch,
+      icon: FaBoxesPacking,
     },
     {
       to: '/app/pharmacy/wholesalers',
       label: t('Wholesalers & Resellers'),
-      icon: Building2,
+      icon: FaBuilding,
     },
     {
       to: '/app/pharmacy/expiry',
       label: t('Expiry & FEFO Tracker'),
-      icon: AlertTriangle,
+      icon: FaHourglassHalf,
     },
     {
       to: '/app/pharmacy/returns',
       label: t('Returns & Credit Notes'),
-      icon: RotateCcw,
+      icon: FaRotateLeft,
     },
     {
       to: '/app/pharmacy/refills',
       label: t('Refill Tracker & SMS'),
-      icon: CalendarClock,
+      icon: FaBell,
     },
     {
       to: '/app/pharmacy/narcotics',
       label: t('Narcotics & Schedule H'),
-      icon: ShieldAlert,
+      icon: FaShieldHalved,
     },
   ];
 
@@ -93,12 +95,12 @@ export function PharmacyHeader() {
     <div className="space-y-3 pb-1" data-print-hide>
       {/* Top Banner with Badges */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-            <Pill className="h-5 w-5" />
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-sm ring-2 ring-primary/20">
+            <FaPrescriptionBottleMedical className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
+            <h1 className="text-lg font-extrabold tracking-tight text-foreground sm:text-xl">
               {t('Hospital Pharmacy & Dispensary')}
             </h1>
             <p className="text-xs text-muted">
@@ -107,29 +109,31 @@ export function PharmacyHeader() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 font-medium text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-950/40 dark:text-emerald-300">
-            <ShieldCheck className="h-3 w-3" />
+        <div className="flex flex-wrap items-center gap-2 text-[11px]">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50/80 px-2.5 py-0.5 font-bold text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-950/40 dark:text-emerald-300 shadow-2xs">
+            <FaShieldHalved className="h-3 w-3 text-emerald-600" />
             {t('DDA Nepal Standard')}
           </span>
-          <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 font-medium text-blue-800 dark:border-blue-800/40 dark:bg-blue-950/40 dark:text-blue-300">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-200/80 bg-sky-50/80 px-2.5 py-0.5 font-bold text-sky-800 dark:border-sky-800/40 dark:bg-sky-950/40 dark:text-sky-300 shadow-2xs">
+            <FaRotate className="h-2.5 w-2.5 text-sky-600" />
             {t('FEFO Auto-Deduction')}
           </span>
-          <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-2.5 py-0.5 font-medium text-purple-800 dark:border-purple-800/40 dark:bg-purple-950/40 dark:text-purple-300">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-200/80 bg-purple-50/80 px-2.5 py-0.5 font-bold text-purple-800 dark:border-purple-800/40 dark:bg-purple-950/40 dark:text-purple-300 shadow-2xs">
+            <FaBoxesStacked className="h-2.5 w-2.5 text-purple-600" />
             {t('Dual-Unit (Pack ↔ Tab)')}
           </span>
           <button
             type="button"
             onClick={() => setLabelModalOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-0.5 text-[11px] font-bold text-amber-900 transition hover:bg-amber-100 dark:border-amber-700/50 dark:bg-amber-950/50 dark:text-amber-300 shadow-xs cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50/90 px-3 py-1 text-[11px] font-extrabold text-amber-900 transition hover:bg-amber-100 hover:border-amber-400 dark:border-amber-700/50 dark:bg-amber-950/50 dark:text-amber-300 shadow-xs cursor-pointer active:scale-95"
           >
-            <Tag className="h-3 w-3 text-amber-700 dark:text-amber-400" />
+            <FaTags className="h-3 w-3 text-amber-600 dark:text-amber-400" />
             {t('Thermal Label Maker')}
           </button>
         </div>
       </div>
 
-      {/* Modern Navigation Tabs - Flex wrap to ensure all tabs are visible without ugly scrollbars */}
+      {/* Modern Navigation Tabs with Flaticons */}
       <nav className="flex flex-wrap items-center gap-1.5 rounded-xl border border-border/80 bg-surface/80 p-1.5 shadow-xs backdrop-blur-sm [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {navItems.map((item) => {
           const isActive = location.pathname.startsWith(item.to);
@@ -144,7 +148,7 @@ export function PharmacyHeader() {
                   : 'text-muted-foreground hover:bg-surface-muted hover:text-foreground'
               }`}
             >
-              <Icon className={`h-4 w-4 ${isActive ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
+              <Icon className={`h-3.5 w-3.5 ${isActive ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
               <span className="whitespace-nowrap">{item.label}</span>
               {item.badge && (
                 <span
