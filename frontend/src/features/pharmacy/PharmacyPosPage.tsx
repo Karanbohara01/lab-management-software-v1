@@ -33,9 +33,29 @@ import {
   AlertTriangle,
   ShieldAlert,
   ShieldCheck,
+  Scan,
+  Volume2,
+  VolumeX,
+  PauseCircle,
+  PlayCircle,
+  Zap,
 } from 'lucide-react';
 import { PharmacyHeader } from './PharmacyHeader';
 import { PharmacyReceiptPrint } from './PharmacyReceiptPrint';
+import { playScanSuccessSound, playScanErrorSound, playCheckoutDingSound } from './posAudio';
+
+interface HeldCart {
+  id: string;
+  heldAt: string;
+  customerName: string;
+  customerPhone?: string;
+  selectedPatientId?: number;
+  doctorName: string;
+  paymentMethod: 'CASH' | 'QR_FONEPAY' | 'CARD' | 'CREDIT';
+  cart: CartLine[];
+  subtotal: number;
+  grandTotal: number;
+}
 
 interface CartLine {
   item: PharmacyItem;
@@ -151,6 +171,13 @@ export function PharmacyPosPage() {
   const [receipt, setReceipt] = useState<SaleReceipt | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Hardware Barcode Scanner & Fast Counter Mode State
+  const [isSoundEnabled, setIsSoundEnabled] = useState(true);
+  const [isFastCounterMode, setIsFastCounterMode] = useState(false);
+  const [heldCarts, setHeldCarts] = useState<HeldCart[]>([]);
+  const [isHeldModalOpen, setIsHeldModalOpen] = useState(false);
+  const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
+
   // Clinical Safety & DDI Alert Engine State
   const [safetyResult, setSafetyResult] = useState<DrugSafetyCheckResponse | null>(null);
   const [overrideSevereWarning, setOverrideSevereWarning] = useState(false);
@@ -178,31 +205,20 @@ export function PharmacyPosPage() {
       .finally(() => setIsSafetyChecking(false));
   }, [cart, selectedPatientId]);
 
-  // Keyboard shortcut listener
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'F2') {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-        searchInputRef.current?.select();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
   const filteredItems = useMemo(() => {
     if (!itemsPage?.content) return [];
     if (selectedCategory === 'ALL') return itemsPage.content;
     return itemsPage.content.filter((item) => item.category === selectedCategory);
   }, [itemsPage, selectedCategory]);
 
-  const addToCart = (item: PharmacyItem) => {
+  const addToCart = useCallback((item: PharmacyItem) => {
     if (item.totalStockUnits <= 0) {
+      if (isSoundEnabled) playScanErrorSound();
       toast.error(t('Item is out of stock!'));
       return;
     }
 
+    if (isSoundEnabled) playScanSuccessSound();
     setCart((prev) => {
       const existing = prev.find((c) => c.item.id === item.id);
       if (existing) {
@@ -226,7 +242,7 @@ export function PharmacyPosPage() {
         },
       ];
     });
-  };
+  }, [isSoundEnabled, t, toast]);
 
   const updateLineUnit = (itemId: number, unitType: 'PACK' | 'UNIT') => {
     setCart((prev) =>
@@ -394,6 +410,7 @@ export function PharmacyPosPage() {
         setActiveRxNumber(null);
       }
       toast.success(t('Bill #{inv} dispensed successfully!', { inv: res.invoiceNumber }));
+      if (isSoundEnabled) playCheckoutDingSound();
       refetchItems();
     } catch (err: any) {
       toast.error(err?.message || t('Failed to complete sale'));
@@ -402,6 +419,179 @@ export function PharmacyPosPage() {
     }
   };
 
+  // Cart Hold & Recall
+  const handleHoldCart = useCallback(() => {
+    if (cart.length === 0) {
+      toast.error(t('Cart is empty, nothing to hold'));
+      return;
+    }
+    const newHold: HeldCart = {
+      id: `HOLD-${Math.floor(1000 + Math.random() * 9000)}`,
+      heldAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      customerName: customerName.trim() || 'Walk-in Customer',
+      customerPhone: customerPhone.trim() || undefined,
+      selectedPatientId,
+      doctorName: doctorName.trim() || '',
+      paymentMethod,
+      cart: [...cart],
+      subtotal,
+      grandTotal,
+    };
+    setHeldCarts((prev) => [newHold, ...prev]);
+    setCart([]);
+    setCustomerName('Walk-in Customer');
+    setCustomerPhone('');
+    setSelectedPatientId(undefined);
+    setTenderAmount('');
+    toast.success(t('Cart held ({id}). Counter cleared for next patient!', { id: newHold.id }));
+  }, [cart, customerName, customerPhone, selectedPatientId, doctorName, paymentMethod, subtotal, grandTotal, t, toast]);
+
+  const handleRecallCart = (held: HeldCart) => {
+    setCart(held.cart);
+    setCustomerName(held.customerName);
+    setCustomerPhone(held.customerPhone || '');
+    setSelectedPatientId(held.selectedPatientId);
+    setDoctorName(held.doctorName);
+    setPaymentMethod(held.paymentMethod);
+    setHeldCarts((prev) => prev.filter((h) => h.id !== held.id));
+    setIsHeldModalOpen(false);
+    toast.success(t('Held cart ({id}) restored to counter!', { id: held.id }));
+  };
+
+  // Hardware Barcode Scanner & GS1 Wedge Resolver
+  const handleBarcodeScanned = useCallback(
+    (code: string) => {
+      setLastScannedCode(code);
+      const clean = code.trim().toLowerCase();
+
+      // Look in currently loaded catalog
+      const items = itemsPage?.content || [];
+      const found = items.find(
+        (it) =>
+          (it.barcode && it.barcode.trim().toLowerCase() === clean) ||
+          it.name.trim().toLowerCase() === clean
+      );
+
+      if (found) {
+        if (found.totalStockUnits <= 0) {
+          if (isSoundEnabled) playScanErrorSound();
+          toast.error(t('{name} is OUT OF STOCK!', { name: found.name }));
+        } else {
+          addToCart(found);
+          toast.success(t('Scanned: {name} (+1)', { name: found.name }));
+        }
+      } else {
+        // Fallback: search backend for exact barcode or name
+        pharmacyApi.items
+          .list({ query: code, size: 5 })
+          .then((res) => {
+            const remoteItem =
+              res.content?.find(
+                (it) =>
+                  (it.barcode && it.barcode.trim().toLowerCase() === clean) ||
+                  it.name.trim().toLowerCase() === clean
+              ) || res.content?.[0];
+
+            if (remoteItem) {
+              if (remoteItem.totalStockUnits <= 0) {
+                if (isSoundEnabled) playScanErrorSound();
+                toast.error(t('{name} is OUT OF STOCK!', { name: remoteItem.name }));
+              } else {
+                addToCart(remoteItem);
+                toast.success(t('Scanned: {name} (+1)', { name: remoteItem.name }));
+              }
+            } else {
+              if (isSoundEnabled) playScanErrorSound();
+              toast.error(t('Barcode "{code}" not found in catalogue', { code }));
+            }
+          })
+          .catch(() => {
+            if (isSoundEnabled) playScanErrorSound();
+            toast.error(t('Barcode "{code}" not found', { code }));
+          });
+      }
+    },
+    [itemsPage, isSoundEnabled, addToCart, t, toast]
+  );
+
+  // Global Keyboard Shortcuts & Hardware Barcode Scanner Wedge Listener
+  useEffect(() => {
+    let buffer = '';
+    let lastKeyTime = Date.now();
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Function hotkeys
+      if (e.key === 'F2') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+        return;
+      }
+      if (e.key === 'F4') {
+        e.preventDefault();
+        setPaymentMethod((prev) => {
+          if (prev === 'CASH') return 'QR_FONEPAY';
+          if (prev === 'QR_FONEPAY') return 'CARD';
+          if (prev === 'CARD') return 'CREDIT';
+          return 'CASH';
+        });
+        return;
+      }
+      if (e.key === 'F7') {
+        e.preventDefault();
+        setIsSoundEnabled((prev) => !prev);
+        return;
+      }
+      if (e.key === 'F8') {
+        e.preventDefault();
+        setIsFastCounterMode((prev) => !prev);
+        return;
+      }
+      if (e.key === 'F9') {
+        e.preventDefault();
+        handleCheckout();
+        return;
+      }
+      if (e.key === 'F10') {
+        e.preventDefault();
+        handleHoldCart();
+        return;
+      }
+
+      // Barcode Wedge Detection:
+      const target = e.target as HTMLElement;
+      const isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA');
+
+      const currentTime = Date.now();
+      const timeDiff = currentTime - lastKeyTime;
+      lastKeyTime = currentTime;
+
+      if (e.key === 'Enter') {
+        const scanned = buffer.trim();
+        buffer = '';
+        if (scanned.length >= 3) {
+          if (isInput) {
+            (target as HTMLInputElement).blur();
+          }
+          handleBarcodeScanned(scanned);
+        }
+        return;
+      }
+
+      // If user typed slowly (>180ms between keystrokes), it's manual typing, reset buffer
+      if (timeDiff > 180) {
+        buffer = '';
+      }
+
+      if (e.key.length === 1) {
+        buffer += e.key;
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [handleBarcodeScanned, handleCheckout, handleHoldCart]);
+
   return (
     <div className="space-y-4">
       {/* Shared Pharmacy Sub-Navigation */}
@@ -409,7 +599,7 @@ export function PharmacyPosPage() {
 
       {/* POS Toolbar & Hotkeys Header */}
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/80 bg-surface p-3 shadow-xs" data-print-hide>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary-100 text-primary-700 dark:bg-primary-950 dark:text-primary-300">
             <ShoppingCart className="h-4 w-4" />
           </span>
@@ -419,24 +609,95 @@ export function PharmacyPosPage() {
           <Badge tone="info" variant="subtle">
             {t('FEFO FIFO Active')}
           </Badge>
+
+          {/* Hardware Scanner Active Badge */}
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 dark:border-emerald-800/40 dark:bg-emerald-950/40 dark:text-emerald-300">
+            <Scan className="h-3 w-3 animate-pulse text-emerald-600" />
+            <span>{lastScannedCode ? `Last: ${lastScannedCode}` : t('Scanner Ready')}</span>
+          </span>
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-muted">
-          <span className="rounded bg-surface-muted px-2 py-1 font-mono text-[11px] font-semibold text-foreground">
-            F2
-          </span>
-          <span>{t('Search Drug')}</span>
-          <span className="mx-1 text-border">·</span>
-          <span className="rounded bg-surface-muted px-2 py-1 font-mono text-[11px] font-semibold text-foreground">
-            Enter
-          </span>
-          <span>{t('Add to Bill')}</span>
+        {/* Action Controls & Hotkeys */}
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          {/* Sound Toggle (F7) */}
+          <button
+            type="button"
+            onClick={() => setIsSoundEnabled(!isSoundEnabled)}
+            title={t('Toggle Scanner Sound Chime (F7)')}
+            className={`flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold transition ${
+              isSoundEnabled
+                ? 'bg-primary/10 text-primary border border-primary/20'
+                : 'bg-surface-muted text-muted hover:text-foreground'
+            }`}
+          >
+            {isSoundEnabled ? <Volume2 className="h-3.5 w-3.5 text-primary" /> : <VolumeX className="h-3.5 w-3.5 text-muted" />}
+            <span className="font-mono text-[10px]">F7</span>
+          </button>
+
+          {/* Fast Counter Mode (F8) */}
+          <button
+            type="button"
+            onClick={() => setIsFastCounterMode(!isFastCounterMode)}
+            title={t('Toggle Fast Counter Express Mode (F8)')}
+            className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold transition ${
+              isFastCounterMode
+                ? 'bg-amber-500 text-white shadow-xs'
+                : 'bg-surface-muted text-muted hover:text-foreground'
+            }`}
+          >
+            <Zap className="h-3.5 w-3.5" />
+            <span>{t('Fast Counter')}</span>
+            <span className="font-mono text-[10px] opacity-75">F8</span>
+          </button>
+
+          {/* Hold Cart (F10) */}
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={cart.length === 0}
+            onClick={handleHoldCart}
+            className="h-7 text-xs gap-1 font-semibold"
+          >
+            <PauseCircle className="h-3.5 w-3.5 text-amber-600" />
+            <span>{t('Hold (F10)')}</span>
+          </Button>
+
+          {/* Recall Held Carts */}
+          {heldCarts.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setIsHeldModalOpen(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-purple-300 bg-purple-50 px-2.5 py-1 text-xs font-bold text-purple-800 hover:bg-purple-100 dark:border-purple-800 dark:bg-purple-950/40 dark:text-purple-300 animate-pulse"
+            >
+              <PlayCircle className="h-3.5 w-3.5 text-purple-600" />
+              <span>{t('Recall Held ({n})', { n: heldCarts.length })}</span>
+            </button>
+          )}
+
+          {/* Hotkey Guide */}
+          <div className="hidden xl:flex items-center gap-1.5 pl-2 text-[11px] text-muted border-l border-border/80">
+            <span className="rounded bg-surface-muted px-1.5 py-0.5 font-mono font-bold text-foreground">F2</span>
+            <span>Search</span>
+            <span className="text-border">·</span>
+            <span className="rounded bg-surface-muted px-1.5 py-0.5 font-mono font-bold text-foreground">F4</span>
+            <span>Payment</span>
+            <span className="text-border">·</span>
+            <span className="rounded bg-surface-muted px-1.5 py-0.5 font-mono font-bold text-foreground">F9</span>
+            <span>Dispense</span>
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12" data-print-hide>
-        {/* Left Side: Product Catalog & Search (7 Cols) */}
-        <div className="space-y-4 lg:col-span-7">
+        {/* Left Side: Product Catalog & Search (Responsive based on Fast Counter Mode) */}
+        <div className={`space-y-4 ${isFastCounterMode ? 'lg:col-span-5' : 'lg:col-span-7'}`}>
+          {isFastCounterMode && (
+            <div className="rounded-lg border-2 border-dashed border-emerald-400 bg-emerald-50/60 p-2.5 text-xs font-semibold text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300 flex items-center justify-center gap-2 animate-in fade-in">
+              <Scan className="h-4 w-4 text-emerald-600 animate-pulse" />
+              <span>{t('FAST COUNTER ACTIVE: Barcode scanner will auto-add medicines to bill without clicking')}</span>
+            </div>
+          )}
           {/* Search bar & Category chips */}
           <div className="rounded-xl border border-border/80 bg-surface p-3.5 shadow-xs space-y-3">
             <div className="relative">
@@ -601,8 +862,8 @@ export function PharmacyPosPage() {
           </div>
         </div>
 
-        {/* Right Side: Dispensing Counter / Active Cart (5 Cols) */}
-        <div className="space-y-4 lg:col-span-5">
+        {/* Right Side: Dispensing Counter / Active Cart */}
+        <div className={`space-y-4 ${isFastCounterMode ? 'lg:col-span-7' : 'lg:col-span-5'}`}>
           <div className="flex flex-col rounded-xl border border-border/80 bg-surface p-4 shadow-sm space-y-4">
             {/* Customer & Prescriber Header */}
             <div className="space-y-2 border-b border-border/60 pb-3">
@@ -1075,7 +1336,7 @@ export function PharmacyPosPage() {
                 ? t('Processing Dispense...')
                 : safetyResult?.hasSevereContraindication && !overrideSevereWarning
                   ? t('Awaiting Pharmacist Clinical Override...')
-                  : `${t('Dispense & Print Bill')} — Rs. ${grandTotal.toFixed(2)}`}
+                  : `${t('Dispense & Print Bill')} (F9) — Rs. ${grandTotal.toFixed(2)}`}
             </Button>
           </div>
         </div>
@@ -1186,6 +1447,55 @@ export function PharmacyPosPage() {
                 {t('Done (Next Customer)')}
               </Button>
             </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Held Carts Recall Modal */}
+      {isHeldModalOpen && (
+        <Modal
+          open={true}
+          onClose={() => setIsHeldModalOpen(false)}
+          title={t('Held Customer Carts Queue')}
+          description={t('Select a previously held cart to restore it to the counter.')}
+        >
+          <div className="space-y-2.5 pt-2">
+            {heldCarts.length === 0 ? (
+              <p className="text-center text-xs text-muted py-6">{t('No customer carts currently on hold.')}</p>
+            ) : (
+              heldCarts.map((held) => (
+                <div
+                  key={held.id}
+                  className="flex items-center justify-between rounded-xl border border-border/80 bg-surface p-3 shadow-xs hover:border-primary/50 transition"
+                >
+                  <div>
+                    <div className="flex items-center gap-2 font-bold text-foreground text-xs">
+                      <span className="font-mono text-purple-700 dark:text-purple-300">{held.id}</span>
+                      <span>·</span>
+                      <span>{held.customerName}</span>
+                      {held.customerPhone && <span className="text-muted font-normal">({held.customerPhone})</span>}
+                    </div>
+                    <div className="text-[11px] text-muted mt-0.5">
+                      {held.heldAt} · {held.cart.length} items · Mode: {held.paymentMethod}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="font-black text-foreground text-xs">
+                      Rs. {held.grandTotal.toFixed(2)}
+                    </span>
+                    <Button
+                      size="sm"
+                      onClick={() => handleRecallCart(held)}
+                      className="h-7 text-xs font-bold gap-1"
+                    >
+                      <PlayCircle className="h-3.5 w-3.5" />
+                      {t('Restore')}
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </Modal>
       )}
